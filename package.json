@@ -1,0 +1,42 @@
+{
+  "name": "fitconnect",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "tsc -w",
+    "start": "node dist/index.js",
+    "dev": "nodemon dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "22.10.0",
+    "nodemon": "^3.1.7",
+    "semistandard": "17.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "5.7.2"
+  },
+  "eslintConfig": {
+    "extends": "standard"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.2",
+    "@mikro-orm/cli": "6.4.0",
+    "@mikro-orm/core": "6.4.0",
+    "@mikro-orm/migrations": "6.4.0",
+    "@mikro-orm/postgresql": "6.4.0",
+    "express": "4.21.1",
+    "graphql": "^16.9.0",
+    "pg": "8.13.1"
+  },
+  "mikro-orm": {
+    "configPaths": [
+      "./src/mikro-orm.config.ts",
+      "./dist/mikro-orm.config.js"
+    ]
+  }
+}

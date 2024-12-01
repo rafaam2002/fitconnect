@@ -5,11 +5,13 @@ export const typeDefs = `#graphql
     ERROR
     INFO
   }
+
   enum UserRol {
     standard
     boss
     premium
   }
+
   type Message {
     id: ID!
     created_at: String!
@@ -43,6 +45,7 @@ export const typeDefs = `#graphql
     isBlocked: Boolean!
     rol: UserRol!
   }
+
   type Schedule{
     id: ID!
     created_at: String!
@@ -64,7 +67,9 @@ export const typeDefs = `#graphql
   }
 
   type Query {
-    users: [User]!
+    allUsers: [User]!
+    me: User,
+    user(id: ID!): User
     Messages: [Message]!
     Notifications: [Notification]!
     Schedules: [Schedule]!

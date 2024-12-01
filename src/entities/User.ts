@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, UuidType } from "@mikro-orm/core";
+import { Entity, PrimaryKey, Property, UuidType, t } from "@mikro-orm/core";
 import { randomUUID } from "node:crypto";
 import { UserRol } from "../types/enums";
 
@@ -7,32 +7,32 @@ export class User {
   @PrimaryKey()
   id: string = randomUUID();
 
-  @Property()
+  @Property({type: t.string })
   name!: string;
 
-  @Property()
+  @Property({type: t.string})
   surname!: string;
 
-  @Property()
+  @Property({type: t.string})
   password!: string;
 
-  @Property()
+  @Property({type: t.string})
   email!: string;
 
   @Property({ type: "blob", nullable: true })
   profilePicture?: Buffer;
 
-  @Property()
+  @Property({type: t.string})
   nickname!: string;
 
-  @Property()
+  @Property({type: t.boolean})
   isActived!: boolean;
 
-  @Property()
+  @Property({type: t.boolean})
   isBlocked!: boolean;
 
-  @Property()
+  @Property({type: t.enum })
   rol!: UserRol;
 
-  
+
 }

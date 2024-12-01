@@ -7,14 +7,14 @@ import { Notification } from "./entities/Notification";
 import { MikroORM } from "@mikro-orm/core";
 
 export default {
-  entities: [Message,User, Notification, Schedule, Schedules_option], // Aquí van las entidades o la ruta a ellas
-  dbName: "fitconnect_db", // Nombre de la base de datos
-  user: "postgres", // Usuario de PostgreSQL
-  password: "Pececitos1$", // Contraseña
-  host: "localhost", // Servidor
-  port: 5432, // Puerto de PostgreSQL
+  entities: [Message,User, Notification, Schedule, Schedules_option],
+  dbName: process.env.DB_NAME || 'fitconnect_db',
+  user: process.env.DB_USERNAME || 'postgres',
+  password: process.env.DB_PASSWORD || 'Pececitos1$.',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 5432,
   allowGlobalContext: true,
-  driver: require("@mikro-orm/postgresql").PostgreSqlDriver, // Especifica el driver
+  driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator],
 };
 

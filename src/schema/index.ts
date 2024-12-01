@@ -6,12 +6,12 @@ const resolvers = {
         me,
         user
     },
-    Mutation: {
-        createUser,
-        updateUser,
-        resetPassword,
-        removeUser
-    }
+    // Mutation: {
+    //     createUser,
+    //     updateUser,
+    //     resetPassword,
+    //     removeUser
+    // }
 }
 
 export default resolvers

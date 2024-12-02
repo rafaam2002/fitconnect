@@ -1,6 +1,7 @@
 import {EntityManager, Loaded, MikroORM} from "@mikro-orm/core";
 import {User} from "../../entities/User";
 import bcrypt from 'bcrypt'
+import crypto from "crypto";
 
 const allUsers = async (root: any, arg: any, {em}: { em: EntityManager }) => {
     return await em.find(User, {});
@@ -23,9 +24,9 @@ const me = async (root: any, args: any, context: { em: EntityManager, currentUse
 }
 
 const createUser = async (_, args, {em}: { em: EntityManager }) => {
-    const {name, email, password, role, surname} = args.input
+    const {name, email, password, rol, surname} = args.input as User
 
-    if (!email || !name || !surname || !password || !role) {
+    if (!email || !name || !surname || !password || !rol) {
         return {
             success: false,
             code: '400',
@@ -44,13 +45,7 @@ const createUser = async (_, args, {em}: { em: EntityManager }) => {
             user: null
         }
     }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const newUser = Object.assign(new User(), {
-        ...args.input,
-        password: passwordHash
-    })
+    let newUser = new User({...args.input})
 
     await em.persist(newUser).flush()
 

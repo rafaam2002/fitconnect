@@ -8,9 +8,9 @@ const resolvers = {
     },
     Mutation: {
         createUser,
-        updateUser,
+       /* updateUser,
         resetPassword,
-        removeUser
+        removeUser*/
     }
 }
 

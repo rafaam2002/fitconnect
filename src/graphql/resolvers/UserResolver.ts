@@ -23,9 +23,9 @@ const me = async (root: any, args: any, context: { em: EntityManager, currentUse
 }
 
 const createUser = async (_, args, {em}: { em: EntityManager }) => {
-    const {name, email, password, role} = args.input
+    const {name, email, password, role, surname} = args.input
 
-    if (!email || !name || !password || !role) {
+    if (!email || !name || !surname || !password || !role) {
         return {
             success: false,
             code: '400',

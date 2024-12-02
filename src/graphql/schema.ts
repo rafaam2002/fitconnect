@@ -1,18 +1,18 @@
 export const typeDefs = `#graphql
-  enum NotificationType {
+enum NotificationType {
     MESSAGE
     WARNING
     ERROR
     INFO
-  }
+}
 
-  enum UserRol {
+enum UserRol {
     standard
     boss
     premium
-  }
+}
 
-  type Message {
+type Message {
     id: ID!
     created_at: String!
     updated_at: String!
@@ -21,9 +21,9 @@ export const typeDefs = `#graphql
     fixedDuration: Int!
     sender: String!
     reciver: String!
-  }
+}
 
-  type Notification {
+type Notification {
     id: ID!
     created_at: String!
     updated_at: String!
@@ -31,9 +31,9 @@ export const typeDefs = `#graphql
     message: String!
     fixedDuration: Int!
     link: String!
-  }
+}
 
-  type User {
+type User {
     id: ID!
     name: String!
     surname: String!
@@ -44,9 +44,9 @@ export const typeDefs = `#graphql
     isActived: Boolean!
     isBlocked: Boolean!
     rol: UserRol!
-  }
+}
 
-  type Schedule{
+type Schedule{
     id: ID!
     created_at: String!
     updated_at: String!
@@ -55,18 +55,25 @@ export const typeDefs = `#graphql
     maxUsers: Int!
     isCancelled: Boolean!
     isProgammed: Boolean!
-  }
+}
 
-  type Schedules_option{
+type Schedules_option{
     id: ID!
     maxActiveReservations: Int!
     cancellationDeadline: Int!
     maxStrikesBeforePenalty: Int!
     penaltyDuration: Int!
     maxAdvanceBookingDays: Int!
-  }
+}
 
-  type Query {
+input UserInput{
+    name: String!
+    surname: String!
+    password: String!
+    email: String!
+}
+
+type Query {
     allUsers: [User]!
     me: User,
     user(id: ID!): User
@@ -75,21 +82,25 @@ export const typeDefs = `#graphql
     Schedules: [Schedule]!
     Schedules_option: [Schedules_option]!
     findUser(id: ID!): User
-    hello: String!
-  }
+}
 
-  # type Mutation {
-  #   addUser (
-  #     name: String!
-  #     email: String!
-  #     password: String!
-  #   ): User
+type Mutation {
+    createUser (
+        user: UserInput!
+    ): User
+}
+# type Mutation {
+#   addUser (
+#     name: String!
+#     email: String!
+#     password: String!
+#   ): User
 
-  #   addPost (
-  #     title: String!
-  #     content: String!
-  #     draft: Boolean!
-  #     userId: ID!
-  #   ): Post
-  # }
+#   addPost (
+#     title: String!
+#     content: String!
+#     draft: Boolean!
+#     userId: ID!
+#   ): Post
+# }
 `;

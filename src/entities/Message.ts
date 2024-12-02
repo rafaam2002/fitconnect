@@ -1,37 +1,32 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
-import { randomUUID } from "node:crypto";
+import {Entity, ManyToOne, Property} from "@mikro-orm/core";
+import {BaseEntity} from "./BaseEntity";
+import {User} from "./User";
 
 @Entity()
-export class Message {
- // @Field(() => String)
-  @PrimaryKey()
-  id: string = randomUUID(); //
-
- // @Field(() => Date)
-  @Property()
-  created_at: Date = new Date();
-
- // @Field(() => Date)
-  @Property()
-  updated_at: Date;
-
+export class Message extends BaseEntity {
 //  @Field(() => String)
-  @Property()
-  message!: string;
+    @Property()
+    message!: string;
 
- // @Field(() => Boolean)
-  @Property()
-  isFixed!: boolean;
+    // @Field(() => Boolean)
+    @Property()
+    isFixed!: boolean;
 
 //  @Field(() => Number, { nullable: true })
-  @Property({ nullable: true })
-  fixedDuration?: number;
+    @Property({nullable: true})
+    fixedDuration?: number;
 
-//  @Field(() => String)
-  @Property()
-  sender!: string;
+    @ManyToOne()
+    sender!: User;
+    @ManyToOne()
+    receiver!: User;
 
-//  @Field(() => String)
-  @Property()
-  reciver!: string;
+    constructor(message: Message) {
+        super();
+        this.message = message.message;
+        this.isFixed = message.isFixed;
+        this.fixedDuration = message.fixedDuration;
+        this.sender = message.sender;
+        this.receiver = message.receiver;
+    }
 }

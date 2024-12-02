@@ -25,7 +25,7 @@ const startServer = async () => {
     email: "n",
     password: "n",
     nickname: "n",
-    isActived: true,
+    isActive: true,
     isBlocked: false,
     rol: "standard" as UserRol,
   });

@@ -8,13 +8,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -74,8 +73,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "reciver": {
-          "name": "reciver",
+        "receiver": {
+          "name": "receiver",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -107,13 +106,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -188,13 +186,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -254,8 +251,8 @@
           "default": "false",
           "mappedType": "boolean"
         },
-        "is_progammed": {
-          "name": "is_progammed",
+        "is_programmed": {
+          "name": "is_programmed",
           "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
@@ -287,13 +284,32 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
         },
         "max_active_reservations": {
           "name": "max_active_reservations",
@@ -368,13 +384,32 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
         },
         "name": {
           "name": "name",
@@ -435,8 +470,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "is_actived": {
-          "name": "is_actived",
+        "is_active": {
+          "name": "is_active",
           "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
@@ -467,6 +502,26 @@
       "name": "user",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": [
+            "email"
+          ],
+          "composite": false,
+          "keyName": "user_email_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "nickname"
+          ],
+          "composite": false,
+          "keyName": "user_nickname_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
         {
           "keyName": "user_pkey",
           "columnNames": [

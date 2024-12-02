@@ -1,11 +1,9 @@
-import { Entity, PrimaryKey, Property, UuidType } from "@mikro-orm/core";
-import { randomUUID } from "node:crypto";
-import { NotificationType, UserRol } from "../types/enums";
+import { Entity, Property } from "@mikro-orm/core";
+
+import { BaseEntity } from "./BaseEntity";
 
 @Entity()
-export class Schedules_option {
-  @PrimaryKey()
-  id: string = randomUUID();
+export class Schedules_option  extends BaseEntity {
 
   @Property({ default: 3 })
   maxActiveReservations!: number;

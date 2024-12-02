@@ -31,7 +31,7 @@ export class User {
   @Property({type: t.boolean})
   isBlocked!: boolean;
 
-  @Property({type: t.enum })
+  @Property({type: t.string})
   rol!: UserRol;
 
 

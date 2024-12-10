@@ -16,21 +16,8 @@ const server = new ApolloServer({
 
 const startServer = async () => {
   const orm = await initORM();
-  await orm.getMigrator().up();
-  await orm.schema.refreshDatabase();
-
-  const user = orm.em.create(User, {
-      name: "John Doe",
-    surname: "Doe",
-    email: "n",
-    password: "n",
-    nickname: "n",
-    isActived: true,
-    isBlocked: false,
-    rol: "standard" as UserRol,
-  });
-    
-  await orm.em.persistAndFlush(user);
+  /*await orm.getMigrator().up();
+  await orm.schema.refreshDatabase();*/
 
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {

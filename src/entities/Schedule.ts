@@ -1,30 +1,29 @@
-import { Entity, PrimaryKey, Property, UuidType } from "@mikro-orm/core";
-import { randomUUID } from "node:crypto";
-import { NotificationType, UserRol } from "../types/enums";
+import {Collection, Entity, ManyToMany, ManyToOne, Property} from "@mikro-orm/core";
+import {BaseEntity} from "./BaseEntity";
+import {User} from "./User";
 
 @Entity()
-export class Schedule {
-  @PrimaryKey()
-  id: string = randomUUID();
+export class Schedule extends BaseEntity {
 
-  @Property()
-  created_at: Date = new Date();
+    @Property()
+    startDate!: Date;
 
-  @Property()
-  updated_at: Date = new Date();
+    @Property()
+    Duration!: number; // in minutes
 
-  @Property()
-  startTime!: Date;
+    @Property()
+    maxUsers!: number;
 
-  @Property()
-  Duration!: number; // in minutes
+    @Property({default: false})
+    isCancelled!: boolean;
 
-  @Property()
-  maxUsers!: number;
+    @Property({default: false})
+    isProgrammed!: boolean;
 
-  @Property({ default: false })
-  isCancelled!: boolean;
+    @ManyToMany(()=> User, (user) => user.schedules)
+    users = new Collection<User>(this);
 
-  @Property({ default: false })
-  isProgammed!: boolean;
+    @ManyToOne(() => User, {nullable: true})
+    admin?: User;
+
 }

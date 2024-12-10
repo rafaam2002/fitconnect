@@ -1,24 +1,20 @@
-import { Entity, PrimaryKey, Property, UuidType } from "@mikro-orm/core";
-import { randomUUID } from "node:crypto";
-import { NotificationType, UserRol } from "../types/enums";
+import {Entity, ManyToOne, Property} from "@mikro-orm/core";
+import {NotificationType} from "../types/enums";
+import {BaseEntity} from "./BaseEntity";
+import {User} from "./User";
 
 @Entity()
-export class Notification {
-  @PrimaryKey()
-  id: string = randomUUID();
+export class Notification extends BaseEntity {
 
-  @Property()
-  created_at: Date = new Date();
+    @Property()
+    type!: NotificationType;
 
-  @Property()
-  updated_at: Date = new Date();
+    @Property()
+    message!: string;
 
-  @Property()
-  type!: NotificationType;
+    @Property()
+    link!: string;
 
-  @Property()
-  message!: string;
-
-  @Property()
-  link!: string;
+    @ManyToOne( () => User)
+    user!: User;
 }

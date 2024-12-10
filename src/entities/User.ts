@@ -1,40 +1,85 @@
-import { Entity, PrimaryKey, Property, t} from "@mikro-orm/core";
-import {randomUUID} from "node:crypto";
-import {UserRol} from "../types/enums";
-import crypto from 'crypto'
-import {BaseEntity} from "./BaseEntity";
+import {
+  Collection,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  Property,
+  t,
+} from "@mikro-orm/core";
+import { UserRol } from "../types/enums";
+import crypto from "crypto";
+import { BaseEntity } from "./BaseEntity";
+import { Schedule } from "./Schedule";
+import { Message } from "./Message";
+import { Notification } from "./Notification";
+import { Poll } from "./Poll";
+import { Promotion } from "./Promotion";
 
 @Entity()
 export class User extends BaseEntity {
-
-  @Property({type: t.string })
+  @Property({ type: t.string })
   name!: string;
 
-  @Property({type: t.string})
+  @Property({ type: t.string })
   surname!: string;
 
-  @Property({type: t.string})
+  @Property({ type: t.string, lazy: true }) // means that the property will be loaded only when accessed
   password!: string;
 
-  @Property({type: t.string, unique:true})
+  @Property({ type: t.string, unique: true })
   email!: string;
 
-  @Property({ type: "blob", nullable: true })
-  profilePicture?: Buffer;
+  @Property()
+  phoneNumber!: string;
 
-  @Property({type: t.string, unique: true})
+  @Property() //{ type: "blob", nullable: true }
+  profilePicture?: string;
+
+  @Property({ type: t.string, unique: true })
   nickname!: string;
 
-  @Property({type: t.boolean})
-  isActived!: boolean;
+  @Property({ type: t.boolean })
+  isActive!: boolean;
 
-  @Property({type: t.boolean})
+  @Property()
   isBlocked!: boolean;
 
-  @Property({type: t.string})
+  @Property()
+  startPaymentDate: Date;
+
+  @Property()
+  endPaymentDate: Date;
+
+  @Property({ type: t.string })
   rol!: UserRol;
 
-  constructor(user: User){
+  @ManyToMany(() => Schedule, (schedule:Schedule) => schedule.users, { owner: true })
+  schedules = new Collection<Schedule>(this);
+
+  @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })
+  promotions = new Collection<Promotion>(this);
+
+  // Relación OneToMany con Schedule (admin)
+  @OneToMany(() => Schedule, (schedule) => schedule.admin, { lazy: true })
+  adminSchedules = new Collection<Schedule>(this);
+
+  // Relación OneToMany con Message (sender)
+  @OneToMany(() => Message, (message) => message.sender)
+  messagesSent = new Collection<Message>(this);
+
+  // Relación OneToMany con Message (receiver)
+  @OneToMany(() => Message, (message) => message.receiver)
+  messagesReceived = new Collection<Message>(this);
+
+  // Relación OneToMany con Notification
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications = new Collection<Notification>(this);
+
+  @OneToMany(() => Poll, (poll) => poll.creator)
+  polls = new Collection<Poll>(this);
+
+  constructor(user: User) {
     super();
 
     this.name = user.name;
@@ -42,12 +87,11 @@ export class User extends BaseEntity {
     this.password = User.hashPassword(user.password);
     this.email = user.email;
     this.nickname = user.nickname;
-    this.rol = user.rol ;
-    this.isActived = false;
-    this.isBlocked = false;
+    this.rol = user.rol;
+    this.isActive = false;
   }
 
-  static hashPassword =(password:string) =>{
-    return crypto.createHmac('sha256', password).digest('hex');
-  }
+  static hashPassword = (password: string) => {
+    return crypto.createHmac("sha256", password).digest("hex");
+  };
 }

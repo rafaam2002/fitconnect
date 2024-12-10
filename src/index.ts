@@ -23,6 +23,9 @@ const startServer = async () => {
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {
       const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const cache = {
+        user: em.getRepository(User),
+      };
       return { em };
     },
     listen: { port: 4000 },

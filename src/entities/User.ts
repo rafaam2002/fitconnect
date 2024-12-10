@@ -54,7 +54,7 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   rol!: UserRol;
 
-  @ManyToMany(() => Schedule, (schedule) => schedule.users, { owner: true })
+  @ManyToMany(() => Schedule, (schedule:Schedule) => schedule.users, { owner: true })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })

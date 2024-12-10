@@ -16,16 +16,12 @@ const server = new ApolloServer({
 
 const startServer = async () => {
   const orm = await initORM();
-  await orm.getMigrator().up();
-  await orm.schema.refreshDatabase();
-  
+  /*await orm.getMigrator().up();
+  await orm.schema.refreshDatabase();*/
 
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {
       const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
-      const cache = {
-        user: em.getRepository(User),
-      };
       return { em };
     },
     listen: { port: 4000 },

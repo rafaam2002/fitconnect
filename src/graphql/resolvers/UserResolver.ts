@@ -3,10 +3,8 @@ import {User} from "../../entities/User";
 import bcrypt from 'bcrypt'
 import crypto from "crypto";
 
-const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
-    
+const allUsers = async (root: any, arg: any, {em}: { em: EntityManager }) => {
     return await em.find(User, {});
-
 };
 
 const me = async (root: any, args: any, context: { em: EntityManager, currentUser: any }) => {

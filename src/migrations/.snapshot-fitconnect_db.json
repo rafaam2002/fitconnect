@@ -8,12 +8,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "serial",
           "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
+          "autoincrement": true,
+          "primary": true,
           "nullable": false,
-          "mappedType": "uuid"
+          "mappedType": "integer"
         },
         "created_at": {
           "name": "created_at",
@@ -117,12 +117,21 @@
       "columns": {
         "id": {
           "name": "id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         },
         "created_at": {
           "name": "created_at",
@@ -217,12 +226,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "serial",
           "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
+          "autoincrement": true,
+          "primary": true,
           "nullable": false,
-          "mappedType": "uuid"
+          "mappedType": "integer"
         },
         "created_at": {
           "name": "created_at",
@@ -405,12 +414,21 @@
       "columns": {
         "id": {
           "name": "id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         },
         "created_at": {
           "name": "created_at",
@@ -482,12 +500,21 @@
         },
         "admin_id": {
           "name": "admin_id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "schedule",
@@ -516,6 +543,10 @@
             "id"
           ],
           "referencedTableName": "public.user",
+<<<<<<< HEAD
+=======
+          "deleteRule": "set null",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "updateRule": "cascade"
         }
       },
@@ -525,12 +556,21 @@
       "columns": {
         "id": {
           "name": "id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         },
         "created_at": {
           "name": "created_at",
@@ -583,12 +623,20 @@
         },
         "creator_id": {
           "name": "creator_id",
+<<<<<<< HEAD
           "type": "uuid",
+=======
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
+=======
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "poll",
@@ -626,12 +674,21 @@
       "columns": {
         "id": {
           "name": "id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         },
         "created_at": {
           "name": "created_at",
@@ -685,12 +742,20 @@
         },
         "user_id": {
           "name": "user_id",
+<<<<<<< HEAD
           "type": "uuid",
+=======
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
+=======
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "notification",
@@ -728,12 +793,21 @@
       "columns": {
         "id": {
           "name": "id",
+<<<<<<< HEAD
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "mappedType": "uuid"
+=======
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         },
         "created_at": {
           "name": "created_at",
@@ -785,21 +859,37 @@
         },
         "sender_id": {
           "name": "sender_id",
+<<<<<<< HEAD
           "type": "uuid",
+=======
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
         },
         "receiver_id": {
           "name": "receiver_id",
           "type": "uuid",
+=======
+          "mappedType": "integer"
+        },
+        "receiver_id": {
+          "name": "receiver_id",
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
+=======
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "message",
@@ -849,21 +939,37 @@
       "columns": {
         "user_id": {
           "name": "user_id",
+<<<<<<< HEAD
           "type": "uuid",
+=======
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
         },
         "promotion_id": {
           "name": "promotion_id",
           "type": "uuid",
+=======
+          "mappedType": "integer"
+        },
+        "promotion_id": {
+          "name": "promotion_id",
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
+=======
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "user_promotions",
@@ -916,21 +1022,37 @@
       "columns": {
         "user_id": {
           "name": "user_id",
+<<<<<<< HEAD
           "type": "uuid",
+=======
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
         },
         "schedule_id": {
           "name": "schedule_id",
           "type": "uuid",
+=======
+          "mappedType": "integer"
+        },
+        "schedule_id": {
+          "name": "schedule_id",
+          "type": "int",
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+<<<<<<< HEAD
           "mappedType": "uuid"
+=======
+          "mappedType": "integer"
+>>>>>>> 46e83eb7428713332e8286032e0feafed7b9877b
         }
       },
       "name": "user_schedules",

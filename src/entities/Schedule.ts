@@ -6,7 +6,7 @@ import {User} from "./User";
 export class Schedule extends BaseEntity {
 
     @Property()
-    startTime!: Date;
+    startDate!: Date;
 
     @Property()
     Duration!: number; // in minutes
@@ -20,10 +20,10 @@ export class Schedule extends BaseEntity {
     @Property({default: false})
     isProgrammed!: boolean;
 
-    @ManyToMany({mappedBy: 'schedules'})
+    @ManyToMany(()=> User, (user) => user.schedules)
     users = new Collection<User>(this);
 
-    @ManyToOne()
-    admin = new Collection<User>(this);
+    @ManyToOne(() => User)
+    admin!: User;
 
 }

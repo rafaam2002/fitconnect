@@ -15,6 +15,6 @@ export class Notification extends BaseEntity {
     @Property()
     link!: string;
 
-    @ManyToOne()
+    @ManyToOne( () => User)
     user!: User;
 }

@@ -74,14 +74,25 @@ input UserInput{
 }
 
 type Query {
+    # ----------------- User -----------------
     allUsers: [User]!
     me: User,
     user(id: ID!): User
-    Messages: [Message]!
-    Notifications: [Notification]!
-    Schedules: [Schedule]!
-    Schedules_option: [Schedules_option]!
     findUser(id: ID!): User
+    getMessages: [Message]!
+    getNotifications: [Notification]!
+    getSchedules: [Schedule]!
+    getSchedules_option: [Schedules_option]!
+    
+    # ----------------- Messages -----------------
+    Messages: [Message]!
+    # ----------------- Notifications -----------------
+    Notifications: [Notification]!
+    # ----------------- Schedules -----------------
+    Schedules: [Schedule]!
+    # ----------------- Schedules_option -----------------
+    Schedules_option: [Schedules_option]!
+
 }
 
 type Mutation {

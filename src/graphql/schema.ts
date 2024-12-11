@@ -37,11 +37,10 @@ type User {
     id: ID!
     name: String!
     surname: String!
-    password: String!
     email: String!
     profilePicture: String
     nickname: String!
-    isActived: Boolean!
+    isActive: Boolean!
     isBlocked: Boolean!
     rol: UserRol!
 }
@@ -79,11 +78,12 @@ type Query {
     me: User,
     user(id: ID!): User
     findUser(id: ID!): User
-    getMessages: [Message]!
+    getMessagesSent: [Message]!
+    getMessagesReceived: [Message]!
     getNotifications: [Notification]!
     getSchedules: [Schedule]!
     getSchedules_option: [Schedules_option]!
-    
+
     # ----------------- Messages -----------------
     Messages: [Message]!
     # ----------------- Notifications -----------------

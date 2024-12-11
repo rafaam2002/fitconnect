@@ -1,41 +1,123 @@
-import { EntityManager, Loaded, MikroORM } from "@mikro-orm/core";
+import { EntityManager, Loaded, MikroORM, UuidType } from "@mikro-orm/core";
 import { User } from "../../entities/User";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { UserType } from "../../types/userTypes";
 
 const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
-  const user = em.getRepository(User);
-  return await user.findAll();
+  const userRepo = em.getRepository(User);
+  return await userRepo.findAll();
 };
 
 const me = async (
   root: any,
   args: any,
-  context: { em: EntityManager; currentUser: any }
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  const user = context.em.getRepository(User);
-  const currentUser = context.currentUser;
+  const userRepo = em.getRepository(User);
   if (!currentUser) {
     return null;
   }
   //falta conseguir el usuario actual
-  const me = await user.findAll();
-
+  const me = await userRepo.find({ id: currentUser.id });
   if (me) {
-    return me;
+    return {
+      success: true,
+      code: "200",
+      message: "User found",
+      user: me,
+    };
   } else {
-    return null;
+    return {
+      success: false,
+      code: "404",
+      message: "User not logged",
+      user: null,
+    };
   }
 };
 
 const findUser = async (
   root: any,
-  args: { id: number },
+  args: { id: string },
   { em }: { em: EntityManager }
 ) => {
-  const user = em.getRepository(User);
+  const userRepo = em.getRepository(User);
+
   const { id } = args;
-  return await user.findOne({ id });
+  const user = await userRepo.findOne({ id });
+  console.log(user);
+  if (!user) {
+    return {
+      success: false,
+      code: "404",
+      message: "User not found",
+      user: null,
+    };
+  }
+  return user;
+};
+
+const getMessagesSent = async (
+  root: any,
+  args: { id: string },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not logged",
+    };
+  }
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["messagesSent"] }
+  );
+  return user.messagesSent;
+};
+const getMessagesReceived = async (
+  root: any,
+  args: { id: string },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not logged",
+    };
+  }
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["messagesReceived"] }
+  );
+  return user.messagesReceived;
+};
+
+const getSchedules = async (
+  root: any,
+  args: { id: string },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not logged",
+    };
+  }
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["schedules"] }
+  );
+  return user.schedules;
 };
 
 const createUser = async (_, args, { em }: { em: EntityManager }) => {
@@ -232,29 +314,6 @@ const resetPassword = async (
   };
 };
 
-const user = async (parent, args, { em }: { em: EntityManager }) => {
-  const { id, email } = args;
-  if (!id && !email) {
-    return {
-      success: false,
-      code: "400",
-      message: "Please provide all required fields",
-      user: null,
-    };
-  }
-  const user = await em.findOne(User, { id });
-  if (!user) {
-    return {
-      success: false,
-      code: "404",
-      message: "User not found",
-      user: null,
-    };
-  }
-
-  return user;
-};
-
 const removeUser = async (parent, args, { em }: { em: EntityManager }) => {
   const { id } = args;
   if (!id) {
@@ -286,7 +345,9 @@ export {
   updateUser,
   resetPassword,
   removeUser,
-  user,
   me,
   findUser,
+  getMessagesSent,
+  getMessagesReceived,
+  getSchedules,
 };

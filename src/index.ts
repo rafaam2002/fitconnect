@@ -1,6 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import { typeDefs } from "./graphql/schema";
-import resolvers from "./graphql/schema";
+import resolvers from "./graphql/resolvers";
 import { initORM } from "./utils/microOrmClient";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";

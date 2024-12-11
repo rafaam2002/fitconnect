@@ -39,7 +39,7 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   nickname!: string;
 
-  @Property({ type: t.boolean })
+  @Property()
   isActive!: boolean;
 
   @Property()

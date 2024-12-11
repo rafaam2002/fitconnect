@@ -1,16 +1,11 @@
-import { fi } from "@faker-js/faker/.";
 import {
   me,
   allUsers,
   findUser,
-  createUser,
   getMessagesSent,
   getMessagesReceived,
-  updateUser,
-  resetPassword,
-  removeUser,
   getSchedules,
-} from "./UserResolver";
+} from "./user/queries";
 
 const resolvers = {
   Query: {
@@ -22,7 +17,7 @@ const resolvers = {
     getSchedules,
   },
   Mutation: {
-    createUser,
+    //createUser,
     /* updateUser,
         resetPassword,
         removeUser*/

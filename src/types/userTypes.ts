@@ -5,7 +5,7 @@ export type UserType = {
     created_at: Date;
     updated_at: Date;
     deleted_at: Date;
-    role: string;
+    rol: string;
     isActive: boolean;
     isBlocked: boolean;
     profilePicture: string;

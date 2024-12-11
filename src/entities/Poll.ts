@@ -1,5 +1,7 @@
 import {
+  Collection,
   Entity,
+  ManyToMany,
   ManyToOne,
   Property,
 } from "@mikro-orm/core";
@@ -20,4 +22,7 @@ export class Poll extends BaseEntity {
 
   @ManyToOne(() => User)
   creator;
+
+  @ManyToOne(() => User)
+  adminUsers = new Collection<User>(this);
 }

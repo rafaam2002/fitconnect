@@ -15,6 +15,7 @@ import { Message } from "./Message";
 import { Notification } from "./Notification";
 import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
+import { PollOptionSelection } from "./PollOptionSelection";
 
 @Entity()
 export class User extends BaseEntity {
@@ -77,7 +78,11 @@ export class User extends BaseEntity {
   notifications = new Collection<Notification>(this);
 
   @OneToMany(() => Poll, (poll) => poll.creator)
-  polls = new Collection<Poll>(this);
+  adminPolls = new Collection<Poll>(this);
+
+  @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user)
+  pollOptionSelections = new Collection<PollOptionSelection>(this);
+
 
   constructor(user: User) {
     super();

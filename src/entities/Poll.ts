@@ -7,7 +7,7 @@ import {
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
-import { pollOptionType } from "../types/PollTypes";
+import { pollOptionType } from "../types/pollTypes";
 
 @Entity()
 export class Poll extends BaseEntity {

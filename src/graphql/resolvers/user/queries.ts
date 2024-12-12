@@ -1,6 +1,9 @@
 import { EntityManager } from "@mikro-orm/core";
 import { User } from "../../../entities/User";
 import { UserType } from "../../../types/userTypes";
+import { UserRol } from "../../../types/enums";
+import { Poll } from "../../../entities/Poll";
+import { CustomPollRepository } from "../../../customRepositories/pollRepository";
 
 const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
   const userRepo = em.getRepository(User);
@@ -153,7 +156,7 @@ const getAdminSchedules = async(
       message: "User not logged",
     };
   }
-  if (currentUser.rol !== "ADMIN") {
+  if (currentUser.rol === UserRol.STANDARD) {
     return {
       success: false,
       code: "400",
@@ -188,6 +191,73 @@ const getNotifications = async (
   return user.notifications;
 };
 
+const getAdminPolls = async(
+  root: any,
+  args: { id: string },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not logged",
+    };
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["adminPolls"] }
+  );
+  return user.adminPolls;
+}
+
+const getPolls = async(
+  root: any,
+  args: { id: string },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+  const pollRepo = em.getRepository(CustomPollRepository);
+
+  const pollsandOptionSelected = await pollRepo.getPollsAndSelectionByUser(currentUser.id);
+
+  [
+    {
+      poll: Poll,
+      optionSelected: null
+    },
+
+    {
+      poll: Poll,
+      optionSelected: number
+    }
+    
+  ]
+
+  // if (!currentUser) {
+  //   return {
+  //     success: false,
+  //     code: "400",
+  //     message: "User not logged",
+  //   };
+  // }
+  // const {pollOptionSelections} = await userRepo.findOne(
+  //   { id: currentUser.id },
+  //   { populate: ["pollOptionSelections"] }
+  // );
+  
+
+
+}
+
 
 
 export {
@@ -197,4 +267,9 @@ export {
   getMessagesSent,
   getMessagesReceived,
   getSchedules,
+  getPromotions,
+  getAdminSchedules,
+  getNotifications,
+  getAdminPolls,
+  getPolls
 };

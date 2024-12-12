@@ -65,6 +65,10 @@ type Schedules_option{
     maxAdvanceBookingDays: Int!
 }
 
+type Poll{
+    id: ID!
+}
+
 input UserInput{
     name: String!
     surname: String!
@@ -83,6 +87,7 @@ type Query {
     getNotifications: [Notification]!
     getSchedules: [Schedule]!
     getSchedules_option: [Schedules_option]!
+    getPolls(): [Poll]!
 
     # ----------------- Messages -----------------
     Messages: [Message]!

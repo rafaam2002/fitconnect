@@ -5,6 +5,7 @@ import {
   getMessagesSent,
   getMessagesReceived,
   getSchedules,
+  getPolls,
 } from "./user/queries";
 
 const resolvers = {
@@ -15,6 +16,7 @@ const resolvers = {
     getMessagesSent,
     getMessagesReceived,
     getSchedules,
+    getPolls,
   },
   Mutation: {
     //createUser,

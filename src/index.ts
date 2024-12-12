@@ -7,6 +7,7 @@ import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import * as dotenv from "dotenv";
 import { User } from "./entities/User";
 import { UserRol } from "./types/enums";
+import {authenticateUser} from "./middlewares/auth";
 dotenv.config();
 
 const server = new ApolloServer({
@@ -21,8 +22,10 @@ const startServer = async () => {
 
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {
-      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
-      return { em };
+      const authorization = req.headers.authorization || '';
+      const em:EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const currentUser = await authenticateUser(em, authorization);
+      return { em, currentUser };
     },
     listen: { port: 4000 },
   });

@@ -3,7 +3,7 @@ import {randomUUID} from "node:crypto";
 
 export abstract class BaseEntity {
   // @Field(() => String)
-  @PrimaryKey({type: 'uuid'})
+  @PrimaryKey()
   id!: number; //
 
   // @Field(() => Date)

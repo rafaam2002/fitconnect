@@ -8,12 +8,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -117,12 +117,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -217,12 +217,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -405,12 +405,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -482,12 +482,12 @@
         },
         "admin_id": {
           "name": "admin_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         }
       },
       "name": "schedule",
@@ -526,12 +526,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -584,12 +584,21 @@
         },
         "creator_id": {
           "name": "creator_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
+        },
+        "admin_users_id": {
+          "name": "admin_users_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
         }
       },
       "name": "poll",
@@ -619,6 +628,94 @@
           ],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
+        },
+        "poll_admin_users_id_foreign": {
+          "constraintName": "poll_admin_users_id_foreign",
+          "columnNames": [
+            "admin_users_id"
+          ],
+          "localTableName": "public.poll",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.user",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "poll_id": {
+          "name": "poll_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "option_selected": {
+          "name": "option_selected",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        }
+      },
+      "name": "poll_option_selection",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "poll_option_selection_pkey",
+          "columnNames": [
+            "poll_id",
+            "user_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "poll_option_selection_poll_id_foreign": {
+          "constraintName": "poll_option_selection_poll_id_foreign",
+          "columnNames": [
+            "poll_id"
+          ],
+          "localTableName": "public.poll_option_selection",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.poll",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "poll_option_selection_user_id_foreign": {
+          "constraintName": "poll_option_selection_user_id_foreign",
+          "columnNames": [
+            "user_id"
+          ],
+          "localTableName": "public.poll_option_selection",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.user",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
         }
       },
       "nativeEnums": {}
@@ -627,12 +724,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -686,12 +783,12 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         }
       },
       "name": "notification",
@@ -729,12 +826,12 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "unsigned": false,
-          "autoincrement": true,
-          "primary": true,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "created_at": {
           "name": "created_at",
@@ -786,21 +883,21 @@
         },
         "sender_id": {
           "name": "sender_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "receiver_id": {
           "name": "receiver_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         }
       },
       "name": "message",
@@ -850,21 +947,21 @@
       "columns": {
         "user_id": {
           "name": "user_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "promotion_id": {
           "name": "promotion_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         }
       },
       "name": "user_promotions",
@@ -917,21 +1014,21 @@
       "columns": {
         "user_id": {
           "name": "user_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         },
         "schedule_id": {
           "name": "schedule_id",
-          "type": "int",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "uuid"
         }
       },
       "name": "user_schedules",

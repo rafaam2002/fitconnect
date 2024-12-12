@@ -37,11 +37,10 @@ type User {
     id: ID!
     name: String!
     surname: String!
-    password: String!
     email: String!
     profilePicture: String
     nickname: String!
-    isActived: Boolean!
+    isActive: Boolean!
     isBlocked: Boolean!
     rol: UserRol!
 }
@@ -66,6 +65,10 @@ type Schedules_option{
     maxAdvanceBookingDays: Int!
 }
 
+type Poll{
+    id: ID!
+}
+
 input UserInput{
     name: String!
     surname: String!
@@ -74,14 +77,27 @@ input UserInput{
 }
 
 type Query {
+    # ----------------- User -----------------
     allUsers: [User]!
     me: User,
     user(id: ID!): User
-    Messages: [Message]!
-    Notifications: [Notification]!
-    Schedules: [Schedule]!
-    Schedules_option: [Schedules_option]!
     findUser(id: ID!): User
+    getMessagesSent: [Message]!
+    getMessagesReceived: [Message]!
+    getNotifications: [Notification]!
+    getSchedules: [Schedule]!
+    getSchedules_option: [Schedules_option]!
+    getPolls(): [Poll]!
+
+    # ----------------- Messages -----------------
+    Messages: [Message]!
+    # ----------------- Notifications -----------------
+    Notifications: [Notification]!
+    # ----------------- Schedules -----------------
+    Schedules: [Schedule]!
+    # ----------------- Schedules_option -----------------
+    Schedules_option: [Schedules_option]!
+
 }
 
 type Mutation {

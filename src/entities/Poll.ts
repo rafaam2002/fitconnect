@@ -1,11 +1,13 @@
 import {
+  Collection,
   Entity,
+  ManyToMany,
   ManyToOne,
   Property,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
-import { pollOptionType } from "../types/PollTypes";
+import { pollOptionType } from "../types/pollTypes";
 
 @Entity()
 export class Poll extends BaseEntity {
@@ -20,4 +22,7 @@ export class Poll extends BaseEntity {
 
   @ManyToOne(() => User)
   creator;
+
+  @ManyToOne(() => User)
+  adminUsers = new Collection<User>(this);
 }

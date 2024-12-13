@@ -1,17 +1,20 @@
 import { EntityManager } from "@mikro-orm/core";
 import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-const createUser = async (_, args, { em }: { em: EntityManager }) => {
+export const createUser = async (_, args, { em }: { em: EntityManager }) => {
   const user = em.getRepository(User);
-  const { name, email, password, rol, surname, nickname } = args.input as User;
 
-  if (!email || !name || !surname || !password || !rol) {
+  const { name, email, password, surname, nickname } = args.user as User;
+
+  if (!email || !name || !surname || !password) {
     return {
       success: false,
       code: "400",
       message: "Please provide all required fields",
       user: null,
+      token: null
     };
   }
 
@@ -23,6 +26,7 @@ const createUser = async (_, args, { em }: { em: EntityManager }) => {
       code: "400",
       message: "Email already exists",
       user: null,
+      token: null
     };
   }
 
@@ -34,12 +38,14 @@ const createUser = async (_, args, { em }: { em: EntityManager }) => {
       code: "400",
       message: "NickName already exists",
       user: null,
+      token: null
     };
   }
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  let newUser = new User({ ...args.input });
-
-  await em.persist(newUser).flush();
+  let newUser:User = em.create(User,{ ...args.user, password: hashedPassword});
+  console.log('user', newUser.id)
+  await em.persistAndFlush(newUser);
 
   if (!newUser.id)
     return {
@@ -47,12 +53,17 @@ const createUser = async (_, args, { em }: { em: EntityManager }) => {
       code: "400",
       message: "User not created",
       user: null,
+      token: null,
     };
+
+  const token = jwt.sign({id: newUser.id}, process.env.JWT_SECRET, {expiresIn: '1d'});
+
   return {
     success: true,
     code: "200",
     message: "User created successfully",
     user: newUser,
+    token
   };
 };
 

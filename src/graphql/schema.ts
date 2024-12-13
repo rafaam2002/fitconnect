@@ -1,51 +1,41 @@
 export const typeDefs = `#graphql
-enum NotificationType {
+enum NotificationTypeEnum {
     MESSAGE
     WARNING
     ERROR
     INFO
 }
 
-enum UserRol {
+enum UserRolEnum {
     standard
     boss
     premium
 }
 
-type Message {
-    id: ID!
-    created_at: String!
-    updated_at: String!
+interface MutationResponse {
+    code: String!
+    success: Boolean!
     message: String!
-    isFixed:Boolean!
-    fixedDuration: Int!
-    sender: String!
-    reciver: String!
 }
 
-type Notification {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    type:NotificationType!
-    message: String!
-    fixedDuration: Int!
-    link: String!
+type Tokens {
+    token: String
+    refeshToken: String
 }
 
 type User {
     id: ID!
     name: String!
-    surname: String!
+    surname: String
     email: String!
     profilePicture: String
-    nickname: String!
-    isActive: Boolean!
-    isBlocked: Boolean!
-    rol: UserRol!
+    nickname: String
+    isActive: Boolean
+    isBlocked: Boolean
+    rol: UserRolEnum!
 }
 
-type Schedule{
+type Schedule {
     id: ID!
     created_at: String!
     updated_at: String!
@@ -56,7 +46,57 @@ type Schedule{
     isProgammed: Boolean!
 }
 
-type Schedules_option{
+type UserResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    user: User
+}
+
+type UsersResponse implements MutationResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    users: [User]
+}
+
+type ScheduleResponse implements MutationResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    schedule: Schedule
+}
+
+type LoginResponse implements MutationResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    user: User
+    tokens: Tokens
+}
+
+type MessageResponse {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    message: String!
+    isFixed:Boolean!
+    fixedDuration: Int!
+    sender: String!
+    reciver: String!
+}
+
+type NotificationResponse {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    type:NotificationTypeEnum!
+    message: String!
+    fixedDuration: Int!
+    link: String!
+}
+
+type ScheduleOptionResponse{
     id: ID!
     maxActiveReservations: Int!
     cancellationDeadline: Int!
@@ -65,7 +105,7 @@ type Schedules_option{
     maxAdvanceBookingDays: Int!
 }
 
-type Poll{
+type PollResponse{
     id: ID!
 }
 
@@ -74,36 +114,55 @@ input UserInput{
     surname: String!
     password: String!
     email: String!
+    nickname: String!
+}
+
+input CreateUserInput {
+    name: String!
+    surname: String!
+    email: String!
+    password: String!
+    nickname: String
+    profilePicture: String
+}
+
+input ChangePasswordInput {
+    currentPassword: String!
+    newPassword: String!
 }
 
 type Query {
+    # ----------------- Login ----------------
+    login(email: String!, password: String!): LoginResponse!
     # ----------------- User -----------------
-    allUsers: [User]!
-    me: User,
-    user(id: ID!): User
-    findUser(id: ID!): User
-    getMessagesSent: [Message]!
-    getMessagesReceived: [Message]!
-    getNotifications: [Notification]!
-    getSchedules: [Schedule]!
-    getSchedules_option: [Schedules_option]!
-    getPolls(): [Poll]!
+    allUsers: UsersResponse!
+    me: UserResponse,
+    findUser(id: ID!): UserResponse
+    getMessagesSent: [MessageResponse]!
+    getMessagesReceived: [MessageResponse]!
+    getNotifications: [NotificationResponse]!
+    getSchedules: [ScheduleResponse]!
+    getSchedules_option: [ScheduleOptionResponse]!
+    getPolls: [PollResponse]!
+    currentUser: UserResponse!
 
     # ----------------- Messages -----------------
-    Messages: [Message]!
+    Messages: [MessageResponse]!
     # ----------------- Notifications -----------------
-    Notifications: [Notification]!
+    Notifications: [NotificationResponse]!
     # ----------------- Schedules -----------------
-    Schedules: [Schedule]!
+    Schedules: [ScheduleResponse]!
     # ----------------- Schedules_option -----------------
-    Schedules_option: [Schedules_option]!
+    Schedules_option: [ScheduleOptionResponse]!
+
 
 }
 
 type Mutation {
-    createUser (
-        user: UserInput!
-    ): User
+    createUser ( user: CreateUserInput!): UserResponse
+    register(input: CreateUserInput!): LoginResponse!
+    forgotPassword(email: String!): String!
+    changePassword(input: ChangePasswordInput!): String!
 }
 # type Mutation {
 #   addUser (
@@ -119,4 +178,4 @@ type Mutation {
 #     userId: ID!
 #   ): Post
 # }
-`;
+`

@@ -1,9 +1,9 @@
-import { PrimaryKey, Property, UuidType} from "@mikro-orm/core";
+import { PrimaryKey, Property, UuidType, t} from "@mikro-orm/core";
 import {randomUUID} from "node:crypto";
 
 export abstract class BaseEntity {
   // @Field(() => String)
-  @PrimaryKey({ type: "uuid" })
+  @PrimaryKey({ type: t.uuid })
   id: string = randomUUID(); //
 
   // @Field(() => Date)

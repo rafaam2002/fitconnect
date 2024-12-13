@@ -29,7 +29,7 @@
     "@mikro-orm/core": "6.4.0",
     "@mikro-orm/migrations": "6.4.0",
     "@mikro-orm/postgresql": "6.4.0",
-    "@mikro-orm/seeder": "^6.4.0",
+    "@mikro-orm/seeder": "6.4.0",
     "bcrypt": "^5.1.1",
     "crypto": "^1.0.1",
     "graphql": "^16.9.0",

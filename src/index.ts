@@ -25,6 +25,7 @@ const startServer = async () => {
       const authorization = req.headers.authorization || '';
       const em:EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
       const currentUser = await authenticateUser(em, authorization);
+
       return { em, currentUser };
     },
     listen: { port: 4000 },

@@ -6,10 +6,14 @@ import {
   getMessagesReceived,
   getSchedules,
   getPolls,
-} from "./user/queries";
-
+  currentUser
+} from './user/queries'
+import {login} from "./auth/queries";
+import {changePassword, forgotPassword} from "./auth/mutations";
+import {createUser} from "./user/mutations";
 const resolvers = {
   Query: {
+    login,
     allUsers,
     me,
     findUser,
@@ -17,13 +21,17 @@ const resolvers = {
     getMessagesReceived,
     getSchedules,
     getPolls,
+    currentUser
   },
   Mutation: {
-    //createUser,
+    createUser,
+    changePassword,
+    forgotPassword,
+    // createUser,
     /* updateUser,
         resetPassword,
-        removeUser*/
-  },
-};
+        removeUser */
+  }
+}
 
-export default resolvers;
+export default resolvers

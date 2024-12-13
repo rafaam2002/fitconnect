@@ -1,21 +1,12 @@
-import {
-  Collection,
-  Entity,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  Property,
-  t,
-} from "@mikro-orm/core";
-import { UserRol } from "../types/enums";
-import crypto from "crypto";
-import { BaseEntity } from "./BaseEntity";
-import { Schedule } from "./Schedule";
-import { Message } from "./Message";
-import { Notification } from "./Notification";
-import { Poll } from "./Poll";
-import { Promotion } from "./Promotion";
-import { PollOptionSelection } from "./PollOptionSelection";
+import {Collection, Entity, ManyToMany, OneToMany, Property, t,} from "@mikro-orm/core";
+import {UserRol} from "../types/enums";
+import {BaseEntity} from "./BaseEntity";
+import {Schedule} from "./Schedule";
+import {Message} from "./Message";
+import {Notification} from "./Notification";
+import {Poll} from "./Poll";
+import {Promotion} from "./Promotion";
+import {PollOptionSelection} from "./PollOptionSelection";
 
 @Entity()
 export class User extends BaseEntity {
@@ -31,10 +22,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   email!: string;
 
-  @Property()
-  phoneNumber!: string;
+  @Property({nullable: true})
+  phoneNumber: string;
 
-  @Property() //{ type: "blob", nullable: true }
+  @Property({nullable: true}) //{ type: "blob", nullable: true }
   profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
@@ -43,17 +34,17 @@ export class User extends BaseEntity {
   @Property()
   isActive!: boolean;
 
-  @Property()
-  isBlocked!: boolean;
+  @Property({type: t.boolean})
+  isBlocked = true;
 
-  @Property()
+  @Property({nullable: true})
   startPaymentDate: Date;
 
-  @Property()
+  @Property({nullable: true})
   endPaymentDate: Date;
 
   @Property({ type: t.string })
-  rol!: UserRol;
+  rol!: UserRol
 
   @ManyToMany(() => Schedule, (schedule:Schedule) => schedule.users, { owner: true })
   schedules = new Collection<Schedule>(this);
@@ -89,14 +80,9 @@ export class User extends BaseEntity {
 
     this.name = user.name;
     this.surname = user.surname;
-    this.password = User.hashPassword(user.password);
     this.email = user.email;
     this.nickname = user.nickname;
-    this.rol = user.rol;
+    this.rol = UserRol.STANDARD;
     this.isActive = false;
   }
-
-  static hashPassword = (password: string) => {
-    return crypto.createHmac("sha256", password).digest("hex");
-  };
 }

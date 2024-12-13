@@ -8,7 +8,7 @@ export const authenticateUser = async (em: EntityManager, authorization?: string
 
     try {
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as { id: string };
-      const currentUser = await em.findOne(User, { id: Number(decodedToken.id) });
+      const currentUser = await em.findOne(User, { id: decodedToken.id });
       return currentUser || null;
     } catch (error) {
       console.error('Authentication Error:', error);

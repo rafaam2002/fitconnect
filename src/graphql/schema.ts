@@ -12,11 +12,12 @@ enum UserRolEnum {
     premium
 }
 
-interface MutationResponse {
+interface BasicResponse {
     code: String!
     success: Boolean!
     message: String!
 }
+
 
 type Tokens {
     token: String
@@ -46,28 +47,54 @@ type Schedule {
     isProgammed: Boolean!
 }
 
-type UserResponse implements MutationResponse {
+type PollOptionType {
+    option: String!
+    votes: Int!
+}
+
+type Poll {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    title: String!
+    description: String!
+    options: [PollOptionType]
+}
+
+type Message {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    message: String!
+    isFixed:Boolean!
+    fixedDuration: Int!
+    sender: String!
+    reciver: String!
+}
+
+
+type UserResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
     user: User
 }
 
-type UsersResponse implements MutationResponse {
+type UsersResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
     users: [User]
 }
 
-type ScheduleResponse implements MutationResponse{
+type ScheduleResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
     schedule: Schedule
 }
 
-type LoginResponse implements MutationResponse{
+type LoginResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
@@ -105,8 +132,31 @@ type ScheduleOptionResponse{
     maxAdvanceBookingDays: Int!
 }
 
-type PollResponse{
-    id: ID!
+type PollResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    poll: Poll
+}
+
+type PollsResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    # poll: [Poll]
+}
+
+type MessagesResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    messages: [Message]
+}
+type MessagesReceived implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    messages: [Message]
 }
 
 input UserInput{
@@ -136,14 +186,17 @@ type Query {
     login(email: String!, password: String!): LoginResponse!
     # ----------------- User -----------------
     allUsers: UsersResponse!
-    me: UserResponse,
-    findUser(id: ID!): UserResponse
-    getMessagesSent: [MessageResponse]!
-    getMessagesReceived: [MessageResponse]!
+    me: UserResponse!,
+    findUser(id: ID!): UserResponse!
+    getMessagesSent: MessagesResponse!
+    getMessagesReceived: MessagesResponse!
+    #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)
+    #each page will have 50 messages, default = 0 (first page)
+    getConversation(otherUserId: ID, page: Int): MessagesResponse!
     getNotifications: [NotificationResponse]!
     getSchedules: [ScheduleResponse]!
     getSchedules_option: [ScheduleOptionResponse]!
-    getPolls: [PollResponse]!
+    getPolls: PollsResponse!
     currentUser: UserResponse!
 
     # ----------------- Messages -----------------
@@ -178,4 +231,4 @@ type Mutation {
 #     userId: ID!
 #   ): Post
 # }
-`
+`;

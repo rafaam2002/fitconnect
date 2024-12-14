@@ -22,7 +22,6 @@ export class ScheduleFactory extends Factory<Schedule> {
             Duration: faker.helpers.rangeToNumber({min: 30, max: 180}),
             maxUsers: faker.helpers.rangeToNumber({min: 5, max: 50}),
             isCancelled: faker.datatype.boolean(),
-            isProgrammed: faker.datatype.boolean(),
         };
     }
 }

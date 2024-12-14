@@ -2,9 +2,9 @@ import { EntityManager } from "@mikro-orm/core";
 import { User } from "../../../entities/User";
 import { UserRol } from "../../../types/enums";
 import { Poll } from "../../../entities/Poll";
-import { CustomPollRepository } from "../../../customRepositories/pollRepository";
 import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
+import { UserNotLoggedError } from "../errors";
 
 const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
   const userRepo = em.getRepository(User);
@@ -26,7 +26,7 @@ const me = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return null;
+    return UserNotLoggedError;
   }
   //falta conseguir el usuario actual
   const me = await userRepo.findOne({ id: currentUser.id });
@@ -73,23 +73,7 @@ const findUser = async (
   };
 };
 
-const currentUser = async (_, __, { currentUser }) => {
-  if (!currentUser) {
-    return {
-      success: true,
-      code: "200",
-      message: "User found",
-      user: currentUser,
-    };
-  } else {
-    return {
-      success: false,
-      code: "404",
-      message: "User not logged",
-      user: null,
-    };
-  }
-};
+;
 
 const getMessagesSent = async (
   _: any,
@@ -99,11 +83,7 @@ const getMessagesSent = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -120,11 +100,7 @@ const getMessagesReceived = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -141,11 +117,7 @@ const getPromotions = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -162,11 +134,7 @@ const getSchedules = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -183,11 +151,7 @@ const getAdminSchedules = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return {
@@ -211,11 +175,7 @@ const getNotifications = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -232,11 +192,7 @@ const getAdminPolls = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return {
@@ -285,19 +241,19 @@ const getPolls = async (
 
 const getConversation = async (
   root: any,
-  { id: otherUserId = "0", page = 0 }: { id: string; page: number },
+  {
+    id: otherUserId = process.env.DB_FORUM_ID,
+    page = 0,
+  }: { id: string; page: number },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not logged",
-    };
+    return UserNotLoggedError;
   }
   const messageRepo = em.getRepository(Message);
   let forumFields = [];
-  if (otherUserId === "0") { //forum
+  if (otherUserId === process.env.DB_FORUM_ID) {
+    //forum
     forumFields = ["isFixed", "fixedDuration"]; //this fields are only available in forum
   }
   const messages = await messageRepo.find(
@@ -311,7 +267,14 @@ const getConversation = async (
       orderBy: { created_at: "ASC" },
       limit: 50,
       offset: page,
-      fields: ["sender", "receiver", "message", "created_at",...forumFields], //just mandatory fields to optimize query
+      fields: [
+        "id",
+        "sender",
+        "receiver",
+        "message",
+        "created_at",
+        ...forumFields,
+      ], //just mandatory fields to optimize query
     }
   );
   return {
@@ -322,7 +285,13 @@ const getConversation = async (
   };
 };
 
+
+
+
+
+
 export {
+  getConversation,
   allUsers,
   me,
   findUser,
@@ -334,6 +303,4 @@ export {
   getNotifications,
   getAdminPolls,
   getPolls,
-  currentUser,
-  getConversation,
 };

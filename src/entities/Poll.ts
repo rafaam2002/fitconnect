@@ -13,7 +13,6 @@ import {PollOptionType} from "../types";
 @Entity({repository: ()=>CustomPollRepository})
 export class Poll extends BaseEntity {
   [EntityRepositoryType]?: CustomPollRepository;
-
   @Property()
   startDate!: Date;
 

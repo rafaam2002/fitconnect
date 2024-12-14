@@ -43,8 +43,20 @@ type Schedule {
     startTime: String!
     Duration: Int!
     maxUsers: Int!
+    admin: User!
     isCancelled: Boolean!
     isProgammed: Boolean!
+}
+
+type ScheduleProgrammed {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    daysOfWeek: [Int]
+    startHour: String!
+    Duration: Int!
+    maxUsers: Int!
+    admin: User!
 }
 
 type PollOptionType {
@@ -64,10 +76,9 @@ type Poll {
 type Message {
     id: ID!
     created_at: String!
-    updated_at: String!
     message: String!
-    isFixed:Boolean!
-    fixedDuration: Int!
+    isFixed:Boolean
+    fixedDuration: Int
     sender: String!
     reciver: String!
 }
@@ -93,6 +104,12 @@ type ScheduleResponse implements BasicResponse{
     message: String!
     schedule: Schedule
 }
+type ScheduleProgrammedResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    scheduleProgrammed: ScheduleProgrammed
+}
 
 type LoginResponse implements BasicResponse{
     code: String!
@@ -102,16 +119,6 @@ type LoginResponse implements BasicResponse{
     tokens: Tokens
 }
 
-type MessageResponse {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    message: String!
-    isFixed:Boolean!
-    fixedDuration: Int!
-    sender: String!
-    reciver: String!
-}
 
 type NotificationResponse {
     id: ID!
@@ -146,12 +153,20 @@ type PollsResponse implements BasicResponse{
     # poll: [Poll]
 }
 
+type MessageResponse  implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    sms: Message
+}
+
 type MessagesResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
     messages: [Message]
 }
+
 type MessagesReceived implements BasicResponse{
     code: String!
     success: Boolean!
@@ -197,8 +212,8 @@ type Query {
     getSchedules: [ScheduleResponse]!
     getSchedules_option: [ScheduleOptionResponse]!
     getPolls: PollsResponse!
-    currentUser: UserResponse!
-
+    addMessage(message: String!, receiver: ID!): MessageResponse!
+    addSchedule(startTime: String!, Duration: Int!, maxUsers: Int!): ScheduleResponse!
     # ----------------- Messages -----------------
     Messages: [MessageResponse]!
     # ----------------- Notifications -----------------
@@ -216,6 +231,9 @@ type Mutation {
     register(input: CreateUserInput!): LoginResponse!
     forgotPassword(email: String!): String!
     changePassword(input: ChangePasswordInput!): String!
+    addMessage(message: String!, receiver: ID!, isFixed: Boolean, fixedDuration: Boolean): MessageResponse!
+    addSchedule(startDate: String!, Duration: Int!, maxUsers: Int!, isCancelled: Boolean): ScheduleResponse!
+    addScheduleProgrammed(daysOfWeek: [Int], startHour: String!, Duration: Int!, maxUsers: Int!): ScheduleProgrammedResponse!
 }
 # type Mutation {
 #   addUser (

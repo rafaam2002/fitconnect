@@ -57,21 +57,21 @@ export class User extends BaseEntity {
   adminSchedules = new Collection<Schedule>(this);
 
   // Relación OneToMany con Message (sender)
-  @OneToMany(() => Message, (message) => message.sender)
+  @OneToMany(() => Message, (message) => message.sender, { lazy: true })
   messagesSent = new Collection<Message>(this);
 
   // Relación OneToMany con Message (receiver)
-  @OneToMany(() => Message, (message) => message.receiver)
+  @OneToMany(() => Message, (message) => message.receiver, { lazy: true })
   messagesReceived = new Collection<Message>(this);
 
   // Relación OneToMany con Notification
-  @OneToMany(() => Notification, (notification) => notification.user)
+  @OneToMany(() => Notification, (notification) => notification.user, { lazy: true })
   notifications = new Collection<Notification>(this);
 
-  @OneToMany(() => Poll, (poll) => poll.creator)
+  @OneToMany(() => Poll, (poll) => poll.creator, { lazy: true })
   adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user)
+  @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user, { lazy: true })
   pollOptionSelections = new Collection<PollOptionSelection>(this);
 
 

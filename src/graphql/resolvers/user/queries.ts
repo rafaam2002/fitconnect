@@ -4,7 +4,8 @@ import { UserRol } from "../../../types/enums";
 import { Poll } from "../../../entities/Poll";
 import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
-import { UserNotLoggedError } from "../errors";
+import { notLoggedError } from "../errors";
+
 
 const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
   const userRepo = em.getRepository(User);
@@ -26,7 +27,7 @@ const me = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   //falta conseguir el usuario actual
   const me = await userRepo.findOne({ id: currentUser.id });
@@ -83,7 +84,7 @@ const getMessagesSent = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -100,7 +101,7 @@ const getMessagesReceived = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -117,7 +118,7 @@ const getPromotions = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -134,7 +135,7 @@ const getSchedules = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -151,7 +152,7 @@ const getAdminSchedules = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return {
@@ -175,7 +176,7 @@ const getNotifications = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -192,7 +193,7 @@ const getAdminPolls = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return {
@@ -248,7 +249,7 @@ const getConversation = async (
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return UserNotLoggedError;
+    return notLoggedError("Please login");
   }
   const messageRepo = em.getRepository(Message);
   let forumFields = [];

@@ -10,7 +10,6 @@ export class CustomScheduleProgrammedRepository extends EntityRepository<Schedul
     const schedulesProgrammed = await this.findAll();
     schedulesProgrammed.forEach((scheduleProgrammed) => {
       const now = new Date();
-      // Calcular el día objetivo (dentro de `weeksFromNow`)
       scheduleProgrammed.daysOfWeek.forEach(async (day) => {
         await createScheduleInXWeeks(now, day, 3, scheduleProgrammed, this.em);
         //hace falta poner el await aqui?

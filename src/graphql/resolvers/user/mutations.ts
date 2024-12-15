@@ -10,6 +10,9 @@ import { Schedule } from "../../../entities/Schedule";
 import { ScheduleProgrammed } from "../../../entities/ScheduleProgrammed";
 import { createdSuccess, userAuthSuccess } from "../successes";
 import { create } from "domain";
+import { Poll } from "../../../entities/Poll";
+import { start } from "repl";
+import { PollVote } from "../../../entities/PollVote";
 
 export const createUser = async (_, args, { em }: { em: EntityManager }) => {
   const user = em.getRepository(User);
@@ -324,3 +327,168 @@ export const addScheduleProgrammed = async (
       )
     : notCreatedError("Schedule not created, please try again");
 };
+
+export const addPoll = async (
+  root: any,
+  {
+    title,
+    options,
+    durationDays,
+  }: {
+    title: string;
+    options: string[];
+    durationDays: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  const userRepo = em.getRepository(User);
+  const admin = await userRepo.findOne({ id: currentUser.id });
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + durationDays);
+  const newPoll = em.create(Poll, {
+    startDate,
+    endDate,
+    title,
+    options,
+    creator: em.getReference(User, currentUser.id),
+  });
+  await em.persistAndFlush(newPoll);
+
+  newPoll.id
+    ? createdSuccess("Poll created succesfully", newPoll, null)
+    : notCreatedError("Poll not created, please try again");
+};
+
+export const addVote = async (
+  root: any,
+  {
+    pollId,
+    option,
+  }: {
+    pollId: string;
+    option: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const pollRepo = em.getRepository(Poll);
+  const poll = await pollRepo.findOne({ id: pollId });
+  if (!poll) {
+    return notCreatedError("Poll not found");
+  }
+  if (poll.endDate < new Date()) {
+    return notCreatedError("Poll is closed");
+  }
+  if (option < 0 || option >= poll.options.length){ 
+    return notCreatedError("Option not valid");
+  }
+  const newPollVote = em.create(PollVote, {
+    poll,
+    user: em.getReference(User, currentUser.id),
+    optionSelected: option,
+  });
+  await em.persistAndFlush(newPollVote);
+  return createdSuccess("Vote added succesfully", newPollVote, null);
+};
+
+export const fixMessage = async(
+  root: any,
+  {
+    messageId,
+    duration,
+  }: {
+    messageId: string;
+    duration: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  const messageRepo = em.getRepository(Message);
+  const message = await messageRepo.findOne({ id: messageId });
+  if (!message) {
+    return notCreatedError("Message not found");
+  }
+  if (message.sender.id !== currentUser.id) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  message.isFixed = true;
+  message.fixedDuration = duration;
+  await em.persistAndFlush(message);
+  return createdSuccess("Message fixed succesfully", message, null);
+}
+
+export const unfixMessage = async(
+  root: any,
+  {
+    messageId,
+  }: {
+    messageId: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  const messageRepo = em.getRepository(Message);
+  const message = await messageRepo.findOne({ id: messageId });
+  if (!message) {
+    return notCreatedError("Message not found");
+  }
+  if (message.sender.id !== currentUser.id) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  message.isFixed = false;
+  message.fixedDuration = 0;
+  await em.persistAndFlush(message);
+  return createdSuccess("Message unfixed succesfully", message, null);
+}
+
+export const cancelSchedule = async(
+  root: any,
+  {
+    scheduleId,
+  }: {
+    scheduleId: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  const scheduleRepo = em.getRepository(Schedule);
+  const schedule = await scheduleRepo.findOne({ id: scheduleId });
+  if (!schedule) {
+    return notCreatedError("Schedule not found");
+  }
+  if (schedule.admin.id !== currentUser.id) {
+    return notAuthError("You are not authorized to perform this action");
+  }
+  schedule.isCancelled = true;
+  await em.persistAndFlush(schedule);
+  return createdSuccess("Schedule cancelled succesfully", schedule, null);
+}
+
+
+
+
+

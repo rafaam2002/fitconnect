@@ -11,7 +11,7 @@ import {
 } from './user/queries'
 import {login} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
-import {addMessage, addSchedule, addScheduleProgrammed, createUser} from "./user/mutations";
+import {addMessage, addPoll, addSchedule, addScheduleProgrammed, addVote, createUser} from "./user/mutations";
 const resolvers = {
   Query: {
     login,
@@ -31,6 +31,8 @@ const resolvers = {
     addMessage,
     addSchedule,
     addScheduleProgrammed,
+    addPoll,
+    addVote,
   }
 }
 

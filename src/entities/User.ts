@@ -1,12 +1,19 @@
-import {Collection, Entity, ManyToMany, OneToMany, Property, t,} from "@mikro-orm/core";
-import {UserRol} from "../types/enums";
-import {BaseEntity} from "./BaseEntity";
-import {Schedule} from "./Schedule";
-import {Message} from "./Message";
-import {Notification} from "./Notification";
-import {Poll} from "./Poll";
-import {Promotion} from "./Promotion";
-import {PollOptionSelection} from "./PollOptionSelection";
+import {
+  Collection,
+  Entity,
+  ManyToMany,
+  OneToMany,
+  Property,
+  t,
+} from "@mikro-orm/core";
+import { UserRol } from "../types/enums";
+import { BaseEntity } from "./BaseEntity";
+import { Schedule } from "./Schedule";
+import { Message } from "./Message";
+import { Notification } from "./Notification";
+import { Poll } from "./Poll";
+import { Promotion } from "./Promotion";
+import { PollVote } from "./PollVote";
 
 @Entity()
 export class User extends BaseEntity {
@@ -22,10 +29,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   email!: string;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   phoneNumber: string;
 
-  @Property({nullable: true}) //{ type: "blob", nullable: true }
+  @Property({ nullable: true }) //{ type: "blob", nullable: true }
   profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
@@ -34,19 +41,21 @@ export class User extends BaseEntity {
   @Property()
   isActive!: boolean;
 
-  @Property({type: t.boolean})
+  @Property({ type: t.boolean })
   isBlocked = true;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   startPaymentDate: Date;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   endPaymentDate: Date;
 
   @Property({ type: t.string })
-  rol!: UserRol
+  rol!: UserRol;
 
-  @ManyToMany(() => Schedule, (schedule:Schedule) => schedule.users, { owner: true })
+  @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
+    owner: true,
+  })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })
@@ -65,15 +74,20 @@ export class User extends BaseEntity {
   messagesReceived = new Collection<Message>(this);
 
   // Relación OneToMany con Notification
-  @OneToMany(() => Notification, (notification) => notification.user, { lazy: true })
+  @OneToMany(() => Notification, (notification) => notification.user, {
+    lazy: true,
+  })
   notifications = new Collection<Notification>(this);
 
   @OneToMany(() => Poll, (poll) => poll.creator, { lazy: true })
   adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user, { lazy: true })
-  pollOptionSelections = new Collection<PollOptionSelection>(this);
-
+  @OneToMany(
+    () => PollVote,
+    (PollVote) => PollVote.user,
+    { lazy: true }
+  )
+  pollVotes = new Collection<PollVote>(this);
 
   constructor(user: User) {
     super();

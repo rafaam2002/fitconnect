@@ -1,8 +1,4 @@
-export const UserNotLoggedError = {
-  success: false,
-  code: "400",
-  message: "User not logged",
-};
+
 
 
 

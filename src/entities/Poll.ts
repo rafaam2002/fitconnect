@@ -1,16 +1,19 @@
 import {
   Collection,
-  Entity, EntityRepositoryType,
+  Entity,
+  EntityRepositoryType,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   Property,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
-import {CustomPollRepository} from "../customRepositories/pollRepository";
-import {PollOptionType} from "../types";
+import { CustomPollRepository } from "../customRepositories/pollRepository";
+import { PollOptionType } from "../types";
+import { PollVote } from "./PollVote";
 
-@Entity({repository: ()=>CustomPollRepository})
+@Entity({ repository: () => CustomPollRepository })
 export class Poll extends BaseEntity {
   [EntityRepositoryType]?: CustomPollRepository;
   @Property()
@@ -20,11 +23,14 @@ export class Poll extends BaseEntity {
   endDate!: Date; // in minutes
 
   @Property()
-  options!: PollOptionType[];
+  title!: string;
+
+  @Property()
+  options!: string[];
 
   @ManyToOne(() => User)
   creator;
 
-  @ManyToOne(() => User)
-  adminUsers = new Collection<User>(this);
+  @OneToMany(() => PollVote, (pos) => pos.poll)
+  pollVotes = new Collection<PollVote>(this);
 }

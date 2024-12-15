@@ -10,7 +10,7 @@ import { User } from "./User";
 import { CustomPollRepository } from "../customRepositories/pollRepository";
 
 @Entity({ repository: () => CustomPollRepository })
-export class PollOptionSelection {
+export class PollVote {
   [EntityRepositoryType]?: CustomPollRepository;
   @ManyToOne(() => Poll, { primary: true, deleteRule: "cascade" })
   poll!: Poll;

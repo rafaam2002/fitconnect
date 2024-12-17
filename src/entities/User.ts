@@ -1,4 +1,5 @@
 import {
+  BeforeCreate,
   Collection,
   Entity,
   ManyToMany,
@@ -14,6 +15,7 @@ import { Notification } from "./Notification";
 import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
+import bcrypt from "bcrypt";
 
 @Entity()
 export class User extends BaseEntity {
@@ -48,7 +50,7 @@ export class User extends BaseEntity {
   startPaymentDate: Date;
 
   @Property({ nullable: true })
-  endPaymentDate: Date;
+  endSubscriptionDate: Date;
 
   @Property({ type: t.string })
   rol!: UserRol;
@@ -79,24 +81,28 @@ export class User extends BaseEntity {
   })
   notifications = new Collection<Notification>(this);
 
-  @OneToMany(() => Poll, (poll) => poll.creator, { lazy: true })
+  @OneToMany(() => Poll, (poll) => poll.admin, { lazy: true })
   adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(
-    () => PollVote,
-    (PollVote) => PollVote.user,
-    { lazy: true }
-  )
+  @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
   constructor(user: User) {
     super();
-
     this.name = user.name;
     this.surname = user.surname;
     this.email = user.email;
     this.nickname = user.nickname;
     this.rol = UserRol.STANDARD;
     this.isActive = false;
+  }
+
+  @BeforeCreate()
+  async hashPassword() {
+    if (this.password) {
+      // Hasheamos la contraseña con bcrypt
+      const saltRounds = 10;
+      this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+    }
   }
 }

@@ -6,8 +6,14 @@ import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
 import { notLoggedError } from "../errors";
 
-
-const allUsers = async (root: any, arg: any, { em }: { em: EntityManager }) => {
+const allUsers = async (
+  root: any,
+  arg: any,
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
   const userRepo = em.getRepository(User);
   const users = await userRepo.findAll();
 
@@ -74,42 +80,6 @@ const findUser = async (
   };
 };
 
-;
-
-const getMessagesSent = async (
-  _: any,
-  args: { id: string },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  const userRepo = em.getRepository(User);
-
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  const user = await userRepo.findOne(
-    { id: currentUser.id },
-    { populate: ["messagesSent"] }
-  );
-  return user.messagesSent;
-};
-
-const getMessagesReceived = async (
-  _: any,
-  args: { id: string },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  const userRepo = em.getRepository(User);
-
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  const user = await userRepo.findOne(
-    { id: currentUser.id },
-    { populate: ["messagesReceived"] }
-  );
-  return user.messagesReceived;
-};
-
 const getPromotions = async (
   _: any,
   args: { id: string },
@@ -136,6 +106,13 @@ const getSchedules = async (
 
   if (!currentUser) {
     return notLoggedError("Please login");
+  }
+  if (currentUser.endSubscriptionDate < new Date()) {
+    return {
+      success: false,
+      code: "400",
+      message: "Your subscription has expired, please renew it",
+    };
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -214,17 +191,28 @@ const getPolls = async (
   args: { id: string },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  if (currentUser.endSubscriptionDate < new Date()) {
+    return {
+      success: false,
+      code: "400",
+      message: "Your subscription has expired, please renew it",
+    };
+  }
   const pollRepo = em.getRepository(Poll);
 
-  const pollsandOptionSelected = await pollRepo.getPollsAndSelectionByUser(
+  const pollsAndVotes = await pollRepo.getPollsAndVotesByUser(
     currentUser.id
   );
-  console.log(pollsandOptionSelected);
+  console.log(pollsAndVotes[0].pollVotes);
 
   return {
     success: true,
     code: "200",
     message: "Polls found",
+    pollsAndVotes,
   };
 
   // if (!currentUser) {
@@ -243,9 +231,9 @@ const getPolls = async (
 const getConversation = async (
   root: any,
   {
-    id: otherUserId = process.env.DB_FORUM_ID,
+    otherUserId = process.env.DB_FORUM_ID,
     page = 0,
-  }: { id: string; page: number },
+  }: { otherUserId: string; page: number },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
@@ -272,7 +260,7 @@ const getConversation = async (
         "id",
         "sender",
         "receiver",
-        "message",
+        "text",
         "created_at",
         ...forumFields,
       ], //just mandatory fields to optimize query
@@ -286,18 +274,11 @@ const getConversation = async (
   };
 };
 
-
-
-
-
-
 export {
   getConversation,
   allUsers,
   me,
   findUser,
-  getMessagesSent,
-  getMessagesReceived,
   getSchedules,
   getPromotions,
   getAdminSchedules,

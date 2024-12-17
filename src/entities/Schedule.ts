@@ -13,7 +13,7 @@ import { ScheduleProgrammed } from "./ScheduleProgrammed";
 export class Schedule extends BaseEntity {
   @Property() //puede haber 2 schedules en la misma hora?
   startDate!: Date;
-    
+
   @Property()
   Duration!: number; // in minutes
 
@@ -26,8 +26,8 @@ export class Schedule extends BaseEntity {
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
 
-  @ManyToOne(() => User)
-  admin!: User;
+  @ManyToOne(() => User, { nullable: true })
+  admin: User;
 
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;

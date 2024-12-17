@@ -10,7 +10,6 @@ import {
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { CustomPollRepository } from "../customRepositories/pollRepository";
-import { PollOptionType } from "../types";
 import { PollVote } from "./PollVote";
 
 @Entity({ repository: () => CustomPollRepository })
@@ -28,9 +27,9 @@ export class Poll extends BaseEntity {
   @Property()
   options!: string[];
 
-  @ManyToOne(() => User)
-  creator;
+  @ManyToOne(() => User, { nullable: true }) // arreglar
+  admin: User;
 
-  @OneToMany(() => PollVote, (pos) => pos.poll)
+  @OneToMany(() => PollVote, (pollVote) => pollVote.poll)
   pollVotes = new Collection<PollVote>(this);
 }

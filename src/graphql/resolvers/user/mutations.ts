@@ -34,11 +34,8 @@ export const createUser = async (_, args, { em }: { em: EntityManager }) => {
   if (existingNickName) {
     return notCreatedError("Nickname already exists");
   }
-  const hashedPassword = await bcrypt.hash(password, 10);
-
   const newUser = em.create(User, {
     ...args.user,
-    password: hashedPassword,
   });
   console.log("user", newUser.id);
   await em.persistAndFlush(newUser);
@@ -210,12 +207,12 @@ const removeUser = async (parent, args, { em }: { em: EntityManager }) => {
 export const addMessage = async (
   root: any,
   {
-    message,
+    text,
     receiverId,
     isFixed = false,
     fixedDuration = 0,
   }: {
-    message: string;
+    text: string;
     receiverId: string;
     isFixed: boolean;
     fixedDuration: number;
@@ -230,22 +227,20 @@ export const addMessage = async (
   const userRepo = em.getRepository(User);
   const sender = await userRepo.findOne({ id: currentUser.id });
   const receiver = await userRepo.findOne({ id: receiverId });
-
-  const newMessage = em.create(Message, {
-    message,
-    receiver,
-    sender,
-    isFixed,
-    fixedDuration,
-  });
-  await em.persistAndFlush(newMessage);
-
-  return {
-    success: true,
-    code: "200",
-    message: "Message sent",
-    sms: newMessage,
-  };
+  try {
+    const newMessage = em.create(Message, {
+      text,
+      receiver,
+      sender,
+      isFixed,
+      fixedDuration,
+    });
+    await em.persistAndFlush(newMessage);
+    return createdSuccess("Message sent succesfully", newMessage, null);
+  } catch (error) {
+    console.error(error);
+    return notCreatedError("Message not sent, please try again");
+  }
 };
 
 export const addSchedule = async (
@@ -357,7 +352,7 @@ export const addPoll = async (
     endDate,
     title,
     options,
-    creator: em.getReference(User, currentUser.id),
+    admin: em.getReference(User, currentUser.id),
   });
   await em.persistAndFlush(newPoll);
 
@@ -388,7 +383,7 @@ export const addVote = async (
   if (poll.endDate < new Date()) {
     return notCreatedError("Poll is closed");
   }
-  if (option < 0 || option >= poll.options.length){ 
+  if (option < 0 || option >= poll.options.length) {
     return notCreatedError("Option not valid");
   }
   const newPollVote = em.create(PollVote, {
@@ -400,7 +395,7 @@ export const addVote = async (
   return createdSuccess("Vote added succesfully", newPollVote, null);
 };
 
-export const fixMessage = async(
+export const fixMessage = async (
   root: any,
   {
     messageId,
@@ -429,9 +424,9 @@ export const fixMessage = async(
   message.fixedDuration = duration;
   await em.persistAndFlush(message);
   return createdSuccess("Message fixed succesfully", message, null);
-}
+};
 
-export const unfixMessage = async(
+export const unfixMessage = async (
   root: any,
   {
     messageId,
@@ -458,9 +453,9 @@ export const unfixMessage = async(
   message.fixedDuration = 0;
   await em.persistAndFlush(message);
   return createdSuccess("Message unfixed succesfully", message, null);
-}
+};
 
-export const cancelSchedule = async(
+export const cancelSchedule = async (
   root: any,
   {
     scheduleId,
@@ -486,9 +481,4 @@ export const cancelSchedule = async(
   schedule.isCancelled = true;
   await em.persistAndFlush(schedule);
   return createdSuccess("Schedule cancelled succesfully", schedule, null);
-}
-
-
-
-
-
+};

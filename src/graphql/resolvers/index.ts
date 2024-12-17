@@ -2,24 +2,21 @@ import {
   me,
   allUsers,
   findUser,
-  getMessagesSent,
-  getMessagesReceived,
   getSchedules,
   getPolls,
   getConversation,
 
 } from './user/queries'
-import {login} from "./auth/queries";
+import {login, loginWithId} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
 import {addMessage, addPoll, addSchedule, addScheduleProgrammed, addVote, createUser} from "./user/mutations";
 const resolvers = {
   Query: {
     login,
+    loginWithId,
     allUsers,
     me,
     findUser,
-    getMessagesSent,
-    getMessagesReceived,
     getSchedules,
     getPolls,
     getConversation,

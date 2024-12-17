@@ -12,5 +12,5 @@ export type UserType = {
     phoneNumber: string;
     nickname: string;
     startPaymentDate: Date;
-    endPaymentDate: Date;
+    endSubscriptionDate: Date;
 }

@@ -23,8 +23,8 @@ export class Promotion extends BaseEntity {
   @Property()
   price!: number;
 
-  @Property()
-  picture!: string;
+  @Property({ nullable: true })
+  picture: string;
 
   @Property()
   description!: string;

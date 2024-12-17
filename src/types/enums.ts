@@ -2,6 +2,7 @@ export enum UserRol {
   STANDARD = "standard",
   BOSS = "boss",
   PREMIUM = "premium",
+  COACH = "coach",
 }
 
 export enum NotificationType {

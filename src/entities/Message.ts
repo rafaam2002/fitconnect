@@ -1,4 +1,10 @@
-import { Entity, ManyToOne, Property } from "@mikro-orm/core";
+import {
+  BeforeCreate,
+  BeforeUpdate,
+  Entity,
+  ManyToOne,
+  Property,
+} from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 
@@ -6,7 +12,7 @@ import { User } from "./User";
 export class Message extends BaseEntity {
   //  @Field(() => String)
   @Property()
-  message!: string;
+  text!: string;
 
   // @Field(() => Boolean)
   @Property()
@@ -23,9 +29,17 @@ export class Message extends BaseEntity {
   @ManyToOne(() => User)
   receiver!: User;
 
+  @BeforeCreate()
+  @BeforeUpdate()
+  validate() {
+    if (this.sender === this.receiver) {
+      throw new Error("Sender and receiver can not be the same.");
+    }
+  }
+
   constructor(message: Message) {
     super();
-    this.message = message.message;
+    this.text = message.text;
     this.isFixed = message.isFixed;
     this.fixedDuration = message.fixedDuration;
     this.sender = message.sender;

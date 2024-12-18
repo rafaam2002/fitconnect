@@ -5,6 +5,7 @@ import { Poll } from "../../../entities/Poll";
 import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
 import { notLoggedError } from "../errors";
+import { PollVote } from "../../../entities/PollVote";
 
 const allUsers = async (
   root: any,
@@ -201,18 +202,19 @@ const getPolls = async (
       message: "Your subscription has expired, please renew it",
     };
   }
+
   const pollRepo = em.getRepository(Poll);
+  const pollVotesRepo = em.getRepository(PollVote);
 
-  const pollsAndVotes = await pollRepo.getPollsAndVotesByUser(
-    currentUser.id
-  );
-  console.log(pollsAndVotes[0].pollVotes);
-
+  const polls = await pollRepo.findAll();
+  const userVotes = await pollVotesRepo.find({ user: currentUser.id });
+  
   return {
     success: true,
     code: "200",
     message: "Polls found",
-    pollsAndVotes,
+    polls,
+    userVotes,
   };
 
   // if (!currentUser) {

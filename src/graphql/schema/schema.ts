@@ -14,8 +14,6 @@ type Tokens {
     refeshToken: String
 }
 
-${graphqlTypes}
-
 ${graphqlEntities}
 
 ${graphqlResponses}

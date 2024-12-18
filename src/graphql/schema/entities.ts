@@ -39,7 +39,7 @@ type Poll {
     updated_at: String!
     title: String!
     description: String!
-    options: [PollOptionType]
+    options: [String]!
 }
 
 type PollVote { 

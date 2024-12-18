@@ -30,6 +30,6 @@ export class Poll extends BaseEntity {
   @ManyToOne(() => User, { nullable: true }) // arreglar
   admin: User;
 
-  @OneToMany(() => PollVote, (pollVote) => pollVote.poll)
+  @OneToMany(() => PollVote, (pollVote) => pollVote.poll, { eager: true })
   pollVotes = new Collection<PollVote>(this);
 }

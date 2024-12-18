@@ -38,6 +38,7 @@ const startServer = async () => {
       const currentUser = await authenticateUser(em, authorization);
 
       return { em, currentUser };
+      
     },
     listen: { port: 4000 },
   });

@@ -10,6 +10,7 @@ export class CustomPollRepository extends EntityRepository<Poll> {
       .select("p.*") // Selecciona todas las columnas de Poll
       .leftJoin("p.pollVotes", "pv") // Usa el nombre de la relación "pollVotes"
       .where("pv.user_id = ?", [userId]) // Filtra por userId en la tabla intermedia
+      // .populate([Poll.pollVotes])
       .getResultList();
   }
 }

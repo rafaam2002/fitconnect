@@ -78,7 +78,8 @@ type PollsResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
-    pollsAndVotes: [PollAndVotesType]
+    polls: [Poll]
+    userVotes: [PollVote]
 }
 
 type MessageResponse implements BasicResponse{

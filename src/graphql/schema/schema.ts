@@ -4,7 +4,6 @@ import { graphqlInputs } from "./inputs";
 import { graphqlMutations } from "./mutations";
 import { graphqlQueries } from "./queries";
 import { graphqlResponses } from "./responses";
-import { graphqlTypes } from "./types";
 export const typeDefs = `#graphql
 
 ${graphqlEnums}

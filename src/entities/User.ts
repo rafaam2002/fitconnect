@@ -1,4 +1,4 @@
-import {Collection, Entity, ManyToMany, OneToMany, Property, t,} from "@mikro-orm/core";
+import {Collection, Entity, ManyToMany, ManyToOne, OneToMany, Property, t,} from "@mikro-orm/core";
 import {UserRol} from "../types/enums";
 import {BaseEntity} from "./BaseEntity";
 import {Schedule} from "./Schedule";
@@ -7,6 +7,7 @@ import {Notification} from "./Notification";
 import {Poll} from "./Poll";
 import {Promotion} from "./Promotion";
 import {PollOptionSelection} from "./PollOptionSelection";
+import {Plan} from "./Plan";
 
 @Entity()
 export class User extends BaseEntity {
@@ -74,6 +75,8 @@ export class User extends BaseEntity {
   @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user)
   pollOptionSelections = new Collection<PollOptionSelection>(this);
 
+  @ManyToOne(() => Plan, { nullable: true })
+  plan?: Plan;
 
   constructor(user: User) {
     super();

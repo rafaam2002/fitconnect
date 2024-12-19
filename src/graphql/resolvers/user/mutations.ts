@@ -81,7 +81,7 @@ const updateUser = async (
       user: null,
     };
   }
-  if (currentUser.role !== "ADMIN") {
+  if (currentUser.rol !== "boss") {
     return {
       success: false,
       code: "400",
@@ -110,7 +110,7 @@ const updateUser = async (
     };
   }
 
-  if (user.rol === "boss") {
+  if (user.rol !== "boss") {
     return {
       success: false,
       code: "400",

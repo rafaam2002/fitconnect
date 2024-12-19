@@ -4,8 +4,8 @@ import {
   EntityRepositoryType,
   ManyToOne,
   OneToMany,
-    Property,
-  EntityManager
+  Property,
+  EntityManager,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
@@ -21,8 +21,8 @@ export class ScheduleProgrammed extends BaseEntity {
   @Property({ type: "time" })
   startHour!: string;
 
-  @Property()
-  Duration!: number; // in minutes
+  @Property({ type: "time" })
+  endHour!: string; // in minutes
 
   @Property()
   maxUsers!: number;
@@ -37,19 +37,16 @@ export class ScheduleProgrammed extends BaseEntity {
     super();
     this.daysOfWeek = scheduleProgrammed.daysOfWeek;
     this.startHour = scheduleProgrammed.startHour;
-    this.Duration = scheduleProgrammed.Duration;
+    this.endHour = scheduleProgrammed.endHour;
     this.maxUsers = scheduleProgrammed.maxUsers;
-      this.admin = scheduleProgrammed.admin;
+    this.admin = scheduleProgrammed.admin;
+  }
+  createInitialSchedules = async (em: EntityManager) => {
+    const now = new Date();
+    for (let i = 1; i <= 3; i++) {
+      this.daysOfWeek.forEach(async (day) => {
+        await createScheduleInXWeeks(now, day, i, this, em);
+      });
     }
-    createInitialSchedules = async (em: EntityManager) => {
-        const now = new Date();
-        for (let i = 1; i <= 3; i++) {
-             this.daysOfWeek.forEach(async day => {
-                 await  createScheduleInXWeeks(now, day, i, this, em);
-             });
-         }
-    }
+  };
 }
-
-
-

@@ -6,6 +6,8 @@ import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
 import { notLoggedError } from "../errors";
 import { PollVote } from "../../../entities/PollVote";
+import { Console } from "node:console";
+import { Schedule } from "../../../entities/Schedule";
 
 const allUsers = async (
   root: any,
@@ -103,7 +105,7 @@ const getSchedules = async (
   args: { id: string },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  const userRepo = em.getRepository(User);
+  const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
     return notLoggedError("Please login");
@@ -115,11 +117,17 @@ const getSchedules = async (
       message: "Your subscription has expired, please renew it",
     };
   }
-  const user = await userRepo.findOne(
-    { id: currentUser.id },
-    { populate: ["schedules"] }
+  const schedules = await scheduleRepo.find(
+    { admin: currentUser.id },
   );
-  return user.schedules;
+  console.log(schedules);
+  console.log();
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedules: schedules,
+  };
 };
 
 const getAdminSchedules = async (
@@ -208,7 +216,7 @@ const getPolls = async (
 
   const polls = await pollRepo.findAll();
   const userVotes = await pollVotesRepo.find({ user: currentUser.id });
-  
+
   return {
     success: true,
     code: "200",

@@ -247,12 +247,12 @@ export const addSchedule = async (
   root: any,
   {
     startDate,
-    Duration = 60,
+    endDate,
     maxUsers,
     isCancelled = false,
   }: {
     startDate: Date;
-    Duration: number;
+    endDate: Date;
     maxUsers: number;
     isCancelled: boolean;
     isProgrammed: boolean;
@@ -270,7 +270,7 @@ export const addSchedule = async (
 
   const newSchedule = em.create(Schedule, {
     startDate,
-    Duration,
+    endDate,
     maxUsers,
     isCancelled,
     admin,
@@ -286,12 +286,12 @@ export const addScheduleProgrammed = async (
   {
     daysOfWeek = [],
     startHour,
-    Duration = 60,
+    endHour,
     maxUsers,
   }: {
     daysOfWeek: number[];
     startHour: string;
-    Duration: number;
+    endHour: string;
     maxUsers: number;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -302,12 +302,13 @@ export const addScheduleProgrammed = async (
   if (currentUser.rol === UserRol.STANDARD) {
     return notAuthError("You are not authorized to perform this action");
   }
+  
   const userRepo = em.getRepository(User);
   const admin = await userRepo.findOne({ id: currentUser.id });
   const newScheduleProgrammed = em.create(ScheduleProgrammed, {
     daysOfWeek,
     startHour,
-    Duration,
+    endHour,
     maxUsers,
     admin,
   });

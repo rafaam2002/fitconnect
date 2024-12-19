@@ -15,12 +15,11 @@ type Schedule {
     id: ID!
     created_at: String!
     updated_at: String!
-    startTime: String!
-    Duration: Int!
+    startDate: String!
+    endDate: String!
     maxUsers: Int!
     admin: User!
     isCancelled: Boolean!
-    isProgammed: Boolean!
 }
 
 type ScheduleProgrammed {
@@ -29,7 +28,7 @@ type ScheduleProgrammed {
     updated_at: String!
     daysOfWeek: [Int]
     startHour: String!
-    Duration: Int!
+    endHour: String!
     maxUsers: Int!
     admin: User!
 } 

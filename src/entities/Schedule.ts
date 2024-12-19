@@ -15,7 +15,7 @@ export class Schedule extends BaseEntity {
   startDate!: Date;
 
   @Property()
-  Duration!: number; // in minutes
+  endDate!: Date; // in minutes
 
   @Property()
   maxUsers!: number;
@@ -35,7 +35,7 @@ export class Schedule extends BaseEntity {
   constructor(schedule: Schedule) {
     super();
     this.startDate = schedule.startDate;
-    this.Duration = schedule.Duration;
+    this.endDate = schedule.endDate;
     this.maxUsers = schedule.maxUsers;
     this.isCancelled = schedule.isCancelled;
     this.admin = schedule.admin;

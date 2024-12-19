@@ -1,29 +1,43 @@
-import {Collection, Entity, ManyToMany, ManyToOne, Property} from "@mikro-orm/core";
-import {BaseEntity} from "./BaseEntity";
-import {User} from "./User";
+import {
+  Collection,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  Property,
+} from "@mikro-orm/core";
+import { BaseEntity } from "./BaseEntity";
+import { User } from "./User";
+import { ScheduleProgrammed } from "./ScheduleProgrammed";
 
 @Entity()
 export class Schedule extends BaseEntity {
+  @Property() //puede haber 2 schedules en la misma hora?
+  startDate!: Date;
 
-    @Property()
-    startDate!: Date;
+  @Property()
+  endDate!: Date; // in minutes
 
-    @Property()
-    Duration!: number; // in minutes
+  @Property()
+  maxUsers!: number;
 
-    @Property()
-    maxUsers!: number;
+  @Property({ default: false })
+  isCancelled!: boolean;
 
-    @Property({default: false})
-    isCancelled!: boolean;
+  @ManyToMany(() => User, (user) => user.schedules)
+  users = new Collection<User>(this);
 
-    @Property({default: false})
-    isProgrammed!: boolean;
+  @ManyToOne(() => User, { nullable: true })
+  admin: User;
 
-    @ManyToMany(()=> User, (user) => user.schedules)
-    users = new Collection<User>(this);
+  @ManyToOne(() => ScheduleProgrammed, { nullable: true })
+  scheduleProgrammed?: ScheduleProgrammed;
 
-    @ManyToOne(() => User, {nullable: true})
-    admin?: User;
-
+  constructor(schedule: Schedule) {
+    super();
+    this.startDate = schedule.startDate;
+    this.endDate = schedule.endDate;
+    this.maxUsers = schedule.maxUsers;
+    this.isCancelled = schedule.isCancelled;
+    this.admin = schedule.admin;
+  }
 }

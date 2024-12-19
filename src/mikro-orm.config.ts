@@ -8,6 +8,8 @@ import { MikroORM } from "@mikro-orm/core";
 import { SeedManager } from "@mikro-orm/seeder/SeedManager";
 import { EntityRepository } from "@mikro-orm/postgresql";
 import { CustomPollRepository } from "./customRepositories/pollRepository";
+import { subscribe } from "diagnostics_channel";
+import { PollVoteSubscriber } from "./subscribers/PollVoteSubscriber";
 
 export default {
   entities: [Message, User, Notification, Schedule, Schedules_option],
@@ -19,6 +21,7 @@ export default {
   allowGlobalContext: true,
   driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator, SeedManager],
+  //subscribers : [PollVoteSubscriber],
 //    EntityRepository: [CustomPollRepository],
 };
 

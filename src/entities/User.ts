@@ -1,12 +1,17 @@
-import {Collection, Entity, ManyToMany, ManyToOne, OneToMany, Property, t,} from "@mikro-orm/core";
-import {UserRol} from "../types/enums";
-import {BaseEntity} from "./BaseEntity";
-import {Schedule} from "./Schedule";
-import {Message} from "./Message";
-import {Notification} from "./Notification";
-import {Poll} from "./Poll";
-import {Promotion} from "./Promotion";
-import {PollOptionSelection} from "./PollOptionSelection";
+import {
+  BeforeCreate,Collection, Entity, ManyToMany, ManyToOne, OneToMany,
+  Property,
+  t,
+} from "@mikro-orm/core";
+import { UserRol } from "../types/enums";
+import { BaseEntity } from "./BaseEntity";
+import { Schedule } from "./Schedule";
+import { Message } from "./Message";
+import { Notification } from "./Notification";
+import { Poll } from "./Poll";
+import { Promotion } from "./Promotion";
+import { PollVote } from "./PollVote";
+import bcrypt from "bcrypt";
 import {Plan} from "./Plan";
 
 @Entity()
@@ -23,10 +28,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   email!: string;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   phoneNumber: string;
 
-  @Property({nullable: true}) //{ type: "blob", nullable: true }
+  @Property({ nullable: true }) //{ type: "blob", nullable: true }
   profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
@@ -35,19 +40,21 @@ export class User extends BaseEntity {
   @Property()
   isActive!: boolean;
 
-  @Property({type: t.boolean})
+  @Property({ type: t.boolean })
   isBlocked = true;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   startPaymentDate: Date;
 
-  @Property({nullable: true})
-  endPaymentDate: Date;
+  @Property({ nullable: true })
+  endSubscriptionDate: Date;
 
   @Property({ type: t.string })
-  rol!: UserRol
+  rol!: UserRol;
 
-  @ManyToMany(() => Schedule, (schedule:Schedule) => schedule.users, { owner: true })
+  @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
+    owner: true,
+  })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })
@@ -58,34 +65,44 @@ export class User extends BaseEntity {
   adminSchedules = new Collection<Schedule>(this);
 
   // Relación OneToMany con Message (sender)
-  @OneToMany(() => Message, (message) => message.sender)
+  @OneToMany(() => Message, (message) => message.sender, { lazy: true })
   messagesSent = new Collection<Message>(this);
 
   // Relación OneToMany con Message (receiver)
-  @OneToMany(() => Message, (message) => message.receiver)
+  @OneToMany(() => Message, (message) => message.receiver, { lazy: true })
   messagesReceived = new Collection<Message>(this);
 
   // Relación OneToMany con Notification
-  @OneToMany(() => Notification, (notification) => notification.user)
+  @OneToMany(() => Notification, (notification) => notification.user, {
+    lazy: true,
+  })
   notifications = new Collection<Notification>(this);
 
-  @OneToMany(() => Poll, (poll) => poll.creator)
+  @OneToMany(() => Poll, (poll) => poll.admin, { lazy: true })
   adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(() => PollOptionSelection, (PollOptionSelection) => PollOptionSelection.user)
-  pollOptionSelections = new Collection<PollOptionSelection>(this);
+  @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
+  pollVotes = new Collection<PollVote>(this);
 
   @ManyToOne(() => Plan, { nullable: true })
   plan?: Plan;
 
   constructor(user: User) {
     super();
-
     this.name = user.name;
     this.surname = user.surname;
     this.email = user.email;
     this.nickname = user.nickname;
     this.rol = UserRol.STANDARD;
     this.isActive = false;
+  }
+
+  @BeforeCreate()
+  async hashPassword() {
+    if (this.password) {
+      // Hasheamos la contraseña con bcrypt
+      const saltRounds = 10;
+      this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+    }
   }
 }

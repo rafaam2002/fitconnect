@@ -11,6 +11,7 @@ import {
 import {login} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
 import {createUser} from "./user/mutations";
+
 const resolvers = {
   Query: {
     login,

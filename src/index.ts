@@ -63,42 +63,49 @@ startServer();
 
 async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   const UserRepo = em.getRepository(User);
+
+  const myUser = UserRepo.create({
+    name: "Rafael",
+    surname: "García",
+    nickname: "Rafa",
+    email: "rafa",
+    password: "1234",
+    rol: UserRol.BOSS,
+    isActive: true,
+    isBlocked: false,
+    phoneNumber: "123456789",
+  });
+    
   
-  // const PollVoteRepo = em.getRepository(PollVote);
-  // const PollRepo = em.getRepository(Poll);
-  // const newPoll = PollRepo.create({
-  //   title: "¿Te gusta el café?",
-  //   options: ["Sí", "No"],
-  //   admin: myUser,
-  //   startDate: new Date(),
-  //   endDate: new Date(),
-  // });
-  // const newPollVote = PollVoteRepo.create({
-  //   poll: newPoll,
-  //   user: myUser,
-  //   optionSelected: 1,
-  // });
-  // const newPollVote2 = PollVoteRepo.create({
-  //   poll: newPoll,
-  //   user: myUser,
-  //   optionSelected: 0,
-  // });
-  // try {
+  const PollVoteRepo = em.getRepository(PollVote);
+  const PollRepo = em.getRepository(Poll);
+  const newPoll = PollRepo.create({
+    title: "¿Te gusta el café?",
+    options: ["Sí", "No"],
+    admin: myUser,
+    startDate: new Date(),
+    endDate: new Date(),
+  });
+  const newPollVote = PollVoteRepo.create({
+    poll: newPoll,
+    user: myUser,
+    optionSelected: 1,
+  });
+
+  try {
   
-  //   await em.persistAndFlush(newPoll);
-  //   await em.persistAndFlush(newPollVote);
-  //   await em.persistAndFlush(newPollVote2);
-  //   console.log("Voto de la encuesta guardado correctamente");
-  //   console.log(
-  //     newPollVote.poll.id,
-  //     newPollVote.user.id,
-  //     newPollVote2.poll.id,
-  //     newPollVote2.user.id
-  //   );
-  // } catch (e) {
-  //   console.log("Error al guardar el voto de la encuesta");
-  //   console.log(e);
-  // }
+    await em.persistAndFlush(myUser);
+    await em.persistAndFlush(newPoll);
+    await em.persistAndFlush(newPollVote);
+    console.log("Voto de la encuesta guardado correctamente");
+    console.log(
+      newPollVote.poll.id,
+      newPollVote.user.id,
+    );
+  } catch (e) {
+    console.log("Error al guardar el voto de la encuesta");
+    console.log(e);
+  }
 }
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
   const SchedulesOptionRepo = em.getRepository(Schedules_option);

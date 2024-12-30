@@ -1,7 +1,3 @@
-
-
-
-
 export const notCreatedError = (message: string) => ({
   success: false,
   code: "400",

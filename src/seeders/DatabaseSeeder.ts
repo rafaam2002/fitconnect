@@ -17,7 +17,7 @@ export class DatabaseSeeder extends Seeder {
       MessageSeeder,
       PollVoteSeeder,
       PromotionSeeder,
-      PlanSeeeder
+      PlanSeeder
     ]);
   }
 }

@@ -13,6 +13,7 @@ import { create } from "domain";
 import { Poll } from "../../../entities/Poll";
 import { start } from "repl";
 import { PollVote } from "../../../entities/PollVote";
+import {Plan} from "../../../entities/Plan";
 
 export const createUser = async (_, args, { em }: { em: EntityManager }) => {
   const user = em.getRepository(User);
@@ -483,3 +484,89 @@ export const cancelSchedule = async (
   await em.persistAndFlush(schedule);
   return createdSuccess("Schedule cancelled succesfully", schedule, null);
 };
+
+export const addSubscription = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+
+  const {planId} = args;
+
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+
+  if (!planId) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please provide a plan Id",
+    }
+  }
+
+  const user = await em.findOne(User, {id: currentUser.id});
+
+  if (!user) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not found",
+    }
+  }
+
+  user.plan = planId;
+  user.startSubscriptionDate = new Date();
+  user.endSubscriptionDate = null;
+
+  await em.flush()
+
+  return {
+    success: true,
+    code: "200",
+    message: "Subscription added",
+  }
+
+}
+
+export const removeSubscription = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+
+  const {planId} = args;
+
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+
+  if (!planId) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please provide a plan Id",
+    }
+  }
+
+  const plan = await em.findOne(Plan, {id: planId});
+  const user = await em.findOne(User, {id: currentUser.id});
+
+  if (!user) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not found",
+    }
+  }
+  if(!plan) {
+    return {
+      success: false,
+      code: "400",
+      message: "Plan not found",
+    }
+  }
+  user.plan = null;
+  user.endSubscriptionDate = new Date();
+
+  await em.remove(plan).flush()
+
+  return {
+    success: true,
+    code: "200",
+    message: "Subscription removed",
+  }
+
+}

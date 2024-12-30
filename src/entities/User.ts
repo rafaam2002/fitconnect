@@ -44,7 +44,7 @@ export class User extends BaseEntity {
   isBlocked = true;
 
   @Property({ nullable: true })
-  startPaymentDate: Date;
+  startSubscriptionDate: Date;
 
   @Property({ nullable: true })
   endSubscriptionDate: Date;

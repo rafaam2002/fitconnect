@@ -11,6 +11,6 @@ export type UserType = {
     profilePicture: string;
     phoneNumber: string;
     nickname: string;
-    startPaymentDate: Date;
+    startSubscriptionDate: Date;
     endSubscriptionDate: Date;
 }

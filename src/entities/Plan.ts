@@ -20,13 +20,13 @@ export class Plan extends BaseEntity {
     price!: number; // Precio del plan
 
     @Property({ type: "string" })
-    currency!: string; // Moneda, e.g., "USD"
+    currency: string = 'EUR'
 
     @Property({ type: "boolean", default: true })
     isActive: boolean = true;
 
     @Property({ type: "number" })
-    durationInDays!: number; // Duración del plan en días
+    durationInDays: number = 0;
 
     @OneToMany(() => User, (user: User) => user.plan)
     users = new Collection<User>(this);

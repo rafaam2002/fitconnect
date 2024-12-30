@@ -14,10 +14,24 @@ input CreateUserInput {
     password: String!
     nickname: String
     profilePicture: String
+    rol: UserRolEnum
 }
     
 input ChangePasswordInput {
     currentPassword: String!
     newPassword: String!
+}
+
+input FinPlanInput {
+    planId: ID!
+}
+
+input CreatePlanInput {
+    name: String!
+    description: String!
+    price: Float!
+    durationInDays: Int!
+    isActive: Boolean!
+    currency: String
 }
 `;

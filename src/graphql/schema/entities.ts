@@ -59,4 +59,15 @@ type Message {
     sender: String!
     reciver: String!
 }
+
+type Plan {
+    id: ID!,
+    name: String!,
+    description: String!,
+    price: Float!,
+    currency: String!,
+    isActive: Boolean!,
+    durationInDays: Int!,
+    users: [User]
+}
 `;

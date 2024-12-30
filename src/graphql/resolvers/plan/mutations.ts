@@ -2,7 +2,8 @@ import {EntityManager} from "@mikro-orm/core";
 import {User} from "../../../entities/User";
 import {Plan} from "../../../entities/Plan";
 
-const addPlan = async(_: any, args: any, { em, currentUser }: { em: EntityManager, currentUser: User }) => {
+const createPlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+
     if (!currentUser) {
         return {
             success: false,
@@ -11,6 +12,7 @@ const addPlan = async(_: any, args: any, { em, currentUser }: { em: EntityManage
             plan: null,
         };
     }
+
     if (currentUser.rol !== "boss") {
         return {
             success: false,
@@ -20,7 +22,7 @@ const addPlan = async(_: any, args: any, { em, currentUser }: { em: EntityManage
         };
     }
 
-    let newPlan: Plan  = em.create(Plan,{ ...args.subscription});
+    let newPlan: Plan = em.create(Plan, {...args.plan});
 
     await em.persistAndFlush(newPlan);
 
@@ -33,15 +35,15 @@ const addPlan = async(_: any, args: any, { em, currentUser }: { em: EntityManage
         };
 
     return {
-        succes:true,
+        success: true,
         code: '201',
         message: 'Plan was created successfully',
         plan: newPlan
     }
 }
 
-const updatePlan = async(_: any, args: any, { em, currentUser }: { em: EntityManager, currentUser: User }) => {
-    const {plan} = args
+const updatePlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+    const {planId, plan} = args
 
     if (!currentUser) {
         return {
@@ -52,37 +54,49 @@ const updatePlan = async(_: any, args: any, { em, currentUser }: { em: EntityMan
         };
     }
 
-    if(!plan.id) {
+    if (!planId) {
         return {
             success: false,
-            code: "404",
-            message: "Plan was not found",
+            code: "400",
+            message: "Faltan parámetros obligatorios",
             plan: null,
         };
     }
 
-    let updatedPlan: Plan = await em.findOne(Plan,{id: plan.id}, {...plan});
 
-    await em.persistAndFlush(updatedPlan);
+    let updatedPlan: Plan = await em.findOne(Plan, {id: planId});
 
-    if (!updatedPlan.id )
+    if (!updatedPlan) {
+        return {
+            success: false,
+            code: "404",
+            message: "No se encontró el plan",
+            plan: null,
+        };
+    }
+
+    Object.assign(updatedPlan, {...plan})
+
+    await em.flush();
+
+    if (!updatedPlan.id)
         return {
             success: false,
             code: "400",
-            message: "Plan was not created",
+            message: "No se pudo crear el plan",
             plan: null
         };
 
     return {
-        succes:true,
+        success: true,
         code: '201',
         message: 'Plan was updated successfully',
         plan: updatedPlan
     }
 }
 
-const unsuscribePlan = async(_: any, args: any, { em, currentUser }: { em: EntityManager, currentUser: User }) => {
-    const {plan} = args
+const removePlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+    const {planId} = args
 
     if (!currentUser) {
         return {
@@ -93,35 +107,38 @@ const unsuscribePlan = async(_: any, args: any, { em, currentUser }: { em: Entit
         };
     }
 
-    if(!plan.id) {
+    if (!planId) {
         return {
             success: false,
-            code: "404",
-            message: "Plan was not found",
+            code: "400",
+            message: "Faltan parámetros obligatorios",
             plan: null,
         };
     }
 
-    await em.removeAndFlush(plan);
+    const plan = await em.findOne(Plan, {id: planId})
 
-    if (!plan)
+    if (!plan) {
         return {
-            succes:true,
-            code: '201',
-            message: 'Plan was deleted successfully',
-            plan: plan
-        }
+            success: false,
+            code: "404",
+            message: "No se encuentra el plan",
+            plan: null,
+        };
+    }
 
-     return {
-        success: false,
-        code: "400",
-        message: "Plan was not deleted",
+    await em.remove(plan).flush();
+
+    return {
+        success: true,
+        code: '200',
+        message: 'Plan was deleted successfully',
         plan: null
     };
 }
 
 export {
-    addPlan,
+    createPlan,
     updatePlan,
-    unsuscribePlan
+    removePlan
 }

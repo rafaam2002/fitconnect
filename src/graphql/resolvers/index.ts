@@ -4,12 +4,22 @@ import {
   findUser,
   getSchedules,
   getPolls,
-  getConversation,
+  getConversation
 
 } from './user/queries'
 import {login, loginWithId} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
-import {addMessage, addPoll, addSchedule, addScheduleProgrammed, addVote, createUser} from "./user/mutations";
+import {
+  addMessage,
+  addPoll,
+  addSchedule,
+  addScheduleProgrammed,
+  addSubscription,
+  addVote,
+  createUser, removeSubscription
+} from "./user/mutations";
+import {createPlan, removePlan, updatePlan} from "./plan/mutations";
+import {getPlans} from "./plan/queries";
 const resolvers = {
   Query: {
     login,
@@ -20,6 +30,7 @@ const resolvers = {
     getSchedules,
     getPolls,
     getConversation,
+    getPlans
   },
   Mutation: {
     createUser,
@@ -30,6 +41,11 @@ const resolvers = {
     addScheduleProgrammed,
     addPoll,
     addVote,
+    createPlan,
+    updatePlan,
+    removePlan,
+    addSubscription,
+    removeSubscription
   }
 }
 

@@ -19,12 +19,12 @@ ${graphqlResponses}
 
 ${graphqlInputs}
 
-type MessagesReceived implements BasicResponse{
-    code: String!
-    success: Boolean!
-    message: String!
-    messages: [Message]
-}
+#type MessagesReceived implements BasicResponse{
+#    code: String!
+#    success: Boolean!
+#    message: String!
+#    messages: [Message]
+#}
 
 ${graphqlQueries}
 

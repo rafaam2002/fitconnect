@@ -1,15 +1,37 @@
 import {EntityManager} from "@mikro-orm/core";
-import {Subscription} from "../../../entities/Plan";
+import {Plan} from "../../../entities/Plan";
 
-const getSubscriptions = async(_, arg: any, { em }: { em: EntityManager }) => {
+const getPlans = async (_, args: any, {em}: { em: EntityManager }) => {
+    const {planId} = args
+
+    if (planId) {
+        const plan = await em.findOne(Plan, {id: planId})
+
+        if (plan) {
+            return {
+                success: true,
+                code: "200",
+                message: 'Planes fetched successfully',
+                plan
+            }
+        } else {
+            return {
+                success: false,
+                code: "404",
+                message: 'No se encontró el plan',
+                plan: null
+            }
+        }
+    }
+
     return {
         success: true,
         code: "200",
-        message: 'Subscriptions fetched successfully',
-        promotions: await em.find(Subscription, {})
+        message: 'Planes fetched successfully',
+        plans:  await em.find(Plan, {})
     }
 }
 
 export {
-    getSubscriptions
+    getPlans
 }

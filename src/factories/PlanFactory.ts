@@ -11,7 +11,7 @@ export class PlanFactory extends Factory<Plan> {
             description: faker.commerce.productDescription(),
             price: faker.helpers.rangeToNumber({ min: 5, max: 100 }),
             currency: faker.finance.currencyCode(),
-            durationInDays: faker.helpers.rangeToNumber({ min: 7, max: 365 }),
+            paymentDate: faker.helpers.rangeToNumber({ min: 1, max: 31 }),
             isActive: faker.datatype.boolean(),
         };
     }

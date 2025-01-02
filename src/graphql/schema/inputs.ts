@@ -22,7 +22,7 @@ input ChangePasswordInput {
     newPassword: String!
 }
 
-input FinPlanInput {
+input FindPlanInput {
     planId: ID!
 }
 
@@ -33,5 +33,13 @@ input CreatePlanInput {
     durationInDays: Int!
     isActive: Boolean!
     currency: String
+}
+
+input CreateSubscriptionInput {
+    paymentMethod: PaymentMethodEnum
+    cardId: ID!
+    planId: ID!
+    applePayToken: String
+    googlePayToken: String
 }
 `;

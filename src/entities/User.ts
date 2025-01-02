@@ -13,6 +13,8 @@ import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
 import {Plan} from "./Plan";
+import {Card} from "./Card";
+import {Subscription} from "./Subscription";
 
 @Entity()
 export class User extends BaseEntity {
@@ -42,12 +44,6 @@ export class User extends BaseEntity {
 
   @Property({ type: t.boolean })
   isBlocked = true;
-
-  @Property({ nullable: true })
-  startSubscriptionDate: Date;
-
-  @Property({ nullable: true })
-  endSubscriptionDate: Date;
 
   @Property({ type: t.string })
   rol!: UserRol;
@@ -88,8 +84,11 @@ export class User extends BaseEntity {
   @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
-  @ManyToOne(() => Plan, { nullable: true })
-  plan?: Plan;
+  @OneToMany(() => Card, card => card.user)
+  cards = new Collection<Card>(this);
+
+  @OneToMany(() => Subscription, subscription => subscription.user)
+  subscriptions = new Collection<Subscription>(this);
 
   constructor(user: User) {
     super();

@@ -13,6 +13,7 @@ export class PlanFactory extends Factory<Plan> {
             currency: faker.finance.currencyCode(),
             paymentDate: faker.helpers.rangeToNumber({ min: 1, max: 31 }),
             isActive: faker.datatype.boolean(),
+            paymentType: faker.helpers.arrayElement(['MENSUAL', 'ANUAL']),
         };
     }
 }

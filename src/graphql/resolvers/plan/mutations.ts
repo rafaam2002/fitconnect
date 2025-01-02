@@ -54,6 +54,15 @@ const updatePlan = async (_: any, args: any, {em, currentUser}: { em: EntityMana
         };
     }
 
+    if(currentUser && currentUser.rol !== "boss") {
+        return {
+            success: false,
+            code: "403",
+            message: "You are not authorized to perform this action",
+            plan: null,
+        }
+    }
+
     if (!planId) {
         return {
             success: false,

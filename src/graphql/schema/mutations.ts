@@ -15,7 +15,7 @@ type Mutation {
     createPlan(plan: CreatePlanInput!): PlanResponse!
     updatePlan(planId: ID!, plan: CreatePlanInput!): PlanResponse!
     removePlan(planId: ID!): PlanResponse!,
-    addSubscription(planId: ID!): PlanResponse!,
+    addSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!,
     removeSubscription(planId: ID!): PlanResponse!,
 }
 

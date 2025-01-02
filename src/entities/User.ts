@@ -54,10 +54,14 @@ export class User extends BaseEntity {
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
+    eager: true
   })
   schedules = new Collection<Schedule>(this);
 
-  @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })
+  @ManyToMany(() => Promotion, (promotion) => promotion.users, {
+    owner: true,
+    eager: true
+  })
   promotions = new Collection<Promotion>(this);
 
   // Relación OneToMany con Schedule (admin)

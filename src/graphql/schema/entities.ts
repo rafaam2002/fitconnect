@@ -9,6 +9,7 @@ type User {
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRolEnum!
+    schedules: [Schedule]
 }
 
 type Schedule {

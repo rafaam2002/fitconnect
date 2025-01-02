@@ -11,12 +11,12 @@ import {PlanSeeder} from "./PlanSeeder";
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     return this.call(em, [
+      PromotionSeeder,
+      ScheduleSeeder,
       UserSeeder,
       PollSeeder,
-      ScheduleSeeder,
       MessageSeeder,
       PollVoteSeeder,
-      PromotionSeeder,
       PlanSeeder
     ]);
   }

@@ -2,7 +2,6 @@ export const graphqlMutations = `
 
 type Mutation {
     createUser ( user: CreateUserInput!): UserResponse
-    register(input: CreateUserInput!): LoginResponse!
     forgotPassword(email: String!): String!
     changePassword(input: ChangePasswordInput!): String!
     addMessage(message: String!, receiver: ID!, isFixed: Boolean, fixedDuration: Boolean): MessageResponse!

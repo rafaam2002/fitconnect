@@ -79,5 +79,11 @@ type PlanResponse implements BasicResponse{
     plan: Plan
     plans: [Plan]
 }
+
+type SubscriptionResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+}
 `;
 

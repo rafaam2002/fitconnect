@@ -12,4 +12,11 @@ enum UserRolEnum {
     premium
     coach
 }
+
+enum PaymentMethodEnum {
+    CARD
+    PAYPAL
+    APPLE_PAY
+    GOOGLE_PAY
+}
 `;

@@ -109,13 +109,13 @@ const getSchedules = async (
     if (!currentUser) {
         return notLoggedError("Please login");
     }
-    if (currentUser.endSubscriptionDate < new Date()) {
-        return {
-            success: false,
-            code: "400",
-            message: "Your subscription has expired, please renew it",
-        };
-    }
+    // if (currentUser.endSubscriptionDate < new Date()) {
+    //     return {
+    //         success: false,
+    //         code: "400",
+    //         message: "Your subscription has expired, please renew it",
+    //     };
+    // }
     const schedules = await scheduleRepo.find(
         {admin: currentUser.id},
     );
@@ -202,13 +202,13 @@ const getPolls = async (
     if (!currentUser) {
         return notLoggedError("Please login");
     }
-    if (currentUser.endSubscriptionDate < new Date()) {
+   /* if (currentUser.endSubscriptionDate < new Date()) {
         return {
             success: false,
             code: "400",
             message: "Your subscription has expired, please renew it",
         };
-    }
+    }*/
 
     const pollRepo = em.getRepository(Poll);
     const pollVotesRepo = em.getRepository(PollVote);

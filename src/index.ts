@@ -45,6 +45,7 @@ const startServer = async () => {
 
   console.log(`🚀 Servidor listo en ${url}`);
 
+
   await insertShedulesOption(orm.em.fork());
 
   await rafasProbes(orm.em.fork());
@@ -67,6 +68,7 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   const myUser = await UserRepo.findOne({ email: "rafa" });
 
 
+
   const PollVoteRepo = em.getRepository(PollVote);
   const PollRepo = em.getRepository(Poll);
   const newPoll = PollRepo.create({
@@ -83,9 +85,7 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   });
 
   try {
-    await em.persistAndFlush(myUser);
-    await em.persistAndFlush(newPoll);
-    await em.persistAndFlush(newPollVote);
+    await em.persistAndFlush([newPoll, newPollVote]);
     console.log("Voto de la encuesta guardado correctamente");
     console.log(
       newPollVote.poll.id,

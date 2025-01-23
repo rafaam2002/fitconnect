@@ -28,7 +28,6 @@ export class UserSeeder extends Seeder {
             isActive: true,
             isBlocked: false,
             rol: UserRol.BOSS,
-            endSubscriptionDate: faker.date.future(),
         });
         await em.persistAndFlush(myUser);
     }

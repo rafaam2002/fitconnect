@@ -71,4 +71,14 @@ type Plan {
     durationInDays: Int!,
     users: [User]
 }
+
+type Notification {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    type: NotificationTypeEnum!
+    message: String!    
+    link: String!
+    user: User!
+}
 `;

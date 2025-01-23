@@ -4,8 +4,8 @@ import {
   findUser,
   getSchedules,
   getPolls,
-  getConversation
-
+  getConversation,
+  getNotifications
 } from './user/queries'
 import {login, loginWithId} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
@@ -30,7 +30,8 @@ const resolvers = {
     getSchedules,
     getPolls,
     getConversation,
-    getPlans
+    getPlans,
+    getNotifications
   },
   Mutation: {
     createUser,

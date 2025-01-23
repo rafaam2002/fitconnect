@@ -36,14 +36,12 @@ type LoginResponse implements BasicResponse{
     tokens: Tokens
 }
 
-type NotificationResponse {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    type:NotificationTypeEnum!
-    text: String!
-    fixedDuration: Int!
-    link: String!
+type NotificationResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    notification: Notification
+    notifications: [Notification]
 }
 
 type ScheduleOptionResponse{
@@ -85,7 +83,7 @@ type SubscriptionResponse implements BasicResponse{
     success: Boolean!
     message: String!
 }
-    
+
 type IdResponse {
 id: ID!
 }

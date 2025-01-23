@@ -1,9 +1,9 @@
 export const graphqlEnums = `
 enum NotificationTypeEnum {
-    MESSAGE
-    WARNING
-    ERROR
-    INFO
+    message
+    warning
+    error
+    info
 }
 
 enum UserRolEnum {

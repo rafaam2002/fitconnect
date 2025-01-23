@@ -47,7 +47,7 @@ const startServer = async () => {
 
   await insertShedulesOption(orm.em.fork());
 
-  await rafasProbes(orm.em.fork());
+  //await rafasProbes(orm.em.fork());
 
   cron.schedule("0 4 * * 0", () => {
     console.log(

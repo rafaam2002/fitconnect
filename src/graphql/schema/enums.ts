@@ -10,5 +10,6 @@ enum UserRolEnum {
     standard
     boss
     premium
+    coach
 }
 `;

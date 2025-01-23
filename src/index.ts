@@ -106,6 +106,7 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
     console.log("Error al guardar el voto de la encuesta");
     console.log(e);
   }
+  
 }
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
   const SchedulesOptionRepo = em.getRepository(Schedules_option);

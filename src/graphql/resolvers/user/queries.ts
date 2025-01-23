@@ -118,7 +118,8 @@ const getSchedules = async (
   //     };
   // }
   if (scheduleId) {
-    const schedule = await scheduleRepo.findOne({ id: scheduleId });
+    const schedule = await scheduleRepo.findOne({ id: scheduleId }, { populate: ["admin"] });
+    console.log(schedule);
     if (!schedule) {
       return {
         success: false,

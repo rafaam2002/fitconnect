@@ -10,12 +10,6 @@ type UserResponse implements BasicResponse {
     success: Boolean!
     message: String!
     user: User
-}
-
-type UsersResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
     users: [User]
 }
 
@@ -24,11 +18,6 @@ type ScheduleResponse implements BasicResponse{
     success: Boolean!
     message: String!
     schedule: Schedule
-}
-type SchedulesResponse implements BasicResponse{
-    code: String!
-    success: Boolean!
-    message: String!
     schedules: [Schedule]
 }
 
@@ -46,7 +35,6 @@ type LoginResponse implements BasicResponse{
     user: User
     tokens: Tokens
 }
-
 
 type NotificationResponse {
     id: ID!
@@ -72,12 +60,6 @@ type PollResponse implements BasicResponse{
     success: Boolean!
     message: String!
     poll: Poll
-}
-
-type PollsResponse implements BasicResponse{
-    code: String!
-    success: Boolean!
-    message: String!
     polls: [Poll]
     userVotes: [PollVote]
 }
@@ -87,13 +69,21 @@ type MessageResponse implements BasicResponse{
     success: Boolean!
     message: String!
     sms: Message
+    messages: [Message]
 }
 
-type MessagesResponse implements BasicResponse{
+type PlanResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
-    messages: [Message]
+    plan: Plan
+    plans: [Plan]
+}
+
+type SubscriptionResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
 }
 `;
 

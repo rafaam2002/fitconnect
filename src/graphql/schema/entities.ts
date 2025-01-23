@@ -9,6 +9,7 @@ type User {
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRolEnum!
+    schedules: [Schedule]
 }
 
 type Schedule {
@@ -58,5 +59,16 @@ type Message {
     fixedDuration: Int
     sender: String!
     reciver: String!
+}
+
+type Plan {
+    id: ID!,
+    name: String!,
+    description: String!,
+    price: Float!,
+    currency: String!,
+    isActive: Boolean!,
+    durationInDays: Int!,
+    users: [User]
 }
 `;

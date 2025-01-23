@@ -18,7 +18,7 @@ import { Poll } from "./entities/Poll";
 import { User } from "./entities/User";
 import { tr } from "@faker-js/faker/.";
 import { UserRol } from "./types/enums";
-import { Schedules_option } from "./entities/Schedules_option";
+import { ScheduleOption } from "./entities/ScheduleOption";
 dotenv.config();
 
 const server = new ApolloServer({
@@ -38,12 +38,13 @@ const startServer = async () => {
       const currentUser = await authenticateUser(em, authorization);
 
       return { em, currentUser };
-      
+
     },
     listen: { port: 4000 },
   });
 
   console.log(`🚀 Servidor listo en ${url}`);
+
 
   await insertShedulesOption(orm.em.fork());
 
@@ -64,19 +65,10 @@ startServer();
 async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   const UserRepo = em.getRepository(User);
 
-  const myUser = UserRepo.create({
-    name: "Rafael",
-    surname: "García",
-    nickname: "Rafa",
-    email: "rafa",
-    password: "1234",
-    rol: UserRol.BOSS,
-    isActive: true,
-    isBlocked: false,
-    phoneNumber: "123456789",
-  });
-    
-  
+  const myUser = await UserRepo.findOne({ email: "rafa" });
+
+
+
   const PollVoteRepo = em.getRepository(PollVote);
   const PollRepo = em.getRepository(Poll);
   const newPoll = PollRepo.create({
@@ -93,10 +85,7 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   });
 
   try {
-  
-    await em.persistAndFlush(myUser);
-    await em.persistAndFlush(newPoll);
-    await em.persistAndFlush(newPollVote);
+    await em.persistAndFlush([newPoll, newPollVote]);
     console.log("Voto de la encuesta guardado correctamente");
     console.log(
       newPollVote.poll.id,
@@ -108,8 +97,9 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   }
   
 }
+
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
-  const SchedulesOptionRepo = em.getRepository(Schedules_option);
+  const SchedulesOptionRepo = em.getRepository(ScheduleOption);
   const schedulesOption = SchedulesOptionRepo.create({
     maxActiveReservations: 3,
     cancellationDeadline: 30,

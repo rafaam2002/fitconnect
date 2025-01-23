@@ -3,7 +3,7 @@ import { Entity, Property } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 
 @Entity()
-export class Schedules_option  extends BaseEntity {
+export class ScheduleOption extends BaseEntity {
 
   @Property({ default: 3 })
   maxActiveReservations!: number;

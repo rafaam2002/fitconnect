@@ -1,9 +1,5 @@
 import {
-  BeforeCreate,
-  Collection,
-  Entity,
-  ManyToMany,
-  OneToMany,
+  BeforeCreate,Collection, Entity, ManyToMany, ManyToOne, OneToMany,
   Property,
   t,
 } from "@mikro-orm/core";
@@ -16,6 +12,9 @@ import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
+import {Plan} from "./Plan";
+import {Card} from "./Card";
+import {Subscription} from "./Subscription";
 
 @Entity()
 export class User extends BaseEntity {
@@ -46,21 +45,19 @@ export class User extends BaseEntity {
   @Property({ type: t.boolean })
   isBlocked = true;
 
-  @Property({ nullable: true })
-  startPaymentDate: Date;
-
-  @Property({ nullable: true })
-  endSubscriptionDate: Date;
-
   @Property({ type: t.string })
   rol!: UserRol;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
+    eager: true
   })
   schedules = new Collection<Schedule>(this);
 
-  @ManyToMany(() => Promotion, (promotion) => promotion.users, { owner: true })
+  @ManyToMany(() => Promotion, (promotion) => promotion.users, {
+    owner: true,
+    eager: true
+  })
   promotions = new Collection<Promotion>(this);
 
   // Relación OneToMany con Schedule (admin)
@@ -86,6 +83,12 @@ export class User extends BaseEntity {
 
   @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
+
+  @OneToMany(() => Card, card => card.user)
+  cards = new Collection<Card>(this);
+
+  @OneToMany(() => Subscription, subscription => subscription.user)
+  subscriptions = new Collection<Subscription>(this);
 
   constructor(user: User) {
     super();

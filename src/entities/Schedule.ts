@@ -15,7 +15,7 @@ export class Schedule extends BaseEntity {
   startDate!: Date;
 
   @Property()
-  endDate!: Date; 
+  endDate!: Date;
 
   @Property()
   maxUsers!: number;
@@ -26,8 +26,8 @@ export class Schedule extends BaseEntity {
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
 
-  @ManyToOne(() => User)
-  admin: User;
+  @ManyToOne(() => User, {nullable: true})
+  admin: User|null = null;
 
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;

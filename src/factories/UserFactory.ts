@@ -20,8 +20,6 @@ export class UserFactory extends Factory<User> {
             nickname: faker.internet.username(),
             isActive: faker.datatype.boolean(),
             isBlocked: faker.datatype.boolean(),
-            startPaymentDate: faker.date.past(),
-            endSubscriptionDate: faker.date.future(),
             rol: faker.helpers.arrayElement(Object.values(UserRol)),
             created_at: new Date()
         };

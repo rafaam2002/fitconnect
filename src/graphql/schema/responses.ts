@@ -44,13 +44,11 @@ type NotificationResponse implements BasicResponse{
     notifications: [Notification]
 }
 
-type ScheduleOptionResponse{
-    id: ID!
-    maxActiveReservations: Int!
-    cancellationDeadline: Int!
-    maxStrikesBeforePenalty: Int!
-    penaltyDuration: Int!
-    maxAdvanceBookingDays: Int!
+type ScheduleOptionsResponse implements BasicResponse{
+   code: String!
+    success: Boolean!
+    message: String!
+    scheduleOptions: ScheduleOptions
 }
 
 type PollResponse implements BasicResponse{

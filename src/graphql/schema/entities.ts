@@ -32,7 +32,17 @@ type ScheduleProgrammed {
     endHour: String!
     maxUsers: Int!
     admin: User!
-} 
+}
+    
+type ScheduleOptions {
+ id: ID!
+    maxActiveReservations: Int!
+    cancellationDeadline: Int!
+    maxStrikesBeforePenalty: Int!
+    penaltyDuration: Int!
+    maxAdvanceBookingDays: Int!
+}
+
 type Poll {
     id: ID!
     created_at: String!

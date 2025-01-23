@@ -332,14 +332,29 @@ const getConversation = async (
   };
 };
 
-const getScheduleOption = async (
+const getScheduleOptions = async (
   root: any,
   args: any,
-  { em }: { em: EntityManager }
+  { em, currentUser }: { em: EntityManager, currentUser: UserType }
 ) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
   const scheduleOptionRepo = em.getRepository(ScheduleOptions);
   const scheduleOptions = await scheduleOptionRepo.findAll();
-  return scheduleOptions;
+  if (scheduleOptions.length === 0) {
+    return {
+      success: false,
+      code: "404",
+      message: "Schedule options not found",
+    };
+  }
+  return {
+    success: true,
+    code: "200",
+    message: "Schedule options found",
+    scheduleOptions: scheduleOptions[0],
+  };
 };
 
 export {
@@ -353,4 +368,5 @@ export {
   getNotifications,
   getAdminPolls,
   getPolls,
+  getScheduleOptions,
 };

@@ -12,7 +12,7 @@ type Query {
     getConversation(otherUserId: ID, page: Int): MessageResponse!
     getNotifications: NotificationResponse!
     getSchedules(scheduleId: ID): ScheduleResponse!
-    getSchedules_option: [ScheduleOptionResponse]!
+    getScheduleOptions: ScheduleOptionsResponse!
     getPolls(pollId: ID): PollResponse!,
     getPlans(planId: ID): PlanResponse!,
 }

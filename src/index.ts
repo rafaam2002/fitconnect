@@ -36,15 +36,12 @@ const startServer = async () => {
       const authorization = req.headers.authorization || "";
       const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
       const currentUser = await authenticateUser(em, authorization);
-
       return { em, currentUser };
-
     },
     listen: { port: 4000 },
   });
 
   console.log(`🚀 Servidor listo en ${url}`);
-
 
   await insertShedulesOption(orm.em.fork());
 
@@ -67,8 +64,6 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
 
   const myUser = await UserRepo.findOne({ email: "rafa" });
 
-
-
   const PollVoteRepo = em.getRepository(PollVote);
   const PollRepo = em.getRepository(Poll);
   const newPoll = PollRepo.create({
@@ -87,15 +82,11 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
   try {
     await em.persistAndFlush([newPoll, newPollVote]);
     console.log("Voto de la encuesta guardado correctamente");
-    console.log(
-      newPollVote.poll.id,
-      newPollVote.user.id,
-    );
+    console.log(newPollVote.poll.id, newPollVote.user.id);
   } catch (e) {
     console.log("Error al guardar el voto de la encuesta");
     console.log(e);
   }
-  
 }
 
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {

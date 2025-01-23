@@ -57,8 +57,8 @@ type Message {
     text: String!
     isFixed:Boolean
     fixedDuration: Int
-    sender: String!
-    reciver: String!
+    sender: User!
+    receiver: IdResponse!
 }
 
 type Plan {

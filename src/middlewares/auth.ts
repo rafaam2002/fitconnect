@@ -11,6 +11,7 @@ export const authenticateUser = async (em: EntityManager, authorization?: string
       const currentUser = await em.findOne(User, { id: decodedToken.id });
       return currentUser || null;
     } catch (error) {
+      console.error("entra aqui")
       console.error('Authentication Error:', error);
       return null;
     }

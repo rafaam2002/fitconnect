@@ -85,5 +85,9 @@ type SubscriptionResponse implements BasicResponse{
     success: Boolean!
     message: String!
 }
+    
+type IdResponse {
+id: ID!
+}
 `;
 

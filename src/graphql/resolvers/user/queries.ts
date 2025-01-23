@@ -65,6 +65,7 @@ const findUser = async (
 
     const {id} = args;
     const user = await userRepo.findOne({id});
+    console.log(user);
 
     if (!user) {
         return {
@@ -275,6 +276,7 @@ const getConversation = async (
             ], //just mandatory fields to optimize query
         }
     );
+    console.log("llega",messages[0]);
     return {
         success: true,
         code: "200",

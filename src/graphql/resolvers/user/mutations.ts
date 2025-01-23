@@ -14,8 +14,8 @@ import {PollVote} from "../../../entities/PollVote";
 import {Plan} from "../../../entities/Plan";
 import {Subscription} from "../../../entities/Subscription";
 import {Card} from "../../../entities/Card";
-import Stripe from 'stripe'
-import {Transaction} from "../../../entities/Transaction";
+import Stripe from "stripe";
+import { Transaction } from "../../../entities/Transaction";
 
 export const createUser = async (_, args, {em}: { em: EntityManager }) => {
     const user = em.getRepository(User);

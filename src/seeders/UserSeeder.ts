@@ -21,7 +21,7 @@ export class UserSeeder extends Seeder {
         const myUser = em.create(User,{
             name: "Rafa",
             surname: "Mesa",
-            password: "1234",
+            password: "rafa",
             email: "rafa",
             phoneNumber: "123456789",
             nickname: "rafa",

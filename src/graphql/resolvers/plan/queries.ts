@@ -28,7 +28,8 @@ const getPlans = async (_, args: any, {em}: { em: EntityManager }) => {
         success: true,
         code: "200",
         message: 'Planes fetched successfully',
-        plans:  await em.find(Plan, {})
+        plans: await em.findAll(Plan)
+
     }
 }
 

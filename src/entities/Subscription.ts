@@ -3,6 +3,7 @@ import {User} from "./User";
 import {BaseEntity} from "./BaseEntity";
 import {Transaction} from "./Transaction";
 import {Plan} from "./Plan";
+import { SubscriptionStatus } from '../types/enums';
 
 @Entity()
 export class Subscription extends BaseEntity {
@@ -14,7 +15,7 @@ export class Subscription extends BaseEntity {
     plan!: Plan;
 
     @Property()
-    status!: 'ACTIVE' | 'CANCELADA' | 'PENDIENTE';
+    status!: SubscriptionStatus;
 
     @Property()
     startDate!: Date;

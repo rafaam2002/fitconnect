@@ -1,6 +1,8 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import {User} from "./User";
 import {BaseEntity} from "./BaseEntity";
+import { C } from '@faker-js/faker/dist/airline-BnpeTvY9';
+import { CreditCardProvider, CreditCardType } from '../types/enums';
 
 @Entity()
 export class Card extends BaseEntity {
@@ -9,10 +11,10 @@ export class Card extends BaseEntity {
     user!: User;
 
     @Property()
-    type!: 'CREDIT' | 'DEBIT';
+    type!: CreditCardType;
 
     @Property()
-    provider!: 'VISA' | 'MASTERCARD';
+    provider!: CreditCardProvider;
 
     @Property()
     maskedNumber!: string;

@@ -14,7 +14,7 @@ input CreateUserInput {
     password: String!
     nickname: String
     profilePicture: String
-    rol: UserRolEnum
+    rol: UserRol
 }
     
 input ChangePasswordInput {
@@ -36,7 +36,7 @@ input CreatePlanInput {
 }
 
 input CreateSubscriptionInput {
-    paymentMethod: PaymentMethodEnum
+    paymentMethod: PaymentMethod
     cardId: ID!
     planId: ID!
     applePayToken: String

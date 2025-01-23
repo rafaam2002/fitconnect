@@ -8,7 +8,7 @@ type User {
     nickname: String
     isActive: Boolean
     isBlocked: Boolean
-    rol: UserRolEnum!
+    rol: UserRol!
     schedules: [Schedule]
 }
 
@@ -62,23 +62,63 @@ type Message {
 }
 
 type Plan {
-    id: ID!,
-    name: String!,
-    description: String!,
-    price: Float!,
-    currency: String!,
-    isActive: Boolean!,
-    durationInDays: Int!,
-    users: [User]
-}
-
-type Notification {
     id: ID!
     created_at: String!
     updated_at: String!
-    type: NotificationTypeEnum!
-    message: String!    
+    name: String!
+    description: String!
+    price: Float!
+    currency: String!
+    paymentType: PaymentType!
+    durationInDays: Int!
+    subscriptions: [Subscription]
+}
+
+type Notification {
+    id: ID!,
+    created_at: String!
+    updated_at: String!
+    type: NotificationType!
+    message: String! 
     link: String!
+    user: IdResponse!
+}
+
+type Subscription {
+    id: ID!
+    created_at: String!
+    updated_at: String!
     user: User!
+    status: SubscriptionStatus!
+    startDate: String!
+    endDate: String!
+    transctions: [Transaction]
+}
+
+type Card {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    user: User!
+    type: CreditCardType!
+    provider: CreditCardProvider!
+}
+
+type Transaction {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    subscription: ID!
+    user: User!
+    card: Card!
+    paymentMethod: PaymentMethod!
+    amount: Float!
+    currency: Currency!
+    status: TransactionStatus!
+    transactionId: String!
+    reference: String!
+    transactionDate: String!
+    description: String!
+    authCode: String!
 }
 `;

@@ -8,6 +8,8 @@ import {
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import {Subscription} from "./Subscription";
+import { P } from "@faker-js/faker/dist/airline-BnpeTvY9";
+import { PaymentType } from "../types/enums";
 
 @Entity()
 export class Plan extends BaseEntity {
@@ -24,11 +26,11 @@ export class Plan extends BaseEntity {
     currency: string = 'EUR'
 
     @Property()
-    paymentType!: 'MENSUAL' | 'ANUAL';
+    paymentType!: PaymentType;
 
     @Property({ type: "number" })
     durationInDays: number = 0;
 
     @OneToMany(() => Subscription, (subscription: Subscription) => subscription.plan)
-    users = new Collection<User>(this);
+    subscriptions = new Collection<Subscription>(this);
 }

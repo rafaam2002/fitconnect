@@ -12,3 +12,42 @@ export enum NotificationType {
   INFO = "info",
 }
 
+export enum PaymentType {
+  MENSUAL = "mensual",
+  ANUAL = "anual",
+}
+
+export enum SubscriptionStatus {
+  ACTIVE = "active",
+  CANCELLED = "cancelled",
+  PENDING = "pending",
+}
+
+export enum CreditCardType {
+  CREDIT = "credit",
+  DEBIT = "debit",
+}
+
+export enum CreditCardProvider {
+  VISA = "visa",
+  MASTERCARD = "mastercard",
+}
+
+export enum PaymentMethod {
+  CREDIT_CARD = "credit_card",
+  APPLE_PAY = "apple_pay",
+  GOOGLE_PAY = "google_pay",
+}
+
+export enum Currency{
+  EUR = "eur",
+  USD = "usd",
+}
+
+export enum TransactionStatus{
+  SUCCESS = "SUCCESS",
+  FAILED = "FAILED",
+  PENDING = "PENDING",
+  REFUND = "REFUND",
+}
+

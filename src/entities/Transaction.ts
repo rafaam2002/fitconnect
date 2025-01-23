@@ -3,6 +3,7 @@ import {Subscription} from "./Subscription";
 import {User} from "./User";
 import {Card} from "./Card";
 import {BaseEntity} from "./BaseEntity";
+import { Currency, PaymentMethod, TransactionStatus } from '../types/enums';
 
 
 @Entity()
@@ -17,17 +18,17 @@ export class Transaction extends BaseEntity{
     @ManyToOne(() => Card, { nullable: true })
     card?: Card;
 
-    @Enum(() => ['CREDIT_CARD', 'APPLE_PAY', 'GOOGLE_PAY'])
-    paymentMethod!: 'CREDIT_CARD' | 'APPLE_PAY' | 'GOOGLE_PAY';
+    @Enum(() => ['credit_card', 'apple_pay', 'google_pay'])
+    paymentMethod!: PaymentMethod;
 
     @Property()
     amount!: number;
 
     @Property()
-    currency!: string; // EUR, USD
+    currency!: Currency; // EUR, USD
 
     @Property()
-    status!: 'SUCCESS' | 'FAILED' | 'PENDING' | 'REFUND';
+    status!: TransactionStatus;
 
     @Property()
     transactionId!: string;

@@ -138,7 +138,7 @@ const getSchedules = async (
       };
     }
   }
-  const schedules = await scheduleRepo.findAll();
+  const schedules = await scheduleRepo.findAll({populate: ["admin"]});
   console.log(schedules);
   console.log();
   return {

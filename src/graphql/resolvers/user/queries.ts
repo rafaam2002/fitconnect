@@ -7,6 +7,7 @@ import { Message } from "../../../entities/Message";
 import { notLoggedError } from "../errors";
 import { PollVote } from "../../../entities/PollVote";
 import { Schedule } from "../../../entities/Schedule";
+import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 
 const allUsers = async (
   root: any,
@@ -118,7 +119,10 @@ const getSchedules = async (
   //     };
   // }
   if (scheduleId) {
-    const schedule = await scheduleRepo.findOne({ id: scheduleId }, { populate: ["admin"] });
+    const schedule = await scheduleRepo.findOne(
+      { id: scheduleId },
+      { populate: ["admin"] }
+    );
     if (!schedule) {
       return {
         success: false,
@@ -326,6 +330,16 @@ const getConversation = async (
     message: "Messages found",
     messages,
   };
+};
+
+const getScheduleOption = async (
+  root: any,
+  args: any,
+  { em }: { em: EntityManager }
+) => {
+  const scheduleOptionRepo = em.getRepository(ScheduleOptions);
+  const scheduleOptions = await scheduleOptionRepo.findAll();
+  return scheduleOptions;
 };
 
 export {

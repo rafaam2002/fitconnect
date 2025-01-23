@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import {Message} from "../../../entities/Message";
 import {UserType} from "../../../types";
 import {notAuthError, notCreatedError, notLoggedError} from "../errors";
-import {UserRol} from "../../../types/enums";
+import {PaymentType, SubscriptionStatus, UserRol} from "../../../types/enums";
 import {Schedule} from "../../../entities/Schedule";
 import {ScheduleProgrammed} from "../../../entities/ScheduleProgrammed";
 import {createdSuccess} from "../successes";
@@ -356,7 +356,6 @@ export const addPoll = async (
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + durationDays);
     const newPoll = em.create(Poll, {
-        startDate,
         endDate,
         title,
         options,
@@ -541,12 +540,12 @@ export const addSubscription = async (_: any, args: any, {em, currentUser}: {
     const startDate = new Date();
     const endDate = new Date();
 
-    endDate.setMonth(startDate.getMonth() + (plan.paymentType === 'MENSUAL' ? 1 : 12));
+    endDate.setMonth(startDate.getMonth() + (plan.paymentType === PaymentType.MENSUAL ? 1 : 12));
 
     const subscription = em.create(Subscription, {
         user,
         plan,
-        status: 'PENDIENTE',
+        status: SubscriptionStatus.PENDING,
         startDate,
         endDate
     })
@@ -561,7 +560,7 @@ export const addSubscription = async (_: any, args: any, {em, currentUser}: {
         }
     }
 
-    if (subscription.status === 'ACTIVE') {
+    if (subscription.status === SubscriptionStatus.ACTIVE) {
         return {
             success: false,
             code: "400",

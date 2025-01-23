@@ -18,7 +18,7 @@ import { Poll } from "./entities/Poll";
 import { User } from "./entities/User";
 import { tr } from "@faker-js/faker/.";
 import { UserRol } from "./types/enums";
-import { ScheduleOption } from "./entities/ScheduleOption";
+import { ScheduleOptions } from "./entities/ScheduleOptions";
 dotenv.config();
 
 const server = new ApolloServer({
@@ -70,7 +70,6 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
     title: "¿Te gusta el café?",
     options: ["Sí", "No"],
     admin: myUser,
-    startDate: new Date(),
     endDate: new Date(),
   });
   const newPollVote = PollVoteRepo.create({
@@ -90,7 +89,7 @@ async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
 }
 
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
-  const SchedulesOptionRepo = em.getRepository(ScheduleOption);
+  const SchedulesOptionRepo = em.getRepository(ScheduleOptions);
   const schedulesOption = SchedulesOptionRepo.create({
     maxActiveReservations: 3,
     cancellationDeadline: 30,

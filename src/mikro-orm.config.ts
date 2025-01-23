@@ -1,7 +1,7 @@
 import { Migrator } from "@mikro-orm/migrations";
 import { Message } from "./entities/Message";
 import { User } from "./entities/User";
-import { ScheduleOption } from "./entities/ScheduleOption";
+import { ScheduleOptions } from "./entities/ScheduleOptions";
 import { Schedule } from "./entities/Schedule";
 import { Notification } from "./entities/Notification";
 import { MikroORM } from "@mikro-orm/core";
@@ -12,7 +12,7 @@ import { subscribe } from "diagnostics_channel";
 import { PollVoteSubscriber } from "./subscribers/PollVoteSubscriber";
 
 export default {
-  entities: [Message, User, Notification, Schedule, ScheduleOption],
+  entities: [Message, User, Notification, Schedule, ScheduleOptions],
   dbName: process.env.DB_NAME || "fitconnect_db",
   user: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "Pececitos1$",
@@ -22,11 +22,5 @@ export default {
   driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator, SeedManager],
   //subscribers : [PollVoteSubscriber],
-//    EntityRepository: [CustomPollRepository],
+  //    EntityRepository: [CustomPollRepository],
 };
-
-
-
-
-
-

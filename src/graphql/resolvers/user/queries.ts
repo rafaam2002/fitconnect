@@ -102,7 +102,7 @@ const getPromotions = async (
 
 const getSchedules = async (
   _: any,
-  args: { id: string },
+  { scheduleId }: { scheduleId: string },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   const scheduleRepo = em.getRepository(Schedule);
@@ -117,6 +117,23 @@ const getSchedules = async (
   //         message: "Your subscription has expired, please renew it",
   //     };
   // }
+  if (scheduleId) {
+    const schedule = await scheduleRepo.findOne({ id: scheduleId });
+    if (!schedule) {
+      return {
+        success: false,
+        code: "404",
+        message: "Schedule not found",
+      };
+    } else {
+      return {
+        success: true,
+        code: "200",
+        message: "Schedule found",
+        schedule,
+      };
+    }
+  }
   const schedules = await scheduleRepo.find({ admin: currentUser.id });
   console.log(schedules);
   console.log();
@@ -165,7 +182,13 @@ const getNotifications = async (
     { id: currentUser.id },
     { populate: ["notifications"] }
   );
-  console.log(user.notifications.toArray());
+  if (user.notifications.length === 0) {
+    return {
+      success: false,
+      code: "404",
+      message: "Notifications not found",
+    };
+  }
   return {
     success: true,
     code: "200",
@@ -223,7 +246,7 @@ const getPolls = async (
       return {
         success: false,
         code: "404",
-        message: "Poll not found", 
+        message: "Poll not found",
       };
     } else {
       return {

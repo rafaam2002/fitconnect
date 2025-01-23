@@ -11,7 +11,7 @@ type Query {
     #each page will have 50 messages, default = 0 (first page)
     getConversation(otherUserId: ID, page: Int): MessageResponse!
     getNotifications: NotificationResponse!
-    getSchedules: ScheduleResponse!
+    getSchedules(scheduleId: ID): ScheduleResponse!
     getSchedules_option: [ScheduleOptionResponse]!
     getPolls(pollId: ID): PollResponse!,
     getPlans(planId: ID): PlanResponse!,

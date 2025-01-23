@@ -119,7 +119,6 @@ const getSchedules = async (
   // }
   if (scheduleId) {
     const schedule = await scheduleRepo.findOne({ id: scheduleId }, { populate: ["admin"] });
-    console.log(schedule);
     if (!schedule) {
       return {
         success: false,
@@ -135,7 +134,7 @@ const getSchedules = async (
       };
     }
   }
-  const schedules = await scheduleRepo.find({ admin: currentUser.id });
+  const schedules = await scheduleRepo.findAll();
   console.log(schedules);
   console.log();
   return {

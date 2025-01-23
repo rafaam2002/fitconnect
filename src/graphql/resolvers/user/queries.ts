@@ -200,7 +200,7 @@ const getAdminPolls = async (
 
 const getPolls = async (
   root: any,
-  args: { id: string },
+  { pollId }: { pollId: string },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
@@ -216,6 +216,24 @@ const getPolls = async (
 
   const pollRepo = em.getRepository(Poll);
   const pollVotesRepo = em.getRepository(PollVote);
+
+  if (pollId) {
+    const poll = await pollRepo.findOne({ id: pollId });
+    if (!poll) {
+      return {
+        success: false,
+        code: "404",
+        message: "Poll not found", 
+      };
+    } else {
+      return {
+        success: true,
+        code: "200",
+        message: "Poll found",
+        poll,
+      };
+    }
+  }
 
   const polls = await pollRepo.findAll();
   const userVotes = await pollVotesRepo.find({ user: currentUser.id });

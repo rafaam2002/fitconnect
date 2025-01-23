@@ -37,15 +37,16 @@ type Poll {
     id: ID!
     created_at: String!
     updated_at: String!
+    endDate: String!
     title: String!
-    description: String!
     options: [String]!
+    admin: User!
+    pollVotes: [PollVote]
+
 }
 
 type PollVote { 
     id: ID!
-    created_at: String!
-    updated_at: String!
     poll: Poll!
     user: User!
     optionSelected: String!

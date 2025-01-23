@@ -15,9 +15,7 @@ import { PollVote } from "./PollVote";
 @Entity({ repository: () => CustomPollRepository })
 export class Poll extends BaseEntity {
   [EntityRepositoryType]?: CustomPollRepository;
-  @Property()
-  startDate!: Date;
-
+  
   @Property()
   endDate!: Date; // in minutes
 

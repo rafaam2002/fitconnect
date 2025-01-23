@@ -13,7 +13,7 @@ type Query {
     getNotifications: NotificationResponse!
     getSchedules: ScheduleResponse!
     getSchedules_option: [ScheduleOptionResponse]!
-    getPolls: PollResponse!,
+    getPolls(pollId: ID): PollResponse!,
     getPlans(planId: ID): PlanResponse!,
 }
 `;

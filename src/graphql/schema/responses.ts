@@ -59,7 +59,6 @@ type PollResponse implements BasicResponse{
     message: String!
     poll: Poll
     polls: [Poll]
-    userVotes: [PollVote]
 }
 
 type MessageResponse implements BasicResponse{

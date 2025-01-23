@@ -18,7 +18,7 @@ const getPlans = async (_, args: any, {em}: { em: EntityManager }) => {
             return {
                 success: false,
                 code: "404",
-                message: 'No se encontró el plan',
+                message: 'Plan not found',
                 plan: null
             }
         }

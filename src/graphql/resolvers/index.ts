@@ -17,7 +17,8 @@ import {
   createScheduleProgrammed,
   createSubscription,
   createVote,
-  createUser, removeSubscription
+  createUser, removeSubscription,
+  cancelSchedule
 } from "./user/mutations";
 import {createPlan, removePlan, updatePlan} from "./plan/mutations";
 import {getPlans} from "./plan/queries";
@@ -48,7 +49,8 @@ const resolvers = {
     updatePlan,
     removePlan,
     createSubscription,
-    removeSubscription
+    removeSubscription,
+    cancelSchedule
   }
 }
 

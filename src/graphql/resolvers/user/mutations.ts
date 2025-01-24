@@ -381,6 +381,14 @@ export const createPoll = async (
   if (currentUser.rol === UserRol.STANDARD) {
     return notAuthError("You are not authorized to perform this action");
   }
+  if (durationDays < 1) {
+    return {
+      success: false,
+      code: "400",
+      message: "Duration days must be greater than 0",
+    };
+  }
+  options = options.filter((option) => option.trim() !== "");
   const userRepo = em.getRepository(User);
   const admin = await userRepo.findOne({ id: currentUser.id });
   const startDate = new Date();
@@ -521,14 +529,26 @@ export const cancelSchedule = async (
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne({ id: scheduleId });
   if (!schedule) {
-    return notCreatedError("Schedule not found");
+    return {
+      success: false,
+      code: "404",
+      message: "Schedule not found",
+    };
   }
-  if (schedule.admin.id !== currentUser.id) {
+  if (
+    schedule.admin.id !== currentUser.id &&
+    currentUser.rol !== UserRol.BOSS
+  ) {
     return notAuthError("You are not authorized to perform this action");
   }
   schedule.isCancelled = true;
   await em.persistAndFlush(schedule);
-  return createdSuccess("Schedule cancelled succesfully", schedule, null);
+  return {
+    success: true,
+    code: "200",
+    message: "Schedule cancelled succesfully",
+    schedule,
+  };
 };
 
 export const createSubscription = async (

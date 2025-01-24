@@ -11,12 +11,12 @@ import {
 import {login, loginWithId} from "./auth/queries";
 import {changePassword, forgotPassword} from "./auth/mutations";
 import {
-  addMessage,
-  addPoll,
-  addSchedule,
-  addScheduleProgrammed,
-  addSubscription,
-  addVote,
+  createMessage,
+  createPoll,
+  createSchedule,
+  createScheduleProgrammed,
+  createSubscription,
+  createVote,
   createUser, removeSubscription
 } from "./user/mutations";
 import {createPlan, removePlan, updatePlan} from "./plan/mutations";
@@ -39,15 +39,15 @@ const resolvers = {
     createUser,
     changePassword,
     forgotPassword,
-    addMessage,
-    addSchedule,
-    addScheduleProgrammed,
-    addPoll,
-    addVote,
+    createMessage,
+    createSchedule,
+    createScheduleProgrammed,
+    createPoll,
+    createVote,
     createPlan,
     updatePlan,
     removePlan,
-    addSubscription,
+    createSubscription,
     removeSubscription
   }
 }

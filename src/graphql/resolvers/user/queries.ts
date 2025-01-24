@@ -66,7 +66,6 @@ const findUser = async (
 
   const { id } = args;
   const user = await userRepo.findOne({ id });
-  console.log(user);
 
   if (!user) {
     return {
@@ -138,9 +137,7 @@ const getSchedules = async (
       };
     }
   }
-  const schedules = await scheduleRepo.findAll({populate: ["admin"]});
-  console.log(schedules);
-  console.log();
+  const schedules = await scheduleRepo.findAll({ populate: ["admin"] });
   return {
     success: true,
     code: "200",
@@ -252,38 +249,32 @@ const getPolls = async (
         code: "404",
         message: "Poll not found",
       };
-    } else {
-      return {
-        success: true,
-        code: "200",
-        message: "Poll found",
-        poll,
-      };
     }
+    return {
+      success: true,
+      code: "200",
+      message: "Poll found",
+      poll,
+    };
   }
 
-  const polls = await pollRepo.findAll();
-  const userVotes = await pollVotesRepo.find({ user: currentUser.id });
+  const polls = await pollRepo.findAll({ populate: ["admin"] });
+
+  if (polls.length === 0) {
+    return {
+      success: false,
+      code: "404",
+      message: "Polls not found",
+    };
+  }
 
   return {
     success: true,
     code: "200",
     message: "Polls found",
     polls,
-    userVotes,
   };
 
-  // if (!currentUser) {
-  //   return {
-  //     success: false,
-  //     code: "400",
-  //     message: "User not logged",
-  //   };
-  // }
-  // const {pollOptionSelections} = await userRepo.findOne(
-  //   { id: currentUser.id },
-  //   { populate: ["pollOptionSelections"] }
-  // );
 };
 
 const getConversation = async (
@@ -335,7 +326,7 @@ const getConversation = async (
 const getScheduleOptions = async (
   root: any,
   args: any,
-  { em, currentUser }: { em: EntityManager, currentUser: UserType }
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
     return notLoggedError("Please login");

@@ -24,6 +24,14 @@ dotenv.config();
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  formatError: (error) => {
+    if (error.message.includes("not initialized")) {
+      return {
+        message: "Some of the data is not available at the moment.",
+      };
+    }
+    return error;
+  },
 });
 
 const startServer = async () => {

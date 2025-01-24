@@ -1,4 +1,6 @@
 import {
+  BeforeCreate,
+  BeforeUpdate,
   Collection,
   Entity,
   ManyToMany,
@@ -31,6 +33,15 @@ export class Schedule extends BaseEntity {
 
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;
+
+
+    @BeforeCreate()
+    @BeforeUpdate()
+    validate() {
+      if (this.startDate >= this.endDate) {
+        throw new Error("startDate must be before endDate.");
+      }
+    }
 
   constructor(schedule: Schedule) {
     super();

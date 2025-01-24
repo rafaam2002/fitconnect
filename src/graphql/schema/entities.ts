@@ -57,7 +57,7 @@ type Poll {
 
 type PollVote { 
     id: ID!
-    poll: Poll!
+    poll: IdResponse!
     user: User!
     optionSelected: String!
 }
@@ -68,7 +68,7 @@ type Message {
     text: String!
     isFixed:Boolean
     fixedDuration: Int
-    sender: User!
+    sender: IdResponse!
     receiver: IdResponse!
 }
 
@@ -99,7 +99,7 @@ type Subscription {
     id: ID!
     created_at: String!
     updated_at: String!
-    user: User!
+    user: IdResponse !
     status: SubscriptionStatus!
     startDate: String!
     endDate: String!
@@ -120,8 +120,8 @@ type Transaction {
     created_at: String!
     updated_at: String!
     subscription: ID!
-    user: User!
-    card: Card!
+    user: IdResponse!
+    card: IdResponse!
     paymentMethod: PaymentMethod!
     amount: Float!
     currency: Currency!

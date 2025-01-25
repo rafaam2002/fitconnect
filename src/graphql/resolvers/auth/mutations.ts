@@ -30,14 +30,15 @@ const forgotPassword = async (_, { email }, { em }: { em: EntityManager }) => {
   };
 };
 
-const changePassword = async (
+const updatePassword = async (
   _,
   {
-    currentPassword,
-    newPassword,
+    password: { currentPassword, newPassword },
   }: {
-    currentPassword: string;
-    newPassword: string;
+    password: {
+      currentPassword: string;
+      newPassword: string;
+    };
   },
   { currentUser, em }
 ) => {
@@ -88,4 +89,4 @@ const changePassword = async (
   };
 };
 
-export { forgotPassword, changePassword };
+export { forgotPassword, updatePassword };

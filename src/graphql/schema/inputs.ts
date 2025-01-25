@@ -1,10 +1,12 @@
 export const graphqlInputs = `
-input UserInput{
-    name: String!
-    surname: String!
-    password: String!
-    email: String!
-    nickname: String!
+input UpdateUserInput {
+    name: String!,
+    surname: String!,
+    email: String!,
+    phoneNumber: String,
+    nickname: String!,
+    profilePicture: String,
+    rol: UserRol
 }
 
 input CreateUserInput {
@@ -12,9 +14,54 @@ input CreateUserInput {
     surname: String!
     email: String!
     password: String!
-    nickname: String
+    nickname: String!
     profilePicture: String
     rol: UserRol
+}
+
+input CreatePollVoteInput {
+    pollId: ID!,
+    option: Int!
+}
+
+input CreatePasswordInput {
+    currentPassword: String!,
+    newPassword: String!
+}
+
+input CreateScheduleProgrammedInput {
+    daysOfWeek: [Int],
+    startHour: String!,
+    Duration: Int!,
+    maxUsers: Int!
+}
+
+input CreateScheduleInput {
+    startDate: String!,
+    endDate: String!,
+    maxUsers: Int!,
+    isCancelled: Boolean
+}
+
+input CreatePollInput {
+    title: String!,
+    options: [String]!,
+    durationDays: Int!
+}
+
+input CreateMessageInput {
+    text: String!,
+    receiverId: ID!,
+    isFixed: Boolean,
+    fixedDuration: Boolean
+}
+
+input UserInput{
+    name: String!
+    surname: String!
+    password: String!
+    email: String!
+    nickname: String!
 }
     
 input ChangePasswordInput {
@@ -33,6 +80,7 @@ input CreatePlanInput {
     durationInDays: Int!
     isActive: Boolean!
     currency: String
+    paymentType: PaymentType!
 }
 
 input CreateSubscriptionInput {

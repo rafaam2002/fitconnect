@@ -1,8 +1,11 @@
-import {EntityManager} from "@mikro-orm/core";
+import {EntityManager, RequiredEntityData} from "@mikro-orm/core";
 import {User} from "../../../entities/User";
-import {Plan} from "../../../entities/Plan";
+import { Plan } from "../../../entities/Plan";
+import { Currency } from "../../../types/enums";
 
-const createPlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+
+
+const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
 
     if (!currentUser) {
         return {
@@ -21,8 +24,9 @@ const createPlan = async (_: any, args: any, {em, currentUser}: { em: EntityMana
             plan: null,
         };
     }
+    if (plan.currency === null) plan.currency = Currency.EUR;
 
-    let newPlan: Plan = em.create(Plan, {...args.plan});
+    let newPlan: Plan = em.create(Plan, {...plan });
 
     await em.persistAndFlush(newPlan);
 

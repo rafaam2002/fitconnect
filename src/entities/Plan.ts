@@ -9,7 +9,7 @@ import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import {Subscription} from "./Subscription";
 import { P } from "@faker-js/faker/dist/airline-BnpeTvY9";
-import { PaymentType } from "../types/enums";
+import { Currency, PaymentType } from "../types/enums";
 
 @Entity()
 export class Plan extends BaseEntity {
@@ -23,7 +23,7 @@ export class Plan extends BaseEntity {
     price!: number; // Precio del plan
 
     @Property({ type: "string" })
-    currency: string = 'EUR'
+    currency: string = Currency.EUR;
 
     @Property()
     paymentType!: PaymentType;

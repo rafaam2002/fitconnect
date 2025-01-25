@@ -19,9 +19,6 @@ import { randomUUID } from "crypto";
 @Entity({ repository: () => CustomPollRepository })
 export class PollVote {
   [EntityRepositoryType]?: CustomPollRepository;
-  @Unique()
-  @Property({ type: t.uuid })
-  id: string = randomUUID();
 
   @ManyToOne(() => Poll, { primary: true, deleteRule: "cascade" })
   poll!: Poll;

@@ -16,42 +16,7 @@ import { Subscription } from "../../../entities/Subscription";
 import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
-import { ne, tr } from "@faker-js/faker/.";
-
-export const createUser = async (_, args, { em }: { em: EntityManager }) => {
-  const user = em.getRepository(User);
-
-  const { name, email, password, surname, nickname } = args.user as User;
-
-  if (!email || !name || !surname || !password) {
-    return notCreatedError("Please provide all required fields");
-  }
-
-  const existingEmail = await user.findOne({ email });
-
-  if (existingEmail) {
-    return notCreatedError("Email already exists");
-  }
-
-  const existingNickName = await user.findOne({ nickname });
-
-  if (existingNickName) {
-    return notCreatedError("Nickname already exists");
-  }
-  const newUser = em.create(User, {
-    ...args.user,
-  });
-  console.log("user", newUser.id);
-  await em.persistAndFlush(newUser);
-
-  if (!newUser.id) return notCreatedError("User not created, please try again");
-
-  const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
-  });
-
-  return createdSuccess("User created succesfully", newUser, token);
-};
+import { ne, ro, tr } from "@faker-js/faker/.";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y",
@@ -60,29 +25,112 @@ const stripe = new Stripe(
   }
 );
 
-const updateUser = async (
-  _: any,
-  args: any,
-  { em, currentUser }: { em: EntityManager; currentUser: any }
+export const createUser = async (
+  _,
+  {
+    user,
+  }: {
+    user: any;
+  },
+  { em }: { em: EntityManager }
 ) => {
-  const { input } = args;
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol !== "boss") {
-    return notAuthError("You are not authorized to perform this action");
-  }
+  const userRepo = em.getRepository(User);
 
-  if (!input || !input.id) {
+  if (!user.email || !user.name || !user.surname || !user.password) {
     return {
       success: false,
       code: "400",
-      message: "Invalid input",
-      user: null,
+      message: "Please provide all required fields",
     };
   }
 
-  const user: any = await em.find(User, { id: input.id });
+  const existingEmail = await userRepo.findOne({ email: user.email });
+
+  if (existingEmail) {
+    return {
+      success: false,
+      code: "400",
+      message: "Email already exists",
+    };
+  }
+
+  const existingNickName = await userRepo.findOne({
+    nickname: user.nickname,
+  });
+
+  if (existingNickName) {
+    return {
+      success: false,
+      code: "400",
+      message: "Nickname already exists",
+    };
+  }
+  const newUser = em.create(User, {
+    ...user,
+  });
+  console.log("user", newUser.id);
+  try {
+    await em.persistAndFlush(newUser);
+    const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return {
+      success: true,
+      code: "200",
+      message: "User created successfully",
+      user: newUser,
+      token,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      code: "400",
+      message: "Error creating user",
+    };
+  }
+};
+
+export const updateUser = async (
+  _,
+  {
+    user: {
+      name,
+      email,
+      surname,
+      nickname,
+      phoneNumber,
+      profilePicture,
+      isActive,
+      isBlocked,
+      rol,
+    },
+  }: {
+    user: {
+      name: string;
+      email: string;
+      surname: string;
+      nickname: string;
+      phoneNumber: string;
+      profilePicture: string;
+      isActive: boolean;
+      isBlocked: boolean;
+      rol: UserRol;
+    };
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+      user: null,
+    };
+  }
+  let user = await userRepo.findOne({ id: currentUser.id });
 
   if (!user) {
     return {
@@ -93,36 +141,62 @@ const updateUser = async (
     };
   }
 
-  if (user.rol !== "boss") {
+  if (!email || !name || !surname) {
     return {
       success: false,
       code: "400",
-      message: "You are not authorized to perform this action",
+      message: "Please provide all required fields",
       user: null,
     };
   }
 
-  delete input.id;
-
-  const updatedUser = await em.find(User, { id: user.id }, { ...input });
-  //console.log(updatedUser)
-  if (!updatedUser) {
+  const ussersWithexistingEmail = await userRepo.find({ email });
+  if (ussersWithexistingEmail.length > 1) {
     return {
       success: false,
       code: "400",
-      message: "User not updated",
+      message: "Email already exists",
+    };
+  }
+
+  const existingNickName = await userRepo.find({ nickname });
+
+  if (existingNickName.length > 1) {
+    return {
+      success: false,
+      code: "400",
+      message: "Nickname already exists",
+    };
+  }
+  user.name = name;
+  user.email = email;
+  user.surname = surname;
+  user.nickname = nickname;
+  user.phoneNumber = phoneNumber || user.phoneNumber;
+  user.profilePicture = profilePicture || user.profilePicture;
+  user.isActive = isActive || user.isActive;
+  user.isBlocked = isBlocked || user.isBlocked;
+  user.rol = rol || user.rol;
+
+  try {
+    await em.persistAndFlush(user);
+    return {
+      success: true,
+      code: "200",
+      message: "User updated successfully",
+      user,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      code: "400",
+      message: "Error updating user",
       user: null,
     };
   }
-  return {
-    success: true,
-    code: "200",
-    message: "User updated successfully",
-    user: updatedUser,
-  };
 };
 
-const resetPassword = async (
+export const resetPassword = async (
   _: any,
   args: any,
   { em, currentUser }: { em: EntityManager; currentUser: any }
@@ -190,7 +264,11 @@ const resetPassword = async (
   };
 };
 
-const removeUser = async (parent, args, { em }: { em: EntityManager }) => {
+export const removeUser = async (
+  parent,
+  args,
+  { em }: { em: EntityManager }
+) => {
   const { id } = args;
   if (!id) {
     return {
@@ -218,18 +296,18 @@ const removeUser = async (parent, args, { em }: { em: EntityManager }) => {
 export const createMessage = async (
   root: any,
   {
-    text,
-    receiverId,
-    isFixed = false,
-    fixedDuration = null,
+    message: { text, receiverId, isFixed, fixedDuration = null },
   }: {
-    text: string;
-    receiverId: string;
-    isFixed: boolean;
-    fixedDuration: number;
+    message: {
+      text: string;
+      receiverId: string;
+      isFixed: boolean;
+      fixedDuration: number;
+    };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
+  if (isFixed === null) isFixed = false;
   if (!currentUser) return notLoggedError("Please login");
   if (isFixed && currentUser.rol === UserRol.STANDARD)
     return notAuthError("You are not authorized to fix a message");
@@ -238,9 +316,6 @@ export const createMessage = async (
   const userRepo = em.getRepository(User);
   const sender = await userRepo.findOne({ id: currentUser.id });
   const receiver = await userRepo.findOne({ id: receiverId });
-  console.log("receiverId: ", receiverId, receiver);
-  console.log("text: ", text);
-
   try {
     const newMessage = em.create(Message, {
       text,
@@ -249,7 +324,6 @@ export const createMessage = async (
       isFixed,
       fixedDuration,
     });
-    console.log(newMessage);
     await em.persistAndFlush(newMessage);
     return {
       success: true,
@@ -270,16 +344,15 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    startDate,
-    endDate,
-    maxUsers,
-    isCancelled = false,
+    schedule: { startDate, endDate, maxUsers, isCancelled = false },
   }: {
-    startDate: string;
-    endDate: string;
-    maxUsers: number;
-    isCancelled: boolean;
-    isProgrammed: boolean;
+    schedule: {
+      startDate: string;
+      endDate: string;
+      maxUsers: number;
+      isCancelled: boolean;
+      isProgrammed: boolean;
+    };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -322,15 +395,14 @@ export const createSchedule = async (
 export const createScheduleProgrammed = async (
   root: any,
   {
-    daysOfWeek = [],
-    startHour,
-    endHour,
-    maxUsers,
+    scheduleProgrammed: { daysOfWeek = [], startHour, endHour, maxUsers },
   }: {
-    daysOfWeek: number[];
-    startHour: string;
-    endHour: string;
-    maxUsers: number;
+    scheduleProgrammed: {
+      daysOfWeek: number[];
+      startHour: string;
+      endHour: string;
+      maxUsers: number;
+    };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -365,13 +437,13 @@ export const createScheduleProgrammed = async (
 export const createPoll = async (
   root: any,
   {
-    title,
-    options,
-    durationDays,
+    poll: { title, options, durationDays },
   }: {
-    title: string;
-    options: string[];
-    durationDays: number;
+    poll: {
+      title: string;
+      options: string[];
+      durationDays: number;
+    };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -417,14 +489,15 @@ export const createPoll = async (
   }
 };
 
-export const createVote = async (
+export const createOrChangePollVote = async (
   root: any,
   {
-    pollId,
-    option,
+    vote: { pollId, option },
   }: {
-    pollId: string;
-    option: number;
+    vote: {
+      pollId: string;
+      option: number;
+    };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -445,9 +518,14 @@ export const createVote = async (
   const newPollVote = em.create(PollVote, {
     poll,
     user: em.getReference(User, currentUser.id),
-    optionSelected: option,
   });
-  await em.persistAndFlush(newPollVote);
+  try {
+    newPollVote.optionSelected = option;
+
+    await em.persistAndFlush(newPollVote);
+  } catch (error) {
+    return notCreatedError("Error creating vote");
+  }
   return createdSuccess("Vote added succesfully", newPollVote, null);
 };
 

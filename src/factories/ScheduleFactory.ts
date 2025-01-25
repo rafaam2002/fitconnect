@@ -16,7 +16,7 @@ export class ScheduleFactory extends Factory<Schedule> {
 
   definition(): Partial<Schedule> {
     return {
-      startDate: faker.date.future(),
+      startDate: faker.date.recent(),
       endDate: faker.date.future(),
       maxUsers: faker.helpers.rangeToNumber({ min: 5, max: 50 }),
       isCancelled: faker.datatype.boolean(),

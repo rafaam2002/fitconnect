@@ -6,22 +6,23 @@ import {
   getPolls,
   getConversation,
   getNotifications,
-  getScheduleOptions
-} from './user/queries'
-import {login, loginWithId} from "./auth/queries";
-import {changePassword, forgotPassword} from "./auth/mutations";
+  getScheduleOptions,
+} from "./user/queries";
+import { login, loginWithId } from "./auth/queries";
+import { updatePassword, forgotPassword } from "./auth/mutations";
 import {
   createMessage,
   createPoll,
   createSchedule,
   createScheduleProgrammed,
   createSubscription,
-  createVote,
-  createUser, removeSubscription,
-  cancelSchedule
+  createOrChangePollVote,
+  updateUser,
+  removeSubscription,
+  cancelSchedule,
 } from "./user/mutations";
-import {createPlan, removePlan, updatePlan} from "./plan/mutations";
-import {getPlans} from "./plan/queries";
+import { createPlan, removePlan, updatePlan } from "./plan/mutations";
+import { getPlans } from "./plan/queries";
 const resolvers = {
   Query: {
     login,
@@ -34,24 +35,24 @@ const resolvers = {
     getConversation,
     getPlans,
     getNotifications,
-    getScheduleOptions
+    getScheduleOptions,
   },
   Mutation: {
-    createUser,
-    changePassword,
+    updateUser,
+    updatePassword,
     forgotPassword,
     createMessage,
     createSchedule,
     createScheduleProgrammed,
     createPoll,
-    createVote,
+    createOrChangePollVote,
     createPlan,
     updatePlan,
     removePlan,
     createSubscription,
     removeSubscription,
-    cancelSchedule
-  }
-}
+    cancelSchedule,
+  },
+};
 
-export default resolvers
+export default resolvers;

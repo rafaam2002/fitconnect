@@ -98,6 +98,7 @@ export class User extends BaseEntity {
     this.nickname = user.nickname;
     this.rol = UserRol.STANDARD;
     this.isActive = false;
+    this.password = user.password;
   }
 
   @BeforeCreate()

@@ -1,17 +1,18 @@
 export const graphqlMutations = `   
 
 type Mutation {
-    createUser ( user: CreateUserInput!): UserResponse
+    createUser( user: CreateUserInput!): LoginResponse!
+    updateUser ( user: UpdateUserInput!): UserResponse!
     forgotPassword(email: String!): String!
-    changePassword(currentPassword: String!, newPassword: String!): UserResponse!
-    createMessage(text: String!, receiverId: ID!, isFixed: Boolean, fixedDuration: Boolean): MessageResponse!
+    updatePassword(password: CreatePasswordInput!): UserResponse!
+    createMessage(message: CreateMessageInput!): MessageResponse!
     fixMessage(messageId: ID!, fixedDuration: Int!): MessageResponse!
     unfixMessage(messageId: ID!): MessageResponse!
-    createSchedule(startDate: String!, endDate: String!, maxUsers: Int!, isCancelled: Boolean): ScheduleResponse!
-    createScheduleProgrammed(daysOfWeek: [Int], startHour: String!, Duration: Int!, maxUsers: Int!): ScheduleProgrammedResponse!
+    createSchedule(schedule: CreateScheduleInput!): ScheduleResponse!
+    createScheduleProgrammed(scheduleProgrammed: CreateScheduleProgrammedInput!): ScheduleProgrammedResponse!
     cancelSchedule(scheduleId: ID!): ScheduleResponse!
-    createPoll(title: String!, options: [String]!,durationDays: Int!): PollResponse!
-    createVote(pollId: ID!, option: String!): PollResponse!
+    createPoll(poll: CreatePollInput!): PollResponse!
+    createOrChangePollVote(vote: CreatePollVoteInput! ): PollResponse!
     createPlan(plan: CreatePlanInput!): PlanResponse!
     updatePlan(planId: ID!, plan: CreatePlanInput!): PlanResponse!
     removePlan(planId: ID!): PlanResponse!,

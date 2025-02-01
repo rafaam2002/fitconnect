@@ -14,6 +14,7 @@ type User {
 
 type Schedule {
     id: ID!
+    users: [User]
     created_at: String!
     updated_at: String!
     startDate: String!
@@ -21,6 +22,14 @@ type Schedule {
     maxUsers: Int!
     admin: User!
     isCancelled: Boolean!
+}
+
+type ScheduleResume {
+    id: ID!
+    startDate: String!
+    maxUsers: Int!
+    isCancelled: Boolean!
+    ocupacy: Int!
 }
 
 type ScheduleProgrammed {

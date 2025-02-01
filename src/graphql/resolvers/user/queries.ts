@@ -137,12 +137,40 @@ const getSchedules = async (
       };
     }
   }
-  const schedules = await scheduleRepo.findAll({ populate: ["admin"] });
+  const schedules = await scheduleRepo.findAll({ populate: ["admin", "users"] });
+  console.log(schedules[0].startDate);
   return {
     success: true,
     code: "200",
     message: "Schedules found",
     schedules: schedules,
+  };
+};
+
+const getSchedulesResume = async ( 
+  _: any,
+  args: any,
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const scheduleRepo = em.getRepository(Schedule);
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const schedules = await scheduleRepo.findAll();
+  const schedulesResume = schedules.map((schedule) => {
+    return {
+      id: schedule.id,
+      startDate: schedule.startDate,
+      maxUsers: schedule.maxUsers,
+      isCancelled: schedule.isCancelled,
+      ocupacy: schedule.users.length,
+    };
+  });
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedulesResume,
   };
 };
 

@@ -21,6 +21,13 @@ type ScheduleResponse implements BasicResponse{
     schedules: [Schedule]
 }
 
+type ScheduleResumeResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    schedulesResume: [ScheduleResume]
+}
+
 type ScheduleProgrammedResponse implements BasicResponse{
     code: String!
     success: Boolean!

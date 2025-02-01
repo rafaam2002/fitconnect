@@ -23,6 +23,8 @@ import {
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
+import { GraphQLScalarType } from "graphql";
+
 const resolvers = {
   Query: {
     login,

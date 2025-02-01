@@ -10,6 +10,6 @@ export class PollSeeder extends Seeder {
     const users = await userRepo.find({
       rol: { $in: [UserRol.BOSS, UserRol.COACH] },
     });
-    new PollFactory(em,users).make(50);
+    new PollFactory(em,users).make(4);
   }
 }

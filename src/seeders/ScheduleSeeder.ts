@@ -14,7 +14,7 @@ export class ScheduleSeeder extends Seeder {
     });
 
     new ScheduleFactory(em).each((eschedule) => {
-      eschedule.users.set(new UserFactory(em).make(10));
+      eschedule.users.set(new UserFactory(em).make(20));
       eschedule.admin = eschedule.users.getItems()[0];
     }).make(10);
   }

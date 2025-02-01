@@ -27,16 +27,15 @@ export class UserSeeder extends Seeder {
       isBlocked: false,
       rol: UserRol.BOSS,
     });
-      await em.persistAndFlush(myUser);
-      
-      new UserFactory(em)
-          .each((user) => {              
-        user.schedules.set(  new ScheduleFactory(em, user, myUser).make(1));
+    await em.persistAndFlush(myUser);
+
+    new UserFactory(em)
+      .each((user) => {
         if (cont < 3) {
           cont++;
           new PollFactory(em, user)
             .each(async (poll) => {
-              poll.pollVotes.set( new PollVoteFactory(em, user).make(1));
+              poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
             })
             .make(2);
         }

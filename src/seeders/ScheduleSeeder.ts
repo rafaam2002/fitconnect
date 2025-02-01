@@ -8,11 +8,14 @@ import { allUsers } from "../graphql/resolvers/user/queries";
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    // const userRepo = em.getRepository(User);
-    // const users = await userRepo.find({
-    //   rol: { $in: [UserRol.BOSS, UserRol.COACH] },
-    // });
+    const userRepo = em.getRepository(User);
+    const users = await userRepo.find({
+      rol: { $in: [UserRol.BOSS, UserRol.COACH] },
+    });
 
-    // new ScheduleFactory(em, users).make(10);
+    new ScheduleFactory(em).each((eschedule) => {
+      eschedule.users.set(new UserFactory(em).make(10));
+      eschedule.admin = eschedule.users.getItems()[0];
+    }).make(10);
   }
 }

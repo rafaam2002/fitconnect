@@ -147,7 +147,7 @@ const getSchedules = async (
   };
 };
 
-const getSchedulesResume = async ( 
+export const getSchedulesResume = async ( 
   _: any,
   args: any,
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -156,7 +156,7 @@ const getSchedulesResume = async (
   if (!currentUser) {
     return notLoggedError("Please login");
   }
-  const schedules = await scheduleRepo.findAll();
+  const schedules = await scheduleRepo.findAll({ populate: ["users"] });
   const schedulesResume = schedules.map((schedule) => {
     return {
       id: schedule.id,
@@ -166,6 +166,9 @@ const getSchedulesResume = async (
       ocupacy: schedule.users.length,
     };
   });
+
+  console.log(schedulesResume);
+
   return {
     success: true,
     code: "200",

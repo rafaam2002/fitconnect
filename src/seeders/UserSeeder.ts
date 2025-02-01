@@ -8,11 +8,13 @@ import { User } from "../entities/User";
 import { Promotion } from "../entities/Promotion";
 import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
+import { PollFactory } from "../factories/PollFactory";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const schedules = await em.find(Schedule, {});
     const promotions = await em.find(Promotion, {});
+    let cont = 0;
 
     const myUser = em.create(User, {
       name: "Rafa",
@@ -25,21 +27,29 @@ export class UserSeeder extends Seeder {
       isBlocked: false,
       rol: UserRol.BOSS,
     });
-    await em.persistAndFlush(myUser);
-
-    await new UserFactory(em)
-      .each((user) => {
-          user.schedules.set(new ScheduleFactory(em, user, myUser).make(2));
-        //   user.pollVotes.set(new PollVoteFactory(em, user).make(2));
+      await em.persistAndFlush(myUser);
+      
+      new UserFactory(em)
+          .each((user) => {              
+        user.schedules.set(  new ScheduleFactory(em, user, myUser).make(1));
+        if (cont < 3) {
+          cont++;
+          new PollFactory(em, user)
+            .each(async (poll) => {
+              poll.pollVotes.set( new PollVoteFactory(em, user).make(1));
+            })
+            .make(2);
+        }
+        //   user.pollVotes.set(new PollVoteFactory(em, user).each((pollVote) => {
+        //       pollVote.poll =
+        //   }).make(1));
       })
-      .make(100, {
+      .make(50, {
         schedules: faker.helpers.arrayElements(schedules, { min: 5, max: 10 }),
         promotions: faker.helpers.arrayElements(promotions, {
           min: 5,
           max: 10,
         }),
-      })
-        
-        ;
+      });
   }
 }

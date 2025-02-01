@@ -92,7 +92,7 @@ export class User extends BaseEntity {
 
   constructor(user: User) {
     super();
-    this.name = user.name;
+    this.name = user.name ;
     this.surname = user.surname;
     this.email = user.email;
     this.nickname = user.nickname;

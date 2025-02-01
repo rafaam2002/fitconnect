@@ -9,10 +9,10 @@ import { randomUser } from "../utils/factories";
 export class PollFactory extends Factory<Poll> {
   model = Poll;
 
-    private users;
-  constructor(em: EntityManager,users: User[]) {
+  private user;
+  constructor(em: EntityManager, user: User) {
     super(em);
-        this.users = users;
+    this.user = user;
   }
 
   definition(): Partial<Poll> {
@@ -20,17 +20,10 @@ export class PollFactory extends Factory<Poll> {
       endDate: faker.date.future(),
       title: faker.lorem.sentence(),
       options: faker.helpers.arrayElements(
-        [
-          "si",
-          "no",
-          "tal vez",
-          "podria",
-          "eventualmente",
-          "no me apetece",
-        ],
+        ["si", "no", "tal vez", "podria", "eventualmente", "no me apetece"],
         { min: 2, max: 10 }
-        ),
-      admin: randomUser(this.users),
+      ),
+      admin: this.user,
     };
   }
 }

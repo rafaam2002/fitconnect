@@ -167,8 +167,6 @@ export const getSchedulesResume = async (
     };
   });
 
-  console.log(schedulesResume);
-
   return {
     success: true,
     code: "200",
@@ -354,6 +352,41 @@ const getConversation = async (
   };
 };
 
+const getTodaySchedulesResume = async (
+  _: any,
+  args: any,
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const scheduleRepo = em.getRepository(Schedule);
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+  const todaySchedules = await scheduleRepo.find({
+    startDate: { $gte: startOfDay, $lte: endOfDay }
+  }, { populate: ["users"] });
+
+  const schedulesResume = todaySchedules.map((schedule) => {
+    return {
+      id: schedule.id,
+      startDate: schedule.startDate,
+      maxUsers: schedule.maxUsers,
+      isCancelled: schedule.isCancelled,
+      ocupacy: schedule.users.length,
+    };
+  });
+
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedulesResume,
+  };
+};
+
 const getScheduleOptions = async (
   root: any,
   args: any,
@@ -391,4 +424,5 @@ export {
   getAdminPolls,
   getPolls,
   getScheduleOptions,
+  getTodaySchedulesResume,
 };

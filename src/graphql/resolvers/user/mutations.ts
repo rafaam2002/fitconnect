@@ -529,6 +529,38 @@ export const createOrChangePollVote = async (
   return createdSuccess("Vote added succesfully", newPollVote, null);
 };
 
+export const deletePollVote = async (
+  root: any,
+  {
+    pollId,
+  }: {
+    pollId: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const pollVoteRepo = em.  getRepository(PollVote);
+  const pollVote = await pollVoteRepo.findOne({
+    user: currentUser.id,
+    poll: pollId,
+  });
+  if (!pollVote) {
+    return {
+      success: false,
+      code: "404",
+      message: "Vote not found",
+    };
+  }
+  await em.removeAndFlush(pollVote);
+  return {
+    success: true,
+    code: "200",
+    message: "Vote removed succesfully",
+  };
+};
+
 export const fixMessage = async (
   root: any,
   {

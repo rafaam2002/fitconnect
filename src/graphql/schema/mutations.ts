@@ -18,6 +18,7 @@ type Mutation {
     removePlan(planId: ID!): PlanResponse!,
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!,
     removeSubscription(planId: ID!): PlanResponse!,
+    deletePollVote(pollId: ID!): PollResponse!
 }
 
 `;

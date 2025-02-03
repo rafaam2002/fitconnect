@@ -16,5 +16,6 @@ type Query {
     getPolls(pollId: ID): PollResponse!
     getPlans(planId: ID): PlanResponse!
     getSchedulesResume: ScheduleResumeResponse!
+    getTodaySchedulesResume: ScheduleResumeResponse!
 }
 `;

@@ -4,7 +4,7 @@ import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { randomUser } from "../utils/factories";
-import { UserRol } from "../types/enums";
+import { ScheduleState, UserRol } from "../types/enums";
 
 export class ScheduleFactory extends Factory<Schedule> {
   model = Schedule;
@@ -21,7 +21,11 @@ export class ScheduleFactory extends Factory<Schedule> {
       startDate,
       endDate,
       maxUsers: faker.helpers.rangeToNumber({ min: 5, max: 50 }),
-      isCancelled: faker.datatype.boolean(),
+      state: faker.helpers.weightedArrayElement([
+        { value: ScheduleState.AVAILABLE, weight: 0.7 },
+        { value: ScheduleState.FULL, weight: 0.15 },
+        { value: ScheduleState.CANCELLED, weight: 0.15 },
+      ]),
     };
   }
 }

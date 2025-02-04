@@ -40,7 +40,7 @@ input CreateScheduleInput {
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,
-    isCancelled: Boolean
+    state: ScheduleState,
 }
 
 input CreatePollInput {

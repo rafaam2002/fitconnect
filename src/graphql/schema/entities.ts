@@ -21,14 +21,14 @@ type Schedule {
     endDate: String!
     maxUsers: Int!
     admin: User!
-    isCancelled: Boolean!
+    state: Boolean!
 }
 
 type ScheduleResume {
     id: ID!
     startDate: String!
     maxUsers: Int!
-    isCancelled: Boolean!
+    state: ScheduleState!
     ocupacy: Int!
 }
 

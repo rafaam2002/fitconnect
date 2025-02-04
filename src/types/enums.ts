@@ -17,6 +17,12 @@ export enum PaymentType {
   ANUAL = "anual",
 }
 
+export enum ScheduleState {
+  AVAILABLE = "available",
+  CANCELLED = "cancelled",
+  FULL = "full",
+}
+
 export enum SubscriptionStatus {
   ACTIVE = "active",
   CANCELLED = "cancelled",

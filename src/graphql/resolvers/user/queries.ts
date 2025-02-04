@@ -137,7 +137,9 @@ const getSchedules = async (
       };
     }
   }
-  const schedules = await scheduleRepo.findAll({ populate: ["admin", "users"] });
+  const schedules = await scheduleRepo.findAll({
+    populate: ["admin", "users"],
+  });
   console.log(schedules[0].startDate);
   return {
     success: true,
@@ -147,7 +149,47 @@ const getSchedules = async (
   };
 };
 
-export const getSchedulesResume = async ( 
+export const getSchedulesFromToday = async (
+  _: any,
+  args: any,
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const scheduleRepo = em.getRepository(Schedule);
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  }
+
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+  const schedules = await scheduleRepo.find(
+    {
+      startDate: { $gte: startOfDay },
+    },
+    { populate: ["users"]}
+  );
+
+  if (schedules.length === 0) {
+    return {
+      success: false,
+      code: "404",
+      message: "Schedules not found",
+    };
+  }
+
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedules,
+  };
+};
+
+export const getSchedulesResume = async (
   _: any,
   args: any,
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -156,13 +198,23 @@ export const getSchedulesResume = async (
   if (!currentUser) {
     return notLoggedError("Please login");
   }
-  const schedules = await scheduleRepo.findAll({ populate: ["users"] });
+
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+  const schedules = await scheduleRepo.find(
+    {
+      startDate: { $gte: startOfDay },
+    },
+    { populate: ["users"], orderBy: { startDate: "ASC" } }
+  );
+
   const schedulesResume = schedules.map((schedule) => {
     return {
       id: schedule.id,
       startDate: schedule.startDate,
       maxUsers: schedule.maxUsers,
-      isCancelled: schedule.isCancelled,
+      state: schedule.state,
       ocupacy: schedule.users.length,
     };
   });
@@ -303,7 +355,6 @@ const getPolls = async (
     message: "Polls found",
     polls,
   };
-
 };
 
 const getConversation = async (
@@ -365,16 +416,19 @@ const getTodaySchedulesResume = async (
   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
   const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-  const todaySchedules = await scheduleRepo.find({
-    startDate: { $gte: startOfDay, $lte: endOfDay }
-  }, { populate: ["users"] });
+  const todaySchedules = await scheduleRepo.find(
+    {
+      startDate: { $gte: startOfDay, $lte: endOfDay },
+    },
+    { populate: ["users"] }
+  );
 
   const schedulesResume = todaySchedules.map((schedule) => {
     return {
       id: schedule.id,
       startDate: schedule.startDate,
       maxUsers: schedule.maxUsers,
-      isCancelled: schedule.isCancelled,
+      state: schedule.state,
       ocupacy: schedule.users.length,
     };
   });

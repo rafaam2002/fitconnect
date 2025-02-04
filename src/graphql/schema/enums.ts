@@ -24,6 +24,12 @@ enum PaymentType {
     anual
 }
 
+enum ScheduleState {
+    available
+    cancelled
+    full
+}
+
 enum SubscriptionStatus{
     active
     cancelled

@@ -1,6 +1,7 @@
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
+import { ScheduleState } from "../types/enums";
 
 export const createScheduleInXWeeks = async (
   now: Date,
@@ -28,7 +29,7 @@ export const createScheduleInXWeeks = async (
     startDate,
     endDate,
     maxUsers: scheduleProgrammed.maxUsers,
-    isCancelled: false,
+    state: ScheduleState.AVAILABLE,
     admin: scheduleProgrammed.admin,
     scheduleProgrammed,
   });

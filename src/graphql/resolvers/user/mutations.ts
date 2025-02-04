@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import { UserType } from "../../../types";
 import { notAuthError, notCreatedError, notLoggedError } from "../errors";
-import { PaymentType, SubscriptionStatus, UserRol } from "../../../types/enums";
+import { PaymentType, ScheduleState, SubscriptionStatus, UserRol } from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleProgrammed } from "../../../entities/ScheduleProgrammed";
 import { createdSuccess } from "../successes";
@@ -344,13 +344,13 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    schedule: { startDate, endDate, maxUsers, isCancelled = false },
+    schedule: { startDate, endDate, maxUsers, state = ScheduleState.AVAILABLE },
   }: {
     schedule: {
       startDate: string;
       endDate: string;
       maxUsers: number;
-      isCancelled: boolean;
+      state: ScheduleState;
       isProgrammed: boolean;
     };
   },
@@ -372,7 +372,7 @@ export const createSchedule = async (
     startDate: newStartDate,
     endDate: newEndDate,
     maxUsers,
-    isCancelled,
+    state,
     admin,
   });
   await em.persistAndFlush(newSchedule);
@@ -651,7 +651,7 @@ export const cancelSchedule = async (
   ) {
     return notAuthError("You are not authorized to perform this action");
   }
-  schedule.isCancelled = true;
+  schedule.state = ScheduleState.CANCELLED;
   await em.persistAndFlush(schedule);
   return {
     success: true,

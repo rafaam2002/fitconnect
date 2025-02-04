@@ -10,6 +10,7 @@ import {
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { ScheduleProgrammed } from "./ScheduleProgrammed";
+import { ScheduleState } from "../types/enums";
 
 @Entity()
 export class Schedule extends BaseEntity {
@@ -22,8 +23,8 @@ export class Schedule extends BaseEntity {
   @Property()
   maxUsers!: number;
 
-  @Property({ default: false })
-  isCancelled!: boolean;
+  @Property({ default: ScheduleState.AVAILABLE })
+  state: ScheduleState;
 
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
@@ -48,7 +49,7 @@ export class Schedule extends BaseEntity {
     this.startDate = schedule.startDate;
     this.endDate = schedule.endDate;
     this.maxUsers = schedule.maxUsers;
-    this.isCancelled = schedule.isCancelled;
+    this.state = schedule.state;
     this.admin = schedule.admin;
   }
 }

@@ -14,6 +14,9 @@ import { ScheduleState } from "../types/enums";
 
 @Entity()
 export class Schedule extends BaseEntity {
+  @Property()
+  title!: string;
+
   @Property() //puede haber 2 schedules en la misma hora?
   startDate!: Date;
 
@@ -29,20 +32,19 @@ export class Schedule extends BaseEntity {
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
 
-  @ManyToOne(() => User, {nullable: true})
-  admin: User|null = null;
+  @ManyToOne(() => User, { nullable: true })
+  admin: User | null = null;
 
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;
 
-
-    @BeforeCreate()
-    @BeforeUpdate()
-    validate() {
-      if (this.startDate >= this.endDate) {
-        throw new Error("startDate must be before endDate.");
-      }
+  @BeforeCreate()
+  @BeforeUpdate()
+  validate() {
+    if (this.startDate >= this.endDate) {
+      throw new Error("startDate must be before endDate.");
     }
+  }
 
   constructor(schedule: Schedule) {
     super();

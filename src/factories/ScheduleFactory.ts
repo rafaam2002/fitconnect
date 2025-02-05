@@ -18,6 +18,7 @@ export class ScheduleFactory extends Factory<Schedule> {
     const startDate = faker.date.soon({ days: 14 });
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Añadir 1 hora a startDate
     return {
+      title: faker.lorem.words(2),
       startDate,
       endDate,
       maxUsers: faker.helpers.rangeToNumber({ min: 5, max: 50 }),

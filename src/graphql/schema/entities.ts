@@ -14,6 +14,7 @@ type User {
 
 type Schedule {
     id: ID!
+    title: String!
     users: [User]
     created_at: String!
     updated_at: String!
@@ -34,6 +35,7 @@ type ScheduleResume {
 
 type ScheduleProgrammed {
     id: ID!
+    title: String!
     created_at: String!
     updated_at: String!
     daysOfWeek: [Int]

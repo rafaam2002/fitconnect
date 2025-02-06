@@ -9,6 +9,7 @@ import {
   getScheduleOptions,
   getSchedulesResume,
   getTodaySchedulesResume,
+  getSchedulesFromToday,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -42,7 +43,8 @@ const resolvers = {
     getNotifications,
     getSchedulesResume,
     getScheduleOptions,
-    getTodaySchedulesResume
+    getTodaySchedulesResume,
+    getSchedulesFromToday,
   },
   Mutation: {
     updateUser,

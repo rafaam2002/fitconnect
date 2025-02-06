@@ -22,7 +22,7 @@ type Schedule {
     endDate: String!
     maxUsers: Int!
     admin: User!
-    state: Boolean!
+    state: ScheduleState!
 }
 
 type ScheduleResume {
@@ -30,7 +30,7 @@ type ScheduleResume {
     startDate: String!
     maxUsers: Int!
     state: ScheduleState!
-    ocupacy: Int!
+    ocupancy: Int!
 }
 
 type ScheduleProgrammed {

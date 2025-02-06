@@ -215,7 +215,7 @@ export const getSchedulesResume = async (
       startDate: schedule.startDate,
       maxUsers: schedule.maxUsers,
       state: schedule.state,
-      ocupacy: schedule.users.length,
+      ocupancy: schedule.users.length,
     };
   });
 
@@ -429,7 +429,7 @@ const getTodaySchedulesResume = async (
       startDate: schedule.startDate,
       maxUsers: schedule.maxUsers,
       state: schedule.state,
-      ocupacy: schedule.users.length,
+      ocupancy: schedule.users.length,
     };
   });
 

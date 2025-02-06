@@ -17,5 +17,6 @@ type Query {
     getPlans(planId: ID): PlanResponse!
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!
+    getSchedulesFromToday: ScheduleResponse!
 }
 `;

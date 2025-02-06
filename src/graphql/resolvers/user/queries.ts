@@ -170,7 +170,7 @@ export const getSchedulesFromToday = async (
     {
       startDate: { $gte: startOfDay },
     },
-    { populate: ["users"]}
+    { populate: ["users"] }
   );
 
   if (schedules.length === 0) {
@@ -441,6 +441,44 @@ const getTodaySchedulesResume = async (
   };
 };
 
+const getSchedulesRange = async (
+  _: any,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string;
+    endDate: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const scheduleRepo = em.getRepository(Schedule);
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  }
+
+  const startOfDay = new Date(startDate);
+  const endOfDay = new Date(endDate);
+
+  const schedules = await scheduleRepo.find(
+    {
+      startDate: { $gte: startOfDay, $lte: endOfDay },
+    },
+    { populate: ["users", "admin"] }
+  );
+
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedules,
+  };
+};
+
 const getScheduleOptions = async (
   root: any,
   args: any,
@@ -479,4 +517,5 @@ export {
   getPolls,
   getScheduleOptions,
   getTodaySchedulesResume,
+  getSchedulesRange,
 };

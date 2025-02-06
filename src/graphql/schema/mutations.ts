@@ -19,6 +19,7 @@ type Mutation {
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!,
     removeSubscription(planId: ID!): PlanResponse!,
     deletePollVote(pollId: ID!): PollResponse!
+    createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
 }
 
 `;

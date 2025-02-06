@@ -5,7 +5,12 @@ import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import { UserType } from "../../../types";
 import { notAuthError, notCreatedError, notLoggedError } from "../errors";
-import { PaymentType, ScheduleState, SubscriptionStatus, UserRol } from "../../../types/enums";
+import {
+  PaymentType,
+  ScheduleState,
+  SubscriptionStatus,
+  UserRol,
+} from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleProgrammed } from "../../../entities/ScheduleProgrammed";
 import { createdSuccess } from "../successes";
@@ -17,6 +22,7 @@ import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
 import { ne, ro, tr } from "@faker-js/faker/.";
+import { createDateWithTime } from "../../../utils/schedules";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y",
@@ -344,9 +350,16 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    schedule: { startDate, endDate, maxUsers, state = ScheduleState.AVAILABLE },
+    schedule: {
+      title,
+      startDate,
+      endDate,
+      maxUsers,
+      state
+    },
   }: {
     schedule: {
+      title: string;
       startDate: string;
       endDate: string;
       maxUsers: number;
@@ -356,19 +369,90 @@ export const createSchedule = async (
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
+  if(state === null) state = ScheduleState.AVAILABLE;
   let newStartDate = new Date(startDate);
   let newEndDate = new Date(endDate);
 
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
   if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
   }
   const userRepo = em.getRepository(User);
   const admin = await userRepo.findOne({ id: currentUser.id });
 
   const newSchedule = em.create(Schedule, {
+    title,
+    startDate: newStartDate,
+    endDate: newEndDate,
+    maxUsers,
+    state,
+    admin,
+  });
+  await em.persistAndFlush(newSchedule);
+  try {
+    return {
+      success: true,
+      code: "200",
+      message: "Schedule created successfully",
+      schedule: newSchedule,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      code: "400",
+      message: "Error creating schedule",
+    };
+  }
+};
+
+export const createScheduleDevelopment = async (
+  root: any,
+  {
+    scheduleDevelopment: {
+      title,
+      startTime,
+      endTime,
+      maxUsers,
+      state = ScheduleState.AVAILABLE,
+    },
+  }: {
+      scheduleDevelopment: {
+      title: string;
+      startTime: string;
+      endTime: string;
+      maxUsers: number;
+      state: ScheduleState;
+      isProgrammed: boolean;
+    };
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (state === null) state = ScheduleState.AVAILABLE;
+  let newStartDate = createDateWithTime(startTime); // startTime es la cadena de tiempo pasada por parámetro, por ejemplo "11:30"
+  let newEndDate = createDateWithTime(endTime); // endTime es la cadena de tiempo pasada por parámetro, por ejemplo "12:30"
+
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  }
+  const userRepo = em.getRepository(User);
+  const admin = await userRepo.findOne({ id: currentUser.id });
+
+  const newSchedule = em.create(Schedule, {
+    title,
     startDate: newStartDate,
     endDate: newEndDate,
     maxUsers,
@@ -541,7 +625,7 @@ export const deletePollVote = async (
   if (!currentUser) {
     return notLoggedError("Please login");
   }
-  const pollVoteRepo = em.  getRepository(PollVote);
+  const pollVoteRepo = em.getRepository(PollVote);
   const pollVote = await pollVoteRepo.findOne({
     user: currentUser.id,
     poll: pollId,

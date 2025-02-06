@@ -37,8 +37,17 @@ input CreateScheduleProgrammedInput {
 }
 
 input CreateScheduleInput {
+    title: String!,
     startDate: String!,
     endDate: String!,
+    maxUsers: Int!,
+    state: ScheduleState,
+}
+
+input CreateScheduleDevelopmentInput {
+    title: String!,
+    startTime: String,
+    endTime: String,
     maxUsers: Int!,
     state: ScheduleState,
 }

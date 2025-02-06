@@ -10,6 +10,7 @@ import {
   getSchedulesResume,
   getTodaySchedulesResume,
   getSchedulesFromToday,
+  getSchedulesRange,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -24,6 +25,7 @@ import {
   removeSubscription,
   cancelSchedule,
   deletePollVote,
+  createScheduleDevelopment,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -45,6 +47,7 @@ const resolvers = {
     getScheduleOptions,
     getTodaySchedulesResume,
     getSchedulesFromToday,
+    getSchedulesRange,
   },
   Mutation: {
     updateUser,
@@ -62,6 +65,7 @@ const resolvers = {
     removeSubscription,
     cancelSchedule,
     deletePollVote,
+    createScheduleDevelopment
   },
 };
 

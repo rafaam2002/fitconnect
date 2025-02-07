@@ -8,6 +8,7 @@ import { notLoggedError } from "../errors";
 import { PollVote } from "../../../entities/PollVote";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
+import moment from "moment";
 
 const allUsers = async (
   root: any,
@@ -461,6 +462,57 @@ const getSchedulesRange = async (
     };
   }
 
+  const startOfDay = moment(startDate).format("YYYY/MM/DD HH:mm:ss");
+  const endOfDay = moment(endDate).format("YYYY/MM/DD HH:mm:ss");
+  console.log(startOfDay, endOfDay);
+
+  const schedules = await scheduleRepo.find(
+    {
+      startDate: { $gte: startOfDay, $lte: endOfDay },
+    },
+    { populate: ["users", "admin"] }
+  );
+
+  schedules.map((schedule) => {
+    schedule.startDate = moment(
+      new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
+    ).toDate();
+
+    schedule.endDate = moment(
+      new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
+    ).toDate();
+
+    return schedule;
+  });
+
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    schedules,
+  };
+};
+
+const getSchedulesResumeRange = async (
+  _: any,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string;
+    endDate: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  const scheduleRepo = em.getRepository(Schedule);
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  }
+
   const startOfDay = new Date(startDate);
   const endOfDay = new Date(endDate);
 
@@ -471,11 +523,33 @@ const getSchedulesRange = async (
     { populate: ["users", "admin"] }
   );
 
+  schedules.map((schedule) => {
+    schedule.startDate = moment(
+      new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
+    ).toDate();
+
+    schedule.endDate = moment(
+      new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
+    ).toDate();
+
+    return schedule;
+  });
+
+  const schedulesResume = schedules.map((schedule) => {
+    return {
+      id: schedule.id,
+      startDate: schedule.startDate,
+      maxUsers: schedule.maxUsers,
+      state: schedule.state,
+      ocupancy: schedule.users.length,
+    };
+  });
+
   return {
     success: true,
     code: "200",
     message: "Schedules found",
-    schedules,
+    schedulesResume,
   };
 };
 
@@ -518,4 +592,5 @@ export {
   getScheduleOptions,
   getTodaySchedulesResume,
   getSchedulesRange,
+  getSchedulesResumeRange,
 };

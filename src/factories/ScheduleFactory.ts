@@ -5,6 +5,7 @@ import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { randomUser } from "../utils/factories";
 import { ScheduleState, UserRol } from "../types/enums";
+import moment from "moment";
 
 export class ScheduleFactory extends Factory<Schedule> {
   model = Schedule;
@@ -15,8 +16,9 @@ export class ScheduleFactory extends Factory<Schedule> {
   }
 
   definition(): Partial<Schedule> {
-    const startDate = faker.date.soon({ days: 14 });
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Añadir 1 hora a startDate
+    const startDate = moment(faker.date.soon({ days: 14 })).toDate();
+    const endDate = moment(startDate).add(1, "hour").toDate(); // Añadir 1 hora a startDate
+    
     return {
       title: faker.lorem.words(2),
       startDate,

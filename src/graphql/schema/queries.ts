@@ -19,6 +19,6 @@ type Query {
     getTodaySchedulesResume: ScheduleResumeResponse!
     getSchedulesFromToday: ScheduleResponse!
     getSchedulesRange(startDate: String!, endDate: String!): ScheduleResponse!
-
+    getSchedulesResumeRange(startDate: String!, endDate: String!): ScheduleResumeResponse!
 }
 `;

@@ -9,6 +9,7 @@ import { PollVote } from "../../../entities/PollVote";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
+import { ScheduleBooked } from "../../../types/schedule";
 
 const allUsers = async (
   root: any,
@@ -111,17 +112,11 @@ const getSchedules = async (
   if (!currentUser) {
     return notLoggedError("Please login");
   }
-  // if (currentUser.endSubscriptionDate < new Date()) {
-  //     return {
-  //         success: false,
-  //         code: "400",
-  //         message: "Your subscription has expired, please renew it",
-  //     };
-  // }
+
   if (scheduleId) {
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ["admin"] }
+      { populate: ["admin", "users"] }
     );
     if (!schedule) {
       return {
@@ -447,9 +442,11 @@ const getSchedulesRange = async (
   {
     startDate,
     endDate,
+    calculateIsBooked,
   }: {
     startDate: string;
     endDate: string;
+    calculateIsBooked: boolean;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -464,7 +461,6 @@ const getSchedulesRange = async (
 
   const startOfDay = moment(startDate).format("YYYY/MM/DD HH:mm:ss");
   const endOfDay = moment(endDate).format("YYYY/MM/DD HH:mm:ss");
-  console.log(startOfDay, endOfDay);
 
   const schedules = await scheduleRepo.find(
     {
@@ -481,9 +477,23 @@ const getSchedulesRange = async (
     schedule.endDate = moment(
       new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
     ).toDate();
-
-    return schedule;
   });
+
+  if (calculateIsBooked) {
+    const schedulesIsBooked = schedules.map((schedule) => {
+      const isBooked = schedule.users
+        .getItems()
+        .some((user) => user.id === currentUser.id);
+      return { ...schedule, isBooked };
+    });
+
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedules: schedulesIsBooked,
+    };
+  }
 
   return {
     success: true,
@@ -498,9 +508,11 @@ const getSchedulesResumeRange = async (
   {
     startDate,
     endDate,
+    calculateIsBooked,
   }: {
     startDate: string;
     endDate: string;
+    calculateIsBooked: boolean;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {

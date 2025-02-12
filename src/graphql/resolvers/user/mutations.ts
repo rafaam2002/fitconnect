@@ -350,13 +350,7 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    schedule: {
-      title,
-      startDate,
-      endDate,
-      maxUsers,
-      state
-    },
+    schedule: { title, startDate, endDate, maxUsers, state },
   }: {
     schedule: {
       title: string;
@@ -369,7 +363,7 @@ export const createSchedule = async (
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  if(state === null) state = ScheduleState.AVAILABLE;
+  if (state === null) state = ScheduleState.AVAILABLE;
   let newStartDate = new Date(startDate);
   let newEndDate = new Date(endDate);
 
@@ -415,6 +409,105 @@ export const createSchedule = async (
   }
 };
 
+export const addUserToSchedule = async (
+  root: any,
+  {
+    scheduleId,
+  }: {
+    scheduleId: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const userReference = em.getReference(User, currentUser.id);
+
+  const scheduleRepo = em.getRepository(Schedule);
+  const schedule = await scheduleRepo.findOne(
+    { id: scheduleId },
+    { populate: ["users"] }
+  );
+  console.log("schedule", schedule);
+  if (!schedule) {
+    return {
+      success: false,
+      code: "404",
+      message: "Schedule not found",
+    };
+  }
+  if (schedule.state !== ScheduleState.AVAILABLE) {
+    return {
+      success: false,
+      code: "400",
+      message: "Schedule is not available",
+    };
+  }
+  if (schedule.users.contains(userReference)) {
+    return {
+      success: false,
+      code: "400",
+      message: "User already in schedule",
+    };
+  }
+  schedule.users.add(userReference);
+  await em.persistAndFlush(schedule);
+  return {
+    success: true,
+    code: "200",
+    message: "User added to schedule",
+  };
+};
+
+export const removeUserFromSchedule = async (
+  root: any,
+  {
+    scheduleId,
+  }: {
+    scheduleId: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const userReference = em.getReference(User, currentUser.id);
+
+  const scheduleRepo = em.getRepository(Schedule);
+  const schedule = await scheduleRepo.findOne(
+    { id: scheduleId },
+    { populate: ["users"] }
+  );
+  if (!schedule) {
+    return {
+      success: false,
+      code: "404",
+      message: "Schedule not found",
+    };
+  }
+  if (schedule.state !== ScheduleState.AVAILABLE) {
+    return {
+      success: false,
+      code: "400",
+      message: "Schedule is not available",
+    };
+  }
+  if (!schedule.users.contains(userReference)) {
+    return {
+      success: false,
+      code: "400",
+      message: "User not in schedule",
+    };
+  }
+  schedule.users.remove(userReference);
+  await em.persistAndFlush(schedule);
+  return {
+    success: true,
+    code: "200",
+    message: "User removed from schedule",
+  };
+};
+
 export const createScheduleDevelopment = async (
   root: any,
   {
@@ -426,7 +519,7 @@ export const createScheduleDevelopment = async (
       state = ScheduleState.AVAILABLE,
     },
   }: {
-      scheduleDevelopment: {
+    scheduleDevelopment: {
       title: string;
       startTime: string;
       endTime: string;

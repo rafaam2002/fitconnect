@@ -20,6 +20,8 @@ type Mutation {
     removeSubscription(planId: ID!): PlanResponse!,
     deletePollVote(pollId: ID!): PollResponse!
     createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
+    addUserToSchedule(scheduleId: ID!): ScheduleResponse!
+    removeUserFromSchedule(scheduleId: ID!): ScheduleResponse!
 }
 
 `;

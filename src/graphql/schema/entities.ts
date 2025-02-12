@@ -32,6 +32,7 @@ type ScheduleResume {
     maxUsers: Int!
     state: ScheduleState!
     ocupancy: Int!
+    isBooked: Boolean
 }
 
 type ScheduleProgrammed {

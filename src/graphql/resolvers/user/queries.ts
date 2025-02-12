@@ -547,6 +547,29 @@ const getSchedulesResumeRange = async (
     return schedule;
   });
 
+  if (calculateIsBooked) {
+    const schedulesResumeIsBooked = schedules.map((schedule) => {
+      const isBooked = schedule.users
+        .getItems()
+        .some((user) => user.id === currentUser.id);
+      return {
+        id: schedule.id,
+        startDate: schedule.startDate,
+        maxUsers: schedule.maxUsers,
+        state: schedule.state,
+        ocupancy: schedule.users.length,
+        isBooked,
+      };
+    });
+
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedulesResume: schedulesResumeIsBooked,
+    };
+  }
+
   const schedulesResume = schedules.map((schedule) => {
     return {
       id: schedule.id,

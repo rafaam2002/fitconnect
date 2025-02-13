@@ -12,7 +12,12 @@ export class MessageSeeder extends Seeder {
     const userRepo = em.getRepository(User);
     const users = await userRepo.findAll();
     try {
-      new MessageFactory(em, users).make(50);
+      new MessageFactory(em, users)
+        .each((message) => {
+          message.sender = new UserFactory(em).makeOne();
+          message.receiver = new UserFactory(em).makeOne();
+        })
+        .make(50);
     } catch (error) {
       console.error("Error seeding messages");
       console.error(error.message);

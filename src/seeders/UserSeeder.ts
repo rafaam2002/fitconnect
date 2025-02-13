@@ -9,6 +9,7 @@ import { Promotion } from "../entities/Promotion";
 import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { PollFactory } from "../factories/PollFactory";
+import { MessageFactory } from "../factories/MessageFactory";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -31,7 +32,7 @@ export class UserSeeder extends Seeder {
 
     new UserFactory(em)
       .each((user) => {
-        if (cont < 3) {
+        if (cont < 2) {
           cont++;
           new PollFactory(em, user)
             .each(async (poll) => {
@@ -39,9 +40,6 @@ export class UserSeeder extends Seeder {
             })
             .make(2);
         }
-        //   user.pollVotes.set(new PollVoteFactory(em, user).each((pollVote) => {
-        //       pollVote.poll =
-        //   }).make(1));
       })
       .make(50, {
         schedules: faker.helpers.arrayElements(schedules, { min: 5, max: 10 }),

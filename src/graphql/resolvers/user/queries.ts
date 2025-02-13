@@ -411,6 +411,35 @@ const getConversation = async (
   };
 };
 
+const getOneMessagePerConversation = async (
+  root: any,
+  args: any,
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return notLoggedError("Please login");
+  }
+  const messageRepo = em.getRepository(Message);
+  const messages = await messageRepo.find(
+    {
+      $or: [
+        { sender: currentUser.id },
+        { receiver: currentUser.id },
+      ],
+    },
+    {
+      orderBy: { created_at: "DESC" },
+      limit: 1,
+    }
+  );
+  return {
+    success: true,
+    code: "200",
+    message: "Messages found",
+    messages,
+  };
+}
+
 const getTodaySchedulesResume = async (
   _: any,
   args: any,
@@ -640,4 +669,5 @@ export {
   getTodaySchedulesResume,
   getSchedulesRange,
   getSchedulesResumeRange,
+  getOneMessagePerConversation,
 };

@@ -104,7 +104,10 @@ const getPromotions = async (
 
 const getSchedules = async (
   _: any,
-  { scheduleId }: { scheduleId: string },
+  {
+    scheduleId,
+    calculateIsBooked,
+  }: { scheduleId: string; calculateIsBooked: boolean },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   const scheduleRepo = em.getRepository(Schedule);
@@ -125,6 +128,17 @@ const getSchedules = async (
         message: "Schedule not found",
       };
     } else {
+      if (calculateIsBooked) {
+        const isBooked = schedule.users
+          .getItems()
+          .some((user) => user.id === currentUser.id);
+        return {
+          success: true,
+          code: "200",
+          message: "Schedule found",
+          schedule: { ...schedule, isBooked },
+        };
+      }
       return {
         success: true,
         code: "200",
@@ -136,7 +150,6 @@ const getSchedules = async (
   const schedules = await scheduleRepo.findAll({
     populate: ["admin", "users"],
   });
-  console.log(schedules[0].startDate);
   return {
     success: true,
     code: "200",

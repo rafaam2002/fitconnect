@@ -9,7 +9,6 @@ import { PollVote } from "../../../entities/PollVote";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
-import { ScheduleBooked } from "../../../types/schedule";
 
 const allUsers = async (
   root: any,

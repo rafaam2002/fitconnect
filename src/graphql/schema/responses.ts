@@ -71,7 +71,7 @@ type MessageResponse implements BasicResponse{
     success: Boolean!
     message: String!
     sms: Message
-    messages: [Message]
+    conversations: [Conversation]
 }
 
 type PlanResponse implements BasicResponse{
@@ -91,5 +91,11 @@ type SubscriptionResponse implements BasicResponse{
 type IdResponse {
 id: ID!
 }
-`;
 
+type UserResumeResponse {
+    id: ID!
+    nickname: String!
+    profilePicture: String
+    rol: UserRol!
+}
+`;

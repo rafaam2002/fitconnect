@@ -12,7 +12,6 @@ import {
   getSchedulesFromToday,
   getSchedulesRange,
   getSchedulesResumeRange,
-  getOneMessagePerConversation,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -53,7 +52,6 @@ const resolvers = {
     getSchedulesFromToday,
     getSchedulesRange,
     getSchedulesResumeRange,
-    getOneMessagePerConversation,
   },
   Mutation: {
     updateUser,

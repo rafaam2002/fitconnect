@@ -81,8 +81,13 @@ type Message {
     text: String!
     isFixed:Boolean
     fixedDuration: Int
-    sender: IdResponse!
-    receiver: IdResponse!
+    sender: UserResumeResponse!
+    receiver: UserResumeResponse!
+}
+
+type Conversation {
+    otherUserId: ID
+    messages: [Message]
 }
 
 type Plan {

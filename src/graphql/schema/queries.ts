@@ -20,6 +20,5 @@ type Query {
     getSchedulesFromToday: ScheduleResponse!
     getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean): ScheduleResponse!
     getSchedulesResumeRange(startDate: String!, endDate: String!, calculateIsBooked: Boolean): ScheduleResumeResponse!
-    getOneMessagePerConversation: MessageResponse!
 }
 `;

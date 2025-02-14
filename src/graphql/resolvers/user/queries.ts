@@ -367,78 +367,76 @@ const getPolls = async (
 
 const getConversation = async (
   root: any,
-  {
-    otherUserId = process.env.DB_FORUM_ID,
-    page = 0,
-  }: { otherUserId: string; page: number },
+  { otherUserId = null, page = 0 }: { otherUserId: string; page: number },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
     return notLoggedError("Please login");
   }
   const messageRepo = em.getRepository(Message);
+  let filter;
   let forumFields = [];
   if (otherUserId === process.env.DB_FORUM_ID) {
     //forum
     forumFields = ["isFixed", "fixedDuration"]; //this fields are only available in forum
   }
-  const messages = await messageRepo.find(
-    {
-      $or: [
-        { sender: currentUser.id, receiver: otherUserId },
-        { sender: otherUserId, receiver: currentUser.id },
-      ],
-    },
-    {
-      orderBy: { created_at: "ASC" },
-      limit: 50,
-      offset: page,
-      fields: [
-        "id",
-        "sender",
-        "receiver",
-        "text",
-        "created_at",
-        ...forumFields,
-      ], //just mandatory fields to optimize query
+  otherUserId
+    ? (filter = {
+        $or: [
+          { sender: currentUser.id, receiver: otherUserId },
+          { sender: otherUserId, receiver: currentUser.id },
+        ],
+      })
+    : (filter = {
+        $or: [{ sender: currentUser.id }, { receiver: currentUser.id }],
+      });
+
+  const messages = await messageRepo.find(filter, {
+    orderBy: { created_at: "ASC" },
+    limit: 50,
+    offset: page,
+    populate: ["sender", "receiver"],
+    fields: [
+      "id",
+      "sender.id",
+      "sender.profilePicture",
+      "sender.nickname",
+      "sender.rol",
+      "receiver.id",
+      "receiver.profilePicture",
+      "receiver.nickname",
+      "receiver.rol",
+      "text",
+      "created_at",
+      ...forumFields,
+    ], //just mandatory fields to optimize query
+  });
+  const conversationsMap = messages.reduce((acc, message) => {
+    const otherUserId =
+      message.sender.id === currentUser.id
+        ? message.receiver.id
+        : message.sender.id;
+
+    if (!acc[otherUserId]) {
+      acc[otherUserId] = [];
     }
-  );
+
+    acc[otherUserId].push(message);
+    return acc;
+  }, {});
+
+  const conversations = Object.keys(conversationsMap).map((otherUserId) => ({
+    otherUserId,
+    messages: conversationsMap[otherUserId],
+  }));
+
   return {
     success: true,
     code: "200",
     message: "Messages found",
-    messages,
+    conversations,
   };
 };
-
-const getOneMessagePerConversation = async (
-  root: any,
-  args: any,
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  const messageRepo = em.getRepository(Message);
-  const messages = await messageRepo.find(
-    {
-      $or: [
-        { sender: currentUser.id },
-        { receiver: currentUser.id },
-      ],
-    },
-    {
-      orderBy: { created_at: "DESC" },
-      limit: 1,
-    }
-  );
-  return {
-    success: true,
-    code: "200",
-    message: "Messages found",
-    messages,
-  };
-}
 
 const getTodaySchedulesResume = async (
   _: any,
@@ -669,5 +667,4 @@ export {
   getTodaySchedulesResume,
   getSchedulesRange,
   getSchedulesResumeRange,
-  getOneMessagePerConversation,
 };

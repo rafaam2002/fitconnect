@@ -411,24 +411,19 @@ const getConversation = async (
       ...forumFields,
     ], //just mandatory fields to optimize query
   });
+  // Agrupar mensajes por otro usuario
   const conversationsMap = messages.reduce((acc, message) => {
-    const otherUserId =
+    const otherUser =
       message.sender.id === currentUser.id
         ? message.receiver.id
         : message.sender.id;
 
-    if (!acc[otherUserId]) {
-      acc[otherUserId] = [];
-    }
-
-    acc[otherUserId].push(message);
+    (acc[otherUser] ||= []).push(message); // Sintaxis optimizada para evitar chequeos extra
     return acc;
   }, {});
 
-  const conversations = Object.keys(conversationsMap).map((otherUserId) => ({
-    otherUserId,
-    messages: conversationsMap[otherUserId],
-  }));
+  // Convertir a array de arrays
+  const conversations = Object.values(conversationsMap);
 
   return {
     success: true,

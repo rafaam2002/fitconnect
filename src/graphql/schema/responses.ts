@@ -71,7 +71,7 @@ type MessageResponse implements BasicResponse{
     success: Boolean!
     message: String!
     sms: Message
-    conversations: [Conversation]
+    conversations: [[Message]]
 }
 
 type PlanResponse implements BasicResponse{

@@ -21,6 +21,7 @@ export class ScheduleFactory extends Factory<Schedule> {
     
     return {
       title: faker.lorem.words(2),
+      description: faker.datatype.boolean() ? faker.lorem.sentence() : null,
       startDate,
       endDate,
       maxUsers: faker.helpers.rangeToNumber({ min: 5, max: 50 }),

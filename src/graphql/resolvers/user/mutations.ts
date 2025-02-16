@@ -22,6 +22,9 @@ import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
 import { createDateWithTime } from "../../../utils/schedules";
+import { PubSub } from "graphql-subscriptions";
+
+const pubsub = new PubSub();
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y",
@@ -30,8 +33,10 @@ const stripe = new Stripe(
   // }
 );
 
-
 export const exampleMutation = async () => {
+  pubsub.publish("PROBE", {
+    example: "Example mutation"
+  });
   return "Example mutation";
 }
 

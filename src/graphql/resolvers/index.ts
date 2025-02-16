@@ -34,6 +34,9 @@ import {
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
 import { GraphQLScalarType } from "graphql";
+import { Subscription } from "../../entities/Subscription";
+import { subscribe } from "diagnostics_channel";
+import { probe } from "./user/subscriptions";
 
 const resolvers = {
   Query: {
@@ -74,6 +77,9 @@ const resolvers = {
     createScheduleDevelopment,
     addUserToSchedule,
     removeUserFromSchedule,
+  },
+  Subscription: {
+    probe,
   },
 };
 

@@ -3,7 +3,6 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import { typeDefs } from "./graphql/schema/schema";
 import resolvers from "./graphql/resolvers";
 import { initORM } from "./utils/microOrmClient";
-import { createServer } from "http";
 import express from "express";
 import cors from "cors";
 import { expressMiddleware } from "@apollo/server/express4";
@@ -17,12 +16,11 @@ import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
 import cron from "node-cron";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/use/ws";
+
 dotenv.config();
 
-type MyContext = {
-  token?: string;
-};
 
+const schema = makeExecutableSchema({ typeDefs, resolvers });
 // Required logic for integrating with Express
 const app = express();
 // Our httpServer handles incoming requests to our Express app.
@@ -30,26 +28,16 @@ const app = express();
 // enabling our servers to shut down gracefully.
 const httpServer = http.createServer(app);
 
-
-// Creating the WebSocket server
 const wsServer = new WebSocketServer({
-  // This is the `httpServer` we created in a previous step.
   server: httpServer,
-  // Pass a different path here if app.use
-  // serves expressMiddleware at a different path
-  path: '/subscriptions',
+  path: "/subscriptions",
 });
 
-const schema = makeExecutableSchema({ typeDefs, resolvers });
-// ...
-// Hand in the schema we just created and have the
-// WebSocketServer start listening.
-const serverCleanup = useServer({ schema }, wsServer);
-
+const wsServerCleanup = useServer({ schema }, wsServer);
 
 // Same ApolloServer initialization as before, plus the drain plugin
 // for our httpServer.
-const server = new ApolloServer<MyContext>({
+const server = new ApolloServer({
   schema,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
@@ -58,19 +46,23 @@ const server = new ApolloServer<MyContext>({
       async serverWillStart() {
         return {
           async drainServer() {
-            await serverCleanup.dispose();
+            await wsServerCleanup.dispose();
           },
         };
       },
     },
   ],
 });
+
+
+
+
 const startServer = async () => {
   const orm = await initORM();
-  
+
   // Ensure we wait for our server to start
   await server.start();
-  
+
   // Set up our Express middleware to handle CORS, body parsing,
   // and our expressMiddleware function.
   app.use(
@@ -86,10 +78,18 @@ const startServer = async () => {
       },
     })
   );
+
+  
+
   // Modified server startup
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4000 }, resolve)
-  );
+  // await new Promise<void>((resolve) =>
+  //   httpServer.listen({ port: 4000 }, resolve)
+  // );
+  const port = 4000;
+  httpServer.listen(port, () => {
+    console.log(`🚀 Server ready at http://localhost:${port}/`);
+    console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
+  });
 
   await insertShedulesOption(orm.em.fork());
 
@@ -105,6 +105,11 @@ const startServer = async () => {
 };
 
 startServer();
+
+// ...
+// Hand in the schema we just created and have the
+// WebSocketServer start listening.
+// const serverCleanup = useServer({ schema }, wsServer);
 
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
   const SchedulesOptionRepo = em.getRepository(ScheduleOptions);

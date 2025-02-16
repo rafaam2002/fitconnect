@@ -17,6 +17,9 @@ export class Schedule extends BaseEntity {
   @Property()
   title!: string;
 
+  @Property( { nullable: true })
+  description: string;
+
   @Property() //puede haber 2 schedules en la misma hora?
   startDate!: Date;
 
@@ -31,6 +34,8 @@ export class Schedule extends BaseEntity {
 
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
+
+  
 
   @ManyToOne(() => User)
   admin: User;
@@ -53,5 +58,7 @@ export class Schedule extends BaseEntity {
     this.maxUsers = schedule.maxUsers;
     this.state = schedule.state;
     this.admin = schedule.admin;
+    this.title = schedule.title;
+    this.description = schedule.description;
   }
 }

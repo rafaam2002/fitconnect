@@ -4,6 +4,7 @@ import { graphqlInputs } from "./inputs";
 import { graphqlMutations } from "./mutations";
 import { graphqlQueries } from "./queries";
 import { graphqlResponses } from "./responses";
+import { graphqlSubscriptions } from "./subscriptions";
 export const typeDefs = `#graphql
 
 ${graphqlEnums}
@@ -19,14 +20,9 @@ ${graphqlResponses}
 
 ${graphqlInputs}
 
-#type MessagesReceived implements BasicResponse{
-#    code: String!
-#    success: Boolean!
-#    message: String!
-#    messages: [Message]
-#}
-
 ${graphqlQueries}
 
 ${graphqlMutations}
+
+${graphqlSubscriptions}
 `;

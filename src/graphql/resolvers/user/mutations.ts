@@ -21,15 +21,21 @@ import { Subscription } from "../../../entities/Subscription";
 import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
-import { ne, ro, tr } from "@faker-js/faker/.";
 import { createDateWithTime } from "../../../utils/schedules";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y",
-  {
-    apiVersion: "2024-12-18.acacia",
-  }
+  // {
+  //   apiVersion: "2024-12-18.acacia",
+  // }
 );
+
+
+export const exampleMutation = async () => {
+  return "Example mutation";
+}
+
+
 
 export const createUser = async (
   _,
@@ -1139,3 +1145,5 @@ export const addPayment = async (paymentData: any) => {
     throw new Error(`Error al procesar el pago: ${error.message}`);
   }
 };
+
+

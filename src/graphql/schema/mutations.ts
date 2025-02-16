@@ -22,6 +22,7 @@ type Mutation {
     createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
     addUserToSchedule(scheduleId: ID!): ScheduleResponse!
     removeUserFromSchedule(scheduleId: ID!): ScheduleResponse!
+    exampleMutation: String!
 }
 
 `;

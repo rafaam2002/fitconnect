@@ -29,6 +29,7 @@ import {
   createScheduleDevelopment,
   addUserToSchedule,
   removeUserFromSchedule,
+  exampleMutation,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -54,6 +55,7 @@ const resolvers = {
     getSchedulesResumeRange,
   },
   Mutation: {
+    exampleMutation,
     updateUser,
     updatePassword,
     forgotPassword,

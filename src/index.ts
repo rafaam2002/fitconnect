@@ -1,59 +1,67 @@
 import { ApolloServer } from "@apollo/server";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { typeDefs } from "./graphql/schema/schema";
 import resolvers from "./graphql/resolvers";
 import { initORM } from "./utils/microOrmClient";
-import { startStandaloneServer } from "@apollo/server/standalone";
-import {
-  Connection,
-  EntityManager,
-  IDatabaseDriver,
-  MikroORM,
-} from "@mikro-orm/core";
+import { createServer } from "http";
+import express from "express";
+import cors from "cors";
+import { expressMiddleware } from "@apollo/server/express4";
+import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import * as dotenv from "dotenv";
 import { authenticateUser } from "./middlewares/auth";
-import cron from "node-cron";
-import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
-import { PollVote } from "./entities/PollVote";
-import { Poll } from "./entities/Poll";
-import { User } from "./entities/User";
-import { tr } from "@faker-js/faker/.";
-import { UserRol } from "./types/enums";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import http from "http";
 import { ScheduleOptions } from "./entities/ScheduleOptions";
+import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
+import cron from "node-cron";
 dotenv.config();
 
-const server = new ApolloServer({
+type MyContext = {
+  token?: string;
+};
+
+// Required logic for integrating with Express
+const app = express();
+// Our httpServer handles incoming requests to our Express app.
+// Below, we tell Apollo Server to "drain" this httpServer,
+// enabling our servers to shut down gracefully.
+const httpServer = http.createServer(app);
+
+// Same ApolloServer initialization as before, plus the drain plugin
+// for our httpServer.
+const server = new ApolloServer<MyContext>({
   typeDefs,
   resolvers,
-  formatError: (error) => {
-    if (error.message.includes("not initialized")) {
-      return {
-        message: "Some of the data is not available at the moment.",
-      };
-    }
-    return error;
-  },
+  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
-
 const startServer = async () => {
   const orm = await initORM();
-  /*await orm.getMigrator().up();
-  await orm.schema.refreshDatabase();*/
 
-  const { url } = await startStandaloneServer(server, {
-    context: async ({ req }) => {
-      const authorization = req.headers.authorization || "";
-      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
-      const currentUser = await authenticateUser(em, authorization);
-      return { em, currentUser };
-    },
-    listen: { port: 4000 },
-  });
+  // Ensure we wait for our server to start
+  await server.start();
 
-  console.log(`🚀 Servidor listo en ${url}`);
+  // Set up our Express middleware to handle CORS, body parsing,
+  // and our expressMiddleware function.
+  app.use(
+    "/",
+    cors<cors.CorsRequest>(),
+    express.json(),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const authorization = req.headers.authorization || "";
+        const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+        const currentUser = await authenticateUser(em, authorization);
+        return { em, currentUser };
+      },
+    })
+  );
+  // Modified server startup
+  await new Promise<void>((resolve) =>
+    httpServer.listen({ port: 4000 }, resolve)
+  );
 
   await insertShedulesOption(orm.em.fork());
-
-  //await rafasProbes(orm.em.fork());
 
   cron.schedule("0 4 * * 0", () => {
     console.log(
@@ -63,38 +71,10 @@ const startServer = async () => {
     const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
     scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
   });
+  console.log(`🚀 Server ready at http://localhost:4000/`);
 };
 
 startServer();
-
-async function rafasProbes(em: EntityManager<IDatabaseDriver<Connection>>) {
-  const UserRepo = em.getRepository(User);
-
-  const myUser = await UserRepo.findOne({ email: "rafa" });
-
-  const PollVoteRepo = em.getRepository(PollVote);
-  const PollRepo = em.getRepository(Poll);
-  const newPoll = PollRepo.create({
-    title: "¿Te gusta el café?",
-    options: ["Sí", "No"],
-    admin: myUser,
-    endDate: new Date(),
-  });
-  const newPollVote = PollVoteRepo.create({
-    poll: newPoll,
-    user: myUser,
-    optionSelected: 1,
-  });
-
-  try {
-    await em.persistAndFlush([newPoll, newPollVote]);
-    console.log("Voto de la encuesta guardado correctamente");
-    console.log(newPollVote.poll.id, newPollVote.user.id);
-  } catch (e) {
-    console.log("Error al guardar el voto de la encuesta");
-    console.log(e);
-  }
-}
 
 function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
   const SchedulesOptionRepo = em.getRepository(ScheduleOptions);

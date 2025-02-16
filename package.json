@@ -26,6 +26,7 @@
   "dependencies": {
     "@apollo/server": "^4.11.3",
     "@faker-js/faker": "^9.3.0",
+    "@graphql-tools/schema": "^10.0.18",
     "@mikro-orm/cli": "6.4.0",
     "@mikro-orm/core": "6.4.0",
     "@mikro-orm/migrations": "6.4.0",
@@ -36,12 +37,15 @@
     "crypto": "^1.0.1",
     "express": "^4.21.2",
     "graphql": "^16.10.0",
+    "graphql-subscriptions": "^3.0.0",
+    "graphql-ws": "^6.0.4",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
     "node-cron": "^3.0.3",
     "pg": "8.13.1",
     "stripe": "^17.5.0",
-    "uuid": "^11.0.3"
+    "uuid": "^11.0.3",
+    "ws": "^8.18.0"
   },
   "mikro-orm": {
     "configPaths": [

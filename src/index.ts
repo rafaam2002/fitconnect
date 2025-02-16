@@ -15,6 +15,8 @@ import http from "http";
 import { ScheduleOptions } from "./entities/ScheduleOptions";
 import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
 import cron from "node-cron";
+import { WebSocketServer } from "ws";
+import { useServer } from "graphql-ws/use/ws";
 dotenv.config();
 
 type MyContext = {
@@ -28,19 +30,47 @@ const app = express();
 // enabling our servers to shut down gracefully.
 const httpServer = http.createServer(app);
 
+
+// Creating the WebSocket server
+const wsServer = new WebSocketServer({
+  // This is the `httpServer` we created in a previous step.
+  server: httpServer,
+  // Pass a different path here if app.use
+  // serves expressMiddleware at a different path
+  path: '/subscriptions',
+});
+
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+// ...
+// Hand in the schema we just created and have the
+// WebSocketServer start listening.
+const serverCleanup = useServer({ schema }, wsServer);
+
+
 // Same ApolloServer initialization as before, plus the drain plugin
 // for our httpServer.
 const server = new ApolloServer<MyContext>({
-  typeDefs,
-  resolvers,
-  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  schema,
+  plugins: [
+    ApolloServerPluginDrainHttpServer({ httpServer }),
+    // Proper shutdown for the WebSocket server.
+    {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup.dispose();
+          },
+        };
+      },
+    },
+  ],
 });
 const startServer = async () => {
   const orm = await initORM();
-
+  
   // Ensure we wait for our server to start
   await server.start();
-
+  
   // Set up our Express middleware to handle CORS, body parsing,
   // and our expressMiddleware function.
   app.use(

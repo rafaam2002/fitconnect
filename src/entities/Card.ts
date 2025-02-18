@@ -1,7 +1,6 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import {User} from "./User";
 import {BaseEntity} from "./BaseEntity";
-import { C } from '@faker-js/faker/dist/airline-BnpeTvY9';
 import { CreditCardProvider, CreditCardType } from '../types/enums';
 
 @Entity()

@@ -8,7 +8,6 @@ import {
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import {Subscription} from "./Subscription";
-import { P } from "@faker-js/faker/dist/airline-BnpeTvY9";
 import { Currency, PaymentType } from "../types/enums";
 
 @Entity()

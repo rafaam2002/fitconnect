@@ -167,8 +167,8 @@ export const updateUser = async (
     };
   }
 
-  const ussersWithexistingEmail = await userRepo.find({ email });
-  if (ussersWithexistingEmail.length > 1) {
+  const usersWithexistingEmail = await userRepo.find({ email });
+  if (usersWithexistingEmail.length > 1) {
     return {
       success: false,
       code: "400",

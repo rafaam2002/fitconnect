@@ -14,8 +14,8 @@ import http from "http";
 import { ScheduleOptions } from "./entities/ScheduleOptions";
 import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
 import cron from "node-cron";
-import { WebSocketServer } from "ws";
-import { useServer } from "graphql-ws/use/ws";
+// import { WebSocketServer } from "ws";
+// import { useServer } from "graphql-ws/use/ws";
 
 dotenv.config();
 
@@ -28,12 +28,12 @@ const app = express();
 // enabling our servers to shut down gracefully.
 const httpServer = http.createServer(app);
 
-const wsServer = new WebSocketServer({
-  server: httpServer,
-  path: "/subscriptions",
-});
+// const wsServer = new WebSocketServer({
+//   server: httpServer,
+//   path: "/subscriptions",
+// });
 
-const wsServerCleanup = useServer({ schema }, wsServer);
+// const wsServerCleanup = useServer({ schema }, wsServer);
 
 // Same ApolloServer initialization as before, plus the drain plugin
 // for our httpServer.
@@ -42,15 +42,15 @@ const server = new ApolloServer({
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     // Proper shutdown for the WebSocket server.
-    {
-      async serverWillStart() {
-        return {
-          async drainServer() {
-            await wsServerCleanup.dispose();
-          },
-        };
-      },
-    },
+    // {
+    //   async serverWillStart() {
+    //     return {
+    //       async drainServer() {
+    //         await wsServerCleanup.dispose();
+    //       },
+    //     };
+    //   },
+    // },
   ],
 });
 
@@ -79,7 +79,7 @@ const startServer = async () => {
     })
   );
 
-  
+
 
   // Modified server startup
   // await new Promise<void>((resolve) =>

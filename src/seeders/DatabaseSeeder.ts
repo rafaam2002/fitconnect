@@ -8,6 +8,8 @@ import { PromotionSeeder } from "./PromotionSeeder";
 import {ScheduleSeeder} from "./ScheduleSeeder";
 import {PlanSeeder} from "./PlanSeeder";
 import { NotificationSeeder } from "./NotificationSeeder";
+import { Product } from "../entities/Product";
+import { ProductSeeder } from "./ProductSeeder";
 
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -20,6 +22,7 @@ export class DatabaseSeeder extends Seeder {
       PollVoteSeeder,
       PlanSeeder,
       NotificationSeeder,
+      ProductSeeder,
     ]);
   }
 }

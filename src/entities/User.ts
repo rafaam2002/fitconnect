@@ -1,5 +1,10 @@
 import {
-  BeforeCreate,Collection, Entity, ManyToMany, ManyToOne, OneToMany,
+  BeforeCreate,
+  Collection,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
   Property,
   t,
 } from "@mikro-orm/core";
@@ -12,9 +17,9 @@ import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
-import {Plan} from "./Plan";
-import {Card} from "./Card";
-import {Subscription} from "./Subscription";
+import { Plan } from "./Plan";
+import { Card } from "./Card";
+import { Subscription } from "./Subscription";
 
 @Entity()
 export class User extends BaseEntity {
@@ -50,13 +55,14 @@ export class User extends BaseEntity {
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
-    eager: true
+    eager: true,
   })
   schedules = new Collection<Schedule>(this);
 
+
   @ManyToMany(() => Promotion, (promotion) => promotion.users, {
     owner: true,
-    eager: true
+    eager: true,
   })
   promotions = new Collection<Promotion>(this);
 
@@ -84,15 +90,15 @@ export class User extends BaseEntity {
   @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
-  @OneToMany(() => Card, card => card.user)
+  @OneToMany(() => Card, (card) => card.user)
   cards = new Collection<Card>(this);
 
-  @OneToMany(() => Subscription, subscription => subscription.user)
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscriptions = new Collection<Subscription>(this);
 
   constructor(user: User) {
     super();
-    this.name = user.name ;
+    this.name = user.name;
     this.surname = user.surname;
     this.email = user.email;
     this.nickname = user.nickname;

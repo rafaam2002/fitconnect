@@ -14,6 +14,7 @@ type User {
 
 type Schedule {
     id: ID!
+    description: String
     title: String!
     users: [User]
     created_at: String!

@@ -35,8 +35,6 @@ export class Schedule extends BaseEntity {
   @ManyToMany(() => User, (user) => user.schedules)
   users = new Collection<User>(this);
 
-  
-
   @ManyToOne(() => User)
   admin: User;
 

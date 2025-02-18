@@ -10,9 +10,10 @@ import { EntityRepository } from "@mikro-orm/postgresql";
 import { CustomPollRepository } from "./customRepositories/pollRepository";
 import { subscribe } from "diagnostics_channel";
 import { PollVoteSubscriber } from "./subscribers/PollVoteSubscriber";
+import { Product } from "./entities/Product";
 
 export default {
-  entities: [Message, User, Notification, Schedule, ScheduleOptions],
+  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product],
   dbName: process.env.DB_NAME || "fitconnect_db",
   user: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "Pececitos1$",

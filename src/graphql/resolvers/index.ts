@@ -37,6 +37,7 @@ import { GraphQLScalarType } from "graphql";
 import { Subscription } from "../../entities/Subscription";
 import { subscribe } from "diagnostics_channel";
 import { probe } from "./user/subscriptions";
+import { getProducts } from "./product/queries";
 
 const resolvers = {
   Query: {
@@ -56,6 +57,7 @@ const resolvers = {
     getSchedulesFromToday,
     getSchedulesRange,
     getSchedulesResumeRange,
+    getProducts
   },
   Mutation: {
     exampleMutation,

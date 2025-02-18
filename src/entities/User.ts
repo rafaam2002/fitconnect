@@ -3,7 +3,6 @@ import {
   Collection,
   Entity,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   Property,
   t,
@@ -17,7 +16,6 @@ import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
-import { Plan } from "./Plan";
 import { Card } from "./Card";
 import { Subscription } from "./Subscription";
 

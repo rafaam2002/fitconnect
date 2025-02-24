@@ -1,11 +1,11 @@
 export const graphqlEntities = `
 type Article {
     id: ID!
-    created_at: String!
+    publishedAt: String!
     title: String!
     description: String!
     link: String!
-    image: String
+    image: String!
 }
 
 type Product {

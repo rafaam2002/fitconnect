@@ -100,25 +100,8 @@ const startServer = async () => {
   console.log(`🚀 Server ready at http://localhost:4000/`);
   const limit = 3; // max limit for free plan
   const pages = [1, 2, 3, 4];
-  // axios
-  //   .all(pages.map((page) => fetchBoxingNews(limit, page)))
-  //   .then(
-  //     axios.spread((page1Data, page2Data, page3Data, page4Data) => {
-  //       console.log("Página 1:", page1Data);
-  //       console.log("Página 2:", page2Data);
-  //       console.log("Página 3:", page3Data);
-  //       console.log("Página 4:", page4Data);
-  //       // Aquí puedes unir o procesar los datos como necesites.
-  //     })
-  //   )
-  //   .catch((error) => {
-  //     console.error("Error en una de las peticiones", error);
-  //   });
-
-  // const boxingNews = await fetchBoxingNews(limit, page);
-  // console.log("Boxing news", boxingNews);
-
   storeDaylyNews(orm.em.fork(), limit, pages);
+  // storeNews(orm.em.fork(), limit, pages);
 };
 
 startServer();
@@ -184,9 +167,12 @@ async function storeNews(
     for (const response of responses) {
       if (response && response.data) {
         for (const newsItem of response.data) {
+          // console.log(newsItem)
           const article = articleRepo.create({
+            id: newsItem.uuid,
             title: newsItem.title,
             description: newsItem.description,
+            publishedAt: newsItem.published_at,
             link: newsItem.url,
             image: newsItem.image_url,
           });

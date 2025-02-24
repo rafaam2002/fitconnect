@@ -1,8 +1,15 @@
 export const graphqlEntities = `
-type Product {
+type Article {
     id: ID!
     created_at: String!
-    updated_at: String!
+    title: String!
+    description: String!
+    link: String!
+    image: String
+}
+
+type Product {
+    id: ID!
     name: String!
     description: String!
     price: Float!

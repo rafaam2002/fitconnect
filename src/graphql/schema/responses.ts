@@ -5,6 +5,14 @@ interface BasicResponse {
     message: String!
 }
 
+type ArticleResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    article: Article
+    articles: [Article]
+}
+
 type ProductResponse implements BasicResponse {
     code: String!
     success: Boolean!

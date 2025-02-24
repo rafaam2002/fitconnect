@@ -22,5 +22,8 @@ type Query {
     getSchedulesResumeRange(startDate: String!, endDate: String!, calculateIsBooked: Boolean): ScheduleResumeResponse!
     #------------------Product-----------------
     getProducts: ProductResponse!
+    #------------------Article-----------------
+    getArticles(page: Int!): ArticleResponse!
+    
 }
 `;

@@ -21,7 +21,7 @@ export const getProducts = async (
   return {
     success: true,
     code: "200",
-    message: "Schedules found",
+    message: "Products found",
     products,
   };
 };

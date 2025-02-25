@@ -20,12 +20,13 @@ export const getArticles = async (
   const articleRepo = em.getRepository(Article);
 
   const limit = 5;
-  const offset = page * limit;
+  const offset = (page - 1) * limit;
 
   const articles = await articleRepo.findAll({
     limit,
     offset,
   });
+
   return {
     success: true,
     code: "200",

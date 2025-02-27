@@ -2,7 +2,6 @@
   "name": "fitconnect",
   "version": "1.0.0",
   "main": "index.js",
-  
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "tsc -w",
@@ -44,6 +43,7 @@
     "moment": "^2.30.1",
     "node-cron": "^3.0.3",
     "pg": "8.13.1",
+    "react-content-loader": "^7.0.2",
     "stripe": "^17.5.0",
     "uuid": "^11.0.3",
     "ws": "^8.18.0"

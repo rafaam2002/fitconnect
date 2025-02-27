@@ -29,7 +29,7 @@ import {
   createScheduleDevelopment,
   addUserToSchedule,
   removeUserFromSchedule,
-  exampleMutation,
+  exampleMutation, createUser,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -62,6 +62,7 @@ const resolvers = {
   Mutation: {
     exampleMutation,
     updateUser,
+    createUser,
     updatePassword,
     forgotPassword,
     createMessage,

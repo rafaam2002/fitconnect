@@ -27,9 +27,13 @@ const login = async (_, args: any, { em }) => {
     isActive: user.isActive,
     rol: user.rol,
     nickname: user.nickname,
+    token: null,
   };
   const token = await jwt.sign(userForToken, process.env.JWT_SECRET);
+
   if (token) {
+    userForToken.token = token
+
     return {
       success: true,
       code: "200",

@@ -19,6 +19,7 @@ type User {
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRol!
+    token: String
     schedules: [Schedule]
 }
 

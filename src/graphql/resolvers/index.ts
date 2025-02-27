@@ -38,6 +38,7 @@ import { Subscription } from "../../entities/Subscription";
 import { subscribe } from "diagnostics_channel";
 import { probe } from "./user/subscriptions";
 import { getProducts } from "./product/queries";
+import { getArticles } from "./article/queries";
 
 const resolvers = {
   Query: {
@@ -57,7 +58,8 @@ const resolvers = {
     getSchedulesFromToday,
     getSchedulesRange,
     getSchedulesResumeRange,
-    getProducts
+    getProducts,
+    getArticles,
   },
   Mutation: {
     exampleMutation,

@@ -1,10 +1,10 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { UserType } from "../../../types";
-import { Product } from "../../../entities/Product";
+import { Article } from "../../../entities/Article";
 
-export const getProducts = async (
+export const getArticles = async (
   _: any,
-  __: any,
+  { page }: { page: number },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   //   const productRepo = em.getRepository(Product);
@@ -17,11 +17,20 @@ export const getProducts = async (
     };
   }
 
-  const products = await em.findAll(Product, {});
+  const articleRepo = em.getRepository(Article);
+
+  const limit = 5;
+  const offset = (page - 1) * limit;
+
+  const articles = await articleRepo.findAll({
+    limit,
+    offset,
+  });
+
   return {
     success: true,
     code: "200",
-    message: "Products found",
-    products,
+    message: "Articles found",
+    articles,
   };
 };

@@ -14,11 +14,12 @@ import http from "http";
 import { ScheduleOptions } from "./entities/ScheduleOptions";
 import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
 import cron from "node-cron";
+import axios from "axios";
+import { Article } from "./entities/Article";
 // import { WebSocketServer } from "ws";
 // import { useServer } from "graphql-ws/use/ws";
 
 dotenv.config();
-
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 // Required logic for integrating with Express
@@ -54,9 +55,6 @@ const server = new ApolloServer({
   ],
 });
 
-
-
-
 const startServer = async () => {
   const orm = await initORM();
 
@@ -79,8 +77,6 @@ const startServer = async () => {
     })
   );
 
-
-
   // Modified server startup
   // await new Promise<void>((resolve) =>
   //   httpServer.listen({ port: 4000 }, resolve)
@@ -102,6 +98,10 @@ const startServer = async () => {
     scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
   });
   console.log(`🚀 Server ready at http://localhost:4000/`);
+  const limit = 3; // max limit for free plan
+  const pages = [1, 2, 3, 4];
+  storeDaylyNews(orm.em.fork(), limit, pages);
+  // storeNews(orm.em.fork(), limit, pages);
 };
 
 startServer();
@@ -126,4 +126,84 @@ function insertShedulesOption(em: EntityManager<IDatabaseDriver<Connection>>) {
     console.log("Error inserting Schedules Option");
     console.log(e);
   }
+}
+
+async function fetchBoxingNews(limit: number, page: number) {
+  try {
+    const response = await axios.get("https://api.thenewsapi.com/v1/news/all", {
+      params: {
+        api_token: "2Z7NKRiCCOlyW1vRW9051aBRqCC9TtoI3d5zSg2e",
+        categories: "sports",
+        sort: "published_at_desc",
+        language: "es",
+        search: "boxeo",
+        limit,
+        page,
+      },
+    });
+
+    const newsData = response;
+    return newsData.data;
+  } catch (error) {
+    console.error("Error fetching boxing news", error);
+  }
+}
+
+async function storeNews(
+  em: EntityManager<IDatabaseDriver<Connection>>,
+  limit: number,
+  pages: number[]
+) {
+  try {
+    // Realizar todas las peticiones en paralelo
+    const responses = await axios.all(
+      pages.map((page) => fetchBoxingNews(limit, page))
+    );
+
+    // Obtener el repositorio de artículos
+    const articleRepo = em.getRepository(Article);
+
+    // Procesar cada respuesta y almacenar las noticias en la base de datos
+    for (const response of responses) {
+      if (response && response.data) {
+        for (const newsItem of response.data) {
+          // console.log(newsItem)
+          const article = articleRepo.create({
+            id: newsItem.uuid,
+            title: newsItem.title,
+            description: newsItem.description,
+            publishedAt: newsItem.published_at,
+            link: newsItem.url,
+            image: newsItem.image_url,
+          });
+          await em.persistAndFlush(article); // Guardar en la base de datos
+        }
+      }
+    }
+    console.log("Noticias guardadas correctamente.");
+  } catch (error) {
+    console.error("Error al almacenar las noticias:", error);
+  }
+}
+
+async function storeDaylyNews(
+  em: EntityManager<IDatabaseDriver<Connection>>,
+  limit: number,
+  pages: number[]
+) {
+  cron.schedule(
+    "0 0 * * *",
+    async () => {
+      console.log("🚀 Iniciando tarea programada de noticias...");
+      // Aquí debes pasar `em` desde tu contexto de MikroORM
+      await storeNews(em, limit, pages);
+    },
+    {
+      timezone: "Europe/Madrid", // Ajusta según tu zona horaria
+    }
+  );
+
+  console.log(
+    "📅 Tarea programada para ejecutarse todos los días a medianoche."
+  );
 }

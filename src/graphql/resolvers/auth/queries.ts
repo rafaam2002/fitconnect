@@ -2,7 +2,6 @@ import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-
 const login = async (_, args: any, { em }) => {
   const { email, password } = args;
   const user = await em.findOne(User, { email }, { populate: ["password"] });
@@ -27,13 +26,12 @@ const login = async (_, args: any, { em }) => {
     isActive: user.isActive,
     rol: user.rol,
     nickname: user.nickname,
-    token: null,
+    token: "",
   };
   const token = await jwt.sign(userForToken, process.env.JWT_SECRET);
 
   if (token) {
-    userForToken.token = token
-
+    userForToken.token = token;
     return {
       success: true,
       code: "200",
@@ -57,8 +55,8 @@ const login = async (_, args: any, { em }) => {
 
 const loginWithId = async (_, args: any, { em }) => {
   const { id } = args;
-    const user = await em.findOne(User, { id }, { populate: ["password"] });
-    return login(_,{ email: user.email, password: "1111" }, { em });
+  const user = await em.findOne(User, { id }, { populate: ["password"] });
+  return login(_, { email: user.email, password: "1111" }, { em });
 };
 
 export { login, loginWithId };

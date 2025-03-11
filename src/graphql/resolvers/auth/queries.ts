@@ -1,6 +1,8 @@
+import { PhoneModule } from "@faker-js/faker";
 import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { profile } from "console";
 
 const login = async (_, args: any, { em }) => {
   const { email, password } = args;
@@ -26,6 +28,8 @@ const login = async (_, args: any, { em }) => {
     isActive: user.isActive,
     rol: user.rol,
     nickname: user.nickname,
+    phoneNumber: user.phoneNumber,
+    profilePicture: user.profilePicture,
     token: "",
   };
   const token = await jwt.sign(userForToken, process.env.JWT_SECRET);

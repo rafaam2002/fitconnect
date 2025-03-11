@@ -27,6 +27,7 @@ type User {
     isBlocked: Boolean
     rol: UserRol!
     schedules: [Schedule]
+    phoneNumber: String
 }
 
 type Schedule {

@@ -23,11 +23,34 @@ import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
 import { createDateWithTime } from "../../../utils/schedules";
 import { PubSub } from "graphql-subscriptions";
+import z from "zod";
+
+const minErrorMsg = (n: number) => `Mínimo ${n} caracteres`;
+const maxErrorMsg = (n: number) => `Máximo ${n} caracteres`;
+const noSpacesErrorMsg = "No se permiten espacios";
+const emailErrorMsg = "Email inválido";
+const phoneNumberErrorMsg = "Solo se permiten caracteres numéricos";
+
+const updateUserSchema = z.object({
+  nickname: z
+    .string()
+    .min(3, minErrorMsg(3))
+    .max(20, maxErrorMsg(20))
+    .regex(/^\S*$/, noSpacesErrorMsg),
+  email: z.string().email(emailErrorMsg),
+  name: z.string().min(3, minErrorMsg(3)).max(20, maxErrorMsg(20)),
+  surname: z.string().min(3, minErrorMsg(3)).max(20, maxErrorMsg(20)),
+  phoneNumber: z
+    .string()
+    .min(9, minErrorMsg(9))
+    .max(9, maxErrorMsg(9))
+    .regex(/^\d+$/, phoneNumberErrorMsg), // Solo permite caracteres numéricos
+});
 
 const pubsub = new PubSub();
 
 const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y",
+  process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
   // {
   //   apiVersion: "2024-12-18.acacia",
   // }
@@ -35,12 +58,10 @@ const stripe = new Stripe(
 
 export const exampleMutation = async () => {
   pubsub.publish("PROBE", {
-    example: "Example mutation"
+    example: "Example mutation",
   });
   return "Example mutation";
-}
-
-
+};
 
 export const createUser = async (
   _,
@@ -158,11 +179,14 @@ export const updateUser = async (
     };
   }
 
-  if (!email || !name || !surname) {
+  try {
+    // Validar los datos de entrada
+    updateUserSchema.parse(user);
+  } catch (error) {
     return {
       success: false,
       code: "400",
-      message: "Please provide all required fields",
+      message: "Validation error",
       user: null,
     };
   }
@@ -1150,5 +1174,3 @@ export const addPayment = async (paymentData: any) => {
     throw new Error(`Error al procesar el pago: ${error.message}`);
   }
 };
-
-

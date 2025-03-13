@@ -11,6 +11,7 @@ type ArticleResponse implements BasicResponse {
     message: String!
     article: Article
     articles: [Article]
+    hasMore: Boolean
 }
 
 type ProductResponse implements BasicResponse {
@@ -113,5 +114,12 @@ type UserResumeResponse {
     nickname: String!
     profilePicture: String
     rol: UserRol!
+}
+
+type AdminStatsResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    stats: AdminStats
 }
 `;

@@ -26,6 +26,7 @@ type User {
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRol!
+    token: String
     schedules: [Schedule]
     phoneNumber: String
 }
@@ -168,5 +169,22 @@ type Transaction {
     transactionDate: String!
     description: String!
     authCode: String!
+}
+
+type UserStats {
+    totalusers: Int!
+    activeusers: Int!
+    blockedusers: Int!
+    inactiveusers: Int!
+}
+
+type AdminStats {
+    users: UserStats!
+    schedules: Int!
+    polls: Int!
+    plans: Int!
+    subscriptions: Int!
+    transactions: Int!
+    notifications: Int!
 }
 `;

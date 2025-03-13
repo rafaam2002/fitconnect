@@ -1,3 +1,5 @@
+import {UserRol} from "./enums";
+
 export type UserType = {
     id: string;
     username: string;
@@ -5,7 +7,7 @@ export type UserType = {
     created_at: Date;
     updated_at: Date;
     deleted_at: Date;
-    rol: string;
+    rol: UserRol;
     isActive: boolean;
     isBlocked: boolean;
     profilePicture: string;

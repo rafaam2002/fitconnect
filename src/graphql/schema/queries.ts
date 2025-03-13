@@ -23,7 +23,9 @@ type Query {
     #------------------Product-----------------
     getProducts: ProductResponse!
     #------------------Article-----------------
-    getArticles(page: Int!): ArticleResponse!
+    getArticles(limit: Int!, offset: Int!): ArticleResponse!
+    #------------------Admin-----------------
+    getAdminStats: AdminStatsResponse!
     
 }
 `;

@@ -33,6 +33,7 @@ const login = async (_, args: any, { em }) => {
     token: "",
   };
   const token = await jwt.sign(userForToken, process.env.JWT_SECRET);
+
   if (token) {
     userForToken.token = token;
     return {

@@ -11,7 +11,7 @@ import {
   getTodaySchedulesResume,
   getSchedulesFromToday,
   getSchedulesRange,
-  getSchedulesResumeRange,
+  getSchedulesResumeRange, getAdminStats,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -33,7 +33,7 @@ import {
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
-import { probe } from "./user/subscriptions";
+import {newMessage} from "./user/subscriptions";
 import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 
@@ -57,10 +57,13 @@ const resolvers = {
     getSchedulesResumeRange,
     getProducts,
     getArticles,
+    getAdminStats
+    ,
   },
   Mutation: {
     exampleMutation,
     updateUser,
+    createUser,
     updatePassword,
     forgotPassword,
     createMessage,
@@ -80,7 +83,7 @@ const resolvers = {
     removeUserFromSchedule,
   },
   Subscription: {
-    probe,
+    newMessage,
   },
 };
 

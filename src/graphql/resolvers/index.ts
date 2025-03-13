@@ -33,9 +33,6 @@ import {
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
-import { GraphQLScalarType } from "graphql";
-import { Subscription } from "../../entities/Subscription";
-import { subscribe } from "diagnostics_channel";
 import { probe } from "./user/subscriptions";
 import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";

@@ -195,7 +195,6 @@ async function storeDaylyNews(
     "0 0 * * *",
     async () => {
       console.log("🚀 Iniciando tarea programada de noticias...");
-      // Aquí debes pasar `em` desde tu contexto de MikroORM
       await storeNews(em, limit, pages);
     },
     {

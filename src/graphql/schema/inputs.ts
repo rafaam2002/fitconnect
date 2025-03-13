@@ -24,9 +24,10 @@ input CreatePollVoteInput {
     option: Int!
 }
 
-input CreatePasswordInput {
+input UpdatePasswordInput {
     currentPassword: String!,
-    newPassword: String!
+    newPassword: String!,
+    confirmPassword: String!
 }
 
 input CreateScheduleProgrammedInput {

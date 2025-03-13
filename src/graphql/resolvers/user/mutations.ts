@@ -24,28 +24,17 @@ import { Transaction } from "../../../entities/Transaction";
 import { createDateWithTime } from "../../../utils/schedules";
 import { PubSub } from "graphql-subscriptions";
 import z from "zod";
+import { updateUserSchema } from "../../../validation/schemas";
 
-const minErrorMsg = (n: number) => `Mínimo ${n} caracteres`;
-const maxErrorMsg = (n: number) => `Máximo ${n} caracteres`;
-const noSpacesErrorMsg = "No se permiten espacios";
-const emailErrorMsg = "Email inválido";
-const phoneNumberErrorMsg = "Solo se permiten caracteres numéricos";
-
-const updateUserSchema = z.object({
-  nickname: z
-    .string()
-    .min(3, minErrorMsg(3))
-    .max(20, maxErrorMsg(20))
-    .regex(/^\S*$/, noSpacesErrorMsg),
-  email: z.string().email(emailErrorMsg),
-  name: z.string().min(3, minErrorMsg(3)).max(20, maxErrorMsg(20)),
-  surname: z.string().min(3, minErrorMsg(3)).max(20, maxErrorMsg(20)),
-  phoneNumber: z
-    .string()
-    .min(9, minErrorMsg(9))
-    .max(9, maxErrorMsg(9))
-    .regex(/^\d+$/, phoneNumberErrorMsg), // Solo permite caracteres numéricos
-});
+// const ChangePasswordSchema = z
+//   .object({
+//     currentPassword: z.string().min(6, messages.minErrorMsg(6)),
+//     newPassword: z.string().min(6, messages.minErrorMsg(6)),
+//     confirmPassword: z.string().min(6, messages.minErrorMsg(6)),
+//   })
+//   .refine((data) => data.newPassword === data.confirmPassword, {
+//     message: messages.passwordDontMatchErrorMsg,
+//   });
 
 const pubsub = new PubSub();
 
@@ -179,10 +168,22 @@ export const updateUser = async (
     };
   }
 
+  user.name = name;
+  user.email = email;
+  user.surname = surname;
+  user.nickname = nickname;
+  user.phoneNumber = phoneNumber || user.phoneNumber;
+  user.profilePicture = profilePicture || user.profilePicture;
+  user.isActive = isActive || user.isActive;
+  user.isBlocked = isBlocked || user.isBlocked;
+  user.rol = rol || user.rol;
+
   try {
     // Validar los datos de entrada
     updateUserSchema.parse(user);
   } catch (error) {
+    console.error(error);
+    console.log(user);
     return {
       success: false,
       code: "400",
@@ -209,15 +210,6 @@ export const updateUser = async (
       message: "Nickname already exists",
     };
   }
-  user.name = name;
-  user.email = email;
-  user.surname = surname;
-  user.nickname = nickname;
-  user.phoneNumber = phoneNumber || user.phoneNumber;
-  user.profilePicture = profilePicture || user.profilePicture;
-  user.isActive = isActive || user.isActive;
-  user.isBlocked = isBlocked || user.isBlocked;
-  user.rol = rol || user.rol;
 
   try {
     await em.persistAndFlush(user);
@@ -237,73 +229,80 @@ export const updateUser = async (
   }
 };
 
-export const resetPassword = async (
-  _: any,
-  args: any,
-  { em, currentUser }: { em: EntityManager; currentUser: any }
-) => {
-  const { id, password } = args.input;
-  if (!currentUser) {
-    return {
-      success: false,
-      code: "400",
-      message: "Please login",
-      user: null,
-    };
-  }
-  if (currentUser.role !== "ADMIN") {
-    return {
-      success: false,
-      code: "400",
-      message: "You are not authorized to perform this action",
-      user: null,
-    };
-  }
+// export const changePassword = async (
+//   _: any,
+//   {
+//     currentPassword,
+//     newPassword,
+//     confirmPassword,
+//   }: { currentPassword: string; newPassword: string; confirmPassword: string },
+//   { em, currentUser }: { em: EntityManager; currentUser: any }
+// ) => {
+//   if (!currentUser) {
+//     return {
+//       success: false,
+//       code: "400",
+//       message: "Please login",
+//       user: null,
+//     };
+//   }
+//   // if (currentUser.role !== "ADMIN") {
+//   //   return {
+//   //     success: false,
+//   //     code: "400",
+//   //     message: "You are not authorized to perform this action",
+//   //     user: null,
+//   //   };
+//   // }
 
-  if (!password || !id) {
-    return {
-      success: false,
-      code: "400",
-      message: "Invalid input",
-      user: null,
-    };
-  }
+//   const user = await em.findOne(User, { id: currentUser.id });
 
-  const user = await em.findOne(User, { id });
+//   try {
+//     ChangePasswordSchema.parse({
+//       currentPassword,
+//       newPassword,
+//       confirmPassword,
+//     });
+//   } catch (error) {
+//     return {
+//       success: false,
+//       code: "400",
+//       message: "Validation error",
+//       user: null,
+//     };
+//   }
 
-  if (!user) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not found",
-      user: null,
-    };
-  }
+//   if (!user) {
+//     return {
+//       success: false,
+//       code: "400",
+//       message: "User not found",
+//       user: null,
+//     };
+//   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+//   const passwordHash = await bcrypt.hash(newPassword, 10);
 
-  Object.assign(user, {
-    password: passwordHash,
-  });
+//   // user.password = passwordHash;
 
-  await em.flush();
+//   // await em.flush();
 
-  /* if (!updatedUser) {
-         return {
-           success: false,
-           code: '400',
-           message: 'User not updated',
-           user: null
-         }
-       }*/
+//   /* if (!updatedUser) {
+//          return {
+//            success: false,
+//            code: '400',
+//            message: 'User not updated',
+//            user: null
+//          }
+//        }*/
 
-  return {
-    success: true,
-    code: "200",
-    message: "User updated successfully",
-    user: user,
-  };
-};
+//   return {
+//     success: true,
+//     code: "200",
+//     message: "User updated successfully",
+//     user: user,
+//   };
+// };
 
 export const removeUser = async (
   parent,

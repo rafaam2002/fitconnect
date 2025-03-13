@@ -4,7 +4,7 @@ type Mutation {
     createUser( user: CreateUserInput!): LoginResponse!
     updateUser ( user: UpdateUserInput!): UserResponse!
     forgotPassword(email: String!): String!
-    updatePassword(password: CreatePasswordInput!): UserResponse!
+    updatePassword(password: UpdatePasswordInput!): UserResponse!
     createMessage(message: CreateMessageInput!): MessageResponse!
     fixMessage(messageId: ID!, fixedDuration: Int!): MessageResponse!
     unfixMessage(messageId: ID!): MessageResponse!

@@ -2,6 +2,7 @@ import { EntityManager } from "@mikro-orm/core";
 import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { ChangePasswordSchema } from "../../../validation/schemas";
 
 const forgotPassword = async (_, { email }, { em }: { em: EntityManager }) => {
   const user = await em.findOne(User, { email });
@@ -33,11 +34,12 @@ const forgotPassword = async (_, { email }, { em }: { em: EntityManager }) => {
 const updatePassword = async (
   _,
   {
-    password: { currentPassword, newPassword },
+    password: { currentPassword, newPassword, confirmPassword },
   }: {
     password: {
       currentPassword: string;
       newPassword: string;
+      confirmPassword: string;
     };
   },
   { currentUser, em }
@@ -51,6 +53,22 @@ const updatePassword = async (
       token: null,
     };
   }
+
+  try {
+    ChangePasswordSchema.parse({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      code: "400",
+      message: "Validation error",
+      user: null,
+    };
+  }
+
   const user = await em.findOne(
     User,
     { id: currentUser.id },

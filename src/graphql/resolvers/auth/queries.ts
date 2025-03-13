@@ -59,7 +59,11 @@ const login = async (_, args: any, { em }) => {
 const loginWithId = async (_, args: any, { em }) => {
   const { id } = args;
   const user = await em.findOne(User, { id }, { populate: ["password"] });
-  return login(_, { email: user.email, password: "1111" }, { em });
+  return login(
+    _,
+    { email: user.email, password: process.env.DEFAULT_PASSWORD || "123456" },
+    { em }
+  );
 };
 
 export { login, loginWithId };

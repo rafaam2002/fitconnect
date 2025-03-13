@@ -13,7 +13,7 @@ export class UserFactory extends Factory<User> {
     return {
       name: faker.person.firstName(),
       surname: faker.person.lastName(),
-      password: "1111",
+      password: process.env.DEFAULT_PASSWORD || "123456",
       email: faker.internet.email(),
       phoneNumber: faker.phone.number(),
       profilePicture: faker.datatype.boolean() ? faker.image.avatar() : null,

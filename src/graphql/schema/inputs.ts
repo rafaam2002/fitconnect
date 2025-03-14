@@ -9,6 +9,16 @@ input UpdateUserInput {
     rol: UserRol
 }
 
+input UserFilterInput {
+    name: String,
+    surname: String,
+    email: String,
+    phoneNumber: String,
+    nickname: String,
+    rol: UserRol
+    isActive: Boolean
+}
+
 input CreateUserInput {
     name: String!
     surname: String!

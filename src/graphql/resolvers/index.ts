@@ -1,6 +1,6 @@
 import {
   me,
-  allUsers,
+  getUsers,
   findUser,
   getSchedules,
   getPolls,
@@ -11,7 +11,8 @@ import {
   getTodaySchedulesResume,
   getSchedulesFromToday,
   getSchedulesRange,
-  getSchedulesResumeRange, getAdminStats,
+  getSchedulesResumeRange,
+  getAdminStats,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -30,10 +31,11 @@ import {
   addUserToSchedule,
   removeUserFromSchedule,
   exampleMutation,
+  createUser,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
-import {newMessage} from "./user/subscriptions";
+import { newMessage } from "./user/subscriptions";
 import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 
@@ -41,7 +43,7 @@ const resolvers = {
   Query: {
     login,
     loginWithId,
-    allUsers,
+    getUsers,
     me,
     findUser,
     getSchedules,
@@ -57,8 +59,7 @@ const resolvers = {
     getSchedulesResumeRange,
     getProducts,
     getArticles,
-    getAdminStats
-    ,
+    getAdminStats,
   },
   Mutation: {
     exampleMutation,

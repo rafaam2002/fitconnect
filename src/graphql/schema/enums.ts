@@ -63,4 +63,9 @@ enum TransactionStatus {
     PENDING
     REFUND
 }
+
+enum LogicalOperator {
+  and
+  or
+}
 `;

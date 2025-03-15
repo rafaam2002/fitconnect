@@ -14,9 +14,11 @@ import { UserFilter } from "../../../types/user";
 export const getUsers = async (
   root: any,
   {
-    filter,
+    filters,
+    and_or,
   }: {
-    filter: UserFilter;
+      filters: UserFilter[];
+      and_or: 'and' | 'or';
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -25,11 +27,9 @@ export const getUsers = async (
   }
 
   const userRepo = em.getRepository(User);
-  if (filter) {
+  if (filters) {
       const users = await userRepo.find({
-          $or: [
-            filter
-        ]
+          [`$${and_or}`]: filters
     });
     return {
       success: true,

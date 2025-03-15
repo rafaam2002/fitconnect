@@ -4,7 +4,6 @@ import { UserFactory } from "../factories/UserFactory";
 import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { User } from "../entities/User";
 import { UserRol } from "../types/enums";
-import { allUsers } from "../graphql/resolvers/user/queries";
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

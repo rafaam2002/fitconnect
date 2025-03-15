@@ -4,7 +4,7 @@ type Query {
     login(email: String!, password: String!): LoginResponse!
     loginWithId(id: ID!): LoginResponse!
     # ----------------- User -----------------
-    getUsers(filter: UserFilterInput): UserResponse!
+    getUsers(filters: [UserFilterInput], and_or: LogicalOperator!): UserResponse!
     me: UserResponse!,
     findUser(id: ID!): UserResponse!
     #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)

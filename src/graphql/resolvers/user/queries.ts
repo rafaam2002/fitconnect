@@ -17,8 +17,8 @@ export const getUsers = async (
     filters,
     and_or,
   }: {
-      filters: UserFilter[];
-      and_or: 'and' | 'or';
+    filters: UserFilter[];
+    and_or: "and" | "or";
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -28,8 +28,8 @@ export const getUsers = async (
 
   const userRepo = em.getRepository(User);
   if (filters) {
-      const users = await userRepo.find({
-          [`$${and_or}`]: filters
+    const users = await userRepo.find({
+      [`$${and_or}`]: filters,
     });
     return {
       success: true,
@@ -401,7 +401,7 @@ export const getConversation = async (
   const messageRepo = em.getRepository(Message);
   let filter;
   let forumFields = [];
-  if (otherUserId === process.env.DB_FORUM_ID) {
+  if (!otherUserId) {
     //forum
     forumFields = ["isFixed", "fixedDuration"]; //this fields are only available in forum
   }
@@ -413,7 +413,9 @@ export const getConversation = async (
         ],
       })
     : (filter = {
-        $or: [{ sender: currentUser.id }, { receiver: currentUser.id }],
+        receiver: {
+          nickname: "forum",
+        },
       });
 
   const messages = await messageRepo.find(filter, {

@@ -1,6 +1,5 @@
 import { EntityManager } from "@mikro-orm/core";
 import { User } from "../../../entities/User";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import { UserType } from "../../../types";
@@ -23,20 +22,9 @@ import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
 import { createDateWithTime } from "../../../utils/schedules";
 import { PubSub } from "graphql-subscriptions";
-import z from "zod";
 import { updateUserSchema } from "../../../validation/schemas";
+import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
 
-// const ChangePasswordSchema = z
-//   .object({
-//     currentPassword: z.string().min(6, messages.minErrorMsg(6)),
-//     newPassword: z.string().min(6, messages.minErrorMsg(6)),
-//     confirmPassword: z.string().min(6, messages.minErrorMsg(6)),
-//   })
-//   .refine((data) => data.newPassword === data.confirmPassword, {
-//     message: messages.passwordDontMatchErrorMsg,
-//   });
-
-const pubsub = new PubSub();
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -45,12 +33,6 @@ const stripe = new Stripe(
   // }
 );
 
-export const exampleMutation = async () => {
-  pubsub.publish("PROBE", {
-    example: "Example mutation",
-  });
-  return "Example mutation";
-};
 
 export const createUser = async (
   _,
@@ -229,81 +211,6 @@ export const updateUser = async (
   }
 };
 
-// export const changePassword = async (
-//   _: any,
-//   {
-//     currentPassword,
-//     newPassword,
-//     confirmPassword,
-//   }: { currentPassword: string; newPassword: string; confirmPassword: string },
-//   { em, currentUser }: { em: EntityManager; currentUser: any }
-// ) => {
-//   if (!currentUser) {
-//     return {
-//       success: false,
-//       code: "400",
-//       message: "Please login",
-//       user: null,
-//     };
-//   }
-//   // if (currentUser.role !== "ADMIN") {
-//   //   return {
-//   //     success: false,
-//   //     code: "400",
-//   //     message: "You are not authorized to perform this action",
-//   //     user: null,
-//   //   };
-//   // }
-
-//   const user = await em.findOne(User, { id: currentUser.id });
-
-//   try {
-//     ChangePasswordSchema.parse({
-//       currentPassword,
-//       newPassword,
-//       confirmPassword,
-//     });
-//   } catch (error) {
-//     return {
-//       success: false,
-//       code: "400",
-//       message: "Validation error",
-//       user: null,
-//     };
-//   }
-
-//   if (!user) {
-//     return {
-//       success: false,
-//       code: "400",
-//       message: "User not found",
-//       user: null,
-//     };
-//   }
-
-//   const passwordHash = await bcrypt.hash(newPassword, 10);
-
-//   // user.password = passwordHash;
-
-//   // await em.flush();
-
-//   /* if (!updatedUser) {
-//          return {
-//            success: false,
-//            code: '400',
-//            message: 'User not updated',
-//            user: null
-//          }
-//        }*/
-
-//   return {
-//     success: true,
-//     code: "200",
-//     message: "User updated successfully",
-//     user: user,
-//   };
-// };
-
 export const removeUser = async (
   parent,
   args,
@@ -347,7 +254,6 @@ export const createMessage = async (
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  if (isFixed === null) isFixed = false;
   if (!currentUser) return notLoggedError("Please login");
   if (isFixed && currentUser.rol === UserRol.STANDARD)
     return notAuthError("You are not authorized to fix a message");
@@ -361,10 +267,11 @@ export const createMessage = async (
       text,
       receiver,
       sender,
-      isFixed,
+      isFixed : !!isFixed,
       fixedDuration,
     });
     await em.persistAndFlush(newMessage);
+     myPubsub.publish(MESSAGE_EVENT, { newMessage });
     return {
       success: true,
       code: "200",

@@ -1,13 +1,15 @@
-import { PubSub } from "graphql-subscriptions";
-
-const MESSAGE_EVENT = "NEW_MESSAGE";
-const pubsub = new PubSub();
+import { PubSub, withFilter } from "graphql-subscriptions";
+import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
 
 export const newMessage = {
-  subscribe: () => pubsub.asyncIterableIterator([MESSAGE_EVENT]) as AsyncIterableIterator<{ newMessage: string }>,
+  subscribe: withFilter(
+    () => myPubsub.asyncIterableIterator(MESSAGE_EVENT),
+    (payload, variables, context) => {
+      const { currentUser } = context;
+      // Suponiendo que payload.newMessage contiene sender y receiver con sus respectivos ids.
+      return (
+        payload.newMessage.receiver.id === currentUser.id 
+      );
+    }
+  ),
 };
-
-
-setInterval(() => {
-  pubsub.publish("NEW_MESSAGE", { newMessage: "Nuevo mensaje recibido!" });
-}, 2000);

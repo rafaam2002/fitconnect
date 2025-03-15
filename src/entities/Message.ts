@@ -27,7 +27,7 @@ export class Message extends BaseEntity {
 
   // Relación ManyToOne con User (receiver)
   @ManyToOne(() => User)
-  receiver!: User;
+  receiver!: User | { id: "0" };
 
   @BeforeCreate()
   @BeforeUpdate()

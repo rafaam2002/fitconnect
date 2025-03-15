@@ -30,7 +30,6 @@ import {
   createScheduleDevelopment,
   addUserToSchedule,
   removeUserFromSchedule,
-  exampleMutation,
   createUser,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
@@ -62,7 +61,6 @@ const resolvers = {
     getAdminStats,
   },
   Mutation: {
-    exampleMutation,
     updateUser,
     createUser,
     updatePassword,

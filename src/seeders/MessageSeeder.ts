@@ -10,12 +10,14 @@ import { MessageFactory } from "../factories/MessageFactory";
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const userRepo = em.getRepository(User);
-    const users = await userRepo.findAll();
-    try {
-      new MessageFactory(em, users).make(50);
-    } catch (error) {
-      console.error("Error seeding messages");
-      console.error(error.message);
-    }
+    const myUser = userRepo.findOne({ nickname: "rafa" });
+
+    const forumMessage = em.create(Message, {
+      text: "Welcome to the forum!",
+      isFixed: true,
+      sender: myUser,
+      receiver: { id: "0" },
+    });
+    await em.persistAndFlush(forumMessage);
   }
 }

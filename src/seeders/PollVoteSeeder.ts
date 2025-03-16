@@ -1,10 +1,5 @@
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
-import { UserFactory } from "../factories/UserFactory";
-import { PollVoteFactory } from "../factories/PollVoteFactory";
-import { User } from "../entities/User";
-import { UserRol } from "../types/enums";
-import { Poll } from "../entities/Poll";
 
 export class PollVoteSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

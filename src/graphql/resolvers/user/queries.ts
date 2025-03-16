@@ -10,6 +10,7 @@ import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
 import { UserFilter } from "../../../types/user";
+import { FORUM } from "../../../constants/forum";
 
 export const getUsers = async (
   root: any,
@@ -413,9 +414,11 @@ export const getConversation = async (
         ],
       })
     : (filter = {
-        receiver: {
-          nickname: "forum",
-        },
+        $or: [
+          { sender: currentUser.id },
+          { receiver: currentUser.id },
+          { receiver: FORUM.id },
+        ],
       });
 
   const messages = await messageRepo.find(filter, {
@@ -441,7 +444,9 @@ export const getConversation = async (
   // Agrupar mensajes por otro usuario
   const conversationsMap = messages.reduce((acc, message) => {
     const otherUser =
-      message.sender.id === currentUser.id
+      message.receiver.id === FORUM.id
+        ? FORUM.id
+        : message.sender.id === currentUser.id
         ? message.receiver.id
         : message.sender.id;
 

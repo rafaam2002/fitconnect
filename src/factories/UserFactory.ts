@@ -3,6 +3,7 @@ import { faker } from "@faker-js/faker";
 import { User } from "../entities/User";
 import { UserRol } from "../types/enums";
 import { Schedule } from "../entities/Schedule";
+import { array } from "zod";
 
 export class UserFactory extends Factory<User> {
   model = User;
@@ -20,7 +21,11 @@ export class UserFactory extends Factory<User> {
       nickname: faker.internet.username(),
       isActive: faker.datatype.boolean(),
       isBlocked: faker.datatype.boolean(),
-      rol: faker.helpers.arrayElement(Object.values(UserRol)),
+      rol: faker.helpers.weightedArrayElement([
+        { value: UserRol.BOSS, weight: 0.1 },
+        { value: UserRol.COACH, weight: 0.1 },
+        { value: UserRol.STANDARD, weight: 0.8},
+      ]),
       created_at: new Date(),
     };
   }

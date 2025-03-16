@@ -10,7 +10,8 @@ export const newMessage = {
       // Suponiendo que payload.newMessage contiene sender y receiver con sus respectivos ids.
       return (
         payload.newMessage.receiver.id === currentUser.id ||
-        payload.newMessage.receiver.id === FORUM.id
+        (payload.newMessage.receiver.id === FORUM.id &&
+          payload.newMessage.sender.id !== currentUser.id)
       );
     }
   ),

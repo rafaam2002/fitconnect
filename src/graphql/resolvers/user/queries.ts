@@ -17,9 +17,11 @@ export const getUsers = async (
   {
     filters,
     and_or,
+    page = 0,
   }: {
     filters: UserFilter[];
     and_or: "and" | "or";
+    page: number;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -27,11 +29,20 @@ export const getUsers = async (
     return notLoggedError("Please login");
   }
 
+  const pagination = {
+    limit: 50,
+    offset: page * 50,
+  };
+  
+
   const userRepo = em.getRepository(User);
   if (filters) {
-    const users = await userRepo.find({
-      [`$${and_or}`]: filters,
-    });
+    const users = await userRepo.find(
+      {
+        [`$${and_or}`]: filters,
+      },
+      pagination
+    );
     return {
       success: true,
       code: "200",
@@ -39,7 +50,7 @@ export const getUsers = async (
       users: users,
     };
   } else if (currentUser.rol === UserRol.BOSS) {
-    const users = await userRepo.findAll();
+    const users = await userRepo.findAll(pagination);
     return {
       success: true,
       code: "200",
@@ -424,7 +435,7 @@ export const getConversation = async (
   const messages = await messageRepo.find(filter, {
     orderBy: { created_at: "ASC" },
     limit: 50,
-    offset: page,
+    offset: page * 50,
     populate: ["sender", "receiver"],
     fields: [
       "id",

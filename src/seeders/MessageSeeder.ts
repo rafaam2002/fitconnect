@@ -33,6 +33,7 @@ export class MessageSeeder extends Seeder {
     await em.persistAndFlush(forumMessage);
 
     const forum = await em.findOne(User, { nickname: "forum" });
+    FORUM.id = forum.id;
     console.log(forum.id);
   }
 }

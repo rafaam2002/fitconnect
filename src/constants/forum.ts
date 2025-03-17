@@ -1,3 +1,3 @@
 export const FORUM = {
-  id: "a44f9063-5680-40c1-9ebe-1a337870f6e1",
+  id: "e80507e3-5c80-41e7-bfc3-c4138b3d7f65",
 };

@@ -20,11 +20,14 @@ import { Subscription } from "../../../entities/Subscription";
 import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
-import { createDateWithTime } from "../../../utils/schedules";
+import {
+  createDateWithTime,
+  createScheduleProgrammed,
+} from "../../../utils/schedules";
 import { PubSub } from "graphql-subscriptions";
 import { updateUserSchema } from "../../../validation/schemas";
 import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
-
+import moment from "moment";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -32,7 +35,6 @@ const stripe = new Stripe(
   //   apiVersion: "2024-12-18.acacia",
   // }
 );
-
 
 export const createUser = async (
   _,
@@ -267,11 +269,11 @@ export const createMessage = async (
       text,
       receiver,
       sender,
-      isFixed : !!isFixed,
+      isFixed: !!isFixed,
       fixedDuration,
     });
     await em.persistAndFlush(newMessage);
-     myPubsub.publish(MESSAGE_EVENT, { newMessage });
+    myPubsub.publish(MESSAGE_EVENT, { newMessage });
     return {
       success: true,
       code: "200",
@@ -291,23 +293,19 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    schedule: { title, startDate, endDate, maxUsers, state },
+    schedule: { title, description, startDate, endDate, maxUsers, repeatDays },
   }: {
     schedule: {
       title: string;
+      description: string;
       startDate: string;
       endDate: string;
       maxUsers: number;
-      state: ScheduleState;
-      isProgrammed: boolean;
+      repeatDays: number[];
     };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  if (state === null) state = ScheduleState.AVAILABLE;
-  let newStartDate = new Date(startDate);
-  let newEndDate = new Date(endDate);
-
   if (!currentUser) {
     return {
       success: false,
@@ -322,31 +320,50 @@ export const createSchedule = async (
       message: "You are not authorized to perform this action",
     };
   }
+
   const userRepo = em.getRepository(User);
   const admin = await userRepo.findOne({ id: currentUser.id });
-
-  const newSchedule = em.create(Schedule, {
-    title,
-    startDate: newStartDate,
-    endDate: newEndDate,
-    maxUsers,
-    state,
-    admin,
-  });
-  await em.persistAndFlush(newSchedule);
-  try {
-    return {
-      success: true,
-      code: "200",
-      message: "Schedule created successfully",
-      schedule: newSchedule,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      code: "400",
-      message: "Error creating schedule",
-    };
+  
+  if (repeatDays.length > 0) {
+    const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
+    const endHour = moment(endDate).subtract(1, "hours").format("HH:mm");
+     return createScheduleProgrammed(
+      {
+        daysOfWeek: repeatDays,
+        title,
+        description,
+        startHour,
+        endHour,
+        maxUsers,
+        admin,
+      },
+      { em, currentUser }
+    );
+  } else {
+    const newSchedule = em.create(Schedule, {
+      title,
+      description,
+      startDate,
+      endDate,
+      maxUsers,
+      state: ScheduleState.AVAILABLE,
+      admin,
+    });
+    await em.persistAndFlush(newSchedule);
+    try {
+      return {
+        success: true,
+        code: "200",
+        message: "Schedule created successfully",
+        schedule: newSchedule,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        code: "400",
+        message: "Error creating schedule",
+      };
+    }
   }
 };
 
@@ -508,48 +525,6 @@ export const createScheduleDevelopment = async (
       message: "Error creating schedule",
     };
   }
-};
-
-export const createScheduleProgrammed = async (
-  root: any,
-  {
-    scheduleProgrammed: { daysOfWeek = [], startHour, endHour, maxUsers },
-  }: {
-    scheduleProgrammed: {
-      daysOfWeek: number[];
-      startHour: string;
-      endHour: string;
-      maxUsers: number;
-    };
-  },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
-  }
-
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
-  const newScheduleProgrammed = em.create(ScheduleProgrammed, {
-    daysOfWeek,
-    startHour,
-    endHour,
-    maxUsers,
-    admin,
-  });
-  newScheduleProgrammed.createInitialSchedules(em);
-  await em.persistAndFlush(newScheduleProgrammed);
-
-  newScheduleProgrammed.id
-    ? createdSuccess(
-        "Schedule created succesfully",
-        newScheduleProgrammed,
-        null
-      )
-    : notCreatedError("Schedule not created, please try again");
 };
 
 export const createPoll = async (

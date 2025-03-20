@@ -9,7 +9,6 @@ type Mutation {
     fixMessage(messageId: ID!, fixedDuration: Int!): MessageResponse!
     unfixMessage(messageId: ID!): MessageResponse!
     createSchedule(schedule: CreateScheduleInput!): ScheduleResponse!
-    createScheduleProgrammed(scheduleProgrammed: CreateScheduleProgrammedInput!): ScheduleProgrammedResponse!
     cancelSchedule(scheduleId: ID!): ScheduleResponse!
     createPoll(poll: CreatePollInput!): PollResponse!
     createOrChangePollVote(vote: CreatePollVoteInput! ): PollResponse!

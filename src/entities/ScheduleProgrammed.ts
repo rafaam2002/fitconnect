@@ -6,12 +6,14 @@ import {
   OneToMany,
   Property,
   EntityManager,
+  Cascade,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { Schedule } from "./Schedule";
 import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
 import { createScheduleInXWeeks } from "../utils/schedules";
+import moment from "moment";
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
   [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
@@ -30,7 +32,15 @@ export class ScheduleProgrammed extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   admin?: User;
 
-  @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed)
+  @Property()
+  title!: string;
+
+  @Property()
+  description!: string;
+
+  @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
+    cascade: [ Cascade.REMOVE ],
+  })
   schedules = new Collection<Schedule>(this);
 
   constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
@@ -40,13 +50,8 @@ export class ScheduleProgrammed extends BaseEntity {
     this.endHour = scheduleProgrammed.endHour;
     this.maxUsers = scheduleProgrammed.maxUsers;
     this.admin = scheduleProgrammed.admin;
+    this.title = scheduleProgrammed.title;
+    this.description = scheduleProgrammed.description;
   }
-  createInitialSchedules = async (em: EntityManager) => {
-    const now = new Date();
-    for (let i = 1; i <= 3; i++) {
-      this.daysOfWeek.forEach(async (day) => {
-        await createScheduleInXWeeks(now, day, i, this, em);
-      });
-    }
-  };
+  
 }

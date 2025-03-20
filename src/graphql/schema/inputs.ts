@@ -40,19 +40,13 @@ input UpdatePasswordInput {
     confirmPassword: String!
 }
 
-input CreateScheduleProgrammedInput {
-    daysOfWeek: [Int],
-    startHour: String!,
-    Duration: Int!,
-    maxUsers: Int!
-}
-
 input CreateScheduleInput {
     title: String!,
+    description: String!,
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,
-    state: ScheduleState,
+    repeatDays: [Int]!,
 }
 
 input CreateScheduleDevelopmentInput {
@@ -83,7 +77,7 @@ input UserInput{
     email: String!
     nickname: String!
 }
-    
+
 input ChangePasswordInput {
     currentPassword: String!
     newPassword: String!

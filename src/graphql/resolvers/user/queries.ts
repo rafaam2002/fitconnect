@@ -33,7 +33,6 @@ export const getUsers = async (
     limit: 50,
     offset: page * 50,
   };
-  
 
   const userRepo = em.getRepository(User);
   if (filters) {
@@ -733,5 +732,77 @@ export const getAdminStats = async (
     code: "200",
     message: "Users found",
     stats: stats,
+  };
+};
+
+export const getSchedulesStats = async (
+  _: any,
+  {
+    month,
+  }: {
+    month: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  } else if (currentUser.rol !== UserRol.BOSS) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
+  const startOfMonth = moment().month(month).startOf("month").toDate();
+  const endOfMonth = moment().month(month).endOf("month").toDate();
+
+  const ScheduleRepo = em.getRepository(Schedule);
+  const schedules = await ScheduleRepo.find(
+    {
+      startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    },
+    { fields: ["maxUsers", "startDate", "users"] }
+  );
+
+  // Agrupación y resumen (como en el ejemplo anterior)
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
+
+    if (!acc[dayAndTime]) {
+      acc[dayAndTime] = [];
+    }
+
+    acc[dayAndTime].push(schedule);
+
+    return acc;
+  }, {} as Record<string, typeof schedules>);
+
+  const schedulesSummary = Object.entries(groupedSchedules).map(
+    ([dayAndTime, group]) => {
+      const totalRatio = group.reduce(
+        (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
+        0
+      );
+
+      const averageRatio = totalRatio / group.length;
+      return {
+        dayAndTime,
+        ratio: averageRatio, // Media del ratio
+      };
+    }
+  );
+
+  // Ordenar de mayor a menor por el ratio
+  schedulesSummary.sort((a, b) => a.ratio - b.ratio);
+  //{dayAndTime: 'Mon 22:44', ratio: 0.19607843137254902}
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    stats: schedulesSummary,
   };
 };

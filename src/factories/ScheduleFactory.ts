@@ -24,7 +24,7 @@ export class ScheduleFactory extends Factory<Schedule> {
       description: faker.datatype.boolean() ? faker.lorem.sentence() : null,
       startDate,
       endDate,
-      maxUsers: faker.helpers.rangeToNumber({ min: 5, max: 50 }),
+      maxUsers: faker.helpers.rangeToNumber({ min: 10, max: 100 }),
       state: faker.helpers.weightedArrayElement([
         { value: ScheduleState.AVAILABLE, weight: 0.7 },
         { value: ScheduleState.FULL, weight: 0.15 },

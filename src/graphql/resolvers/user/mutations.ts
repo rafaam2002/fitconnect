@@ -262,13 +262,12 @@ export const createMessage = async (
   if (isFixed && receiverId != process.env.DB_FORUM_ID)
     return notCreatedError("you can only fix messages in the forum");
   const userRepo = em.getRepository(User);
-  const sender = await userRepo.findOne({ id: currentUser.id });
   const receiver = await userRepo.findOne({ id: receiverId });
   try {
     const newMessage = em.create(Message, {
       text,
       receiver,
-      sender,
+      sender: em.getReference(User, currentUser.id),
       isFixed: !!isFixed,
       fixedDuration,
     });
@@ -321,13 +320,12 @@ export const createSchedule = async (
     };
   }
 
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
-  
+  const admin = em.getReference(User, currentUser.id);
+
   if (repeatDays.length > 0) {
     const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
     const endHour = moment(endDate).subtract(1, "hours").format("HH:mm");
-     return createScheduleProgrammed(
+    return createScheduleProgrammed(
       {
         daysOfWeek: repeatDays,
         title,
@@ -500,7 +498,7 @@ export const createScheduleDevelopment = async (
     };
   }
   const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
+  const admin = em.getReference(User, currentUser.id);
 
   const newSchedule = em.create(Schedule, {
     title,
@@ -530,42 +528,45 @@ export const createScheduleDevelopment = async (
 export const createPoll = async (
   root: any,
   {
-    poll: { title, options, durationDays },
+    poll: { title, options, endDate },
   }: {
     poll: {
       title: string;
       options: string[];
-      durationDays: number;
+      endDate: string;
     };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
-  }
-  if (durationDays < 1) {
     return {
       success: false,
       code: "400",
-      message: "Duration days must be greater than 0",
+      message: "Please login",
+    };
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
     };
   }
   options = options.filter((option) => option.trim() !== "");
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
-  const startDate = new Date();
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + durationDays);
-  const newPoll = em.create(Poll, {
-    endDate,
-    title,
-    options,
-    admin: em.getReference(User, currentUser.id),
-  });
+  if (moment(endDate).isBefore(new Date())) {
+    return {
+      success: false,
+      code: "400",
+      message: "End date must be in the future",
+    };
+  }
   try {
+    const newPoll = em.create(Poll, {
+      endDate,
+      title,
+      options,
+      admin: em.getReference(User, currentUser.id),
+    });
     await em.persistAndFlush(newPoll);
     return {
       success: true,
@@ -574,6 +575,7 @@ export const createPoll = async (
       poll: newPoll,
     };
   } catch (error) {
+    console.error(error);
     return {
       success: false,
       code: "400",
@@ -603,7 +605,11 @@ export const createOrChangePollVote = async (
     return notCreatedError("Poll not found");
   }
   if (poll.endDate < new Date()) {
-    return notCreatedError("Poll is closed");
+    return {
+      success: false,
+      code: "400",
+      message: "Poll is closed",
+    };
   }
   if (option < 0 || option >= poll.options.length) {
     return notCreatedError("Option not valid");
@@ -789,7 +795,7 @@ export const createSubscription = async (
   }
 
   const plan = await em.findOne(Plan, { id: planId });
-  const user = await em.findOne(User, { id: currentUser.id });
+  const user = em.getReference(User, currentUser.id);
 
   if (!plan) {
     return {
@@ -885,7 +891,7 @@ export const removeSubscription = async (
   }
 
   const plan = await em.findOne(Plan, { id: planId });
-  const user = await em.findOne(User, { id: currentUser.id });
+  const user = em.getReference(User, currentUser.id);
 
   if (!user) {
     return {

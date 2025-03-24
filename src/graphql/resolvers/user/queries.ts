@@ -349,22 +349,18 @@ export const getAdminPolls = async (
 
 export const getPolls = async (
   root: any,
-  { pollId }: { pollId: string },
+  { pollId, filter }: { pollId: string; filter: { since: string } },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
-  /* if (currentUser.endSubscriptionDate < new Date()) {
-          return {
-              success: false,
-              code: "400",
-              message: "Your subscription has expired, please renew it",
-          };
-      }*/
 
   const pollRepo = em.getRepository(Poll);
-  const pollVotesRepo = em.getRepository(PollVote);
 
   if (pollId) {
     const poll = await pollRepo.findOne({ id: pollId });
@@ -383,7 +379,36 @@ export const getPolls = async (
     };
   }
 
-  const polls = await pollRepo.findAll({ populate: ["admin"] });
+  if (filter) {
+    const polls = await pollRepo.find(
+      {
+        endDate: { $gte: filter.since },
+      },
+      { populate: ["admin"] }
+    );
+
+    if (polls.length === 0) {
+      return {
+        success: false,
+        code: "404",
+        message: "Polls not found",
+      };
+    }
+
+    return {
+      success: true,
+      code: "200",
+      message: "Polls found",
+      polls,
+    };
+  }
+
+  const polls = await pollRepo.find(
+    {
+      endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
+    },
+    { populate: ["admin"] }
+  );
 
   if (polls.length === 0) {
     return {

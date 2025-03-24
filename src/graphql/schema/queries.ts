@@ -13,7 +13,7 @@ type Query {
     getNotifications: NotificationResponse!
     getSchedules(scheduleId: ID, calculateIsBooked: Boolean): ScheduleResponse!
     getScheduleOptions: ScheduleOptionsResponse!
-    getPolls(pollId: ID): PollResponse!
+    getPolls(pollId: ID, filter: PollFilter): PollResponse!
     getPlans(planId: ID): PlanResponse!
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!

@@ -57,10 +57,15 @@ input CreateScheduleDevelopmentInput {
     state: ScheduleState,
 }
 
+input PollFilter {
+    since: String!,
+}
+
+
 input CreatePollInput {
     title: String!,
     options: [String]!,
-    durationDays: Int!
+    endDate: String!
 }
 
 input CreateMessageInput {

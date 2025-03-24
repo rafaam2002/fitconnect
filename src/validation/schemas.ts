@@ -32,3 +32,19 @@ export const ChangePasswordSchema = z
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: messages.passwordDontMatchErrorMsg,
   });
+
+export const NewPollSchema = z.object({
+  title: z
+    .string()
+    .min(3, messages.minErrorMsg(3))
+    .max(50, messages.maxErrorMsg(20)),
+  options: z
+    .array(
+      z
+        .string()
+        .min(1, messages.minErrorMsg(3))
+        .max(100, messages.maxErrorMsg(20))
+    )
+    .max(10, messages.maxNumberErrorMsg(10)),
+  endDate: z.string(),
+});

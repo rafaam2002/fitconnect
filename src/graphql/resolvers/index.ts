@@ -25,12 +25,12 @@ import {
   createOrChangePollVote,
   updateUser,
   removeSubscription,
-  cancelSchedule,
   deletePollVote,
   createScheduleDevelopment,
   addUserToSchedule,
   removeUserFromSchedule,
   createUser,
+  changeScheduleStatus,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -75,7 +75,7 @@ const resolvers = {
     removePlan,
     createSubscription,
     removeSubscription,
-    cancelSchedule,
+    changeScheduleStatus,
     deletePollVote,
     createScheduleDevelopment,
     addUserToSchedule,

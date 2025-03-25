@@ -544,10 +544,12 @@ export const getSchedulesRange = async (
     startDate,
     endDate,
     calculateIsBooked,
+    mySchedules,
   }: {
     startDate: string;
     endDate: string;
     calculateIsBooked: boolean;
+    mySchedules: boolean;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -579,6 +581,20 @@ export const getSchedulesRange = async (
       new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
     ).toDate();
   });
+
+  if (mySchedules) {
+    const myUser = em.getReference(User, currentUser.id);
+    const mySchedules = schedules.filter(
+      (schedule) => schedule.admin === myUser
+    );
+
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedules: mySchedules,
+    };
+  }
 
   if (calculateIsBooked) {
     const schedulesIsBooked = schedules.map((schedule) => {

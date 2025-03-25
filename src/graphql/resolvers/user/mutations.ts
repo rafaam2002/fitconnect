@@ -419,15 +419,21 @@ export const removeUserFromSchedule = async (
   root: any,
   {
     scheduleId,
+    userId,
   }: {
     scheduleId: string;
+    userId?: string;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
-  const userReference = em.getReference(User, currentUser.id);
+  let id = null;
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
@@ -441,27 +447,39 @@ export const removeUserFromSchedule = async (
       message: "Schedule not found",
     };
   }
-  if (schedule.state !== ScheduleState.AVAILABLE) {
+
+  if (userId) {
+    if (
+      userId === currentUser.id ||
+      (currentUser.rol === UserRol.COACH && userId === schedule.admin.id) ||
+      currentUser.rol === UserRol.BOSS
+    ) {
+      id = userId;
+    } else {
+      return {
+        success: false,
+        code: "400",
+        message: "You are not authorized to perform this action",
+      };
+    }
+  } else {
+    id = currentUser.id;
+    const user = em.getReference(User, id);
+    if (!schedule.users.contains(user)) {
+      return {
+        success: false,
+        code: "400",
+        message: "User not in schedule",
+      };
+    }
+    schedule.users.remove(user);
+    await em.persistAndFlush(schedule);
     return {
-      success: false,
-      code: "400",
-      message: "Schedule is not available",
+      success: true,
+      code: "200",
+      message: "User removed from schedule",
     };
   }
-  if (!schedule.users.contains(userReference)) {
-    return {
-      success: false,
-      code: "400",
-      message: "User not in schedule",
-    };
-  }
-  schedule.users.remove(userReference);
-  await em.persistAndFlush(schedule);
-  return {
-    success: true,
-    code: "200",
-    message: "User removed from schedule",
-  };
 };
 
 export const createScheduleDevelopment = async (
@@ -720,7 +738,7 @@ export const unfixMessage = async (
   return createdSuccess("Message unfixed succesfully", message, null);
 };
 
-export const cancelSchedule = async (
+export const changeScheduleStatus = async (
   root: any,
   {
     scheduleId,
@@ -730,13 +748,17 @@ export const cancelSchedule = async (
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
   const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne({ id: scheduleId });
+  const schedule = await scheduleRepo.findOne(
+    { id: scheduleId },
+    { populate: ["users"] }
+  );
   if (!schedule) {
     return {
       success: false,
@@ -748,9 +770,19 @@ export const cancelSchedule = async (
     schedule.admin.id !== currentUser.id &&
     currentUser.rol !== UserRol.BOSS
   ) {
-    return notAuthError("You are not authorized to perform this action");
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
   }
-  schedule.state = ScheduleState.CANCELLED;
+  if (schedule.state === ScheduleState.AVAILABLE) {
+    schedule.state = ScheduleState.CANCELLED;
+  } else {
+    if (schedule.users.length === schedule.maxUsers)
+      schedule.state = ScheduleState.FULL;
+    else schedule.state = ScheduleState.AVAILABLE;
+  }
   await em.persistAndFlush(schedule);
   return {
     success: true,

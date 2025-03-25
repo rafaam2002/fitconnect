@@ -18,7 +18,7 @@ type Query {
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!
     getSchedulesFromToday: ScheduleResponse!
-    getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean): ScheduleResponse!
+    getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean, mySchedules: Boolean): ScheduleResponse!
     getSchedulesResumeRange(startDate: String!, endDate: String!, calculateIsBooked: Boolean): ScheduleResumeResponse!
     getSchedulesStats(month: Int!): SchedulesStatsResponse!
     #------------------Product-----------------

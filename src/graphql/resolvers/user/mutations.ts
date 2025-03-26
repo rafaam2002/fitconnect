@@ -11,7 +11,6 @@ import {
   UserRol,
 } from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
-import { ScheduleProgrammed } from "../../../entities/ScheduleProgrammed";
 import { createdSuccess } from "../successes";
 import { Poll } from "../../../entities/Poll";
 import { PollVote } from "../../../entities/PollVote";
@@ -24,7 +23,6 @@ import {
   createDateWithTime,
   createScheduleProgrammed,
 } from "../../../utils/schedules";
-import { PubSub } from "graphql-subscriptions";
 import { updateUserSchema } from "../../../validation/schemas";
 import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
 import moment from "moment";
@@ -464,22 +462,26 @@ export const removeUserFromSchedule = async (
     }
   } else {
     id = currentUser.id;
-    const user = em.getReference(User, id);
-    if (!schedule.users.contains(user)) {
-      return {
-        success: false,
-        code: "400",
-        message: "User not in schedule",
-      };
-    }
-    schedule.users.remove(user);
-    await em.persistAndFlush(schedule);
+  }
+  const user = await em.findOne(User, { id });
+  if (!schedule.users.contains(user)) {
     return {
-      success: true,
-      code: "200",
-      message: "User removed from schedule",
+      success: false,
+      code: "400",
+      message: "User not in schedule",
     };
   }
+  schedule.users.remove(user);
+  await em.persistAndFlush(schedule);
+  const isBooked = schedule.users
+    .getItems()
+    .some((user) => user.id === currentUser.id);
+  return {
+    success: true,
+    code: "200",
+    message: "User removed from schedule",
+    schedule: { ...schedule, isBooked },
+  };
 };
 
 export const createScheduleDevelopment = async (

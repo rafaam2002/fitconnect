@@ -16,9 +16,14 @@ export class ScheduleFactory extends Factory<Schedule> {
   }
 
   definition(): Partial<Schedule> {
-    const startDate = moment(faker.date.soon({ days: 14 })).toDate();
+    const startDate = faker.helpers.arrayElement([
+      moment(faker.date.past({ years: 1 })).toDate(), // Fecha de hasta 6 meses en el pasado
+      moment(faker.date.soon({ days: 14 })).toDate(), // Fecha dentro de los próximos 14 días
+    ]);
+    // const startDate = moment(faker.date.soon({ days: 14 })).toDate();
+
     const endDate = moment(startDate).add(1, "hour").toDate(); // Añadir 1 hora a startDate
-    
+
     return {
       title: faker.lorem.words(2),
       description: faker.datatype.boolean() ? faker.lorem.sentence() : null,

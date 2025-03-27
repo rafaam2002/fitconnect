@@ -5,7 +5,6 @@ import { Poll } from "../../../entities/Poll";
 import { UserType } from "../../../types";
 import { Message } from "../../../entities/Message";
 import { notLoggedError } from "../errors";
-import { PollVote } from "../../../entities/PollVote";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
@@ -15,12 +14,10 @@ import { FORUM } from "../../../constants/forum";
 export const getUsers = async (
   root: any,
   {
-    filters,
-    and_or,
+    textFilter,
     page = 0,
   }: {
-    filters: UserFilter[];
-    and_or: "and" | "or";
+    textFilter: string;
     page: number;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -35,10 +32,15 @@ export const getUsers = async (
   };
 
   const userRepo = em.getRepository(User);
-  if (filters) {
+  if (textFilter) {
     const users = await userRepo.find(
       {
-        [`$${and_or}`]: filters,
+        $or: [
+          { nickname: { $ilike: `${textFilter}%` } },
+          { name: { $ilike: `${textFilter}%` } },
+          { surname: { $ilike: `${textFilter}%` } },
+          { email: { $ilike: `${textFilter}%` } },
+        ],
       },
       pagination
     );
@@ -758,7 +760,6 @@ export const getAdminStats = async (
   ]);
   const users = await userRepo.findAll();
 
-  console.log(result[0]);
   const stats = {
     users: result[0],
     schedules: 0,
@@ -802,7 +803,7 @@ export const getSchedulesStats = async (
   const endOfMonth = moment().month(month).endOf("month").toDate();
 
   const ScheduleRepo = em.getRepository(Schedule);
-  const schedules = await ScheduleRepo.find(
+  const schedulesFirstMonth = await ScheduleRepo.find(
     {
       startDate: { $gte: startOfMonth, $lte: endOfMonth },
     },
@@ -810,40 +811,140 @@ export const getSchedulesStats = async (
   );
 
   // Agrupación y resumen (como en el ejemplo anterior)
-  const groupedSchedules = schedules.reduce((acc, schedule) => {
-    const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
+  const groupedSchedulesFirstMonth = schedulesFirstMonth.reduce(
+    (acc, schedule) => {
+      const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
 
-    if (!acc[dayAndTime]) {
-      acc[dayAndTime] = [];
-    }
+      if (!acc[dayAndTime]) {
+        acc[dayAndTime] = [];
+      }
 
-    acc[dayAndTime].push(schedule);
+      acc[dayAndTime].push(schedule);
 
-    return acc;
-  }, {} as Record<string, typeof schedules>);
-
-  const schedulesSummary = Object.entries(groupedSchedules).map(
-    ([dayAndTime, group]) => {
-      const totalRatio = group.reduce(
-        (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
-        0
-      );
-
-      const averageRatio = totalRatio / group.length;
-      return {
-        dayAndTime,
-        ratio: averageRatio, // Media del ratio
-      };
-    }
+      return acc;
+    },
+    {} as Record<string, typeof schedulesFirstMonth>
   );
 
-  // Ordenar de mayor a menor por el ratio
-  schedulesSummary.sort((a, b) => a.ratio - b.ratio);
-  //{dayAndTime: 'Mon 22:44', ratio: 0.19607843137254902}
+  const schedulesSummaryFirstMonth = Object.entries(
+    groupedSchedulesFirstMonth
+  ).map(([dayAndTime, group]) => {
+    const totalRatio = group.reduce(
+      (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
+      0
+    );
+
+    const averageRatio = totalRatio / group.length;
+    return {
+      dayAndTime,
+      ratio: averageRatio, // Media del ratio
+    };
+  });
+
+  const startPastMonth = moment()
+    .month(month - 1)
+    .startOf("month")
+    .toDate();
+  const endPastMonth = moment()
+    .month(month - 1)
+    .endOf("month")
+    .toDate();
+
+  const schedulesPastMonth = await ScheduleRepo.find(
+    {
+      startDate: { $gte: startPastMonth, $lte: endPastMonth },
+    },
+    { fields: ["maxUsers", "startDate", "users"] }
+  );
+
+  // Agrupación y resumen (como en el ejemplo anterior)
+  const groupedSchedulesPastMonth = schedulesPastMonth.reduce(
+    (acc, schedule) => {
+      const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
+
+      if (!acc[dayAndTime]) {
+        acc[dayAndTime] = [];
+      }
+
+      acc[dayAndTime].push(schedule);
+
+      return acc;
+    },
+    {} as Record<string, typeof schedulesPastMonth>
+  );
+
+  const schedulesSummaryPastMonth = Object.entries(
+    groupedSchedulesPastMonth
+  ).map(([dayAndTime, group]) => {
+    const totalRatio = group.reduce(
+      (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
+      0
+    );
+
+    const averageRatio = totalRatio / group.length;
+    return {
+      dayAndTime,
+      ratio: averageRatio, // Media del ratio
+    };
+  });
+  console.log("pastmonthLenght", schedulesSummaryPastMonth.length);
+  console.log("firstmonthLenght", schedulesSummaryFirstMonth.length);
+
   return {
     success: true,
     code: "200",
     message: "Schedules found",
-    stats: schedulesSummary,
+    stats: [schedulesSummaryFirstMonth, schedulesSummaryPastMonth],
   };
+};
+
+export const getMonthlySchedules = async (
+  _: any,
+  {
+    month,
+    startHour,
+  }: {
+    month: number;
+    startHour: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  } else if (currentUser.rol !== UserRol.BOSS) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
+  const startOfMonth = moment().month(month).startOf("month").toDate();
+  const endOfMonth = moment().month(month).endOf("month").toDate();
+  const monthlySchedules = await em.find(
+    Schedule,
+    {
+      startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    },
+    { populate: ["users"] }
+  );
+  const matchHourSchedules = monthlySchedules.filter((schedule) => {
+    return moment(Number(schedule.startDate)).format("ddd HH:mm") === startHour;
+  });
+  if (matchHourSchedules.length > 0)
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedules: matchHourSchedules,
+    };
+  else
+    return {
+      success: true,
+      code: "404",
+      message: "Schedules not found",
+    };
 };

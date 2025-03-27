@@ -15,7 +15,7 @@ type SchedulesStatsResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    stats: [SchedulesStats]!
+    stats: [[SchedulesStats]]!
 } 
 
 type ArticleResponse implements BasicResponse {

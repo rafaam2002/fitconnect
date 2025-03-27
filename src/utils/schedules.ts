@@ -138,3 +138,6 @@ const createInitialSchedules = async (
     });
   }
 };
+
+const calculateIsBooked = async (schedule: Schedule, currentUser: UserType) =>
+  schedule.users.getItems().some((user) => user.id === currentUser.id);

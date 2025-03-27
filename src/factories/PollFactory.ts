@@ -18,7 +18,7 @@ export class PollFactory extends Factory<Poll> {
   definition(): Partial<Poll> {
     return {
       endDate: faker.date.future(),
-      title: faker.lorem.sentence(),
+      title: faker.lorem.sentence().slice(0, 50),
       options: faker.helpers.arrayElements(
         ["si", "no", "tal vez", "podria", "eventualmente", "no me apetece"],
         { min: 2, max: 10 }

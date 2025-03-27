@@ -582,7 +582,7 @@ export const createPoll = async (
   }
   try {
     const newPoll = em.create(Poll, {
-      endDate,
+      endDate: moment(Number(endDate)).toDate(),
       title,
       options,
       admin: em.getReference(User, currentUser.id),

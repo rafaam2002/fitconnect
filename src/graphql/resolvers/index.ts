@@ -14,6 +14,7 @@ import {
   getSchedulesResumeRange,
   getAdminStats,
   getSchedulesStats,
+  getMonthlySchedules,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -59,7 +60,8 @@ const resolvers = {
     getProducts,
     getArticles,
     getAdminStats,
-    getSchedulesStats
+    getSchedulesStats,
+    getMonthlySchedules,
   },
   Mutation: {
     updateUser,

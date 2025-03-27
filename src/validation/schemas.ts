@@ -46,5 +46,5 @@ export const NewPollSchema = z.object({
         .max(100, messages.maxErrorMsg(20))
     )
     .max(10, messages.maxNumberErrorMsg(10)),
-  endDate: z.string(),
+  endDate: z.date(),
 });

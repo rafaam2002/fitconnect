@@ -2,6 +2,7 @@ import { EntityRepository } from "@mikro-orm/postgresql";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import { createScheduleInXWeeks } from "../utils/schedules";
+import moment from "moment";
 
 export class CustomScheduleProgrammedRepository extends EntityRepository<ScheduleProgrammed> {
   // Métodos personalizados...
@@ -11,7 +12,13 @@ export class CustomScheduleProgrammedRepository extends EntityRepository<Schedul
     schedulesProgrammed.forEach((scheduleProgrammed) => {
       const now = new Date();
       scheduleProgrammed.daysOfWeek.forEach(async (day) => {
-        await createScheduleInXWeeks(now, day, 3, scheduleProgrammed, this.em);
+        await createScheduleInXWeeks(
+          moment(),
+          day,
+          3,
+          scheduleProgrammed,
+          this.em
+        );
         //hace falta poner el await aqui?
       });
     });

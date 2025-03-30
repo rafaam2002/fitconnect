@@ -4,7 +4,7 @@ type Query {
     login(email: String!, password: String!): LoginResponse!
     loginWithId(id: ID!): LoginResponse!
     # ----------------- User -----------------
-    getUsers(filters: [UserFilterInput], and_or: LogicalOperator!): UserResponse!
+    getUsers(textFilter: String, page: Int): UserResponse!
     me: UserResponse!,
     findUser(id: ID!): UserResponse!
     #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)
@@ -13,13 +13,15 @@ type Query {
     getNotifications: NotificationResponse!
     getSchedules(scheduleId: ID, calculateIsBooked: Boolean): ScheduleResponse!
     getScheduleOptions: ScheduleOptionsResponse!
-    getPolls(pollId: ID): PollResponse!
+    getPolls(pollId: ID, filter: PollFilter): PollResponse!
     getPlans(planId: ID): PlanResponse!
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!
     getSchedulesFromToday: ScheduleResponse!
-    getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean): ScheduleResponse!
+    getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean, mySchedules: Boolean): ScheduleResponse!
     getSchedulesResumeRange(startDate: String!, endDate: String!, calculateIsBooked: Boolean): ScheduleResumeResponse!
+    getSchedulesStats(month: Int!): SchedulesStatsResponse!
+    getMonthlySchedules(month: Int!,startHour: String!): ScheduleResponse!
     #------------------Product-----------------
     getProducts: ProductResponse!
     #------------------Article-----------------

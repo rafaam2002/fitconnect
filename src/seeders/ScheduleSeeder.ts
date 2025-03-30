@@ -12,9 +12,9 @@ export class ScheduleSeeder extends Seeder {
       rol: { $in: [UserRol.BOSS, UserRol.COACH] },
     });
 
-    new ScheduleFactory(em).each((eschedule) => {
-      eschedule.users.set(new UserFactory(em).make(10));
-      eschedule.admin = eschedule.users.getItems()[0];
-    }).make(20);
+    new ScheduleFactory(em).each((schedule) => {
+      schedule.users.set(new UserFactory(em).make(10));
+      schedule.admin = schedule.users.getItems()[0];
+    }).make(100);
   }
 }

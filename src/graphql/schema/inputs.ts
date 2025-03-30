@@ -9,16 +9,6 @@ input UpdateUserInput {
     rol: UserRol
 }
 
-input UserFilterInput {
-    name: String,
-    surname: String,
-    email: String,
-    phoneNumber: String,
-    nickname: String,
-    rol: UserRol
-    isActive: Boolean
-}
-
 input CreateUserInput {
     name: String!
     surname: String!
@@ -40,19 +30,13 @@ input UpdatePasswordInput {
     confirmPassword: String!
 }
 
-input CreateScheduleProgrammedInput {
-    daysOfWeek: [Int],
-    startHour: String!,
-    Duration: Int!,
-    maxUsers: Int!
-}
-
 input CreateScheduleInput {
     title: String!,
+    description: String!,
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,
-    state: ScheduleState,
+    repeatDays: [Int]!,
 }
 
 input CreateScheduleDevelopmentInput {
@@ -63,10 +47,15 @@ input CreateScheduleDevelopmentInput {
     state: ScheduleState,
 }
 
+input PollFilter {
+    since: String!,
+}
+
+
 input CreatePollInput {
     title: String!,
     options: [String]!,
-    durationDays: Int!
+    endDate: String!
 }
 
 input CreateMessageInput {
@@ -83,7 +72,7 @@ input UserInput{
     email: String!
     nickname: String!
 }
-    
+
 input ChangePasswordInput {
     currentPassword: String!
     newPassword: String!

@@ -5,74 +5,65 @@ import {Poll} from "../../../entities/Poll";
 import {UserType} from "../../../types";
 import {Message} from "../../../entities/Message";
 import {notLoggedError} from "../errors";
-import {PollVote} from "../../../entities/PollVote";
 import {Schedule} from "../../../entities/Schedule";
 import {ScheduleOptions} from "../../../entities/ScheduleOptions";
 import moment from "moment";
 import {FORUM} from "../../../constants/forum";
 
 export const getUsers = async (
-    root: any,
-    {
-        filters,
-        and_or,
-        page = 0,
-    }: {
-        filters?: Record<string, any>[];
-        and_or: "and" | "or";
-        page: number;
-    },
-    {em, currentUser}: { em: EntityManager; currentUser: UserType }
+  root: any,
+  {
+    textFilter,
+    page = 0,
+  }: {
+    textFilter: string;
+    page: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
     if (!currentUser) {
         return notLoggedError("Please login");
     }
 
-    const pagination = {
-        limit: 50,
-        offset: page * 50,
-    };
-    const userRepo = em.getRepository(User);
+  const pagination = {
+    limit: 50,
+    offset: page * 50,
+  };
 
-    if (!filters || filters.length === 0) {
-        const users = await userRepo.findAll(pagination);
-
-        return {
-            success: true,
-            code: "200",
-            message: "Users found",
-            users,
-        };
-    }
-
-    const filteredUsers = await userRepo.find(
-        {[`$${and_or}`]: filters},
-        pagination
+  const userRepo = em.getRepository(User);
+  if (textFilter) {
+    const users = await userRepo.find(
+      {
+        $or: [
+          { nickname: { $ilike: `${textFilter}%` } },
+          { name: { $ilike: `${textFilter}%` } },
+          { surname: { $ilike: `${textFilter}%` } },
+          { email: { $ilike: `${textFilter}%` } },
+        ],
+      },
+      pagination
     );
-
-    const groupedUsers = filteredUsers.reduce(
-        (acc, user) => {
-            if (user.rol === UserRol.BOSS || user.rol === UserRol.COACH) {
-                acc.specialRoles.push(user);
-            } else {
-                acc.standard.push(user);
-            }
-            return acc;
-        },
-        {
-            standard: [], specialRoles: []} as {
-            standard: User[];
-            specialRoles: User[];
-        }
-    );
-
-    console.log(filters)
     return {
-        success: true,
-        code: "200",
-        message: "Users found",
-        groupBy: groupedUsers,
+      success: true,
+      code: "200",
+      message: "Users found",
+      users: users,
     };
+  } else if (currentUser.rol === UserRol.BOSS) {
+    const users = await userRepo.findAll(pagination);
+    return {
+      success: true,
+      code: "200",
+      message: "Users found",
+      users: users,
+    };
+  } else {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
 };
 
 export const me = async (
@@ -359,22 +350,19 @@ export const getAdminPolls = async (
 
 export const getPolls = async (
     root: any,
-    {pollId}: { pollId: string },
+    {pollId, filter }: { pollId: string; filter: { since: string } },
     {em, currentUser}: { em: EntityManager; currentUser: UserType }
 ) => {
     if (!currentUser) {
-        return notLoggedError("Please login");
-    }
-    /* if (currentUser.endSubscriptionDate < new Date()) {
-            return {
+        return  {
                 success: false,
                 code: "400",
-                message: "Your subscription has expired, please renew it",
+                message: "Please login",
             };
-        }*/
+        }
 
     const pollRepo = em.getRepository(Poll);
-    const pollVotesRepo = em.getRepository(PollVote);
+
 
     if (pollId) {
         const poll = await pollRepo.findOne({id: pollId});
@@ -393,7 +381,34 @@ export const getPolls = async (
         };
     }
 
-    const polls = await pollRepo.findAll({populate: ["admin"]});
+    if (filter) {
+    const polls = await pollRepo.find(
+      {
+        endDate: { $gte: filter.since },
+      },
+      { populate: ["admin"] }
+    );
+
+    if (polls.length === 0) {
+      return {
+        success: false,
+        code: "404",
+        message: "Polls not found",
+      };
+    }
+
+    return {
+      success: true,
+      code: "200",
+      message: "Polls found",
+      polls,
+    };
+  }
+
+  const polls = await pollRepo.find(
+    {
+      endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
+    },{populate: ["admin"]});
 
     if (polls.length === 0) {
         return {
@@ -529,10 +544,11 @@ export const getSchedulesRange = async (
         startDate,
         endDate,
         calculateIsBooked,
-    }: {
+    mySchedules,}: {
         startDate: string;
         endDate: string;
         calculateIsBooked: boolean;
+    mySchedules:boolean;
     },
     {em, currentUser}: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -565,7 +581,19 @@ export const getSchedulesRange = async (
         ).toDate();
     });
 
-    if (calculateIsBooked) {
+    if (mySchedules) {
+    const myUser = em.getReference(User, currentUser.id);
+    const mySchedules = schedules.filter(
+      (schedule) => schedule.admin === myUser
+    );
+
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedules: mySchedules,
+    };
+  }if (calculateIsBooked) {
         const schedulesIsBooked = schedules.map((schedule) => {
             const isBooked = schedule.users
                 .getItems()
@@ -727,7 +755,7 @@ export const getAdminStats = async (
     ]);
     const users = await userRepo.findAll();
 
-    console.log(result[0]);
+
     const stats = {
         users: result[0],
         schedules: 0,
@@ -742,5 +770,177 @@ export const getAdminStats = async (
         code: "200",
         message: "Users found",
         stats: stats,
+    };
+};
+
+export const getSchedulesStats = async (
+  _: any,
+  {
+    month,
+  }: {
+    month: number;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  } else if (currentUser.rol !== UserRol.BOSS) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
+  const startOfMonth = moment().month(month).startOf("month").toDate();
+  const endOfMonth = moment().month(month).endOf("month").toDate();
+
+  const ScheduleRepo = em.getRepository(Schedule);
+  const schedulesFirstMonth = await ScheduleRepo.find(
+    {
+      startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    },
+    { fields: ["maxUsers", "startDate", "users"] }
+  );
+
+  // Agrupación y resumen (como en el ejemplo anterior)
+  const groupedSchedulesFirstMonth = schedulesFirstMonth.reduce(
+    (acc, schedule) => {
+      const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
+
+      if (!acc[dayAndTime]) {
+        acc[dayAndTime] = [];
+      }
+
+      acc[dayAndTime].push(schedule);
+
+      return acc;
+    },
+    {} as Record<string, typeof schedulesFirstMonth>
+  );
+
+  const schedulesSummaryFirstMonth = Object.entries(
+    groupedSchedulesFirstMonth
+  ).map(([dayAndTime, group]) => {
+    const totalRatio = group.reduce(
+      (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
+      0
+    );
+
+    const averageRatio = totalRatio / group.length;
+    return {
+      dayAndTime,
+      ratio: averageRatio, // Media del ratio
+    };
+  });
+
+  const startPastMonth = moment()
+    .month(month - 1)
+    .startOf("month")
+    .toDate();
+  const endPastMonth = moment()
+    .month(month - 1)
+    .endOf("month")
+    .toDate();
+
+  const schedulesPastMonth = await ScheduleRepo.find(
+    {
+      startDate: { $gte: startPastMonth, $lte: endPastMonth },
+    },
+    { fields: ["maxUsers", "startDate", "users"] }
+  );
+
+  // Agrupación y resumen (como en el ejemplo anterior)
+  const groupedSchedulesPastMonth = schedulesPastMonth.reduce(
+    (acc, schedule) => {
+      const dayAndTime = moment(schedule.startDate).format("ddd HH:mm");
+
+      if (!acc[dayAndTime]) {
+        acc[dayAndTime] = [];
+      }
+
+      acc[dayAndTime].push(schedule);
+
+      return acc;
+    },
+    {} as Record<string, typeof schedulesPastMonth>
+  );
+
+  const schedulesSummaryPastMonth = Object.entries(
+    groupedSchedulesPastMonth
+  ).map(([dayAndTime, group]) => {
+    const totalRatio = group.reduce(
+      (sum, schedule) => sum + schedule.users.length / schedule.maxUsers,
+      0
+    );
+
+    const averageRatio = totalRatio / group.length;
+    return {
+      dayAndTime,
+      ratio: averageRatio, // Media del ratio
+    };
+  });
+  console.log("pastmonthLenght", schedulesSummaryPastMonth.length);
+  console.log("firstmonthLenght", schedulesSummaryFirstMonth.length);
+
+  return {
+    success: true,
+    code: "200",
+    message: "Schedules found",
+    stats: [schedulesSummaryFirstMonth, schedulesSummaryPastMonth],
+  };
+};
+
+export const getMonthlySchedules = async (
+  _: any,
+  {
+    month,
+    startHour,
+  }: {
+    month: number;
+    startHour: string;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
+  } else if (currentUser.rol !== UserRol.BOSS) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
+  }
+  const startOfMonth = moment().month(month).startOf("month").toDate();
+  const endOfMonth = moment().month(month).endOf("month").toDate();
+  const monthlySchedules = await em.find(
+    Schedule,
+    {
+      startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    },
+    { populate: ["users"] }
+  );
+  const matchHourSchedules = monthlySchedules.filter((schedule) => {
+    return moment(Number(schedule.startDate)).format("ddd HH:mm") === startHour;
+  });
+  if (matchHourSchedules.length > 0)
+    return {
+      success: true,
+      code: "200",
+      message: "Schedules found",
+      schedules: matchHourSchedules,
+    };
+  else
+    return {
+      success: true,
+      code: "404",
+      message: "Schedules not found",
     };
 };

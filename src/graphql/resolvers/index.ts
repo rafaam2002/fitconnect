@@ -13,6 +13,8 @@ import {
   getSchedulesRange,
   getSchedulesResumeRange,
   getAdminStats,
+  getSchedulesStats,
+  getMonthlySchedules,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -20,17 +22,16 @@ import {
   createMessage,
   createPoll,
   createSchedule,
-  createScheduleProgrammed,
   createSubscription,
   createOrChangePollVote,
   updateUser,
   removeSubscription,
-  cancelSchedule,
   deletePollVote,
   createScheduleDevelopment,
   addUserToSchedule,
   removeUserFromSchedule,
   createUser,
+  changeScheduleStatus,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -59,6 +60,8 @@ const resolvers = {
     getProducts,
     getArticles,
     getAdminStats,
+    getSchedulesStats,
+    getMonthlySchedules,
   },
   Mutation: {
     updateUser,
@@ -67,7 +70,6 @@ const resolvers = {
     forgotPassword,
     createMessage,
     createSchedule,
-    createScheduleProgrammed,
     createPoll,
     createOrChangePollVote,
     createPlan,
@@ -75,7 +77,7 @@ const resolvers = {
     removePlan,
     createSubscription,
     removeSubscription,
-    cancelSchedule,
+    changeScheduleStatus,
     deletePollVote,
     createScheduleDevelopment,
     addUserToSchedule,

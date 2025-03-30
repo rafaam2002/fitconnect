@@ -9,8 +9,7 @@ type Mutation {
     fixMessage(messageId: ID!, fixedDuration: Int!): MessageResponse!
     unfixMessage(messageId: ID!): MessageResponse!
     createSchedule(schedule: CreateScheduleInput!): ScheduleResponse!
-    createScheduleProgrammed(scheduleProgrammed: CreateScheduleProgrammedInput!): ScheduleProgrammedResponse!
-    cancelSchedule(scheduleId: ID!): ScheduleResponse!
+    changeScheduleStatus(scheduleId: ID!): ScheduleResponse!
     createPoll(poll: CreatePollInput!): PollResponse!
     createOrChangePollVote(vote: CreatePollVoteInput! ): PollResponse!
     createPlan(plan: CreatePlanInput!): PlanResponse!
@@ -21,7 +20,7 @@ type Mutation {
     deletePollVote(pollId: ID!): PollResponse!
     createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
     addUserToSchedule(scheduleId: ID!): ScheduleResponse!
-    removeUserFromSchedule(scheduleId: ID!): ScheduleResponse!
+    removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!
     exampleMutation: String!
 }
 

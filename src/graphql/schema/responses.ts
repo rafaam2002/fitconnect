@@ -5,6 +5,19 @@ interface BasicResponse {
     message: String!
 }
 
+type SchedulesStats {
+    dayAndTime: String!
+    ratio: Float!
+}
+
+
+type SchedulesStatsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    stats: [[SchedulesStats]]!
+} 
+
 type ArticleResponse implements BasicResponse {
     code: String!
     success: Boolean!

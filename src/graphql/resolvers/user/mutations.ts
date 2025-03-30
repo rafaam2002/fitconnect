@@ -11,7 +11,6 @@ import {
   UserRol,
 } from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
-import { ScheduleProgrammed } from "../../../entities/ScheduleProgrammed";
 import { createdSuccess } from "../successes";
 import { Poll } from "../../../entities/Poll";
 import { PollVote } from "../../../entities/PollVote";
@@ -20,11 +19,13 @@ import { Subscription } from "../../../entities/Subscription";
 import { Card } from "../../../entities/Card";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
-import { createDateWithTime } from "../../../utils/schedules";
-import { PubSub } from "graphql-subscriptions";
+import {
+  createDateWithTime,
+  createScheduleProgrammed,
+} from "../../../utils/schedules";
 import { updateUserSchema } from "../../../validation/schemas";
 import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
-
+import moment from "moment";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -32,7 +33,6 @@ const stripe = new Stripe(
   //   apiVersion: "2024-12-18.acacia",
   // }
 );
-
 
 export const createUser = async (
   _,
@@ -260,18 +260,17 @@ export const createMessage = async (
   if (isFixed && receiverId != process.env.DB_FORUM_ID)
     return notCreatedError("you can only fix messages in the forum");
   const userRepo = em.getRepository(User);
-  const sender = await userRepo.findOne({ id: currentUser.id });
   const receiver = await userRepo.findOne({ id: receiverId });
   try {
     const newMessage = em.create(Message, {
       text,
       receiver,
-      sender,
-      isFixed : !!isFixed,
+      sender: em.getReference(User, currentUser.id),
+      isFixed: !!isFixed,
       fixedDuration,
     });
     await em.persistAndFlush(newMessage);
-     myPubsub.publish(MESSAGE_EVENT, { newMessage });
+    myPubsub.publish(MESSAGE_EVENT, { newMessage });
     return {
       success: true,
       code: "200",
@@ -291,23 +290,19 @@ export const createMessage = async (
 export const createSchedule = async (
   root: any,
   {
-    schedule: { title, startDate, endDate, maxUsers, state },
+    schedule: { title, description, startDate, endDate, maxUsers, repeatDays },
   }: {
     schedule: {
       title: string;
+      description: string;
       startDate: string;
       endDate: string;
       maxUsers: number;
-      state: ScheduleState;
-      isProgrammed: boolean;
+      repeatDays: number[];
     };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
-  if (state === null) state = ScheduleState.AVAILABLE;
-  let newStartDate = new Date(startDate);
-  let newEndDate = new Date(endDate);
-
   if (!currentUser) {
     return {
       success: false,
@@ -322,31 +317,49 @@ export const createSchedule = async (
       message: "You are not authorized to perform this action",
     };
   }
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
 
-  const newSchedule = em.create(Schedule, {
-    title,
-    startDate: newStartDate,
-    endDate: newEndDate,
-    maxUsers,
-    state,
-    admin,
-  });
-  await em.persistAndFlush(newSchedule);
-  try {
-    return {
-      success: true,
-      code: "200",
-      message: "Schedule created successfully",
-      schedule: newSchedule,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      code: "400",
-      message: "Error creating schedule",
-    };
+  const admin = em.getReference(User, currentUser.id);
+
+  if (repeatDays.length > 0) {
+    const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
+    const endHour = moment(endDate).subtract(1, "hours").format("HH:mm");
+    return createScheduleProgrammed(
+      {
+        daysOfWeek: repeatDays,
+        title,
+        description,
+        startHour,
+        endHour,
+        maxUsers,
+        admin,
+      },
+      { em, currentUser }
+    );
+  } else {
+    const newSchedule = em.create(Schedule, {
+      title,
+      description,
+      startDate,
+      endDate,
+      maxUsers,
+      state: ScheduleState.AVAILABLE,
+      admin,
+    });
+    await em.persistAndFlush(newSchedule);
+    try {
+      return {
+        success: true,
+        code: "200",
+        message: "Schedule created successfully",
+        schedule: newSchedule,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        code: "400",
+        message: "Error creating schedule",
+      };
+    }
   }
 };
 
@@ -404,15 +417,21 @@ export const removeUserFromSchedule = async (
   root: any,
   {
     scheduleId,
+    userId,
   }: {
     scheduleId: string;
+    userId?: string;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
-  const userReference = em.getReference(User, currentUser.id);
+  let id = null;
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
@@ -426,26 +445,42 @@ export const removeUserFromSchedule = async (
       message: "Schedule not found",
     };
   }
-  if (schedule.state !== ScheduleState.AVAILABLE) {
-    return {
-      success: false,
-      code: "400",
-      message: "Schedule is not available",
-    };
+
+  if (userId) {
+    if (
+      userId === currentUser.id ||
+      (currentUser.rol === UserRol.COACH && userId === schedule.admin.id) ||
+      currentUser.rol === UserRol.BOSS
+    ) {
+      id = userId;
+    } else {
+      return {
+        success: false,
+        code: "400",
+        message: "You are not authorized to perform this action",
+      };
+    }
+  } else {
+    id = currentUser.id;
   }
-  if (!schedule.users.contains(userReference)) {
+  const user = await em.findOne(User, { id });
+  if (!schedule.users.contains(user)) {
     return {
       success: false,
       code: "400",
       message: "User not in schedule",
     };
   }
-  schedule.users.remove(userReference);
+  schedule.users.remove(user);
   await em.persistAndFlush(schedule);
+  const isBooked = schedule.users
+    .getItems()
+    .some((user) => user.id === currentUser.id);
   return {
     success: true,
     code: "200",
     message: "User removed from schedule",
+    schedule: { ...schedule, isBooked },
   };
 };
 
@@ -483,7 +518,7 @@ export const createScheduleDevelopment = async (
     };
   }
   const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
+  const admin = em.getReference(User, currentUser.id);
 
   const newSchedule = em.create(Schedule, {
     title,
@@ -510,87 +545,48 @@ export const createScheduleDevelopment = async (
   }
 };
 
-export const createScheduleProgrammed = async (
-  root: any,
-  {
-    scheduleProgrammed: { daysOfWeek = [], startHour, endHour, maxUsers },
-  }: {
-    scheduleProgrammed: {
-      daysOfWeek: number[];
-      startHour: string;
-      endHour: string;
-      maxUsers: number;
-    };
-  },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
-  }
-
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
-  const newScheduleProgrammed = em.create(ScheduleProgrammed, {
-    daysOfWeek,
-    startHour,
-    endHour,
-    maxUsers,
-    admin,
-  });
-  newScheduleProgrammed.createInitialSchedules(em);
-  await em.persistAndFlush(newScheduleProgrammed);
-
-  newScheduleProgrammed.id
-    ? createdSuccess(
-        "Schedule created succesfully",
-        newScheduleProgrammed,
-        null
-      )
-    : notCreatedError("Schedule not created, please try again");
-};
-
 export const createPoll = async (
   root: any,
   {
-    poll: { title, options, durationDays },
+    poll: { title, options, endDate },
   }: {
     poll: {
       title: string;
       options: string[];
-      durationDays: number;
+      endDate: string;
     };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
-  }
-  if (durationDays < 1) {
     return {
       success: false,
       code: "400",
-      message: "Duration days must be greater than 0",
+      message: "Please login",
+    };
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
     };
   }
   options = options.filter((option) => option.trim() !== "");
-  const userRepo = em.getRepository(User);
-  const admin = await userRepo.findOne({ id: currentUser.id });
-  const startDate = new Date();
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + durationDays);
-  const newPoll = em.create(Poll, {
-    endDate,
-    title,
-    options,
-    admin: em.getReference(User, currentUser.id),
-  });
+  if (moment(endDate).isBefore(new Date())) {
+    return {
+      success: false,
+      code: "400",
+      message: "End date must be in the future",
+    };
+  }
   try {
+    const newPoll = em.create(Poll, {
+      endDate: moment(Number(endDate)).toDate(),
+      title,
+      options,
+      admin: em.getReference(User, currentUser.id),
+    });
     await em.persistAndFlush(newPoll);
     return {
       success: true,
@@ -599,6 +595,7 @@ export const createPoll = async (
       poll: newPoll,
     };
   } catch (error) {
+    console.error(error);
     return {
       success: false,
       code: "400",
@@ -628,7 +625,11 @@ export const createOrChangePollVote = async (
     return notCreatedError("Poll not found");
   }
   if (poll.endDate < new Date()) {
-    return notCreatedError("Poll is closed");
+    return {
+      success: false,
+      code: "400",
+      message: "Poll is closed",
+    };
   }
   if (option < 0 || option >= poll.options.length) {
     return notCreatedError("Option not valid");
@@ -739,7 +740,7 @@ export const unfixMessage = async (
   return createdSuccess("Message unfixed succesfully", message, null);
 };
 
-export const cancelSchedule = async (
+export const changeScheduleStatus = async (
   root: any,
   {
     scheduleId,
@@ -749,13 +750,17 @@ export const cancelSchedule = async (
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return notAuthError("You are not authorized to perform this action");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
   const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne({ id: scheduleId });
+  const schedule = await scheduleRepo.findOne(
+    { id: scheduleId },
+    { populate: ["users"] }
+  );
   if (!schedule) {
     return {
       success: false,
@@ -767,9 +772,19 @@ export const cancelSchedule = async (
     schedule.admin.id !== currentUser.id &&
     currentUser.rol !== UserRol.BOSS
   ) {
-    return notAuthError("You are not authorized to perform this action");
+    return {
+      success: false,
+      code: "400",
+      message: "You are not authorized to perform this action",
+    };
   }
-  schedule.state = ScheduleState.CANCELLED;
+  if (schedule.state === ScheduleState.AVAILABLE) {
+    schedule.state = ScheduleState.CANCELLED;
+  } else {
+    if (schedule.users.length === schedule.maxUsers)
+      schedule.state = ScheduleState.FULL;
+    else schedule.state = ScheduleState.AVAILABLE;
+  }
   await em.persistAndFlush(schedule);
   return {
     success: true,
@@ -814,7 +829,7 @@ export const createSubscription = async (
   }
 
   const plan = await em.findOne(Plan, { id: planId });
-  const user = await em.findOne(User, { id: currentUser.id });
+  const user = em.getReference(User, currentUser.id);
 
   if (!plan) {
     return {
@@ -910,7 +925,7 @@ export const removeSubscription = async (
   }
 
   const plan = await em.findOne(Plan, { id: planId });
-  const user = await em.findOne(User, { id: currentUser.id });
+  const user = em.getReference(User, currentUser.id);
 
   if (!user) {
     return {

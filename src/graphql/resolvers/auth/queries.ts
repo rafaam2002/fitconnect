@@ -1,8 +1,6 @@
-import { PhoneModule } from "@faker-js/faker";
 import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { profile } from "console";
 
 const login = async (_, args: any, { em }) => {
   const { email, password } = args;

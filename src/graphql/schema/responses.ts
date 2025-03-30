@@ -28,6 +28,7 @@ type UserResponse implements BasicResponse {
     message: String!
     user: User
     users: [User]
+    groupBy: GroupUser
 }
 
 type ScheduleResponse implements BasicResponse{

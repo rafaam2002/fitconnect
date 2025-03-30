@@ -187,4 +187,9 @@ type AdminStats {
     transactions: Int!
     notifications: Int!
 }
+
+type GroupUser {
+    standard: [User]
+    specialRoles: [User]
+}
 `;

@@ -434,7 +434,11 @@ export const getConversation = async (
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    }
   }
   const messageRepo = em.getRepository(Message);
   let filter;

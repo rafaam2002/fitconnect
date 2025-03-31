@@ -10,6 +10,7 @@ import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { PollFactory } from "../factories/PollFactory";
 import { MessageFactory } from "../factories/MessageFactory";
+import { ScheduleOptions } from "../entities/ScheduleOptions";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -29,6 +30,16 @@ export class UserSeeder extends Seeder {
       rol: UserRol.BOSS,
     });
     await em.persistAndFlush(myUser);
+
+    const schedulesOptions = em.create(ScheduleOptions, {
+      maxActiveReservations: 3,
+      cancellationDeadline: 30,
+      maxStrikesBeforePenalty: 3,
+      penaltyDuration: 7,
+      maxAdvanceBookingDays: 7,
+    });
+
+    await em.persistAndFlush(schedulesOptions);
 
     new UserFactory(em)
       .each((user) => {

@@ -26,6 +26,7 @@ import {
 import { updateUserSchema } from "../../../validation/schemas";
 import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
 import moment from "moment";
+import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -373,9 +374,28 @@ export const addUserToSchedule = async (
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
   if (!currentUser) {
-    return notLoggedError("Please login");
+    return {
+      success: false,
+      code: "400",
+      message: "Please login",
+    };
   }
-  const userReference = em.getReference(User, currentUser.id);
+  const userRepo = await em.getRepository(User);
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["schedules"] }
+  );
+
+  const allScheduleOptions = await em.findAll(ScheduleOptions);
+  const scheduleOptions = allScheduleOptions[0];
+
+  if (user.schedules.length >= scheduleOptions.maxActiveReservations) {
+    return {
+      success: false,
+      code: "400",
+      message: `You can only have ${scheduleOptions.maxActiveReservations} active reservations`,
+    };
+  }
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
@@ -397,14 +417,14 @@ export const addUserToSchedule = async (
       message: "Schedule is not available",
     };
   }
-  if (schedule.users.contains(userReference)) {
+  if (schedule.users.contains(user)) {
     return {
       success: false,
       code: "400",
       message: "User already in schedule",
     };
   }
-  schedule.users.add(userReference);
+  schedule.users.add(user);
   await em.persistAndFlush(schedule);
   return {
     success: true,

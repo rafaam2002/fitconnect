@@ -19,6 +19,7 @@ import { Article } from "./entities/Article";
 import bodyParser from "body-parser";
 import { createServer } from "http";
 import { useServer } from "graphql-ws/use/ws";
+import { User } from "./entities/User";
 
 dotenv.config();
 
@@ -62,7 +63,7 @@ const startServer = async () => {
   useServer(
     {
       schema,
-          context: async (ctx) => {
+      context: async (ctx) => {
         // Extraer el token de los connectionParams
         const authorization =
           (ctx.connectionParams?.Authorization as string) || "";
@@ -71,7 +72,7 @@ const startServer = async () => {
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
         if (!currentUser) {
-          throw new Error("Not authenticated perro");
+          throw new Error("context: Not authenticated");
         }
         // Retornar el contexto con el currentUser
         return { em, currentUser };
@@ -86,10 +87,14 @@ const startServer = async () => {
     console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
   });
 
-  await insertShedulesOption(orm.em.fork());
+  // await insertShedulesOption(orm.em.fork());
 
   makeCron(orm);
   populateNews(orm);
+  const foro = await orm.em.fork().findOne(User, {
+    nickname: "forum",
+  });
+  console.log("id forum: ", foro.id);
   // storeNews(orm.em.fork(), limit, pages);
 };
 
@@ -112,24 +117,24 @@ const populateNews = (orm) => {
   storeDaylyNews(orm.em.fork(), limit, pages);
 };
 
-const insertShedulesOption = (
-  em: EntityManager<IDatabaseDriver<Connection>>
-) => {
-  const SchedulesOptionRepo = em.getRepository(ScheduleOptions);
-  const schedulesOption = SchedulesOptionRepo.create({
-    maxActiveReservations: 3,
-    cancellationDeadline: 30,
-    maxStrikesBeforePenalty: 3,
-    penaltyDuration: 7,
-    maxAdvanceBookingDays: 7,
-  });
-  try {
-    em.persistAndFlush(schedulesOption);
-  } catch (e) {
-    console.log("Error inserting Schedules Option");
-    console.log(e);
-  }
-};
+// const insertShedulesOption = (
+//   em: EntityManager<IDatabaseDriver<Connection>>
+// ) => {
+//   const SchedulesOptionRepo = em.getRepository(ScheduleOptions);
+//   const schedulesOption = SchedulesOptionRepo.create({
+//     maxActiveReservations: 3,
+//     cancellationDeadline: 30,
+//     maxStrikesBeforePenalty: 3,
+//     penaltyDuration: 7,
+//     maxAdvanceBookingDays: 7,
+//   });
+//   try {
+//     em.persistAndFlush(schedulesOption);
+//   } catch (e) {
+//     console.log("Error inserting Schedules Option");
+//     console.log(e);
+//   }
+// };
 
 const fetchBoxingNews = async (limit: number, page: number) => {
   try {

@@ -89,7 +89,10 @@ input CreatePlanInput {
     durationInDays: Int!
     isActive: Boolean!
     currency: String
-    paymentType: PaymentType!
+    paymentType: PaymentType!,
+    icon: String
+    features: [String]!
+    isBestChoice: Boolean
 }
 
 input CreateSubscriptionInput {

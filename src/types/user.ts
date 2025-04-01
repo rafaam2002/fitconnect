@@ -13,6 +13,8 @@ export type UserType = {
   profilePicture: string;
   phoneNumber: string;
   nickname: string;
+  stripeCustomerId: string;
+  name: string;
 };
 
 export type UserFilter = {

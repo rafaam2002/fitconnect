@@ -94,6 +94,9 @@ export class User extends BaseEntity {
   @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscriptions = new Collection<Subscription>(this);
 
+  @Property({ nullable: true })
+  stripeCustomerId?: string;
+
   constructor(user: User) {
     super();
     this.name = user.name;

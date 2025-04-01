@@ -121,6 +121,9 @@ type Plan {
     paymentType: PaymentType!
     durationInDays: Int!
     subscriptions: [Subscription]
+    features: [String]
+    icon: String
+    isBestChoice: Boolean
 }
 
 type Notification {
@@ -186,5 +189,10 @@ type AdminStats {
     subscriptions: Int!
     transactions: Int!
     notifications: Int!
+}
+
+type GroupUser {
+    standard: [User]
+    specialRoles: [User]
 }
 `;

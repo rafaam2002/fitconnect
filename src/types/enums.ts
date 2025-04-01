@@ -1,3 +1,10 @@
+export enum Durations {
+  ONE_HOUR = "1 hora",
+  ONE_DAY = "1 dia",
+  ONE_WEEK = "1 semana",
+  ONE_MONTH = "1 mes",
+}
+
 export enum UserRol {
   STANDARD = "standard",
   BOSS = "boss",
@@ -45,15 +52,14 @@ export enum PaymentMethod {
   GOOGLE_PAY = "google_pay",
 }
 
-export enum Currency{
+export enum Currency {
   EUR = "eur",
   USD = "usd",
 }
 
-export enum TransactionStatus{
+export enum TransactionStatus {
   SUCCESS = "SUCCESS",
   FAILED = "FAILED",
   PENDING = "PENDING",
   REFUND = "REFUND",
 }
-

@@ -6,7 +6,7 @@ type Mutation {
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     createMessage(message: CreateMessageInput!): MessageResponse!
-    fixMessage(messageId: ID!, fixedDuration: Int!): MessageResponse!
+    fixMessage(messageId: ID!, fixedEndDate: String!): MessageResponse!
     unfixMessage(messageId: ID!): MessageResponse!
     createSchedule(schedule: CreateScheduleInput!): ScheduleResponse!
     changeScheduleStatus(scheduleId: ID!): ScheduleResponse!

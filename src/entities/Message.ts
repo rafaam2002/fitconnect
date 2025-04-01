@@ -20,7 +20,7 @@ export class Message extends BaseEntity {
 
   //  @Field(() => Number, { nullable: true })
   @Property({ nullable: true })
-  fixedDuration?: number;
+  fixedEndDate?: Date;
 
   @ManyToOne(() => User)
   sender!: User;
@@ -41,7 +41,7 @@ export class Message extends BaseEntity {
     super();
     this.text = message.text;
     this.isFixed = message.isFixed;
-    this.fixedDuration = message.fixedDuration;
+    this.fixedEndDate = message.fixedEndDate;
     this.sender = message.sender;
     this.receiver = message.receiver;
   }

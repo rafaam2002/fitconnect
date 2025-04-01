@@ -100,7 +100,7 @@ type Message {
     created_at: String!
     text: String!
     isFixed:Boolean
-    fixedDuration: Int
+    fixedEndDate: String
     sender: UserResumeResponse!
     receiver: UserResumeResponse!
 }

@@ -5,6 +5,7 @@ import { Message } from "../../../entities/Message";
 import { UserType } from "../../../types";
 import { notAuthError, notCreatedError, notLoggedError } from "../errors";
 import {
+  Durations,
   PaymentType,
   ScheduleState,
   SubscriptionStatus,
@@ -244,13 +245,13 @@ export const removeUser = async (
 export const createMessage = async (
   root: any,
   {
-    message: { text, receiverId, isFixed, fixedDuration = null },
+    message: { text, receiverId, isFixed, fixedEndDate = null },
   }: {
     message: {
       text: string;
       receiverId: string;
       isFixed: boolean;
-      fixedDuration: number;
+      fixedEndDate: Date;
     };
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -268,7 +269,7 @@ export const createMessage = async (
       receiver,
       sender: em.getReference(User, currentUser.id),
       isFixed: !!isFixed,
-      fixedDuration,
+      fixedEndDate,
     });
     await em.persistAndFlush(newMessage);
     myPubsub.publish(MESSAGE_EVENT, { newMessage });
@@ -704,10 +705,10 @@ export const fixMessage = async (
   root: any,
   {
     messageId,
-    duration,
+    fixedEndDate,
   }: {
     messageId: string;
-    duration: number;
+    fixedEndDate: string;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -725,8 +726,9 @@ export const fixMessage = async (
   if (message.sender.id !== currentUser.id) {
     return notAuthError("You are not authorized to perform this action");
   }
+
   message.isFixed = true;
-  message.fixedDuration = duration;
+  message.fixedEndDate = new Date(Number(fixedEndDate));
   await em.persistAndFlush(message);
   return createdSuccess("Message fixed succesfully", message, null);
 };
@@ -755,7 +757,7 @@ export const unfixMessage = async (
     return notAuthError("You are not authorized to perform this action");
   }
   message.isFixed = false;
-  message.fixedDuration = 0;
+  message.fixedEndDate = null;
   await em.persistAndFlush(message);
   return createdSuccess("Message unfixed succesfully", message, null);
 };

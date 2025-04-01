@@ -30,6 +30,15 @@ export class Plan extends BaseEntity {
     @Property({ type: "number" })
     durationInDays: number = 0;
 
+    @Property({ type: "array" })
+    features: string[] = [];
+
+    @Property({ type: "string" })
+    icon: string = "book";
+
+    @Property({ type: "boolean" })
+    isBestChoice: boolean = false;
+
     @OneToMany(() => Subscription, (subscription: Subscription) => subscription.plan)
     subscriptions = new Collection<Subscription>(this);
 }

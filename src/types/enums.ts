@@ -37,6 +37,7 @@ export enum CreditCardType {
 export enum CreditCardProvider {
   VISA = "visa",
   MASTERCARD = "mastercard",
+  STRIPE = "stripe",
 }
 
 export enum PaymentMethod {

@@ -121,6 +121,9 @@ type Plan {
     paymentType: PaymentType!
     durationInDays: Int!
     subscriptions: [Subscription]
+    features: [String]
+    icon: String
+    isBestChoice: Boolean
 }
 
 type Notification {

@@ -8,17 +8,17 @@ import {ScheduleOptions} from "../../../entities/ScheduleOptions";
 import moment from "moment";
 import {FORUM} from "../../../constants/forum";
 import {
-    ContextProps,
-    GetConversationProps,
-    GetMonthlyScheduleStats,
-    GetPollProps,
-    GetScheduleProps,
-    GetScheduleRangeProps,
-    IdProps,
-    ScheduleResumeRange,
-    ScheduleStatsProps,
-    UserListProps
-} from "./types";
+  ContextProps,
+  GetConversationProps,
+  GetMonthlyScheduleStats,
+  GetPollProps,
+  GetScheduleProps,
+  GetScheduleRangeProps,
+  IdProps,
+  ScheduleResumeRange,
+  ScheduleStatsProps,
+  UserListProps,
+} from "../../../types/resolvers";
 
 export const getUsers = async (_: any, args: UserListProps, context: ContextProps) => {
     const {em, currentUser} = context;

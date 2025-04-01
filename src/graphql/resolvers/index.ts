@@ -32,6 +32,7 @@ import {
   removeUserFromSchedule,
   createUser,
   changeScheduleStatus,
+  fixMessage,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -82,6 +83,7 @@ const resolvers = {
     createScheduleDevelopment,
     addUserToSchedule,
     removeUserFromSchedule,
+    fixMessage,
   },
   Subscription: {
     newMessage,

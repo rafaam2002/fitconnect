@@ -22,6 +22,9 @@ export class Message extends BaseEntity {
   @Property({ nullable: true })
   fixedEndDate?: Date;
 
+  @ManyToOne(() => User, { nullable: true })
+  fixedAdmin?: User;
+
   @ManyToOne(() => User)
   sender!: User;
 

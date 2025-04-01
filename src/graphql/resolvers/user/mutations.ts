@@ -38,6 +38,7 @@ import {
   UserProps,
   VoteProps,
 } from "../../../types/resolvers";
+import { fi } from "@faker-js/faker";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -547,12 +548,16 @@ export const fixMessage = async (
     return CustomResponse(404, "Message not found");
   }
 
-  if (message.sender.id !== currentUser.id) {
+  if (
+    currentUser.rol !== UserRol.BOSS &&
+    message.sender.id !== currentUser.id
+  ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
   message.isFixed = true;
-  message.fixedEndDate = moment(Number(fixedEndDate)).toDate();
+  message.fixedEndDate = fixedEndDate;
+  message.fixedAdmin = em.getReference(User, currentUser.id);
 
   await em.persistAndFlush(message);
 

@@ -21,7 +21,11 @@ import {
   createScheduleProgrammed,
 } from "../../../utils/schedules";
 import { updateUserSchema } from "../../../validation/schemas";
-import { MESSAGE_EVENT, myPubsub } from "../../../constants/subscriptions";
+import {
+  FIXED_MESSAGE_EVENT,
+  MESSAGE_EVENT,
+  myPubsub,
+} from "../../../constants/subscriptions";
 import moment from "moment";
 import { CustomResponse } from "../errors";
 import {
@@ -38,7 +42,6 @@ import {
   UserProps,
   VoteProps,
 } from "../../../types/resolvers";
-import { fi } from "@faker-js/faker";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -87,7 +90,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
 };
 
 export const updateUser = async (_, args: UserProps, context: ContextProps) => {
-  const { user } = args;
+  const { user: fields, userId } = args;
   const { em, currentUser } = context;
   const userRepo = em.getRepository(User);
   const {
@@ -100,12 +103,16 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
     isActive,
     isBlocked,
     rol,
-  } = user;
+  } = fields;
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
-  let updateUser = await userRepo.findOne({ id: currentUser.id });
+
+  if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+  let updateUser = await userRepo.findOne({ id: userId });
 
   if (!updateUser) {
     return CustomResponse(404, "User not found");
@@ -561,6 +568,8 @@ export const fixMessage = async (
 
   await em.persistAndFlush(message);
 
+  myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
+
   return CustomResponse(200, "Message fixed succesfully", true);
 };
 
@@ -580,19 +589,25 @@ export const unfixMessage = async (
   }
 
   const messageRepo = em.getRepository(Message);
-  const message = await messageRepo.findOne({ id: messageId });
+  const message: Message = await messageRepo.findOne({ id: messageId });
 
   if (!message) {
     return CustomResponse(404, "Message not found");
   }
-  if (message.sender.id !== currentUser.id) {
+  if (
+    currentUser.rol === UserRol.COACH &&
+    message.fixedAdmin.id !== currentUser.id
+  ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
   message.isFixed = false;
-  message.fixedDuration = 0;
+  message.fixedEndDate = null;
 
-  await em.persistAndFlush(message);
+  em.persist(message);
+  await em.flush();
+
+  myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
 
   return CustomResponse(200, "Message unfixed successfully", true);
 };

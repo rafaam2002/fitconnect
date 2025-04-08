@@ -1,5 +1,6 @@
 export const graphqlSubscriptions = `
 type Subscription {
-    newMessage: Message
+    newMessage: Message,
+    fixedMessages: Message
 }
 `;

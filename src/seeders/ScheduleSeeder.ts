@@ -13,7 +13,7 @@ export class ScheduleSeeder extends Seeder {
     });
 
     new ScheduleFactory(em).each((schedule) => {
-      schedule.users.set(new UserFactory(em).make(10));
+      schedule.users.set(new UserFactory(em).make(2));
       schedule.admin = schedule.users.getItems()[0];
     }).make(100);
   }

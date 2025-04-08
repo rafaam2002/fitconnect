@@ -26,8 +26,8 @@ export class MessageSeeder extends Seeder {
 
     const forumMessage = em.create(Message, {
       text: "Welcome to the forum!",
-      isFixed: true,
       sender: myUser,
+      isFixed: false,
       receiver: forumUser,
     });
     await em.persistAndFlush(forumMessage);

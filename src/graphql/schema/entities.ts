@@ -101,6 +101,7 @@ type Message {
     text: String!
     isFixed:Boolean
     fixedEndDate: String
+    fixedAdmin: UserResumeResponse
     sender: UserResumeResponse!
     receiver: UserResumeResponse!
 }

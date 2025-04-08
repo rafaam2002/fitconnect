@@ -5,7 +5,8 @@ import { ScheduleState } from "./enums";
 
 
 export type UserProps = {
-  user: User;
+    user: User;
+    userId?: string;
 };
 
 export type ContextProps = {
@@ -91,7 +92,7 @@ export type IdProps = { id: string };
 
 export type GetScheduleProps = { scheduleId: string; calculateIsBooked: boolean };
 
-export type GetConversationProps = { otherUserId: string; page: number };
+export type GetConversationProps = { otherUserId?: string; page?: number, limit?: number };
 
 export type GetScheduleRangeProps = {
   startDate: string;

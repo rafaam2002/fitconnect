@@ -6,6 +6,7 @@ input UpdateUserInput {
     phoneNumber: String,
     nickname: String!,
     profilePicture: String,
+    isBlocked: Boolean,
     rol: UserRol
 }
 

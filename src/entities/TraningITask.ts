@@ -28,8 +28,16 @@ export class TrainingTask extends BaseEntity {
   @ManyToMany(() => User, (user) => user.trainingTasks)
   users = new Collection<User>(this);
 
-  constructor(user: TrainingTask) {
+  @Property()
+  date!: Date;
+
+  @Property()
+  repeat: boolean = false;
+
+  constructor(task: TrainingTask) {
     super();
-    this.content = user.content;
+    this.content = task.content;
+    this.date = task.date;
+    this.repeat = task.repeat;
   }
 }

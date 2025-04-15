@@ -15,6 +15,7 @@ import {
   getAdminStats,
   getSchedulesStats,
   getMonthlySchedules,
+  getTrainingTasks,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -34,6 +35,8 @@ import {
   changeScheduleStatus,
   fixMessage,
   unfixMessage,
+  createTrainingTask,
+  removeTrainingTask,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -64,6 +67,7 @@ const resolvers = {
     getAdminStats,
     getSchedulesStats,
     getMonthlySchedules,
+    getTrainingTasks,
   },
   Mutation: {
     updateUser,
@@ -86,6 +90,8 @@ const resolvers = {
     removeUserFromSchedule,
     unfixMessage,
     fixMessage,
+    createTrainingTask,
+    removeTrainingTask,
   },
   Subscription: {
     newMessage,

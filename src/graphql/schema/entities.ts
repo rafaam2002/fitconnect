@@ -1,4 +1,12 @@
 export const graphqlEntities = `
+type TrainingTask {  
+    id: ID!
+    content: String!
+    users: [User]
+    date: String!
+    repeat: Boolean!
+}
+
 type Article {
     id: ID!
     publishedAt: String!

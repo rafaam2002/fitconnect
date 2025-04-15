@@ -5,6 +5,14 @@ interface BasicResponse {
     message: String!
 }
 
+type TrainingTaskResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    trainingTask: TrainingTask
+    trainingTasks: [TrainingTask]
+}
+
 type SchedulesStats {
     dayAndTime: String!
     ratio: Float!

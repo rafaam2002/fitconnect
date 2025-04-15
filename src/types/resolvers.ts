@@ -117,8 +117,18 @@ export type GetMonthlyScheduleStats = {
 };
 
 export type CreateTrainingTaskProps = {
-  trainingTask: {
     content: string;
     userIds: string[];
-  };
+    date: string;
+    repeat?: boolean;
 }
+
+export type GetTrainingTaskProps = {
+    userId: string;
+    dateRange: [string, string];
+    repeat?: boolean;
+};
+
+export type removeTrainingTaskProps = {
+    taskId: string;
+};

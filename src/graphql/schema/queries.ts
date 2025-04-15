@@ -28,6 +28,8 @@ type Query {
     getArticles(limit: Int!, offset: Int!): ArticleResponse!
     #------------------Admin-----------------
     getAdminStats: AdminStatsResponse!
+    #-------------------TrainingTask-----------------
+    getTrainingTasks: TrainingTaskResponse!
     
 }
 `;

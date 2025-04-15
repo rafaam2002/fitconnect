@@ -37,6 +37,7 @@ import {
   MessageProps,
   PollProps,
   RemoveSheduleProps,
+  removeTrainingTaskProps,
   ScheduleDevelopmentProps,
   ScheduleProps,
   UnfixMessageProps,
@@ -962,8 +963,7 @@ export const createTrainingTask = async (
   args: CreateTrainingTaskProps,
   context: ContextProps
 ) => {
-  const { trainingTask } = args;
-  const { content, userIds } = trainingTask;
+  const { content, userIds, date, repeat = false } = args;
   const { em, currentUser } = context;
 
   if (!currentUser) {
@@ -982,6 +982,8 @@ export const createTrainingTask = async (
   const newTrainingTask = em.create(TrainingTask, {
     content,
     users: userReferences,
+    date,
+    repeat,
   });
 
   try {
@@ -993,4 +995,32 @@ export const createTrainingTask = async (
     console.error(error);
     return CustomResponse(500, "Error creating training task");
   }
+};
+
+export const removeTrainingTask = async (
+  _: any,
+  args: removeTrainingTaskProps,
+  context: ContextProps
+) => {
+  const { taskId } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  if (currentUser.rol === UserRol.STANDARD) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const trainingTaskRepo = em.getRepository(TrainingTask);
+  const trainingTask = await trainingTaskRepo.findOne({ id: taskId });
+
+  if (!trainingTask) {
+    return CustomResponse(404, "Training task not found");
+  }
+
+  await em.removeAndFlush(trainingTask);
+
+  return CustomResponse(200, "Training task removed successfully", true);
 };

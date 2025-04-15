@@ -22,6 +22,8 @@ type Mutation {
     addUserToSchedule(scheduleId: ID!): ScheduleResponse!
     removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!
     exampleMutation: String!
+    createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!
+    removeTrainingTask(trainingTaskId: ID!): TrainingTaskResponse!
 }
 
 `;

@@ -1,4 +1,10 @@
 export const graphqlInputs = `
+
+input CreateTrainingTaskInput {
+    content: String!,
+    users: [ID]!
+}
+
 input UpdateUserInput {
     name: String!,
     surname: String!,

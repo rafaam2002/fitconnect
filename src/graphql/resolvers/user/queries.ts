@@ -14,6 +14,7 @@ import {
   GetPollProps,
   GetScheduleProps,
   GetScheduleRangeProps,
+  GetTrainingTaskProps,
   IdProps,
   ScheduleResumeRange,
   ScheduleStatsProps,
@@ -367,8 +368,6 @@ export const getConversation = async (
     ...forumFields,
   ]; //just mandatory fields to optimize query
 
-  
-
   if (!otherUserId) {
     const rawUserIds: { otheruser: string }[] = await em
       .getConnection()
@@ -416,7 +415,7 @@ export const getConversation = async (
     const messages = await messageRepo.find(filter, {
       orderBy: { created_at: "DESC" },
       limit: limit,
-      offset: page * (limit),
+      offset: page * limit,
       populate: ["sender", "receiver"],
       fields,
     });
@@ -808,4 +807,34 @@ export const getMonthlySchedules = async (
       schedules: matchHourSchedules,
     });
   else return CustomResponse(404, "No schedules found");
+};
+
+export const getTrainingTasks = async (
+  _: any,
+  args: GetTrainingTaskProps,
+  context: ContextProps
+) => {
+  const { em, currentUser } = context;
+  const { userId, dateRange, repeat } = args;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const trainingTaskRepo = em.getRepository(User);
+
+  const trainingTasks = await trainingTaskRepo.find(
+    {
+      userIds: [userId],
+      $or: [
+        { date: { $gte: dateRange[0], $lte: dateRange[1] } }, // Dentro del rango de fechas
+        { repeat: true }, // Con repeat a true
+      ],
+    },
+    { populate: ["user"] }
+  );
+
+  return CustomResponse(200, "Training tasks found", true, {
+    trainingTasks,
+  });
 };

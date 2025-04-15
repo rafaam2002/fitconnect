@@ -31,6 +31,7 @@ import { CustomResponse } from "../errors";
 import {
   ChangeScheduleStatusProp,
   ContextProps,
+  CreateTrainingTaskProps,
   DeletePollProps,
   FixMessageProps,
   MessageProps,
@@ -42,6 +43,7 @@ import {
   UserProps,
   VoteProps,
 } from "../../../types/resolvers";
+import { TrainingTask } from "../../../entities/TraningITask";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -953,4 +955,42 @@ export const addCreditCard = async (
   await em.persistAndFlush(card);
 
   return `Tarjeta agregada exitosamente para el usuario ${currentUser.name}`;
+};
+
+export const createTrainingTask = async (
+  _: any,
+  args: CreateTrainingTaskProps,
+  context: ContextProps
+) => {
+  const { trainingTask } = args;
+  const { content, userIds } = trainingTask;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  if (currentUser.rol === UserRol.STANDARD) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const userReferences = userIds.map((id) => {
+    const user = em.getReference(User, id);
+    return user;
+  });
+
+  const newTrainingTask = em.create(TrainingTask, {
+    content,
+    users: userReferences,
+  });
+
+  try {
+    await em.persistAndFlush(newTrainingTask);
+    return CustomResponse(200, "Training task created successfully", true, {
+      trainingTask: newTrainingTask,
+    });
+  } catch (error) {
+    console.error(error);
+    return CustomResponse(500, "Error creating training task");
+  }
 };

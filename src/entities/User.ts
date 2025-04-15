@@ -18,6 +18,7 @@ import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
 import { Card } from "./Card";
 import { Subscription } from "./Subscription";
+import { TrainingTask } from "./TraningITask";
 
 @Entity()
 export class User extends BaseEntity {
@@ -57,7 +58,6 @@ export class User extends BaseEntity {
   })
   schedules = new Collection<Schedule>(this);
 
-
   @ManyToMany(() => Promotion, (promotion) => promotion.users, {
     owner: true,
     eager: true,
@@ -96,6 +96,11 @@ export class User extends BaseEntity {
 
   @Property({ nullable: true })
   stripeCustomerId?: string;
+
+  @ManyToMany(() => TrainingTask, (trainingTask) => trainingTask.users, {
+    owner: true,
+  })
+  trainingTasks = new Collection<TrainingTask>(this);
 
   constructor(user: User) {
     super();

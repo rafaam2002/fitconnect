@@ -115,3 +115,10 @@ export type GetMonthlyScheduleStats = {
   month: number;
   startHour: string;
 };
+
+export type CreateTrainingTaskProps = {
+  trainingTask: {
+    content: string;
+    userIds: string[];
+  };
+}

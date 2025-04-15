@@ -38,8 +38,10 @@ export const getUsers = async (
 
   const userRepo = em.getRepository(User);
 
+  let users;
+
   if (textFilter) {
-    const users = await userRepo.find(
+    users = await userRepo.find(
       {
         $or: [
           { nickname: { $ilike: `${textFilter}%` } },
@@ -50,15 +52,11 @@ export const getUsers = async (
       },
       pagination
     );
-
-    return CustomResponse(200, "Users found", true, { users });
-  } else if (currentUser.rol === UserRol.BOSS) {
-    const users = await userRepo.findAll(pagination);
-
-    return CustomResponse(200, "Users found", true, { users });
   } else {
-    return CustomResponse(403, "You are not authorized to perform this action");
+    users = await userRepo.findAll(pagination);
   }
+  const usersNotMe = users.filter((user) => user.id !== currentUser.id);
+  return CustomResponse(200, "Users found", true, { users: usersNotMe });
 };
 
 export const me = async (_: any, args: any, context: ContextProps) => {
@@ -326,7 +324,7 @@ export const getConversation = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { otherUserId, page, limit } = args;
+  const { otherUserId, page = 0, limit = 50 } = args;
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
@@ -354,43 +352,97 @@ export const getConversation = async (
         ],
       });
 
-  const messages = await messageRepo.find(filter, {
-    orderBy: { created_at: "ASC" },
-    limit: limit || 50,
-    offset: page * 50,
-    populate: ["sender", "receiver"],
-    fields: [
-      "id",
-      "sender.id",
-      "sender.profilePicture",
-      "sender.nickname",
-      "sender.rol",
-      "receiver.id",
-      "receiver.profilePicture",
-      "receiver.nickname",
-      "receiver.rol",
-      "text",
-      "created_at",
-      ...forumFields,
-    ], //just mandatory fields to optimize query
-  });
-  // Agrupar mensajes por otro usuario
-  const conversationsMap = messages.reduce((acc, message) => {
-    const otherUser =
-      message.receiver.id === FORUM.id
-        ? FORUM.id
-        : message.sender.id === currentUser.id
-        ? message.receiver.id
-        : message.sender.id;
+  const fields = [
+    "id",
+    "sender.id",
+    "sender.profilePicture",
+    "sender.nickname",
+    "sender.rol",
+    "receiver.id",
+    "receiver.profilePicture",
+    "receiver.nickname",
+    "receiver.rol",
+    "text",
+    "created_at",
+    ...forumFields,
+  ]; //just mandatory fields to optimize query
 
-    (acc[otherUser] ||= []).push(message); // Sintaxis optimizada para evitar chequeos extra
-    return acc;
-  }, {});
+  
 
-  // Convertir a array de arrays
-  const conversations = Object.values(conversationsMap);
+  if (!otherUserId) {
+    const rawUserIds: { otheruser: string }[] = await em
+      .getConnection()
+      .execute(
+        `
+          SELECT DISTINCT 
+            CASE 
+              WHEN sender_id = ? THEN receiver_id 
+              ELSE sender_id 
+            END AS otherUser
+          FROM message
+          WHERE sender_id = ? OR receiver_id = ?
+       `,
+        [currentUser.id, currentUser.id, currentUser.id]
+      );
 
-  return CustomResponse(200, "Conversations found", true, { conversations });
+    const otherUserIds = rawUserIds.map((row) => row.otheruser);
+
+    // Para cada otro usuario, se busca la conversación con el currentUser:
+    const conversationPromises = otherUserIds.map((otherId) => {
+      return messageRepo.find(
+        {
+          $or: [
+            { sender: currentUser.id, receiver: otherId },
+            { sender: otherId, receiver: currentUser.id },
+          ],
+        },
+        {
+          orderBy: { created_at: "DESC" }, // Opcional: para ordenarlos de manera cronológica.
+          populate: ["sender", "receiver"], // Si necesitas cargar las relaciones.
+          limit: limit,
+          fields,
+        }
+      );
+    });
+
+    const conversationsGrouped: Array<Message[]> = await Promise.all(
+      conversationPromises
+    );
+
+    return CustomResponse(200, "Conversations found", true, {
+      conversations: conversationsGrouped,
+    });
+  } else {
+    const messages = await messageRepo.find(filter, {
+      orderBy: { created_at: "DESC" },
+      limit: limit,
+      offset: page * (limit),
+      populate: ["sender", "receiver"],
+      fields,
+    });
+
+    const hasMore = messages.length === limit;
+
+    const messagesByDay = messages.reduce((groups, message) => {
+      // Formatea la fecha (por ejemplo, '2025-04-09') para agrupar por día
+      const day = moment(message.created_at).format("YYYY-MM-DD");
+      if (!groups[day]) {
+        groups[day] = [];
+      }
+      groups[day].push(message);
+      return groups;
+    }, {} as Record<string, typeof messages>);
+
+    // Si deseas obtener un array de arrays (donde cada posición corresponde a un grupo)
+    const groupedMessages = Object.values(messagesByDay);
+
+    return CustomResponse(200, "Conversations found", true, {
+      conversation: {
+        messages: groupedMessages,
+        hasMore,
+      },
+    });
+  }
 };
 
 export const getTodaySchedulesResume = async (
@@ -515,7 +567,11 @@ export const getSchedulesResumeRange = async (
     { populate: ["users", "admin"] }
   );
 
-  schedules.map((schedule) => {
+  const sortSchedules = schedules.sort((a, b) => {
+    return moment(a.startDate).unix() - moment(b.startDate).unix();
+  });
+
+  sortSchedules.map((schedule) => {
     schedule.startDate = moment(
       new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
     ).toDate();
@@ -523,8 +579,6 @@ export const getSchedulesResumeRange = async (
     schedule.endDate = moment(
       new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
     ).toDate();
-
-    return schedule;
   });
 
   if (calculateIsBooked) {
@@ -547,7 +601,7 @@ export const getSchedulesResumeRange = async (
     });
   }
 
-  const schedulesResume = schedules.map((schedule) => {
+  const schedulesResume = sortSchedules.map((schedule) => {
     return {
       id: schedule.id,
       startDate: schedule.startDate,

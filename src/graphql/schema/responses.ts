@@ -97,13 +97,21 @@ type PollResponse implements BasicResponse{
     polls: [Poll]
 }
 
+type ConversationResponse {
+    messages: [[Message]]
+    hasMore: Boolean
+}
+
 type MessageResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
     sms: Message
     conversations: [[Message]]
+    conversation: ConversationResponse
 }
+
+
 
 type PlanResponse implements BasicResponse{
     code: String!

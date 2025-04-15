@@ -1,43 +1,46 @@
-import {EntityManager} from "@mikro-orm/postgresql";
-import {UserType} from "../../../types";
-import {Article} from "../../../entities/Article";
+import { EntityManager } from "@mikro-orm/postgresql";
+import { UserType } from "../../../types";
+import { Article } from "../../../entities/Article";
 
 type ContextType = {
-    em: EntityManager;
-    currentUser: UserType;
-}
+  em: EntityManager;
+  currentUser: UserType;
+};
 
 type PaginationProps = {
-    limit: number;
-    offset: number;
-}
+  limit: number;
+  offset: number;
+};
 
 export const getArticles = async (
-    _: any,
-    {limit, offset}: PaginationProps,
-    {em, currentUser}: ContextType
+  _: any,
+  { limit, offset }: PaginationProps,
+  { em, currentUser }: ContextType
 ) => {
-    //   const productRepo = em.getRepository(Product);
 
-    if (!currentUser) {
-        return {
-            success: false,
-            code: "401",
-            message: "Please login",
-        };
-    }
-    const articles = await em.find(Article, {}, {
-        limit,
-        offset,
-    });
-
-    const totalArticles = await em.count(Article);
-
+  if (!currentUser) {
     return {
-        success: true,
-        code: "200",
-        message: "Articles found",
-        articles,
-        hasMore: offset + limit < totalArticles,
+      success: false,
+      code: "401",
+      message: "Please login",
     };
+  }
+  const articles = await em.find(
+    Article,
+    {},
+    {
+      limit,
+      offset,
+    }
+  );
+
+  const totalArticles = await em.count(Article);
+
+  return {
+    success: true,
+    code: "200",
+    message: "Articles found",
+    articles,
+    hasMore: offset + limit < totalArticles,
+  };
 };

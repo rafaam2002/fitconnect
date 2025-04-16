@@ -1,4 +1,4 @@
-import { Collection, Entity, ManyToMany, Property, t } from "@mikro-orm/core";
+import { Collection, Entity, ManyToMany, ManyToOne, Property, t } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 
@@ -7,8 +7,8 @@ export class TrainingTask extends BaseEntity {
   @Property({ type: t.string })
   content!: string;
 
-  @ManyToMany(() => User, (user) => user.trainingTasks)
-  users = new Collection<User>(this);
+  @ManyToOne(() => User, { nullable: true })
+  user!: User;
 
   @Property()
   date!: Date;
@@ -22,7 +22,6 @@ export class TrainingTask extends BaseEntity {
   constructor(task: TrainingTask) {
     super();
     this.content = task.content;
-    this.date = task.date;
     this.repeat = task.repeat;
     this.dates = task.dates;
   }

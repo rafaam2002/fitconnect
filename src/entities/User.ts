@@ -97,8 +97,8 @@ export class User extends BaseEntity {
   @Property({ nullable: true })
   stripeCustomerId?: string;
 
-  @ManyToMany(() => TrainingTask, (trainingTask) => trainingTask.users, {
-    owner: true,
+  @OneToMany(() => TrainingTask, (trainingTask) => trainingTask.user, {
+    lazy: true,
   })
   trainingTasks = new Collection<TrainingTask>(this);
 

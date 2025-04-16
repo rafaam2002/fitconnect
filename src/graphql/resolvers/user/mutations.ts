@@ -963,7 +963,7 @@ export const createTrainingTask = async (
   args: CreateTrainingTaskProps,
   context: ContextProps
 ) => {
-  const { content, userIds, date, dates, repeat = false } = args;
+  const { content, userId, dates, repeat = false } = args;
   const { em, currentUser } = context;
 
   if (!currentUser) {
@@ -974,15 +974,11 @@ export const createTrainingTask = async (
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
-  const userReferences = userIds.map((id) => {
-    const user = em.getReference(User, id);
-    return user;
-  });
+ const userReference = em.getReference(User,userId);
 
   const newTrainingTask = em.create(TrainingTask, {
     content,
-    users: userReferences,
-    date,
+    user: userReference,
     repeat,
     dates,
   });

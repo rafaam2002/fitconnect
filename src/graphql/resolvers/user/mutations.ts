@@ -963,7 +963,7 @@ export const createTrainingTask = async (
   args: CreateTrainingTaskProps,
   context: ContextProps
 ) => {
-  const { content, userIds, date, repeat = false } = args;
+  const { content, userIds, date, dates, repeat = false } = args;
   const { em, currentUser } = context;
 
   if (!currentUser) {
@@ -984,6 +984,7 @@ export const createTrainingTask = async (
     users: userReferences,
     date,
     repeat,
+    dates,
   });
 
   try {

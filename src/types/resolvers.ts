@@ -3,10 +3,9 @@ import { User } from "../entities/User";
 import { UserType } from "./user";
 import { ScheduleState } from "./enums";
 
-
 export type UserProps = {
-    user: User;
-    userId?: string;
+  user: User;
+  userId?: string;
 };
 
 export type ContextProps = {
@@ -90,9 +89,16 @@ export type GetPollProps = { pollId: string; filter: { since: string } };
 
 export type IdProps = { id: string };
 
-export type GetScheduleProps = { scheduleId: string; calculateIsBooked: boolean };
+export type GetScheduleProps = {
+  scheduleId: string;
+  calculateIsBooked: boolean;
+};
 
-export type GetConversationProps = { otherUserId?: string; page?: number, limit?: number };
+export type GetConversationProps = {
+  otherUserId?: string;
+  page?: number;
+  limit?: number;
+};
 
 export type GetScheduleRangeProps = {
   startDate: string;
@@ -117,18 +123,19 @@ export type GetMonthlyScheduleStats = {
 };
 
 export type CreateTrainingTaskProps = {
-    content: string;
-    userIds: string[];
-    date: string;
-    repeat?: boolean;
-}
+  content: string;
+  userIds: string[];
+  date?: string;
+  repeat?: boolean;
+  dates?: string[];
+};
 
 export type GetTrainingTaskProps = {
-    userId: string;
-    dateRange: [string, string];
-    repeat?: boolean;
+  userId: string;
+  dateRange: [string, string];
+  repeat?: boolean;
 };
 
 export type removeTrainingTaskProps = {
-    taskId: string;
+  taskId: string;
 };

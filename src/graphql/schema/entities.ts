@@ -3,8 +3,9 @@ type TrainingTask {
     id: ID!
     content: String!
     users: [User]
-    date: String!
+    date: String
     repeat: Boolean!
+    dates: [String]
 }
 
 type Article {

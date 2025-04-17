@@ -16,6 +16,7 @@ import {
   getSchedulesStats,
   getMonthlySchedules,
   getTrainingTasks,
+  getUserWeights,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import { updatePassword, forgotPassword } from "./auth/mutations";
@@ -37,6 +38,8 @@ import {
   unfixMessage,
   createTrainingTask,
   removeTrainingTask,
+  addUserWeight,
+  removeUserWeight,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -68,6 +71,7 @@ const resolvers = {
     getSchedulesStats,
     getMonthlySchedules,
     getTrainingTasks,
+    getUserWeights
   },
   Mutation: {
     updateUser,
@@ -92,6 +96,8 @@ const resolvers = {
     fixMessage,
     createTrainingTask,
     removeTrainingTask,
+    addUserWeight,
+    removeUserWeight
   },
   Subscription: {
     newMessage,

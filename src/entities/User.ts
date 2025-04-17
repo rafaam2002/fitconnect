@@ -19,6 +19,7 @@ import bcrypt from "bcrypt";
 import { Card } from "./Card";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
+import { UserWeight } from "./UserWeight";
 
 @Entity()
 export class User extends BaseEntity {
@@ -101,6 +102,12 @@ export class User extends BaseEntity {
     lazy: true,
   })
   trainingTasks = new Collection<TrainingTask>(this);
+
+  @OneToMany(() => UserWeight, (userWeight) => userWeight.user, {
+    lazy: true,
+  })
+  userWeights = new Collection<UserWeight>(this);
+  
 
   constructor(user: User) {
     super();

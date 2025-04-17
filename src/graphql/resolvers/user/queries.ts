@@ -15,11 +15,13 @@ import {
   GetScheduleProps,
   GetScheduleRangeProps,
   GetTrainingTaskProps,
+  GetUserWeightsProps,
   IdProps,
   ScheduleResumeRange,
   ScheduleStatsProps,
   UserListProps,
 } from "../../../types/resolvers";
+import { TrainingTask } from "../../../entities/TraningITask";
 
 export const getUsers = async (
   _: any,
@@ -385,6 +387,7 @@ export const getConversation = async (
       );
 
     const otherUserIds = rawUserIds.map((row) => row.otheruser);
+    otherUserIds.push(FORUM.id); // Agregar el ID del foro a la lista de IDs de otros usuarios
 
     // Para cada otro usuario, se busca la conversación con el currentUser:
     const conversationPromises = otherUserIds.map((otherId) => {
@@ -393,6 +396,7 @@ export const getConversation = async (
           $or: [
             { sender: currentUser.id, receiver: otherId },
             { sender: otherId, receiver: currentUser.id },
+            { receiver: FORUM.id },
           ],
         },
         {
@@ -815,26 +819,66 @@ export const getTrainingTasks = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { userId, dateRange, repeat } = args;
+  const { userId, dateRange } = args;
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
 
-  const trainingTaskRepo = em.getRepository(User);
+  const trainingTaskRepo = em.getRepository(TrainingTask);
+  const userReference = em.getReference(User, userId);
 
   const trainingTasks = await trainingTaskRepo.find(
     {
-      userIds: [userId],
-      $or: [
-        { date: { $gte: dateRange[0], $lte: dateRange[1] } }, // Dentro del rango de fechas
-        { repeat: true }, // Con repeat a true
+      $and: [
+        {
+          $or: [
+            { user: userReference },
+            {
+              user: null,
+            },
+          ],
+        }, // Condición adicional si es necesaria
+        {
+          $or: [
+            { date: { $gte: dateRange[0], $lte: dateRange[1] } }, // Dentro del rango de fechas
+            { repeat: true }, // Con repeat a true
+          ],
+        },
       ],
     },
+
     { populate: ["user"] }
   );
 
   return CustomResponse(200, "Training tasks found", true, {
     trainingTasks,
+  });
+};
+
+export const getUserWeights = async (
+  _: any,
+  args: GetUserWeightsProps,
+  context: ContextProps
+) => {
+  const { em, currentUser } = context;
+  const { userId } = args;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const userRepo = em.getRepository(User);
+  const user = await userRepo.findOne(
+    { id: userId },
+    { populate: ["userWeights"] }
+  );
+
+  if (!user) {
+    return CustomResponse(404, "User not found");
+  }
+
+  return CustomResponse(200, "User weights found", true, {
+    userWeights: user.userWeights,
   });
 };

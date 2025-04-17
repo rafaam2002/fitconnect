@@ -10,23 +10,20 @@ import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 
 @Entity()
-export class TrainingTask extends BaseEntity {
+export class UserWeight extends BaseEntity {
+  @Property()
+  weight!: number;
+
   @Property({ type: t.string })
-  content!: string;
+  date!: string;
 
   @ManyToOne(() => User, { nullable: true })
   user!: User;
+  
 
-  @Property()
-  repeat: boolean = false;
-
-  @Property({ nullable: true })
-  date: string;
-   
-  constructor(task: TrainingTask) {
+  constructor(userWeight: UserWeight) {
     super();
-    this.content = task.content;
-    this.repeat = task.repeat;
-    this.date = task.date;
+    this.date = userWeight.date;
+    this.weight = userWeight.weight;
   }
 }

@@ -38,6 +38,7 @@ import {
   PollProps,
   RemoveSheduleProps,
   removeTrainingTaskProps,
+  RemoveUserWeight,
   ScheduleDevelopmentProps,
   ScheduleProps,
   UnfixMessageProps,
@@ -45,6 +46,7 @@ import {
   VoteProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
+import { UserWeight } from "../../../entities/UserWeight";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -963,7 +965,7 @@ export const createTrainingTask = async (
   args: CreateTrainingTaskProps,
   context: ContextProps
 ) => {
-  const { content, userId, dates, repeat = false } = args;
+  const { content, userId, date, repeat = false } = args.trainingTask;
   const { em, currentUser } = context;
 
   if (!currentUser) {
@@ -974,13 +976,13 @@ export const createTrainingTask = async (
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
- const userReference = em.getReference(User,userId);
+  const userReference = userId && em.getReference(User, userId);
 
   const newTrainingTask = em.create(TrainingTask, {
     content,
     user: userReference,
     repeat,
-    dates,
+    date,
   });
 
   try {
@@ -1020,4 +1022,65 @@ export const removeTrainingTask = async (
   await em.removeAndFlush(trainingTask);
 
   return CustomResponse(200, "Training task removed successfully", true);
+};
+
+export const addUserWeight = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  const { weight, date } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const userReference = em.getReference(User, currentUser.id);
+
+  const newWeight = em.create(UserWeight, {
+    weight,
+    date,
+    user: userReference,
+  });
+
+  try {
+    await em.persistAndFlush(newWeight);
+    return CustomResponse(200, "Weight added successfully", true, {
+      weight: newWeight,
+    });
+  } catch (error) {
+    console.error(error);
+    return CustomResponse(500, "Error adding weight");
+  }
+};
+
+export const removeUserWeight = async (
+  _: any,
+  args: RemoveUserWeight,
+  context: ContextProps
+) => {
+  const { weightId } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const userWeightRepo = em.getRepository(UserWeight);
+  const userWeight = await userWeightRepo.findOne({ id: weightId });
+
+  if (!userWeight) {
+    return CustomResponse(404, "User weight not found");
+  }
+  if (
+    userWeight.user.id !== currentUser.id &&
+    currentUser.rol !== UserRol.BOSS
+  ) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  await em.removeAndFlush(userWeight);
+
+  return CustomResponse(200, "User weight removed successfully", true);
 };

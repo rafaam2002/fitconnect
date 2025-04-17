@@ -5,6 +5,14 @@ interface BasicResponse {
     message: String!
 }
 
+type UserWeightResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    userWeight: UserWeight
+    userWeights: [UserWeight]
+}
+
 type TrainingTaskResponse implements BasicResponse {
     code: String!
     success: Boolean!

@@ -29,7 +29,9 @@ type Query {
     #------------------Admin-----------------
     getAdminStats: AdminStatsResponse!
     #-------------------TrainingTask-----------------
-    getTrainingTasks: TrainingTaskResponse!
+    getTrainingTasks(userId: String,dateRange: [String]! ): TrainingTaskResponse!
+    #-------------------UserWeight-----------------
+    getUserWeights(userId: String, dateRange: [String]!): UserWeightResponse!
     
 }
 `;

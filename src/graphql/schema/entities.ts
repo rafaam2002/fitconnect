@@ -1,11 +1,17 @@
 export const graphqlEntities = `
+type UserWeight {
+    id: ID!
+    weight: Float!
+    date: String!
+    user: UserResumeResponse!
+}
+
 type TrainingTask {  
     id: ID!
     content: String!
-    users: [User]
+    user: User
     date: String
     repeat: Boolean!
-    dates: [String]
 }
 
 type Article {
@@ -37,6 +43,7 @@ type User {
     rol: UserRol!
     token: String
     schedules: [Schedule]
+    userWeights: [UserWeight]
     phoneNumber: String
 }
 

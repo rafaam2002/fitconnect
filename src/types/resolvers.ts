@@ -123,18 +123,35 @@ export type GetMonthlyScheduleStats = {
 };
 
 export type CreateTrainingTaskProps = {
-  content: string;
-  userId: string | null;
-  dates: string[];
-  repeat: boolean;
+  trainingTask: {
+    content: string;
+    userId?: string | undefined;
+    date: string;
+    repeat: boolean;
+  };
 };
 
 export type GetTrainingTaskProps = {
-  userId: string;
+  userId?: string | null;
   dateRange: [string, string];
-  repeat: boolean;
 };
 
 export type removeTrainingTaskProps = {
   taskId: string;
+};
+
+export type GetUserWeightsProps = {
+  userId: string;
+  dateRange: [string, string];
+};
+
+export type AddUserWeight = {
+  userId: string;
+  weight: number;
+  date: string;
+}
+
+export type RemoveUserWeight = {
+  userId: string;
+  weightId: string;
 };

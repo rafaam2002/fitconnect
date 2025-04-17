@@ -1,8 +1,16 @@
 export const graphqlInputs = `
 
+input AddUserWeightInput {
+    userId: ID!,
+    weight: Float!,
+    date: String!
+}
+
 input CreateTrainingTaskInput {
     content: String!,
-    users: [ID]!
+    userId: ID,
+    date: String!,
+    repeat: Boolean!
 }
 
 input UpdateUserInput {

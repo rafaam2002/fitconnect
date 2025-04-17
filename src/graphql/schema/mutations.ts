@@ -24,6 +24,8 @@ type Mutation {
     exampleMutation: String!
     createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!
     removeTrainingTask(trainingTaskId: ID!): TrainingTaskResponse!
+    addUserWeight(userWeight: AddUserWeightInput!): UserResponse!
+    removeUserWeight(userId: ID!, userWeightId: ID!): UserResponse!
 }
 
 `;

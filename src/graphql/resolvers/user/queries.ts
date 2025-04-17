@@ -333,27 +333,12 @@ export const getConversation = async (
     return CustomResponse(401, "Please login");
   }
   const messageRepo = em.getRepository(Message);
-  let filter;
+
   let forumFields = [];
   if (otherUserId === FORUM.id || !otherUserId) {
     //forum
     forumFields = ["isFixed", "fixedEndDate", "fixedAdmin"]; //this fields are only available in forum
   }
-
-  otherUserId
-    ? (filter = {
-        $or: [
-          { sender: currentUser.id, receiver: otherUserId },
-          { sender: otherUserId, receiver: currentUser.id },
-        ],
-      })
-    : (filter = {
-        $or: [
-          { sender: currentUser.id },
-          { receiver: currentUser.id },
-          { receiver: FORUM.id },
-        ],
-      });
 
   const fields = [
     "id",
@@ -387,7 +372,6 @@ export const getConversation = async (
       );
 
     const otherUserIds = rawUserIds.map((row) => row.otheruser);
-    otherUserIds.push(FORUM.id); // Agregar el ID del foro a la lista de IDs de otros usuarios
 
     // Para cada otro usuario, se busca la conversación con el currentUser:
     const conversationPromises = otherUserIds.map((otherId) => {
@@ -416,6 +400,17 @@ export const getConversation = async (
       conversations: conversationsGrouped,
     });
   } else {
+    const filter =
+      otherUserId !== FORUM.id
+        ? {
+            $or: [
+              { sender: currentUser.id, receiver: otherUserId },
+              { sender: otherUserId, receiver: currentUser.id },
+            ],
+          }
+        : {
+            receiver: FORUM.id,
+          };
     const messages = await messageRepo.find(filter, {
       orderBy: { created_at: "DESC" },
       limit: limit,

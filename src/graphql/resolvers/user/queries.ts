@@ -857,11 +857,16 @@ export const getUserWeights = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { userId } = args;
+  const { userId, dateRange } = args;
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
+
+  if (currentUser.rol === UserRol.STANDARD) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
 
   const userRepo = em.getRepository(User);
   const user = await userRepo.findOne(

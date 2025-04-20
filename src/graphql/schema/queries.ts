@@ -31,7 +31,7 @@ type Query {
     #-------------------TrainingTask-----------------
     getTrainingTasks(userId: String,dateRange: [String]! ): TrainingTaskResponse!
     #-------------------UserWeight-----------------
-    getUserWeights(userId: String, dateRange: [String]!): UserWeightResponse!
+    getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!
     
 }
 `;

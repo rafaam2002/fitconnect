@@ -25,7 +25,7 @@ type Mutation {
     createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!
     removeTrainingTask(trainingTaskId: ID!): TrainingTaskResponse!
     addUserWeight(userWeight: AddUserWeightInput!): UserResponse!
-    removeUserWeight(userId: ID!, userWeightId: ID!): UserResponse!
+    removeUserWeight(userWeightId: ID!): UserResponse!
 }
 
 `;

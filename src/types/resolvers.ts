@@ -142,16 +142,18 @@ export type removeTrainingTaskProps = {
 
 export type GetUserWeightsProps = {
   userId: string;
-  dateRange: [string, string];
+  dateRange?: [string, string];
 };
 
 export type AddUserWeight = {
-  userId: string;
-  weight: number;
-  date: string;
-}
+  userWeight: {
+    userId: string;
+    weight: number;
+    date: string;
+  };
+};
 
 export type RemoveUserWeight = {
   userId: string;
-  weightId: string;
+  userWeightId: string;
 };

@@ -29,6 +29,7 @@ import {
 import moment from "moment";
 import { CustomResponse } from "../errors";
 import {
+  AddUserWeight,
   ChangeScheduleStatusProp,
   ContextProps,
   CreateTrainingTaskProps,
@@ -1026,17 +1027,21 @@ export const removeTrainingTask = async (
 
 export const addUserWeight = async (
   _: any,
-  args: any,
+  args: AddUserWeight,
   context: ContextProps
 ) => {
-  const { weight, date } = args;
+  const { weight, date, userId } = args.userWeight;
   const { em, currentUser } = context;
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
 
-  const userReference = em.getReference(User, currentUser.id);
+  if (currentUser.rol === UserRol.STANDARD) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const userReference = em.getReference(User, userId);
 
   const newWeight = em.create(UserWeight, {
     weight,
@@ -1060,7 +1065,7 @@ export const removeUserWeight = async (
   args: RemoveUserWeight,
   context: ContextProps
 ) => {
-  const { weightId } = args;
+  const { userWeightId } = args;
   const { em, currentUser } = context;
 
   if (!currentUser) {
@@ -1068,7 +1073,7 @@ export const removeUserWeight = async (
   }
 
   const userWeightRepo = em.getRepository(UserWeight);
-  const userWeight = await userWeightRepo.findOne({ id: weightId });
+  const userWeight = await userWeightRepo.findOne({ id: userWeightId });
 
   if (!userWeight) {
     return CustomResponse(404, "User weight not found");

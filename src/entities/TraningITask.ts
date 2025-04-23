@@ -15,7 +15,7 @@ export class TrainingTask extends BaseEntity {
   content!: string;
 
   @ManyToOne(() => User, { nullable: true })
-  user!: User;
+  user: User;
 
   @Property()
   repeat: boolean = false;
@@ -28,5 +28,6 @@ export class TrainingTask extends BaseEntity {
     this.content = task.content;
     this.repeat = task.repeat;
     this.date = task.date;
+    this.user = task.user;
   }
 }

@@ -25,5 +25,6 @@ export class UserWeight extends BaseEntity {
     super();
     this.date = userWeight.date;
     this.weight = userWeight.weight;
+    this.user = userWeight.user;
   }
 }

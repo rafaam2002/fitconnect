@@ -24,12 +24,15 @@ import { User } from "./entities/User";
 dotenv.config();
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+
 const httpServer = createServer(app);
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 const apolloServer = new ApolloServer({
   schema,

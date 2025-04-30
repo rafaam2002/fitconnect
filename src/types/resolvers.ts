@@ -33,10 +33,14 @@ export type ScheduleProps = {
   };
 };
 
-export type RemoveSheduleProps = {
+export type RemoveUserSheduleProps = {
   scheduleId: string;
   userId?: string;
 };
+
+export type RemoveScheduleProps = {
+  scheduleId: string;
+}
 
 export type ScheduleDevelopmentProps = {
   scheduleDevelopment: {

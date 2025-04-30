@@ -37,8 +37,9 @@ import {
   FixMessageProps,
   MessageProps,
   PollProps,
-  RemoveSheduleProps,
+  RemoveScheduleProps,
   removeTrainingTaskProps,
+  RemoveUserSheduleProps,
   RemoveUserWeight,
   ScheduleDevelopmentProps,
   ScheduleProps,
@@ -326,7 +327,7 @@ export const addUserToSchedule = async (
 
 export const removeUserFromSchedule = async (
   _: any,
-  args: RemoveSheduleProps,
+  args: RemoveUserSheduleProps,
   context: ContextProps
 ) => {
   const { scheduleId, userId } = args;
@@ -1089,3 +1090,31 @@ export const removeUserWeight = async (
 
   return CustomResponse(200, "User weight removed successfully", true);
 };
+
+export const removeSchedule = async(
+  _: any,
+  args: RemoveScheduleProps,
+  context: ContextProps
+) => {
+  const { scheduleId } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const scheduleRepo = em.getRepository(Schedule);
+  const schedule = await scheduleRepo.findOne({ id: scheduleId });
+
+  if (!schedule) {
+    return CustomResponse(404, "Schedule not found");
+  }
+
+  if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  await em.removeAndFlush(schedule);
+
+  return CustomResponse(200, "Schedule removed successfully", true);
+}

@@ -40,6 +40,7 @@ import {
   removeTrainingTask,
   addUserWeight,
   removeUserWeight,
+  removeSchedule,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -97,7 +98,8 @@ const resolvers = {
     createTrainingTask,
     removeTrainingTask,
     addUserWeight,
-    removeUserWeight
+    removeUserWeight,
+    removeSchedule
   },
   Subscription: {
     newMessage,

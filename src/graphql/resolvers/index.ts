@@ -47,6 +47,7 @@ import { getPlans } from "./plan/queries";
 import { fixedMessages, newMessage } from "./user/subscriptions";
 import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
+import { getPresignedUrl } from "./s3/queries";
 
 const resolvers = {
   Query: {
@@ -72,7 +73,8 @@ const resolvers = {
     getSchedulesStats,
     getMonthlySchedules,
     getTrainingTasks,
-    getUserWeights
+    getUserWeights,
+    getPresignedUrl,
   },
   Mutation: {
     updateUser,
@@ -99,7 +101,7 @@ const resolvers = {
     removeTrainingTask,
     addUserWeight,
     removeUserWeight,
-    removeSchedule
+    removeSchedule,
   },
   Subscription: {
     newMessage,

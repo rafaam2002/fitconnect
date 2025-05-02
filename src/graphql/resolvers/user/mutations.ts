@@ -50,6 +50,9 @@ import {
 import { TrainingTask } from "../../../entities/TraningITask";
 import { UserWeight } from "../../../entities/UserWeight";
 
+
+
+
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
 );
@@ -1091,7 +1094,7 @@ export const removeUserWeight = async (
   return CustomResponse(200, "User weight removed successfully", true);
 };
 
-export const removeSchedule = async(
+export const removeSchedule = async (
   _: any,
   args: RemoveScheduleProps,
   context: ContextProps
@@ -1110,11 +1113,15 @@ export const removeSchedule = async(
     return CustomResponse(404, "Schedule not found");
   }
 
-  if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS) {
+  if (
+    schedule.admin.id !== currentUser.id &&
+    currentUser.rol !== UserRol.BOSS
+  ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
   await em.removeAndFlush(schedule);
 
   return CustomResponse(200, "Schedule removed successfully", true);
-}
+};
+

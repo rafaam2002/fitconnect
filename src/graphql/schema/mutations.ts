@@ -41,6 +41,7 @@ type Mutation {
     #------------------UserWeight------------------
     addUserWeight(userWeight: AddUserWeightInput!): UserResponse!
     removeUserWeight(userWeightId: ID!): UserResponse!
+
 }
 
 `;

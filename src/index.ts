@@ -7,19 +7,21 @@ import express from "express";
 import cors from "cors";
 import { expressMiddleware } from "@apollo/server/express4";
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
 import { authenticateUser } from "./middlewares/auth";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { WebSocketServer } from "ws";
-import { ScheduleOptions } from "./entities/ScheduleOptions";
 import { ScheduleProgrammed } from "./entities/ScheduleProgrammed";
 import cron from "node-cron";
 import axios from "axios";
 import { Article } from "./entities/Article";
-import bodyParser from "body-parser";
 import { createServer } from "http";
 import { useServer } from "graphql-ws/use/ws";
 import { User } from "./entities/User";
+
+// const {
+//   ApolloServerPluginLandingPageLocalDefault,
+// } = require("apollo-server-core");
 
 dotenv.config();
 
@@ -28,14 +30,19 @@ const path = require("path");
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 const httpServer = createServer(app);
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 const apolloServer = new ApolloServer({
   schema,
-  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  plugins: [
+    ApolloServerPluginDrainHttpServer({ httpServer }),
+    //ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+  ],
+  csrfPrevention: true,
+  cache: "bounded",
 });
 
 const startServer = async () => {

@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@apollo/server": "^4.11.3",
+    "@aws-sdk/client-s3": "^3.802.0",
+    "@aws-sdk/s3-request-presigner": "^3.802.0",
     "@faker-js/faker": "^9.3.0",
     "@graphql-tools/schema": "^10.0.18",
     "@mikro-orm/cli": "6.4.0",

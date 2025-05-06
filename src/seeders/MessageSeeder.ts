@@ -20,8 +20,8 @@ export class MessageSeeder extends Seeder {
       isActive: false,
       isBlocked: false,
       rol: UserRol.BOSS,
-      profilePicture:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvWcDiCogDIw_r-bnJSjJz67ZnDdelV-eb2w&s",
+      // profilePicture:
+      //   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvWcDiCogDIw_r-bnJSjJz67ZnDdelV-eb2w&s",
     });
 
     const forumMessage = em.create(Message, {

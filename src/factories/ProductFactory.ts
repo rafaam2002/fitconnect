@@ -12,15 +12,6 @@ export class ProductFactory extends Factory<Product> {
       description:
         "El producto se deberá adquirir en el establecimiento físico",
       price: faker.number.float({ min: 1, max: 300, fractionDigits: 2 }),
-      pictures: faker.datatype.boolean()
-        ? Array.from(
-            { length: faker.number.int({ min: 1, max: 10 }) },
-            () =>
-              `/assets/mock/${
-                productPictures[faker.number.int({ min: 0, max: 2 })]
-              }`
-          )
-        : null,
     };
   }
 }

@@ -22,6 +22,23 @@ import {
   UserListProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import dotenv, { populate } from "dotenv";
+
+dotenv.config();
+
+const region = process.env.AWS_REGION || "eu-north-1";
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "";
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+export const s3 = new S3Client({
+  region,
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+});
 
 export const getUsers = async (
   _: any,
@@ -70,7 +87,12 @@ export const me = async (_: any, args: any, context: ContextProps) => {
     return CustomResponse(401, "Please login");
   }
   //falta conseguir el usuario actual
-  const me = await userRepo.findOne({ id: currentUser.id });
+  const me: User | null = await userRepo.findOne(
+    { id: currentUser.id },
+    {
+      populate: ["pictureUrl"],
+    }
+  );
   if (me) {
     return CustomResponse(200, "User found", true, { user: me });
   } else {
@@ -866,7 +888,6 @@ export const getUserWeights = async (
   if (currentUser.rol === UserRol.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
-
 
   const userRepo = em.getRepository(User);
   const user = await userRepo.findOne(

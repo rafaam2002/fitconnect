@@ -48,7 +48,7 @@ type Query {
     getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!
 
     #------------------s3-----------------
-    getPresignedUrl: PresignedUrlResponse!
+    getPresignedUrl(key: String ): PresignedUrlResponse!
     
 }
 `;

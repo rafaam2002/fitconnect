@@ -8,6 +8,11 @@ export type UserProps = {
   userId?: string;
 };
 
+export type UserPictureProps = {
+  userId: string;
+  picture: string;
+};
+
 export type ContextProps = {
   em: EntityManager | any;
   currentUser: UserType;
@@ -40,7 +45,7 @@ export type RemoveUserSheduleProps = {
 
 export type RemoveScheduleProps = {
   scheduleId: string;
-}
+};
 
 export type ScheduleDevelopmentProps = {
   scheduleDevelopment: {
@@ -161,3 +166,18 @@ export type RemoveUserWeight = {
   userId: string;
   userWeightId: string;
 };
+
+export type CreateProduct = {
+  product: {
+    name: string;
+    description: string;
+    price: number;
+    pictures: string[];
+  };
+};
+
+export type UpdateProductImage = {
+  imageName: string;
+  imageUrl: string;
+  productId: string;  
+}

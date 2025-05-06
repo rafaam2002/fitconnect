@@ -17,7 +17,7 @@ export class UserFactory extends Factory<User> {
       password: process.env.DEFAULT_PASSWORD || "123456",
       email: faker.internet.email(),
       phoneNumber: faker.phone.number(),
-      profilePicture: faker.datatype.boolean() ? faker.image.avatar() : null,
+      //profilePicture: faker.datatype.boolean() ? faker.image.avatar() : null,
       nickname: faker.internet.username(),
       isActive: faker.datatype.boolean(),
       isBlocked: faker.datatype.boolean(),

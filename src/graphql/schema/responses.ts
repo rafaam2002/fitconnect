@@ -9,7 +9,8 @@ type PresignedUrlResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    presignedUrl: String
+    presignedUrl: String!
+    key: String!
 }
 
 type UserWeightResponse implements BasicResponse {
@@ -157,7 +158,7 @@ id: ID!
 type UserResumeResponse {
     id: ID!
     nickname: String!
-    profilePicture: String
+    pictureUrl: PictureUrl
     rol: UserRol!
 }
 

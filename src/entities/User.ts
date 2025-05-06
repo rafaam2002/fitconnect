@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToMany,
   OneToMany,
+  OneToOne,
   Property,
   t,
 } from "@mikro-orm/core";
@@ -20,6 +21,7 @@ import { Card } from "./Card";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { UserWeight } from "./UserWeight";
+import { PictureUrl } from "./PictureUrl";
 
 @Entity()
 export class User extends BaseEntity {
@@ -38,8 +40,8 @@ export class User extends BaseEntity {
   @Property({ nullable: true })
   phoneNumber: string;
 
-  @Property({ nullable: true }) //{ type: "blob", nullable: true }
-  profilePicture?: string;
+  // @Property({ nullable: true })
+  // profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
   nickname!: string;
@@ -107,7 +109,13 @@ export class User extends BaseEntity {
     lazy: true,
   })
   userWeights = new Collection<UserWeight>(this);
-  
+
+  @OneToOne(() => PictureUrl, (picture) => picture.user, {
+    nullable: true,
+    owner: true,
+    eager: true,
+  })
+  pictureUrl?: PictureUrl;
 
   constructor(user: User) {
     super();

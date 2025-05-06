@@ -44,14 +44,18 @@ import {
   ScheduleDevelopmentProps,
   ScheduleProps,
   UnfixMessageProps,
+  UserPictureProps,
   UserProps,
   VoteProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
 import { UserWeight } from "../../../entities/UserWeight";
-
-
-
+import { PictureUrl } from "../../../entities/PictureUrl";
+import { get } from "axios";
+import {
+  createPictureUrl,
+  getPresignedUrl,
+} from "../../../utils/createPresignedUrls";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -109,7 +113,6 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
     surname,
     nickname,
     phoneNumber,
-    profilePicture,
     isActive,
     isBlocked,
     rol,
@@ -133,7 +136,6 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
   updateUser.surname = surname;
   updateUser.nickname = nickname;
   updateUser.phoneNumber = phoneNumber || updateUser.phoneNumber;
-  updateUser.profilePicture = profilePicture || updateUser.profilePicture;
   updateUser.isActive = isActive || updateUser.isActive;
   updateUser.isBlocked = isBlocked || updateUser.isBlocked;
   updateUser.rol = rol || updateUser.rol;
@@ -163,6 +165,56 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
       user: updateUser,
     });
   } catch (error) {
+    return CustomResponse(500, "Error updating user", false, { user: null });
+  }
+};
+
+export const updateUserPicture = async (
+  _: any,
+  args: UserPictureProps,
+  context: ContextProps
+) => {
+  const { userId, picture } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const userRepo = em.getRepository(User);
+  const updateUser: User = await userRepo.findOne({ id: userId });
+
+  if (!updateUser) {
+    return CustomResponse(404, "User not found");
+  }
+
+  if (!updateUser.pictureUrl) {
+    const pictureUrl = await createPictureUrl(
+      em,
+      {
+        id: userId,
+        name: picture,
+        type: "user",
+      },
+      await getPresignedUrl(picture)
+    );
+    updateUser.pictureUrl = pictureUrl;
+  } else {
+    //updateUser.pictureUrl.name = picture;
+    updateUser.pictureUrl.url = await getPresignedUrl(picture);
+  }
+  try {
+    em.persistAndFlush(updateUser);
+
+    return CustomResponse(200, "User updated successfully", true, {
+      user: updateUser,
+    });
+  } catch (error) {
+    console.error(error);
     return CustomResponse(500, "Error updating user", false, { user: null });
   }
 };
@@ -1124,4 +1176,3 @@ export const removeSchedule = async (
 
   return CustomResponse(200, "Schedule removed successfully", true);
 };
-

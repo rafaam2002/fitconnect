@@ -41,6 +41,7 @@ import {
   addUserWeight,
   removeUserWeight,
   removeSchedule,
+  updateUserPicture,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -48,6 +49,7 @@ import { fixedMessages, newMessage } from "./user/subscriptions";
 import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
+import { createProduct, updateProductPicture } from "./product/mutations";
 
 const resolvers = {
   Query: {
@@ -79,6 +81,7 @@ const resolvers = {
   Mutation: {
     updateUser,
     createUser,
+    updateUserPicture,
     updatePassword,
     forgotPassword,
     createMessage,
@@ -102,6 +105,8 @@ const resolvers = {
     addUserWeight,
     removeUserWeight,
     removeSchedule,
+    createProduct,
+    updateProductPicture,
   },
   Subscription: {
     newMessage,

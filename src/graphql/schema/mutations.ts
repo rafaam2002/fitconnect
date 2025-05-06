@@ -6,6 +6,7 @@ type Mutation {
     updateUser ( user: UpdateUserInput!, userId: String!): UserResponse!
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
+    updateUserPicture(picture: String!, userId: String!): UserResponse!
 
     #------------------Message-----------------
     createMessage(message: CreateMessageInput!): MessageResponse!
@@ -41,6 +42,10 @@ type Mutation {
     #------------------UserWeight------------------
     addUserWeight(userWeight: AddUserWeightInput!): UserResponse!
     removeUserWeight(userWeightId: ID!): UserResponse!
+
+    #------------------Product------------------
+    createProduct(product: CreateProductInput!): ProductResponse!
+    updateProductPicture(imageName: String!,imageUrl: String!, productId: String!): ProductResponse!
 
 }
 

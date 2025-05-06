@@ -1,4 +1,9 @@
 export const graphqlEntities = `
+type PictureUrl {
+    name: String!
+    url: String!
+}
+
 type UserWeight {
     id: ID!
     weight: Float!
@@ -36,7 +41,7 @@ type User {
     name: String!
     surname: String
     email: String!
-    profilePicture: String
+    pictureUrl: PictureUrl
     nickname: String
     isActive: Boolean
     isBlocked: Boolean

@@ -1,5 +1,13 @@
-import { Entity, Property, t } from "@mikro-orm/core";
+import {
+  Cascade,
+  Collection,
+  Entity,
+  OneToMany,
+  Property,
+  t,
+} from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
+import { PictureUrl } from "./PictureUrl";
 
 @Entity()
 export class Product extends BaseEntity {
@@ -12,8 +20,10 @@ export class Product extends BaseEntity {
   @Property({ type: t.float })
   price!: number;
 
-  @Property({ nullable: true })
-  pictures?: string[];
+  @OneToMany(() => PictureUrl, (picture) => picture.product, {
+    cascade: [Cascade.PERSIST, Cascade.REMOVE],
+  })
+  pictures = new Collection<PictureUrl>(this);
 
   constructor(product: Product) {
     super();

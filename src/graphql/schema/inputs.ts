@@ -1,5 +1,11 @@
 export const graphqlInputs = `
 
+input CreateProductInput {
+    name: String!,
+    description: String!,
+    price: Float!,
+}
+
 input AddUserWeightInput {
     userId: ID!,
     weight: Float!,
@@ -19,9 +25,8 @@ input UpdateUserInput {
     email: String!,
     phoneNumber: String,
     nickname: String!,
-    profilePicture: String,
     isBlocked: Boolean,
-    rol: UserRol
+    rol: UserRol,
 }
 
 input CreateUserInput {

@@ -24,18 +24,20 @@ export const createProduct = async (
   if (!name || !description || !price)
     return CustomResponse(400, "Please fill all the fields");
 
-  const product = em.create(Product, {
-    name,
-    description,
-    price,
-  });
+  try {
+    const product = em.create(Product, {
+      name,
+      description,
+      price,
+    });
 
-  return {
-    success: true,
-    code: "200",
-    message: "Products found",
-    product,
-  };
+    em.persistAndFlush(product);
+
+    return CustomResponse(200, "Product created", true, { product });
+  } catch (error) {
+    console.error("Error creating product", error);
+    return CustomResponse(500, "Error creating product", false, null);
+  }
 };
 
 export const updateProductPicture = async (
@@ -54,13 +56,18 @@ export const updateProductPicture = async (
 
   if (!product) return CustomResponse(404, "Product not found");
 
-  const pictureUrl = em.create(PictureUrl, {
-    name: imageName,
-    url: imageUrl,
-  });
+  try {
+    const pictureUrl = em.create(PictureUrl, {
+      name: imageName,
+      url: imageUrl,
+      product: product,
+    });
 
-  product.pictures.add(pictureUrl);
-  await em.persistAndFlush(product);
+    await em.persistAndFlush(pictureUrl);
 
-  return CustomResponse(200, "Product picture updated", true, product);
+    return CustomResponse(200, "Product picture updated", true, { product });
+  } catch (error) {
+    console.error("Error updating product picture", error);
+    return CustomResponse(500, "Error updating product picture", false, null);
+  }
 };

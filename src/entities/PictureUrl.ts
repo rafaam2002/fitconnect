@@ -44,18 +44,6 @@ export class PictureUrl {
   })
   product?: Product;
 
-  // @BeforeCreate()
-  // validateRelations() {
-  //   if (
-  //     (!this.user && !this.product) ||
-  //     (this.user && this.product)
-  //   ) {
-  //     throw new Error(
-  //       "A PictureUrl must be related to either a User or a ProductPicture, but not both."
-  //     );
-  //   }
-  // }
-
   constructor(picture: PictureUrl) {
     this.name = picture.name;
     this.url = picture.url;

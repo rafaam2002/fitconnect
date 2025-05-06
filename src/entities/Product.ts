@@ -21,7 +21,8 @@ export class Product extends BaseEntity {
   price!: number;
 
   @OneToMany(() => PictureUrl, (picture) => picture.product, {
-    cascade: [Cascade.PERSIST, Cascade.REMOVE],
+    cascade: [Cascade.REMOVE],
+    eager: true,  
   })
   pictures = new Collection<PictureUrl>(this);
 

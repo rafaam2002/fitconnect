@@ -67,21 +67,15 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
   const { em } = context;
   const userRepo = em.getRepository(User);
 
-  if (!user.email || !user.name || !user.surname || !user.password) {
+  if (!user.name || !user.surname || !user.password || !user.nickname) {
     return CustomResponse(400, "Please provide all required fields");
   }
 
-  const existingEmail = await userRepo.findOne({ email: user.email });
-
-  if (existingEmail) {
-    return CustomResponse(400, "Email already exists");
-  }
-
-  const existingNickName = await userRepo.findOne({
+  const existingNickname = await userRepo.findOne({
     nickname: user.nickname,
   });
 
-  if (existingNickName) {
+  if (existingNickname) {
     return CustomResponse(400, "Nickname already exists");
   }
   const newUser = em.create(User, {
@@ -96,10 +90,15 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
 
     return CustomResponse(200, "User created successfully", true, {
       user: newUser,
-      token,
+      tokens: {
+        token,
+      },
     });
   } catch (error) {
-    return CustomResponse(500, "Error creating user");
+    return CustomResponse(
+      500,
+      `Error creating user ${error.name}, column: ${error.column}`
+    );
   }
 };
 

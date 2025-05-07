@@ -40,7 +40,7 @@ type User {
     id: ID!
     name: String!
     surname: String
-    email: String!
+    email: String
     pictureUrl: PictureUrl
     nickname: String
     isActive: Boolean

@@ -34,23 +34,23 @@ export class User extends BaseEntity {
   @Property({ type: t.string, lazy: true }) // means that the property will be loaded only when accessed
   password!: string;
 
-  @Property({ type: t.string, unique: true })
-  email!: string;
+  @Property({ type: t.string, nullable: true })
+  email?: string;
 
   @Property({ nullable: true })
-  phoneNumber: string;
+  phoneNumber?: string;
 
   // @Property({ nullable: true })
   // profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
-  nickname!: string;
+  nickname?: string;
 
   @Property()
   isActive!: boolean;
 
   @Property({ type: t.boolean })
-  isBlocked = true;
+  isBlocked;
 
   @Property({ type: t.string })
   rol!: UserRol;
@@ -121,10 +121,10 @@ export class User extends BaseEntity {
     super();
     this.name = user.name;
     this.surname = user.surname;
-    this.email = user.email;
     this.nickname = user.nickname;
     this.rol = UserRol.STANDARD;
-    this.isActive = false;
+    this.isActive = true;
+    this.isBlocked = false;
     this.password = user.password;
   }
 

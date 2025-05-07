@@ -32,11 +32,8 @@ input UpdateUserInput {
 input CreateUserInput {
     name: String!
     surname: String!
-    email: String!
-    password: String!
     nickname: String!
-    profilePicture: String
-    rol: UserRol
+    password: String!
 }
 
 input CreatePollVoteInput {

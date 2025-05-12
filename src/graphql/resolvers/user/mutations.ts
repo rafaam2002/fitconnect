@@ -57,9 +57,20 @@ import {
   getPresignedUrl,
 } from "../../../utils/createPresignedUrls";
 
+import nodemailer from "nodemailer";
+import { emailHtml } from "../../../utils/emailHtml";
+
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
 );
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER, // tu email
+    pass: process.env.GMAIL_APP_PASS, // password o app password
+  },
+});
 
 type AddScheduleProps = { scheduleId: string };
 export const createUser = async (_, args: UserProps, context: ContextProps) => {
@@ -78,12 +89,28 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
   if (existingUser) {
     return CustomResponse(400, "User already exists");
   }
+
   const newUser = em.create(User, {
     ...user,
   });
-
   try {
+    const emailVerificationTk = jwt.sign(
+      { id: user.email },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: "rafaam.2002@gmail.com",
+      subject: "Confirma tu cuenta",
+      html: emailHtml(emailVerificationTk),
+    });
+
     await em.persistAndFlush(newUser);
+
     const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
@@ -95,10 +122,16 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       },
     });
   } catch (error) {
-    return CustomResponse(
-      500,
-      `Error creating user ${error.name}, column: ${error.column}`
-    );
+    if (error.code === "EAUTH")
+      return CustomResponse(
+        500,
+        `Error sending verification email ${error.message}`
+      );
+    else
+      return CustomResponse(
+        500,
+        `Error creating user ${error.name}, column: ${error.column}`
+      );
   }
 };
 

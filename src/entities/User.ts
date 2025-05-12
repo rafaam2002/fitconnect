@@ -50,7 +50,10 @@ export class User extends BaseEntity {
   isActive: boolean;
 
   @Property({ type: t.boolean })
-  isBlocked;
+  isBlocked : boolean;
+
+  @Property({ type: t.boolean })
+  isVerified: boolean = false;
 
   @Property({ type: t.string })
   rol: UserRol;

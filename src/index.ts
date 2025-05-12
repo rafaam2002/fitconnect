@@ -18,6 +18,8 @@ import { Article } from "./entities/Article";
 import { createServer } from "http";
 import { useServer } from "graphql-ws/use/ws";
 import { User } from "./entities/User";
+import jwt from "jsonwebtoken";
+import { renderPage } from "./utils/emailHtml";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -47,6 +49,49 @@ const apolloServer = new ApolloServer({
 
 const startServer = async () => {
   const orm = await initORM();
+
+  //Ruta de verificación de email
+  app.get("/auth/verify-email", async (req, res) => {
+    const token = req.query.token as string;
+    try {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+        id: string;
+      };
+
+      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const user = await em.findOne(User, { email: decodedToken.id });
+      if (!user) {
+        return res
+          .status(400)
+          .send(
+            renderPage("Verificación fallida", "Usuario no encontrado", false)
+          );
+      }
+      user.isVerified = true;
+      await em.persistAndFlush(user);
+      // lógica que valida y activa al usuario
+      // Puedes devolver HTML, o redirigir a tu frontend:
+      return res
+        .status(200)
+        .send(
+          renderPage(
+            "¡Correo verificado!",
+            "Gracias por confirmar tu email. Ya puedes entrar en la app.",
+            true
+          )
+        );
+    } catch (err) {
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            "Verificación fallida",
+            `Token inválido o caducado. ${err.message}`,
+            false
+          )
+        );
+    }
+  });
 
   await apolloServer.start();
 

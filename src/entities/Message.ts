@@ -12,11 +12,11 @@ import { User } from "./User";
 export class Message extends BaseEntity {
   //  @Field(() => String)
   @Property()
-  text!: string;
+  text: string;
 
   // @Field(() => Boolean)
   @Property()
-  isFixed!: boolean;
+  isFixed: boolean;
 
   //  @Field(() => Number, { nullable: true })
   @Property({ nullable: true })
@@ -26,7 +26,7 @@ export class Message extends BaseEntity {
   fixedAdmin?: User;
 
   @ManyToOne(() => User)
-  sender!: User;
+  sender: User;
 
   // Relación ManyToOne con User (receiver)
   @ManyToOne(() => User)

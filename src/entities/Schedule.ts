@@ -15,19 +15,19 @@ import { ScheduleState } from "../types/enums";
 @Entity()
 export class Schedule extends BaseEntity {
   @Property()
-  title!: string;
+  title: string;
 
   @Property( { nullable: true })
   description: string;
 
   @Property() //puede haber 2 schedules en la misma hora?
-  startDate!: Date;
+  startDate: Date;
 
   @Property()
-  endDate!: Date;
+  endDate: Date;
 
   @Property()
-  maxUsers!: number;
+  maxUsers: number;
 
   @Property({ default: ScheduleState.AVAILABLE })
   state: ScheduleState;

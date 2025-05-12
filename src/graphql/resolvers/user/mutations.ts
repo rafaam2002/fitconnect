@@ -67,16 +67,16 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
   const { em } = context;
   const userRepo = em.getRepository(User);
 
-  if (!user.name || !user.surname || !user.password || !user.nickname) {
+  if (!user.email || !user.password || !user.nickname) {
     return CustomResponse(400, "Please provide all required fields");
   }
 
-  const existingNickname = await userRepo.findOne({
-    nickname: user.nickname,
+  const existingUser = await userRepo.findOne({
+    $or: [{ email: user.email }, { nickname: user.nickname }],
   });
 
-  if (existingNickname) {
-    return CustomResponse(400, "Nickname already exists");
+  if (existingUser) {
+    return CustomResponse(400, "User already exists");
   }
   const newUser = em.create(User, {
     ...user,

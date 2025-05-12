@@ -18,13 +18,13 @@ export class Poll extends BaseEntity {
   [EntityRepositoryType]?: CustomPollRepository;
 
   @Property()
-  endDate!: Date; // in minutes
+  endDate: Date; // in minutes
 
   @Property()
-  title!: string;
+  title: string;
 
   @Property()
-  options!: string[];
+  options: string[];
 
   @ManyToOne(() => User, { nullable: true }) // arreglar
   admin: User;

@@ -29,10 +29,10 @@ import { Product } from "./Product";
 @Entity()
 export class PictureUrl {
   @PrimaryKey({ type: t.string })
-  name!: string;
+  name: string;
 
   @Property({ type: t.text })
-  url!: string;
+  url: string;
 
   @OneToOne(() => User, (user) => user.pictureUrl, {
     nullable: true,

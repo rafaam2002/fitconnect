@@ -4,22 +4,22 @@ import { BaseEntity } from "./BaseEntity";
 @Entity()
 export class Article {
   @PrimaryKey({ type: t.uuid })
-  id!: string;
+  id: string;
 
   @Property({ type: t.string })
-  title!: string;
+  title: string;
 
   @Property({ type: t.string })
-  publishedAt!: string;
+  publishedAt: string;
 
   @Property({ type: t.string })
-  description!: string;
+  description: string;
 
   @Property({ type: t.string })
-  link!: string;
+  link: string;
 
   @Property({ type: t.string })
-  image!: string;
+  image: string;
 
   constructor(article: Article) {
     this.id = article.id;

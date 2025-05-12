@@ -25,17 +25,17 @@ import { PictureUrl } from "./PictureUrl";
 
 @Entity()
 export class User extends BaseEntity {
-  @Property({ type: t.string })
-  name!: string;
-
-  @Property({ type: t.string })
-  surname!: string;
-
-  @Property({ type: t.string, lazy: true }) // means that the property will be loaded only when accessed
-  password!: string;
+  @Property({ type: t.string, nullable: true })
+  name?: string;
 
   @Property({ type: t.string, nullable: true })
-  email?: string;
+  surname?: string;
+
+  @Property({ type: t.string, lazy: true }) // means that the property will be loaded only when accessed
+  password: string;
+
+  @Property({ type: t.string, unique: true })
+  email: string;
 
   @Property({ nullable: true })
   phoneNumber?: string;
@@ -47,13 +47,13 @@ export class User extends BaseEntity {
   nickname?: string;
 
   @Property()
-  isActive!: boolean;
+  isActive: boolean;
 
   @Property({ type: t.boolean })
   isBlocked;
 
   @Property({ type: t.string })
-  rol!: UserRol;
+  rol: UserRol;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,

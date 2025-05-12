@@ -38,11 +38,11 @@ type Product {
 
 type User {
     id: ID!
-    name: String!
+    name: String
     surname: String
-    email: String
+    email: String!
     pictureUrl: PictureUrl
-    nickname: String
+    nickname: String!
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRol!

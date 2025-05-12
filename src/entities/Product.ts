@@ -12,13 +12,13 @@ import { PictureUrl } from "./PictureUrl";
 @Entity()
 export class Product extends BaseEntity {
   @Property({ type: t.string })
-  name!: string;
+  name: string;
 
   @Property({ type: t.string })
-  description!: string;
+  description: string;
 
   @Property({ type: t.float })
-  price!: number;
+  price: number;
 
   @OneToMany(() => PictureUrl, (picture) => picture.product, {
     cascade: [Cascade.REMOVE],

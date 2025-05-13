@@ -49,7 +49,7 @@ export class UserSeeder extends Seeder {
             .each(async (poll) => {
               poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
             })
-            .make(2);
+            .make(1);
         }
       })
       .make(50, {

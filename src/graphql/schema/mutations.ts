@@ -45,7 +45,7 @@ type Mutation {
 
     #------------------Product------------------
     createProduct(product: CreateProductInput!): ProductResponse!
-    updateProductPicture(imageName: String!,imageUrl: String!, productId: String!): ProductResponse!
+    updateProductPicture(imageName: String!, productId: String!): ProductResponse!
 
 }
 

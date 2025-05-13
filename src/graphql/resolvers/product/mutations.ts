@@ -8,6 +8,7 @@ import { UserRol } from "../../../types/enums";
 import { CustomResponse } from "../errors";
 import { Update } from "aws-sdk/clients/dynamodb";
 import { PictureUrl } from "../../../entities/PictureUrl";
+import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
 
 export const createProduct = async (
   _: any,
@@ -42,7 +43,7 @@ export const createProduct = async (
 
 export const updateProductPicture = async (
   _: any,
-  { imageName, imageUrl, productId }: UpdateProductImage,
+  { imageName, productId }: UpdateProductImage,
   { em, currentUser }: ContextProps
 ) => {
   if (!currentUser) return CustomResponse(400, "Please login");
@@ -57,11 +58,15 @@ export const updateProductPicture = async (
   if (!product) return CustomResponse(404, "Product not found");
 
   try {
-    const pictureUrl = em.create(PictureUrl, {
-      name: imageName,
-      url: imageUrl,
-      product: product,
-    });
+     const pictureUrl = await createPictureUrl(
+          em,
+          {
+            id: productId,
+            name: imageName,
+            type: "product",
+          },
+          await getPresignedUrl(imageName)
+        );
 
     await em.persistAndFlush(pictureUrl);
 

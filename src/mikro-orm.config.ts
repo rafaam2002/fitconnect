@@ -7,6 +7,8 @@ import { Notification } from "./entities/Notification";
 import { SeedManager } from "@mikro-orm/seeder/SeedManager";
 import { Product } from "./entities/Product";
 import { Article } from "./entities/Article";
+import dotenv from "dotenv";
+dotenv.config();
 
 export default {
   entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article],

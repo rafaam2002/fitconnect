@@ -13,5 +13,5 @@ export const getProducts = async (
 
   const products = await em.findAll(Product, {});
 
-  return CustomResponse(200, "Products found", true, products);
+  return CustomResponse(200, "Products found", true, {products});
 };

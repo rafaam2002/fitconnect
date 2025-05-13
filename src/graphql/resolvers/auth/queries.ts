@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 const login = async (_, args: any, { em }) => {
   const { email, password } = args;
-  const user = await em.findOne(User, { email }, { populate: ["password"] });
+  const user:User = await em.findOne(User, { email }, { populate: ["password"] });
 
   const passwordCorrect =
     user === null ? false : await bcrypt.compare(password, user.password);
@@ -27,18 +27,16 @@ const login = async (_, args: any, { em }) => {
     rol: user.rol,
     nickname: user.nickname,
     phoneNumber: user.phoneNumber,
-    profilePicture: user.profilePicture,
-    token: "",
+    pictureUrl: user.pictureUrl,
   };
   const token = await jwt.sign(userForToken, process.env.JWT_SECRET);
 
   if (token) {
-    userForToken.token = token;
     return {
       success: true,
       code: "200",
       message: "Login successful",
-      user: userForToken,
+      user: user,
       tokens: {
         token,
         refreshToken: "",

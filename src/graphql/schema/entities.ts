@@ -33,7 +33,7 @@ type Product {
     name: String!
     description: String!
     price: Float!
-    pictures: [String]
+    pictures: [PictureUrl]
 }
 
 type User {
@@ -46,7 +46,6 @@ type User {
     isActive: Boolean
     isBlocked: Boolean
     rol: UserRol!
-    token: String
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String

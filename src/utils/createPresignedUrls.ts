@@ -27,7 +27,6 @@ export const s3 = new S3Client({
 });
 
 export const updatePictureUrls = async (em: EntityManager) => {
-  //falta hacer los productos
   const userRepo = em.getRepository(User);
   const productPictureRepo = em.getRepository(Product);
   const users = await userRepo.findAll({
@@ -43,37 +42,23 @@ export const updatePictureUrls = async (em: EntityManager) => {
     em.persistAndFlush(user);
   });
 
-  // const productPictures = await productPictureRepo.findAll({
-  //   fields: ["id", "name"],
-  //   filters: {
-  //     picture: {
-  //       $ne: null,
-  //     },
-  //   },
-  // });
+  const products = await productPictureRepo.findAll({
+    fields: ["pictures"],
+    filters: {
+      pictures: {
+        $ne: [],
+      },
+    },
+  });
+  products.forEach(async (product) => {
+    product.pictures.getItems().forEach(async (picture) => {
+      picture.url = await getPresignedUrl(picture.name);
+      em.persistAndFlush(picture);
+    });
+  }
+  );
 
-  // const userItems = userPictures.map(
-  //   (u): Item => ({
-  //     id: u.id,
-  //     name: u.profilePicture!, // ¡sabemos que no es null
-  //     type: "user",
-  //   })
-  // );
 
-  // const productItems = productPictures.map(
-  //   (p): Item => ({
-  //     id: p.id,
-  //     name: p.name,
-  //     type: "product",
-  //   })
-  // );
-
-  // const pictureNames = [...userItems, ...productItems];
-
-  // pictureNames.forEach(async (item) => {
-  //   const url = await getPresignedUrl(item.name);
-  //   em.persistAndFlush(createPictureUrl(em, item, url));
-  // });
 };
 
 export const getPresignedUrl = async (key: string) => {
@@ -81,7 +66,7 @@ export const getPresignedUrl = async (key: string) => {
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: key,
   });
-  const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+  const url = await getSignedUrl(s3, command, { expiresIn: 3.5 * 3600 });// 3 hours
   return url;
 };
 
@@ -108,3 +93,5 @@ export const createPictureUrl = (
   });
   return pictureUrl;
 };
+
+

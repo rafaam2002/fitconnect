@@ -20,6 +20,7 @@ import { useServer } from "graphql-ws/use/ws";
 import { User } from "./entities/User";
 import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
+import { updatePictureUrls } from "./utils/createPresignedUrls";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -143,18 +144,19 @@ const startServer = async () => {
 
   // await insertShedulesOption(orm.em.fork());
 
-  makeCron(orm);
+  makeCronSchedules(orm);
+  makeCronPresignedUrls(orm);
   populateNews(orm);
   const foro = await orm.em.fork().findOne(User, {
     nickname: "forum",
   });
   console.log("id forum: ", foro.id);
- // storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
+  // storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 };
 
 startServer();
 
-const makeCron = (orm) => {
+const makeCronSchedules = (orm) => {
   cron.schedule("0 4 * * 0", () => {
     console.log(
       "Executing cron job at 04:00 on Sunday every week to create schedules from schedules programmed"
@@ -162,6 +164,13 @@ const makeCron = (orm) => {
     const em = orm.em.fork();
     const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
     scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+  });
+};
+
+const makeCronPresignedUrls = (orm) => {
+  cron.schedule("0 */3 * * *", () => {
+    console.log("Executing cron job every 3 hours to update presigned urls");
+    updatePictureUrls(orm.em.fork());
   });
 };
 

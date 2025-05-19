@@ -6,11 +6,10 @@ import { faker } from "@faker-js/faker";
 import { UserRol } from "../types/enums";
 import { User } from "../entities/User";
 import { Promotion } from "../entities/Promotion";
-import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { PollFactory } from "../factories/PollFactory";
-import { MessageFactory } from "../factories/MessageFactory";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
+
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

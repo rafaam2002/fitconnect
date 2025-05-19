@@ -109,7 +109,6 @@ type Poll {
 }
 
 type PollVote { 
-    id: ID!
     poll: IdResponse!
     user: User!
     optionSelected: String!

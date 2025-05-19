@@ -44,7 +44,7 @@ export class User extends BaseEntity {
   // profilePicture?: string;
 
   @Property({ type: t.string, unique: true })
-  nickname?: string;
+  nickname: string;
 
   @Property()
   isActive: boolean;

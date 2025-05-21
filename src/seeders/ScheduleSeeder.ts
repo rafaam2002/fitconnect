@@ -6,12 +6,18 @@ import { User } from "../entities/User";
 import { UserRol } from "../types/enums";
 import { faker } from "@faker-js/faker";
 
-
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    new ScheduleFactory(em).each((schedule) => {
-      schedule.users.set(new UserFactory(em).make(faker.number.int({ min: 1, max: 30 })));
-      schedule.admin = schedule.users.getItems()[0];
-    }).make(100);
+    new ScheduleFactory(em)
+      .each((schedule) => {
+        schedule.users.set(
+          new UserFactory(em).make(
+            // faker.number.int({ min: 1, max: 30 })
+            1
+          )
+        );
+        schedule.admin = schedule.users.getItems()[0];
+      })
+      .make(100);
   }
 }

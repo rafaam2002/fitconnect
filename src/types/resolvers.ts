@@ -101,6 +101,7 @@ export type IdProps = { id: string };
 export type GetScheduleProps = {
   scheduleId: string;
   calculateIsBooked: boolean;
+  schedulesIds?: string[];
 };
 
 export type GetConversationProps = {

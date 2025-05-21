@@ -136,7 +136,7 @@ export const getSchedules = async (
   args: GetScheduleProps,
   context: ContextProps
 ) => {
-  const { scheduleId, calculateIsBooked } = args;
+  const { scheduleId, calculateIsBooked, schedulesIds } = args;
   const { em, currentUser } = context;
   const scheduleRepo = em.getRepository(Schedule);
 
@@ -165,6 +165,19 @@ export const getSchedules = async (
       }
       return CustomResponse(200, "Schedule found", true, { schedule });
     }
+  }
+
+  if (schedulesIds) {
+    if (schedulesIds.length === 0)
+      return CustomResponse(200,  "Schedules not found", true, { schedules: [] });
+    const schedules = await scheduleRepo.find(
+      { id: { $in: schedulesIds } },
+      { populate: ["admin", "users"] }
+    );
+    if (!schedules) {
+      return CustomResponse(404, "Schedules not found");
+    }
+    return CustomResponse(200, "Schedules found", true, { schedules });
   }
 
   const schedules = await scheduleRepo.findAll({
@@ -572,10 +585,15 @@ export const getSchedulesResumeRange = async (
   const { em, currentUser } = context;
   const { startDate, endDate, calculateIsBooked } = args;
   const scheduleRepo = em.getRepository(Schedule);
+  const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
 
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
+
+  const scheduleOptions = await scheduleOptionsRepo.findOne({
+    id: { $ne: null },
+  });
 
   const startOfDay = new Date(startDate);
   const endOfDay = new Date(endDate);
@@ -618,6 +636,7 @@ export const getSchedulesResumeRange = async (
 
     return CustomResponse(200, "Schedules found", true, {
       schedulesResume: schedulesResumeIsBooked,
+      scheduleOptions,
     });
   }
 
@@ -631,7 +650,10 @@ export const getSchedulesResumeRange = async (
     };
   });
 
-  return CustomResponse(200, "Schedules found", true, { schedulesResume });
+  return CustomResponse(200, "Schedules found", true, {
+    schedulesResume,
+    scheduleOptions,
+  });
 };
 
 export const getScheduleOptions = async (

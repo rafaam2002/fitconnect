@@ -16,7 +16,7 @@ type Query {
     getNotifications: NotificationResponse!
 
     # ----------------- Schedule -----------------
-    getSchedules(scheduleId: ID, calculateIsBooked: Boolean): ScheduleResponse!
+    getSchedules(scheduleId: ID, calculateIsBooked: Boolean, schedulesIds: [ID]): ScheduleResponse!
     getScheduleOptions: ScheduleOptionsResponse!
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!

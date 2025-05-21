@@ -63,7 +63,6 @@ type Schedule {
     maxUsers: Int!
     admin: User!
     state: ScheduleState!
-    isBooked: Boolean
 }
 
 type ScheduleResume {
@@ -72,7 +71,6 @@ type ScheduleResume {
     maxUsers: Int!
     state: ScheduleState!
     ocupancy: Int!
-    isBooked: Boolean
 }
 
 type ScheduleProgrammed {

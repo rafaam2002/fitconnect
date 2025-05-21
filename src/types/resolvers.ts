@@ -100,7 +100,6 @@ export type IdProps = { id: string };
 
 export type GetScheduleProps = {
   scheduleId: string;
-  calculateIsBooked: boolean;
   schedulesIds?: string[];
 };
 
@@ -113,14 +112,12 @@ export type GetConversationProps = {
 export type GetScheduleRangeProps = {
   startDate: string;
   endDate: string;
-  calculateIsBooked: boolean;
   mySchedules: boolean;
 };
 
 export type ScheduleResumeRange = {
   startDate: string;
   endDate: string;
-  calculateIsBooked: boolean;
 };
 
 export type ScheduleStatsProps = {

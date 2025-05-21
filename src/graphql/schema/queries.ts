@@ -16,13 +16,13 @@ type Query {
     getNotifications: NotificationResponse!
 
     # ----------------- Schedule -----------------
-    getSchedules(scheduleId: ID, calculateIsBooked: Boolean, schedulesIds: [ID]): ScheduleResponse!
+    getSchedules(scheduleId: ID, schedulesIds: [ID]): ScheduleResponse!
     getScheduleOptions: ScheduleOptionsResponse!
     getSchedulesResume: ScheduleResumeResponse!
     getTodaySchedulesResume: ScheduleResumeResponse!
     getSchedulesFromToday: ScheduleResponse!
-    getSchedulesRange(startDate: String!, endDate: String!,calculateIsBooked: Boolean, mySchedules: Boolean): ScheduleResponse!
-    getSchedulesResumeRange(startDate: String!, endDate: String!, calculateIsBooked: Boolean): ScheduleResumeResponse!
+    getSchedulesRange(startDate: String!, endDate: String!, mySchedules: Boolean): ScheduleResponse!
+    getSchedulesResumeRange(startDate: String!, endDate: String!): ScheduleResumeResponse!
     getSchedulesStats(month: Int!): SchedulesStatsResponse!
     getMonthlySchedules(month: Int!,startHour: String!): ScheduleResponse!
 

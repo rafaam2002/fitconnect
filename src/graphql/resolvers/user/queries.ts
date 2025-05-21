@@ -136,7 +136,7 @@ export const getSchedules = async (
   args: GetScheduleProps,
   context: ContextProps
 ) => {
-  const { scheduleId, calculateIsBooked, schedulesIds } = args;
+  const { scheduleId, schedulesIds } = args;
   const { em, currentUser } = context;
   const scheduleRepo = em.getRepository(Schedule);
 
@@ -152,17 +152,6 @@ export const getSchedules = async (
     if (!schedule) {
       return CustomResponse(404, "Schedule not found");
     } else {
-      if (calculateIsBooked) {
-        const isBooked = schedule.users
-          .getItems()
-          .some((user) => user.id === currentUser.id);
-        return {
-          success: true,
-          code: "200",
-          message: "Schedule found",
-          schedule: { ...schedule, isBooked },
-        };
-      }
       return CustomResponse(200, "Schedule found", true, { schedule });
     }
   }
@@ -520,7 +509,7 @@ export const getSchedulesRange = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { startDate, endDate, mySchedules, calculateIsBooked } = args;
+  const { startDate, endDate, mySchedules } = args;
   const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
@@ -561,20 +550,8 @@ export const getSchedulesRange = async (
       schedules: mySchedules,
     });
   }
-  if (calculateIsBooked) {
-    const schedulesIsBooked = sortSchedules.map((schedule) => {
-      const isBooked = schedule.users
-        .getItems()
-        .some((user) => user.id === currentUser.id);
-      return { ...schedule, isBooked };
-    });
 
-    return CustomResponse(200, "Schedules found", true, {
-      schedules: schedulesIsBooked,
-    });
-  }
-
-  return CustomResponse(200, "Schedules found", true, { sortSchedules });
+  return CustomResponse(200, "Schedules found", true, { schedules: sortSchedules });
 };
 
 export const getSchedulesResumeRange = async (
@@ -583,7 +560,7 @@ export const getSchedulesResumeRange = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { startDate, endDate, calculateIsBooked } = args;
+  const { startDate, endDate } = args;
   const scheduleRepo = em.getRepository(Schedule);
   const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
 
@@ -618,27 +595,6 @@ export const getSchedulesResumeRange = async (
       new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
     ).toDate();
   });
-
-  if (calculateIsBooked) {
-    const schedulesResumeIsBooked = schedules.map((schedule) => {
-      const isBooked = schedule.users
-        .getItems()
-        .some((user) => user.id === currentUser.id);
-      return {
-        id: schedule.id,
-        startDate: schedule.startDate,
-        maxUsers: schedule.maxUsers,
-        state: schedule.state,
-        ocupancy: schedule.users.length,
-        isBooked,
-      };
-    });
-
-    return CustomResponse(200, "Schedules found", true, {
-      schedulesResume: schedulesResumeIsBooked,
-      scheduleOptions,
-    });
-  }
 
   const schedulesResume = sortSchedules.map((schedule) => {
     return {

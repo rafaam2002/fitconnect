@@ -461,11 +461,8 @@ export const removeUserFromSchedule = async (
 
   await em.persistAndFlush(schedule);
 
-  const isBooked = schedule.users
-    .getItems()
-    .some((user) => user.id === currentUser.id);
   return CustomResponse(200, "User removed from schedule", true, {
-    schedule: { ...schedule, isBooked },
+    schedule ,
   });
 };
 

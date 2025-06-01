@@ -49,10 +49,12 @@ input UpdatePasswordInput {
 input CreateScheduleInput {
     title: String!,
     description: String!,
+    age: Int,
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,
-    repeatDays: [Int]!,
+    repeatDays: [Int],
+    admin: ID!,
 }
 
 input CreateScheduleDevelopmentInput {

@@ -12,31 +12,32 @@ import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { Schedule } from "./Schedule";
 import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
-import { createScheduleInXWeeks } from "../utils/schedules";
-import moment from "moment";
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
   [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
   @Property()
-  daysOfWeek!: number[];
+  daysOfWeek: number[];
 
   @Property({ type: "time" })
-  startHour!: string;
+  startHour: string;
 
   @Property({ type: "time" })
-  endHour!: string; // in minutes
+  endHour: string; // in minutes
 
   @Property()
-  maxUsers!: number;
+  maxUsers: number;
 
   @ManyToOne(() => User, { nullable: true })
   admin?: User;
 
   @Property()
-  title!: string;
+  title: string;
 
   @Property()
-  description!: string;
+  description: string;
+
+  @Property({ nullable: true })
+  age: number;
 
   @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
     cascade: [ Cascade.REMOVE ],
@@ -52,6 +53,7 @@ export class ScheduleProgrammed extends BaseEntity {
     this.admin = scheduleProgrammed.admin;
     this.title = scheduleProgrammed.title;
     this.description = scheduleProgrammed.description;
+    this.age = scheduleProgrammed.age;
   }
   
 }

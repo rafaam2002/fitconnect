@@ -69,6 +69,7 @@ export const createScheduleProgrammed = async (
     title,
     description,
     admin,
+    age,
   }: {
     daysOfWeek: number[];
     startHour: string;
@@ -77,6 +78,7 @@ export const createScheduleProgrammed = async (
     title: string;
     description: string;
     admin: User;
+    age: number | null;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -103,6 +105,7 @@ export const createScheduleProgrammed = async (
       maxUsers,
       admin,
       title,
+      age,
       description,
     });
 

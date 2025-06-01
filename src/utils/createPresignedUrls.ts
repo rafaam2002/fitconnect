@@ -30,8 +30,7 @@ export const updatePictureUrls = async (em: EntityManager) => {
   const userRepo = em.getRepository(User);
   const productPictureRepo = em.getRepository(Product);
   const users = await userRepo.findAll({
-    fields: ["pictureUrl"],
-    filters: {
+    where: {
       pictureUrl: {
         $ne: null,
       },
@@ -43,11 +42,10 @@ export const updatePictureUrls = async (em: EntityManager) => {
   });
 
   const products = await productPictureRepo.findAll({
-    fields: ["pictures"],
-    filters: {
+    where: {
       pictures: {
-        $ne: [],
-      },
+        $ne: null
+      }
     },
   });
   products.forEach(async (product) => {
@@ -55,10 +53,7 @@ export const updatePictureUrls = async (em: EntityManager) => {
       picture.url = await getPresignedUrl(picture.name);
       em.persistAndFlush(picture);
     });
-  }
-  );
-
-
+  });
 };
 
 export const getPresignedUrl = async (key: string) => {
@@ -66,7 +61,7 @@ export const getPresignedUrl = async (key: string) => {
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: key,
   });
-  const url = await getSignedUrl(s3, command, { expiresIn: 3.5 * 3600 });// 3 hours
+  const url = await getSignedUrl(s3, command, { expiresIn: 3.5 * 3600 }); // 3 hours
   return url;
 };
 
@@ -93,5 +88,3 @@ export const createPictureUrl = (
   });
   return pictureUrl;
 };
-
-

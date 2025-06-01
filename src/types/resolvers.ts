@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { User } from "../entities/User";
 import { UserType } from "./user";
-import { ScheduleState } from "./enums";
+import { ScheduleState, UserRol } from "./enums";
 
 export type UserProps = {
   user: User;
@@ -31,10 +31,12 @@ export type ScheduleProps = {
   schedule: {
     title: string;
     description: string;
+    age?: number | null;
     startDate: string;
     endDate: string;
     maxUsers: number;
     repeatDays: number[];
+    admin: string;
   };
 };
 
@@ -91,6 +93,7 @@ export type ChangeScheduleStatusProp = {
 
 export type UserListProps = {
   textFilter: string;
+  rolFilter: UserRol[] | null,
   page: number;
 };
 

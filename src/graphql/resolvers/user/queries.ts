@@ -46,7 +46,7 @@ export const getUsers = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { textFilter, page } = args;
+  const { textFilter,rolFilter, page } = args;
   if (!currentUser) {
     return CustomResponse(400, "Please login");
   }
@@ -58,23 +58,25 @@ export const getUsers = async (
 
   const userRepo = em.getRepository(User);
 
-  let users;
+  let where: any = {};
 
   if (textFilter) {
-    users = await userRepo.find(
-      {
-        $or: [
-          { nickname: { $ilike: `${textFilter}%` } },
-          { name: { $ilike: `${textFilter}%` } },
-          { surname: { $ilike: `${textFilter}%` } },
-          { email: { $ilike: `${textFilter}%` } },
-        ],
-      },
-      pagination
-    );
-  } else {
-    users = await userRepo.findAll(pagination);
+    where.$or = [
+      { nickname: { $ilike: `${textFilter}%` } },
+      { name: { $ilike: `${textFilter}%` } },
+      { surname: { $ilike: `${textFilter}%` } },
+      { email: { $ilike: `${textFilter}%` } },
+    ];
   }
+
+  if (rolFilter) {
+    where.rol = rolFilter;
+  }
+
+  const users = Object.keys(where).length
+    ? await userRepo.find(where, pagination)
+    : await userRepo.findAll(pagination);
+
   const usersNotMe = users.filter((user) => user.id !== currentUser.id);
   return CustomResponse(200, "Users found", true, { users: usersNotMe });
 };
@@ -530,15 +532,15 @@ export const getSchedulesRange = async (
     return moment(a.startDate).unix() - moment(b.startDate).unix();
   });
 
-  sortSchedules.map((schedule) => {
-    schedule.startDate = moment(
-      new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
-    ).toDate();
+  // sortSchedules.map((schedule) => {
+  //   schedule.startDate = moment(
+  //     new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
+  //   ).toDate();
 
-    schedule.endDate = moment(
-      new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
-    ).toDate();
-  });
+  //   schedule.endDate = moment(
+  //     new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
+  //   ).toDate();
+  // });
 
   if (mySchedules) {
     const myUser = em.getReference(User, currentUser.id);
@@ -586,15 +588,15 @@ export const getSchedulesResumeRange = async (
     return moment(a.startDate).unix() - moment(b.startDate).unix();
   });
 
-  sortSchedules.map((schedule) => {
-    schedule.startDate = moment(
-      new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
-    ).toDate();
+  // sortSchedules.map((schedule) => {
+  //   schedule.startDate = moment(
+  //     new Date(schedule.startDate).toISOString().slice(0, 19).replace("T", " ")
+  //   ).toDate();
 
-    schedule.endDate = moment(
-      new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
-    ).toDate();
-  });
+  //   schedule.endDate = moment(
+  //     new Date(schedule.endDate).toISOString().slice(0, 19).replace("T", " ")
+  //   ).toDate();
+  // });
 
   const schedulesResume = sortSchedules.map((schedule) => {
     return {

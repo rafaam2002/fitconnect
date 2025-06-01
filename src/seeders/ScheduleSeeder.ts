@@ -12,12 +12,12 @@ export class ScheduleSeeder extends Seeder {
       .each((schedule) => {
         schedule.users.set(
           new UserFactory(em).make(
-            // faker.number.int({ min: 1, max: 30 })
-            1
+             faker.number.int({ min: 2, max: 30 })
+           // 1
           )
         );
         schedule.admin = schedule.users.getItems()[0];
       })
-      .make(100);
+      .make(60);
   }
 }

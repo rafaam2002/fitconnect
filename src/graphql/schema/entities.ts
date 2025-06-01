@@ -55,6 +55,7 @@ type Schedule {
     id: ID!
     description: String
     title: String!
+    age: Int
     users: [User]
     created_at: String!
     updated_at: String!

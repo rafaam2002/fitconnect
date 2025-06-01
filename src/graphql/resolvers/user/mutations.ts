@@ -321,9 +321,18 @@ export const createSchedule = async (
 ) => {
   const { schedule } = args;
   const { em, currentUser } = context;
-  const { title, description, startDate, endDate, maxUsers, repeatDays } =
-    schedule;
+  const {
+    title,
+    description,
+    startDate,
+    endDate,
+    maxUsers,
+    repeatDays,
+    age,
+    admin,
+  } = schedule;
 
+  const finalAge = age && age > 0 ? age : null;
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
@@ -331,7 +340,7 @@ export const createSchedule = async (
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
-  const admin = em.getReference(User, currentUser.id);
+  const adminRef = em.getReference(User, admin);
 
   if (repeatDays.length > 0) {
     const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
@@ -345,7 +354,8 @@ export const createSchedule = async (
         startHour,
         endHour,
         maxUsers,
-        admin,
+        admin: adminRef,
+        age: finalAge,
       },
       { em, currentUser }
     );
@@ -353,11 +363,12 @@ export const createSchedule = async (
     const newSchedule = em.create(Schedule, {
       title,
       description,
+      age: finalAge,
       startDate,
       endDate,
       maxUsers,
       state: ScheduleState.AVAILABLE,
-      admin,
+      admin: adminRef,
     });
 
     await em.persistAndFlush(newSchedule);
@@ -405,11 +416,9 @@ export const addUserToSchedule = async (
 
   await em.persistAndFlush(schedule);
 
-  return {
-    success: true,
-    code: "200",
-    message: "User added to schedule",
-  };
+  return CustomResponse(200, "User added to schedule", true, {
+    schedule,
+  });
 };
 
 export const removeUserFromSchedule = async (
@@ -462,7 +471,7 @@ export const removeUserFromSchedule = async (
   await em.persistAndFlush(schedule);
 
   return CustomResponse(200, "User removed from schedule", true, {
-    schedule ,
+    schedule,
   });
 };
 

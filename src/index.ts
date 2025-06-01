@@ -146,12 +146,12 @@ const startServer = async () => {
 
   makeCronSchedules(orm);
   makeCronPresignedUrls(orm);
-  //populateNews(orm);
   const foro = await orm.em.fork().findOne(User, {
     nickname: "forum",
   });
   console.log("id forum: ", foro.id);
-   //storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
+  //updatePictureUrls(orm.em.fork());
+  // storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 };
 
 startServer();

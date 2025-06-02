@@ -46,7 +46,7 @@ export const getUsers = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { textFilter,rolFilter, page } = args;
+  const { textFilter, rolFilter, page, stateFilter } = args;
   if (!currentUser) {
     return CustomResponse(400, "Please login");
   }
@@ -71,6 +71,20 @@ export const getUsers = async (
 
   if (rolFilter) {
     where.rol = rolFilter;
+  }
+
+  if (stateFilter) {
+    stateFilter === "notActive"
+      ? (where.isActive = false)
+      : stateFilter === "blocked"
+      ? (where.isBlocked = true)
+      : stateFilter === "notVerified"
+      ? (where.isVerified = false)
+      : stateFilter === "new"
+      ? (where.created_at = {
+          $gte: new Date(Date.now() - 31 * 60 * 60 * 1000), // last 24 hours
+        })
+      : null;
   }
 
   const users = Object.keys(where).length
@@ -160,7 +174,9 @@ export const getSchedules = async (
 
   if (schedulesIds) {
     if (schedulesIds.length === 0)
-      return CustomResponse(200,  "Schedules not found", true, { schedules: [] });
+      return CustomResponse(200, "Schedules not found", true, {
+        schedules: [],
+      });
     const schedules = await scheduleRepo.find(
       { id: { $in: schedulesIds } },
       { populate: ["admin", "users"] }
@@ -553,7 +569,9 @@ export const getSchedulesRange = async (
     });
   }
 
-  return CustomResponse(200, "Schedules found", true, { schedules: sortSchedules });
+  return CustomResponse(200, "Schedules found", true, {
+    schedules: sortSchedules,
+  });
 };
 
 export const getSchedulesResumeRange = async (
@@ -649,17 +667,23 @@ export const getAdminStats = async (
   const knex = em.getKnex();
 
   const result = await knex("user as u").select([
-    knex.raw("COUNT(u.id) as totalUsers"),
-    knex.raw("COUNT(CASE WHEN u.is_active = true THEN 1 END) as activeUsers"),
-    knex.raw("COUNT(CASE WHEN u.is_blocked = true THEN 1 END) as blockedUsers"),
+    knex.raw("COUNT(u.id) as totalusers"),
+    knex.raw("COUNT(CASE WHEN u.is_blocked = true THEN 1 END) as blockedusers"),
     knex.raw(
-      "COUNT(CASE WHEN u.is_active = false THEN 1 END) as inactiveUsers"
+      "COUNT(CASE WHEN u.is_active = false THEN 1 END) as notactiveusers"
     ),
+    knex.raw(
+      "COUNT(CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as newusers"
+    )
   ]);
-  const users = await userRepo.findAll();
 
   const stats = {
-    users: result[0],
+    users: {
+      totalUsers: result[0].totalusers,
+      blockedUsers: result[0].blockedusers,
+      notActiveUsers: result[0].notactiveusers,
+      newUsers: result[0].newusers,
+    },
     schedules: 0,
     polls: 0,
     plans: 0,

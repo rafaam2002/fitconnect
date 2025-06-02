@@ -141,17 +141,15 @@ const startServer = async () => {
   });
 
   makeCronPresignedUrls(orm.em.fork());
- 
+  cronFunctions(orm.em.fork());
+
   const foro = await orm.em.fork().findOne(User, {
     nickname: "forum",
   });
   console.log("id forum: ", foro.id);
   //updatePictureUrls(orm.em.fork());
   // storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
-  cronFunctions(orm.em.fork());
+
 };
 
 startServer();
-
-
-

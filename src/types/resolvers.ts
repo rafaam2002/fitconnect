@@ -93,7 +93,8 @@ export type ChangeScheduleStatusProp = {
 
 export type UserListProps = {
   textFilter: string;
-  rolFilter: UserRol[] | null,
+  rolFilter?: UserRol[] | null,
+  stateFilter? : "notActive" | "blocked" | "notVerified" | "new" | null;
   page: number;
 };
 

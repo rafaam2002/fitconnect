@@ -12,7 +12,7 @@ export class ScheduleSeeder extends Seeder {
       .each((schedule) => {
         schedule.users.set(
           new UserFactory(em).make(
-             faker.number.int({ min: 2, max: 30 })
+             faker.number.int({ min: 2, max: 10 })
            // 1
           )
         );

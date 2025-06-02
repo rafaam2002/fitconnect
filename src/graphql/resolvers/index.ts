@@ -77,6 +77,7 @@ const resolvers = {
     getTrainingTasks,
     getUserWeights,
     getPresignedUrl,
+   
   },
   Mutation: {
     updateUser,

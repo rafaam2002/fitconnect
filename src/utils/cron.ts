@@ -1,7 +1,6 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import { storeNews } from "./articles";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { setStats } from "./users";
 import cron from "node-cron";
 import { updatePictureUrls } from "./createPresignedUrls";
 
@@ -19,7 +18,6 @@ export const cronFunctions = async (
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
         scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
 
-        await setStats(em);
       } catch (error) {
         console.error("Error al ejecutar la tarea programada:", error);
       }

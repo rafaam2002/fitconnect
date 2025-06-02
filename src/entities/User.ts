@@ -3,6 +3,7 @@ import {
   Collection,
   Entity,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   OneToOne,
   Property,
@@ -22,6 +23,7 @@ import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { UserWeight } from "./UserWeight";
 import { PictureUrl } from "./PictureUrl";
+import { UserStats } from "./UserStats";
 
 @Entity()
 export class User extends BaseEntity {
@@ -50,13 +52,25 @@ export class User extends BaseEntity {
   isActive: boolean;
 
   @Property({ type: t.boolean })
-  isBlocked : boolean;
+  isBlocked: boolean;
 
   @Property({ type: t.boolean })
   isVerified: boolean = false;
 
   @Property({ type: t.string })
   rol: UserRol;
+
+  @ManyToOne(() => UserStats, { lazy: true, nullable: true })
+  isNotActiveStats?: UserStats;
+
+  @ManyToOne(() => UserStats, { lazy: true, nullable: true })
+  isBlockedStats?: UserStats;
+
+  @ManyToOne(() => UserStats, { lazy: true, nullable: true })
+  isNotVerifiedStats?: UserStats;
+
+  @ManyToOne(() => UserStats, { lazy: true, nullable: true })
+  isNewStats?: UserStats;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,

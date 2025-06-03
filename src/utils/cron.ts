@@ -3,6 +3,7 @@ import { storeNews } from "./articles";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import cron from "node-cron";
 import { updatePictureUrls } from "./createPresignedUrls";
+import { setNotActiveUsers } from "./users";
 
 export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>
@@ -18,6 +19,7 @@ export const cronFunctions = async (
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
         scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
 
+        await setNotActiveUsers(em);
       } catch (error) {
         console.error("Error al ejecutar la tarea programada:", error);
       }
@@ -32,7 +34,6 @@ export const cronFunctions = async (
     "📅 Tarea programada para ejecutarse todos los días a medianoche."
   );
 };
-
 
 export const makeCronPresignedUrls = (
   em: EntityManager<IDatabaseDriver<Connection>>

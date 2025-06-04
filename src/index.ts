@@ -19,6 +19,7 @@ import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
 import { updatePictureUrls } from "./utils/createPresignedUrls";
 import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
+import { storeNews } from "./utils/articles";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -148,7 +149,7 @@ const startServer = async () => {
   });
   console.log("id forum: ", foro.id);
   //updatePictureUrls(orm.em.fork());
-  // storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
+   storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 
 };
 

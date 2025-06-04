@@ -14,7 +14,7 @@ export default {
   entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article],
   dbName: process.env.DB_NAME || "fitconnect_db",
   user: process.env.DB_USERNAME || "postgres",
-  password: process.env.DB_PASSWORD || "Pececitos1$",
+  password: process.env.DB_PASSWORD || "Pececitos1$", 
   host: process.env.DB_HOST || "localhost",
   port: parseInt(process.env.DB_PORT) || 5432,
   allowGlobalContext: true,
@@ -23,3 +23,4 @@ export default {
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],
 };
+

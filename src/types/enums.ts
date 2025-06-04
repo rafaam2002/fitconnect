@@ -27,7 +27,6 @@ export enum PaymentType {
 export enum ScheduleState {
   AVAILABLE = "available",
   CANCELLED = "cancelled",
-  FULL = "full",
 }
 
 export enum SubscriptionStatus {

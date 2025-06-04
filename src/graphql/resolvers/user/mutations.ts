@@ -59,6 +59,7 @@ import {
 
 import nodemailer from "nodemailer";
 import { emailHtml } from "../../../utils/emailHtml";
+import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
@@ -394,7 +395,12 @@ export const addUserToSchedule = async (
   if (!currentUser) {
     return CustomResponse(401, "Please login");
   }
-  const userReference = em.getReference(User, currentUser.id);
+  // const userReference = em.getReference(User, currentUser.id);
+  const user = em.findOne(
+    User,
+    { id: currentUser.id },
+    { populate: ["schedules"] }
+  );
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
@@ -405,14 +411,54 @@ export const addUserToSchedule = async (
     return CustomResponse(404, "Schedule not found");
   }
 
-  if (schedule.state !== ScheduleState.AVAILABLE) {
-    return CustomResponse(400, "Schedule is not available");
-  }
+  const scheduleOptions: ScheduleOptions = em.findOne(ScheduleOptions, {
+    id: { $ne: null },
+  });
 
-  if (schedule.users.contains(userReference)) {
+  const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
+  const isHourDisabled = moment().isAfter(Number(schedule.startDate));
+  const isFull = schedule.users.length >= schedule.maxUsers;
+  const isBooked = user!.schedules!.some((s) => s.id === schedule.id);
+  const isUserBoss = currentUser.rol === UserRol.BOSS;
+  const isUserCoachOfEvent =
+    currentUser.rol === UserRol.COACH && schedule.admin.id === currentUser.id;
+  const maxBookings =
+    user!.schedules!.length >= scheduleOptions.maxActiveReservations;
+
+  const maxBookingsToday =
+    !scheduleOptions?.sameDayBookingAllowed &&
+    user?.schedules?.some((s) =>
+      moment(Number(s.startDate)).isSame(
+        moment(Number(schedule.startDate)),
+        "day"
+      )
+    );
+
+  const maxAdvanceDate = moment()
+    .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, "days")
+    .startOf("day");
+
+  const isAdvanceBookingDisabled =
+    moment(Number(schedule.startDate)).isAfter(maxAdvanceDate) &&
+    !scheduleOptions?.sameDayBookingAllowed;
+
+  const disabled =
+    (isStateDisabled ||
+      isFull ||
+      isHourDisabled ||
+      (!isBooked &&
+        (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
+    !(isUserBoss || isUserCoachOfEvent);
+
+  if (disabled)
+    return CustomResponse(400, "Schedule is not available for booking", false, {
+      schedule,
+    });
+
+  if (schedule.users.contains(user)) {
     return CustomResponse(400, "User already in schedule");
   }
-  schedule.users.add(userReference);
+  schedule.users.add(user);
 
   await em.persistAndFlush(schedule);
 
@@ -720,32 +766,22 @@ export const changeScheduleStatus = async (
   const { scheduleId } = args;
   const { em, currentUser } = context;
 
-  if (!currentUser) {
-    return CustomResponse(401, "Please login");
-  }
+  if (!currentUser) return CustomResponse(401, "Please login");
+
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
     { id: scheduleId },
     { populate: ["users"] }
   );
 
-  if (!schedule) {
-    return CustomResponse(404, "Schedule not found");
-  }
+  if (!schedule) return CustomResponse(404, "Schedule not found");
 
-  if (
-    schedule.admin.id !== currentUser.id &&
-    currentUser.rol !== UserRol.BOSS
-  ) {
+  if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS)
     return CustomResponse(403, "You are not authorized to perform this action");
-  }
-  if (schedule.state === ScheduleState.AVAILABLE) {
+
+  if (schedule.state === ScheduleState.AVAILABLE)
     schedule.state = ScheduleState.CANCELLED;
-  } else {
-    if (schedule.users.length === schedule.maxUsers)
-      schedule.state = ScheduleState.FULL;
-    else schedule.state = ScheduleState.AVAILABLE;
-  }
+  else schedule.state = ScheduleState.AVAILABLE;
 
   await em.persistAndFlush(schedule);
 

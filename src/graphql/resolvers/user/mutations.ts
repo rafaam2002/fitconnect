@@ -396,7 +396,7 @@ export const addUserToSchedule = async (
     return CustomResponse(401, "Please login");
   }
   // const userReference = em.getReference(User, currentUser.id);
-  const user = em.findOne(
+  const user: User = await em.findOne(
     User,
     { id: currentUser.id },
     { populate: ["schedules"] }
@@ -418,7 +418,7 @@ export const addUserToSchedule = async (
   const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
   const isHourDisabled = moment().isAfter(Number(schedule.startDate));
   const isFull = schedule.users.length >= schedule.maxUsers;
-  const isBooked = user!.schedules!.some((s) => s.id === schedule.id);
+  const isBooked = user.schedules.getItems().some((s) => s.id === schedule.id);
   const isUserBoss = currentUser.rol === UserRol.BOSS;
   const isUserCoachOfEvent =
     currentUser.rol === UserRol.COACH && schedule.admin.id === currentUser.id;
@@ -427,12 +427,14 @@ export const addUserToSchedule = async (
 
   const maxBookingsToday =
     !scheduleOptions?.sameDayBookingAllowed &&
-    user?.schedules?.some((s) =>
-      moment(Number(s.startDate)).isSame(
-        moment(Number(schedule.startDate)),
-        "day"
-      )
-    );
+    user.schedules
+      .getItems()
+      .some((s) =>
+        moment(Number(s.startDate)).isSame(
+          moment(Number(schedule.startDate)),
+          "day"
+        )
+      );
 
   const maxAdvanceDate = moment()
     .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, "days")

@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { ScheduleState, UserRol } from "../types/enums";
+import { ScheduleState, ScheduleType, UserRol } from "../types/enums";
 import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
@@ -45,6 +45,8 @@ export const createScheduleInXWeeks = async (
       admin: scheduleProgrammed.admin,
       title: scheduleProgrammed.title,
       description: scheduleProgrammed.description,
+      type: scheduleProgrammed.type,
+      age: scheduleProgrammed.age,
       scheduleProgrammed,
     });
     await em.persistAndFlush(newSchedule);
@@ -70,6 +72,7 @@ export const createScheduleProgrammed = async (
     description,
     admin,
     age,
+    type,
   }: {
     daysOfWeek: number[];
     startHour: string;
@@ -78,7 +81,8 @@ export const createScheduleProgrammed = async (
     title: string;
     description: string;
     admin: User;
-    age: number | null;
+      age: number | null;
+    type: ScheduleType;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
 ) => {
@@ -106,6 +110,7 @@ export const createScheduleProgrammed = async (
       admin,
       title,
       age,
+      type,
       description,
     });
 

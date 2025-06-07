@@ -5,6 +5,7 @@ import {
   CreditCardProvider,
   PaymentType,
   ScheduleState,
+  ScheduleType,
   SubscriptionStatus,
   UserRol,
 } from "../../../types/enums";
@@ -331,6 +332,7 @@ export const createSchedule = async (
     repeatDays,
     age,
     admin,
+    type = ScheduleType.STANDARD,
   } = schedule;
 
   const finalAge = age && age > 0 ? age : null;
@@ -356,7 +358,8 @@ export const createSchedule = async (
         endHour,
         maxUsers,
         admin: adminRef,
-        age: finalAge,
+        age: finalAge, 
+        type,
       },
       { em, currentUser }
     );

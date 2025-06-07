@@ -10,17 +10,17 @@ import {
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { ScheduleProgrammed } from "./ScheduleProgrammed";
-import { ScheduleState } from "../types/enums";
+import { ScheduleState, ScheduleType } from "../types/enums";
 
 @Entity()
 export class Schedule extends BaseEntity {
   @Property()
   title: string;
 
-  @Property( { nullable: true })
+  @Property({ nullable: true })
   description: string;
 
-  @Property({nullable: true})
+  @Property({ nullable: true })
   age: number;
 
   @Property() //puede haber 2 schedules en la misma hora?
@@ -31,6 +31,9 @@ export class Schedule extends BaseEntity {
 
   @Property()
   maxUsers: number;
+
+  @Property({ default: ScheduleType.STANDARD })
+  type: ScheduleType = ScheduleType.STANDARD;
 
   @Property({ default: ScheduleState.AVAILABLE })
   state: ScheduleState;

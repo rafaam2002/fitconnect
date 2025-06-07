@@ -63,3 +63,9 @@ export enum TransactionStatus {
   PENDING = "PENDING",
   REFUND = "REFUND",
 }
+
+export enum ScheduleType {
+  STANDARD = "standard",
+  SPARRING = "sparring",
+  FREE = "free",
+}

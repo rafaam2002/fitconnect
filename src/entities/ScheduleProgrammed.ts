@@ -12,6 +12,7 @@ import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { Schedule } from "./Schedule";
 import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
+import { ScheduleType } from "../types/enums";
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
   [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
@@ -36,11 +37,14 @@ export class ScheduleProgrammed extends BaseEntity {
   @Property()
   description: string;
 
+  @Property({ default: ScheduleType.STANDARD })
+  type: ScheduleType = ScheduleType.STANDARD;
+
   @Property({ nullable: true })
   age: number;
 
   @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
-    cascade: [ Cascade.REMOVE ],
+    cascade: [Cascade.REMOVE],
   })
   schedules = new Collection<Schedule>(this);
 
@@ -55,5 +59,4 @@ export class ScheduleProgrammed extends BaseEntity {
     this.description = scheduleProgrammed.description;
     this.age = scheduleProgrammed.age;
   }
-  
 }

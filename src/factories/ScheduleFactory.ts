@@ -30,9 +30,8 @@ export class ScheduleFactory extends Factory<Schedule> {
       age: null,
       maxUsers: faker.helpers.rangeToNumber({ min: 10, max: 100 }),
       state: faker.helpers.weightedArrayElement([
-        { value: ScheduleState.AVAILABLE, weight: 0.7 },
-        { value: ScheduleState.FULL, weight: 0.15 },
-        { value: ScheduleState.CANCELLED, weight: 0.15 },
+        { value: ScheduleState.AVAILABLE, weight: 0.9 },
+        { value: ScheduleState.CANCELLED, weight: 0.1 },
       ]),
     };
   }

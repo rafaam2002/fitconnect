@@ -195,10 +195,10 @@ type Transaction {
 }
 
 type UserStats {
-    totalusers: Int!
-    activeusers: Int!
-    blockedusers: Int!
-    inactiveusers: Int!
+    totalUsers: Int!
+    notActiveUsers: Int!
+    blockedUsers: Int!
+    newUsers: Int!
 }
 
 type AdminStats {

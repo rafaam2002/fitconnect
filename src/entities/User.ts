@@ -3,6 +3,7 @@ import {
   Collection,
   Entity,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   OneToOne,
   Property,
@@ -50,7 +51,7 @@ export class User extends BaseEntity {
   isActive: boolean;
 
   @Property({ type: t.boolean })
-  isBlocked : boolean;
+  isBlocked: boolean;
 
   @Property({ type: t.boolean })
   isVerified: boolean = false;

@@ -1,10 +1,11 @@
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
-import { EntityManager } from "@mikro-orm/postgresql";
 import { PictureUrl } from "../entities/PictureUrl";
 import { User } from "../entities/User";
 import { Product } from "../entities/Product";
+import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
+
 
 dotenv.config();
 

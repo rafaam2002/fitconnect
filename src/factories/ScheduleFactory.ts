@@ -2,7 +2,7 @@ import { Factory } from "@mikro-orm/seeder";
 import { faker } from "@faker-js/faker";
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
-import { ScheduleState } from "../types/enums";
+import { ScheduleState, ScheduleType } from "../types/enums";
 import moment from "moment";
 
 export class ScheduleFactory extends Factory<Schedule> {
@@ -27,12 +27,13 @@ export class ScheduleFactory extends Factory<Schedule> {
       description: faker.datatype.boolean() ? faker.lorem.sentence() : null,
       startDate,
       endDate,
-      age: null,
+      age: faker.helpers.arrayElement([null, 14, 18, 6]),
       maxUsers: faker.helpers.rangeToNumber({ min: 10, max: 100 }),
       state: faker.helpers.weightedArrayElement([
         { value: ScheduleState.AVAILABLE, weight: 0.9 },
         { value: ScheduleState.CANCELLED, weight: 0.1 },
       ]),
+      type: faker.helpers.arrayElement(Object.values(ScheduleType)),
     };
   }
 }

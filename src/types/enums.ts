@@ -68,4 +68,6 @@ export enum ScheduleType {
   STANDARD = "standard",
   SPARRING = "sparring",
   FREE = "free",
+  CONDITIONING = "conditioning",
+  COMPETITION = "competition",
 }

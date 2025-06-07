@@ -13,6 +13,14 @@ enum UserRol {
     coach
 }
 
+enum ScheduleType {
+    standard
+    sparring
+    free
+    conditioning
+    competition
+}
+
 enum PaymentMethod {
     credit_card
     apple_pay

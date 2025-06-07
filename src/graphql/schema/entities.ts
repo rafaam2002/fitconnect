@@ -215,4 +215,9 @@ type GroupUser {
     standard: [User]
     specialRoles: [User]
 }
+
+type ExpoPushToken {
+    id: ID!
+    token: String!
+}
 `;

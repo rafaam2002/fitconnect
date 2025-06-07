@@ -182,3 +182,11 @@ export type UpdateProductImage = {
   imageUrl: string;
   productId: string;  
 }
+
+export type NotificationProps = {
+  notification: {
+    body: string;
+    title: string;
+    forAll: boolean;
+  }
+}

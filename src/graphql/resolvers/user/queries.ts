@@ -22,9 +22,8 @@ import {
   UserListProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import dotenv, { populate } from "dotenv";
+import { S3Client,  } from "@aws-sdk/client-s3";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -48,7 +47,7 @@ export const getUsers = async (
   const { em, currentUser } = context;
   const { textFilter,rolFilter, page } = args;
   if (!currentUser) {
-    return CustomResponse(400, "Please login");
+    return CustomResponse(401, "Please login");
   }
 
   const pagination = {

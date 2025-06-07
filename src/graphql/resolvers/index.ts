@@ -42,6 +42,7 @@ import {
   removeUserWeight,
   removeSchedule,
   updateUserPicture,
+  updateScheduleOptions,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -108,6 +109,7 @@ const resolvers = {
     removeSchedule,
     createProduct,
     updateProductPicture,
+    updateScheduleOptions 
   },
   Subscription: {
     newMessage,

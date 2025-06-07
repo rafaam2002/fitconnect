@@ -84,6 +84,13 @@ type ScheduleResumeResponse implements BasicResponse{
     scheduleOptions: ScheduleOptions
 }
 
+type ScheduleOptionsResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    scheduleOptions: ScheduleOptions
+}
+
 type ScheduleProgrammedResponse implements BasicResponse{
     code: String!
     success: Boolean!

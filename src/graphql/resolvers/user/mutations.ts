@@ -44,14 +44,13 @@ import {
   ScheduleDevelopmentProps,
   ScheduleProps,
   UnfixMessageProps,
+  updateScheduleOptionsProps,
   UserPictureProps,
   UserProps,
   VoteProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
 import { UserWeight } from "../../../entities/UserWeight";
-import { PictureUrl } from "../../../entities/PictureUrl";
-import { get } from "axios";
 import {
   createPictureUrl,
   getPresignedUrl,
@@ -158,7 +157,9 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
   if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
-  let updateUser = await userRepo.findOne({ id: userId });
+  const updateUser = await userRepo.findOne({ id: userId });
+
+  const oldEmail = updateUser.email;
 
   if (!updateUser) {
     return CustomResponse(404, "User not found");
@@ -180,9 +181,11 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
     return CustomResponse(400, "Validation Error", false, { user: null });
   }
 
-  const usersWithexistingEmail = await userRepo.find({ email });
-  if (usersWithexistingEmail.length > 1) {
-    return CustomResponse(400, "Email already exists");
+  if (oldEmail !== email) {
+    const usersWithexistingEmail = await userRepo.find({ email });
+    if (usersWithexistingEmail.length > 1) {
+      return CustomResponse(400, "Email already exists");
+    }
   }
 
   const existingNickName = await userRepo.find({ nickname });
@@ -292,13 +295,10 @@ export const createMessage = async (
       { user: null }
     );
 
-  const userRepo = em.getRepository(User);
-  const receiver = await userRepo.findOne({ id: receiverId });
-
   try {
     const newMessage = em.create(Message, {
       text,
-      receiver,
+      receiver: em.getReference(User, receiverId),
       sender: em.getReference(User, currentUser.id),
       isFixed: !!isFixed,
       fixedDuration,
@@ -1251,4 +1251,47 @@ export const removeSchedule = async (
   await em.removeAndFlush(schedule);
 
   return CustomResponse(200, "Schedule removed successfully", true);
+};
+
+export const updateScheduleOptions = async (
+  _: any,
+  { scheduleOptions: scheduleOptionsParams }: updateScheduleOptionsProps,
+  context: ContextProps
+) => {
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  if (currentUser.rol !== UserRol.BOSS) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
+  let scheduleOptions = await scheduleOptionsRepo.findOne({
+    id: { $ne: null },
+  });
+
+  if (!scheduleOptions) {
+    scheduleOptions = em.create(ScheduleOptions, {});
+  }
+
+  scheduleOptions.maxActiveReservations =
+    scheduleOptionsParams.maxActiveReservations;
+  scheduleOptions.maxAdvanceBookingDays =
+    scheduleOptionsParams.maxAdvanceBookingDays;
+  scheduleOptions.sameDayBookingAllowed =
+    scheduleOptionsParams.sameDayBookingAllowed;
+
+
+  try {
+    await em.persistAndFlush(scheduleOptions);
+    return CustomResponse(200, "Schedule options updated successfully", true, {
+      scheduleOptions,
+    });
+  } catch (error) {
+    console.error(error);
+    return CustomResponse(500, "Error updating schedule options");
+  }
 };

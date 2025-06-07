@@ -49,6 +49,15 @@ export type RemoveScheduleProps = {
   scheduleId: string;
 };
 
+export type updateScheduleOptionsProps = {
+  scheduleOptions: {
+    maxActiveReservations: number;
+    maxAdvanceBookingDays: number;
+    sameDayBookingAllowed: boolean;
+    fullOpenHours: number;
+  };
+};
+
 export type ScheduleDevelopmentProps = {
   scheduleDevelopment: {
     title: string;
@@ -93,8 +102,8 @@ export type ChangeScheduleStatusProp = {
 
 export type UserListProps = {
   textFilter: string;
-  rolFilter?: UserRol[] | null,
-  stateFilter? : "notActive" | "blocked" | "notVerified" | "new" | null;
+  rolFilter?: UserRol[] | null;
+  stateFilter?: "notActive" | "blocked" | "notVerified" | "new" | null;
   page: number;
 };
 
@@ -181,5 +190,5 @@ export type CreateProduct = {
 export type UpdateProductImage = {
   imageName: string;
   imageUrl: string;
-  productId: string;  
-}
+  productId: string;
+};

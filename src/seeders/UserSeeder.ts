@@ -32,10 +32,9 @@ export class UserSeeder extends Seeder {
 
     const schedulesOptions = em.create(ScheduleOptions, {
       maxActiveReservations: 3,
-      cancellationDeadline: 30,
-      maxStrikesBeforePenalty: 3,
-      penaltyDuration: 7,
-      maxAdvanceBookingDays: 7,
+      sameDayBookingAllowed: true,
+      fullOpenHours: 2, // 0 means always full
+      maxAdvanceBookingDays: 3,
     });
 
     await em.persistAndFlush(schedulesOptions);

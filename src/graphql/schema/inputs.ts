@@ -57,6 +57,13 @@ input CreateScheduleInput {
     admin: ID!,
 }
 
+input UpdateScheduleOptionsInput {
+    maxActiveReservations: Int!,
+    maxAdvanceBookingDays: Int!,
+    sameDayBookingAllowed: Boolean!,
+    fullOpenHours: Int!,
+}
+
 input CreateScheduleDevelopmentInput {
     title: String!,
     startTime: String,

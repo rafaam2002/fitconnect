@@ -89,11 +89,9 @@ type ScheduleProgrammed {
 type ScheduleOptions {
     id: ID!
     maxActiveReservations: Int!
-    cancellationDeadline: Int!
-    maxStrikesBeforePenalty: Int!
-    penaltyDuration: Int!
     maxAdvanceBookingDays: Int!
     sameDayBookingAllowed: Boolean!
+    fullOpenHours: Int! 
 }
 
 type Poll {

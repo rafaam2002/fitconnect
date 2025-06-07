@@ -368,6 +368,7 @@ export const createSchedule = async (
       title,
       description,
       age: finalAge,
+      type,
       startDate,
       endDate,
       maxUsers,

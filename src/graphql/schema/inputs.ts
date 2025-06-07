@@ -50,6 +50,7 @@ input CreateScheduleInput {
     title: String!,
     description: String!,
     age: Int,
+    type: ScheduleType!,
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,

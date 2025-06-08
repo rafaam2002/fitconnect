@@ -6,55 +6,6 @@ import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
 
-export const createScheduleInXWeeks = async (
-  now: Moment,
-  day: number,
-  weeksFromNow: number,
-  scheduleProgrammed: ScheduleProgrammed,
-  em: EntityManager
-) => {
-  const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
-  const startDate = now.clone().add(daysToAdd, "days");
-  const endDate = now.clone().add(daysToAdd, "days");
-  const [startHour, startMinutes] = scheduleProgrammed.startHour
-    .split(":")
-    .map(Number);
-  // Ajustar la hora en la fecha objetivo
-  const [endHour, endMinutes] = scheduleProgrammed.endHour
-    .split(":")
-    .map(Number);
-  startDate.set({
-    hour: startHour,
-    minute: startMinutes,
-    second: 0,
-    millisecond: 0,
-  });
-  endDate.set({
-    hour: endHour,
-    minute: endMinutes,
-    second: 0,
-    millisecond: 0,
-  });
-
-  try {
-    const newSchedule = em.create(Schedule, {
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      maxUsers: scheduleProgrammed.maxUsers,
-      state: ScheduleState.AVAILABLE,
-      admin: scheduleProgrammed.admin,
-      title: scheduleProgrammed.title,
-      description: scheduleProgrammed.description,
-      type: scheduleProgrammed.type,
-      age: scheduleProgrammed.age,
-      scheduleProgrammed,
-    });
-    await em.persistAndFlush(newSchedule);
-  } catch (error) {
-    console.log("Error creating schedule", error);
-  }
-};
-
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
   const date = new Date();
@@ -81,7 +32,7 @@ export const createScheduleProgrammed = async (
     title: string;
     description: string;
     admin: User;
-      age: number | null;
+    age: number | null;
     type: ScheduleType;
   },
   { em, currentUser }: { em: EntityManager; currentUser: UserType }
@@ -136,13 +87,70 @@ export const createScheduleProgrammed = async (
 };
 
 const createInitialSchedules = async (
-  scheduleProgramed: ScheduleProgrammed,
+  scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
 ) => {
   const now = moment();
-  for (let i = 1; i <= 2; i++) {
-    scheduleProgramed.daysOfWeek.forEach(async (day) => {
-      await createScheduleInXWeeks(now, day, i, scheduleProgramed, em);
+
+  scheduleProgrammed.daysOfWeek.forEach(async (day) => {
+    // Crear horarios para los dos días más cercanos con el mismo número
+    for (let i = 0; i < 2; i++) {
+      const targetDay = now
+        .clone()
+        .day(day)
+        .add(i * 7, "days");
+      if (targetDay.isSameOrAfter(now, "day")) {
+        await createScheduleInXWeeks(targetDay, day, 0, scheduleProgrammed, em);
+      }
+    }
+  });
+};
+
+export const createScheduleInXWeeks = async (
+  now: Moment,
+  day: number,
+  weeksFromNow: number,
+  scheduleProgrammed: ScheduleProgrammed,
+  em: EntityManager
+) => {
+  const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
+  const startDate = now.clone().add(daysToAdd, "days");
+  const endDate = now.clone().add(daysToAdd, "days");
+  const [startHour, startMinutes] = scheduleProgrammed.startHour
+    .split(":")
+    .map(Number);
+  // Ajustar la hora en la fecha objetivo
+  const [endHour, endMinutes] = scheduleProgrammed.endHour
+    .split(":")
+    .map(Number);
+  startDate.set({
+    hour: startHour,
+    minute: startMinutes,
+    second: 0,
+    millisecond: 0,
+  });
+  endDate.set({
+    hour: endHour,
+    minute: endMinutes,
+    second: 0,
+    millisecond: 0,
+  });
+
+  try {
+    const newSchedule = em.create(Schedule, {
+      startDate: startDate.toDate(),
+      endDate: endDate.toDate(),
+      maxUsers: scheduleProgrammed.maxUsers,
+      state: ScheduleState.AVAILABLE,
+      admin: scheduleProgrammed.admin,
+      title: scheduleProgrammed.title,
+      description: scheduleProgrammed.description,
+      type: scheduleProgrammed.type,
+      age: scheduleProgrammed.age,
+      scheduleProgrammed,
     });
+    await em.persistAndFlush(newSchedule);
+  } catch (error) {
+    console.log("Error creating schedule", error);
   }
 };

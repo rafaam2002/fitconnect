@@ -48,6 +48,9 @@ type Mutation {
     createProduct(product: CreateProductInput!): ProductResponse!
     updateProductPicture(imageName: String!, productId: String!): ProductResponse!
 
+    #-----------------Token---------------------
+    registerToken(token: String!): RegisterTokenResponse!
+    sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
 }
 
 `;

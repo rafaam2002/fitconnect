@@ -176,4 +176,16 @@ type AdminStatsResponse {
     message: String!
     stats: AdminStats
 }
+
+type RegisterTokenResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+}
+
+type SendNotificationResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+}
 `;

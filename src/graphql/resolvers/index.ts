@@ -51,6 +51,7 @@ import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
 import { createProduct, updateProductPicture } from "./product/mutations";
+import {registerToken, sendNotification} from "./token/mutations";
 
 const resolvers = {
   Query: {
@@ -109,6 +110,8 @@ const resolvers = {
     removeSchedule,
     createProduct,
     updateProductPicture,
+    registerToken,
+    sendNotification,
     updateScheduleOptions 
   },
   Subscription: {

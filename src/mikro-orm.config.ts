@@ -8,10 +8,11 @@ import { SeedManager } from "@mikro-orm/seeder/SeedManager";
 import { Product } from "./entities/Product";
 import { Article } from "./entities/Article";
 import dotenv from "dotenv";
+import {PushToken} from "./entities/PushToken";
 dotenv.config();
 
 export default {
-  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article],
+  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken],
   dbName: process.env.DB_NAME || "fitconnect_db",
   user: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "Pececitos1$", 

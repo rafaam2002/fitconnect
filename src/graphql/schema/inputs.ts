@@ -115,7 +115,7 @@ input CreatePlanInput {
     durationInDays: Int!
     isActive: Boolean!
     currency: String
-    paymentType: PaymentType!,
+    paymentType: PaymentType!
     icon: String
     features: [String]!
     isBestChoice: Boolean
@@ -127,5 +127,11 @@ input CreateSubscriptionInput {
     planId: ID!
     applePayToken: String
     googlePayToken: String
+}
+
+input SendNotificationInput {
+    title: String!
+    body: String!
+    forAll: Boolean!
 }
 `;

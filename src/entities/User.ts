@@ -27,10 +27,10 @@ import { PictureUrl } from "./PictureUrl";
 @Entity()
 export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
-  name?: string;
+  name?: string | null;
 
   @Property({ type: t.string, nullable: true })
-  surname?: string;
+  surname?: string | null;
 
   @Property({ type: t.string, lazy: true }) // means that the property will be loaded only when accessed
   password: string;
@@ -39,7 +39,7 @@ export class User extends BaseEntity {
   email: string;
 
   @Property({ nullable: true })
-  phoneNumber?: string;
+  phoneNumber?: string | null;
 
   // @Property({ nullable: true })
   // profilePicture?: string;

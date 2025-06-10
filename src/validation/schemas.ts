@@ -11,16 +11,20 @@ export const updateUserSchema = z.object({
   name: z
     .string()
     .min(3, messages.minErrorMsg(3))
-    .max(20, messages.maxErrorMsg(20)),
+    .max(20, messages.maxErrorMsg(20))
+    .nullable(),
   surname: z
     .string()
     .min(3, messages.minErrorMsg(3))
-    .max(20, messages.maxErrorMsg(20)),
+    .max(20, messages.maxErrorMsg(20))
+    .nullable(),
   phoneNumber: z
     .string()
     .min(9, messages.minErrorMsg(9))
     .max(9, messages.maxErrorMsg(9))
-    .regex(/^\d+$/, messages.phoneNumberErrorMsg), // Solo permite caracteres numéricos
+    .regex(/^\d+$/, messages.phoneNumberErrorMsg)
+    // Solo permite caracteres numéricos
+    .nullable(),
 });
 
 export const ChangePasswordSchema = z

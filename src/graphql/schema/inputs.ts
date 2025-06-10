@@ -20,8 +20,8 @@ input CreateTrainingTaskInput {
 }
 
 input UpdateUserInput {
-    name: String!,
-    surname: String!,
+    name: String,
+    surname: String,
     email: String!,
     phoneNumber: String,
     nickname: String!,

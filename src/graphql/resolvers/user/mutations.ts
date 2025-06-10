@@ -179,13 +179,24 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
     // Validar los datos de entrada
     updateUserSchema.parse(updateUser);
   } catch (error) {
-    return CustomResponse(400, "Validation Error", false, { user: null });
+    return CustomResponse(400, `Validation Error ${error.message}`, false, {
+      user: null,
+    });
   }
 
   if (oldEmail !== email) {
-    const usersWithexistingEmail = await userRepo.find({ email });
-    if (usersWithexistingEmail.length > 1) {
-      return CustomResponse(400, "Email already exists");
+    try {
+      const usersWithexistingEmail = await userRepo.findOne({ email });
+      if (usersWithexistingEmail.length > 1) {
+        return CustomResponse(400, "Email already exists");
+      }
+    } catch (error) {
+      return CustomResponse(
+        500,
+        `Error checking existing email: ${error.message}`,
+        false,
+        { user: null }
+      );
     }
   }
 
@@ -359,7 +370,7 @@ export const createSchedule = async (
         endHour,
         maxUsers,
         admin: adminRef,
-        age: finalAge, 
+        age: finalAge,
         type,
       },
       { em, currentUser }
@@ -1288,7 +1299,6 @@ export const updateScheduleOptions = async (
     scheduleOptionsParams.maxAdvanceBookingDays;
   scheduleOptions.sameDayBookingAllowed =
     scheduleOptionsParams.sameDayBookingAllowed;
-
 
   try {
     await em.persistAndFlush(scheduleOptions);

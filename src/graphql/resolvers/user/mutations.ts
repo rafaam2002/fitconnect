@@ -297,9 +297,10 @@ export const createMessage = async (
     );
 
   try {
+    const receiver = await em.findOne(User, { id: receiverId });
     const newMessage = em.create(Message, {
       text,
-      receiver: em.getReference(User, receiverId),
+      receiver,
       sender: em.getReference(User, currentUser.id),
       isFixed: !!isFixed,
       fixedDuration,

@@ -28,7 +28,7 @@ export class ScheduleFactory extends Factory<Schedule> {
       startDate,
       endDate,
       age: faker.helpers.arrayElement([null, 14, 18, 6]),
-      maxUsers: faker.helpers.rangeToNumber({ min: 10, max: 100 }),
+      maxUsers: faker.helpers.rangeToNumber({ min: 15, max: 20 }),
       state: faker.helpers.weightedArrayElement([
         { value: ScheduleState.AVAILABLE, weight: 0.9 },
         { value: ScheduleState.CANCELLED, weight: 0.1 },

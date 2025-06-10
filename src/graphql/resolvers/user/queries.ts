@@ -22,7 +22,7 @@ import {
   UserListProps,
 } from "../../../types/resolvers";
 import { TrainingTask } from "../../../entities/TraningITask";
-import { S3Client,  } from "@aws-sdk/client-s3";
+import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -397,6 +397,8 @@ export const getConversation = async (
   ]; //just mandatory fields to optimize query
 
   if (!otherUserId) {
+    // Si no se especifica otro usuario, se buscan todas
+    //  las conversaciones del currentUser:
     const rawUserIds: { otheruser: string }[] = await em
       .getConnection()
       .execute(
@@ -407,12 +409,13 @@ export const getConversation = async (
               ELSE sender_id 
             END AS otherUser
           FROM message
-          WHERE sender_id = ? OR receiver_id = ?
+          WHERE sender_id = ? OR receiver_id = ? 
        `,
         [currentUser.id, currentUser.id, currentUser.id]
       );
 
-    const otherUserIds = rawUserIds.map((row) => row.otheruser);
+    let otherUserIds = rawUserIds.map((row) => row.otheruser);
+    otherUserIds = otherUserIds.filter((id) => id !== FORUM.id); // Excluir el foro si está presente
 
     // Para cada otro usuario, se busca la conversación con el currentUser:
     const conversationPromises = otherUserIds.map((otherId) => {
@@ -421,7 +424,6 @@ export const getConversation = async (
           $or: [
             { sender: currentUser.id, receiver: otherId },
             { sender: otherId, receiver: currentUser.id },
-            { receiver: FORUM.id },
           ],
         },
         {
@@ -436,6 +438,21 @@ export const getConversation = async (
     const conversationsGrouped: Array<Message[]> = await Promise.all(
       conversationPromises
     );
+
+    const forumMessages = await messageRepo.find(
+      {
+        receiver: FORUM.id,
+      },
+      {
+        orderBy: { created_at: "DESC" },
+        limit: limit,
+        offset: page * limit,
+        populate: ["sender", "receiver"],
+        fields: fields,
+      }
+    );
+
+    conversationsGrouped.push(forumMessages);
 
     return CustomResponse(200, "Conversations found", true, {
       conversations: conversationsGrouped,
@@ -673,7 +690,7 @@ export const getAdminStats = async (
     ),
     knex.raw(
       "COUNT(CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as newusers"
-    )
+    ),
   ]);
 
   const stats = {

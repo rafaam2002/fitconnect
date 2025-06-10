@@ -17,6 +17,7 @@ import { User } from "./entities/User";
 import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
 import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
+import { storeNews } from "./utils/articles";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,

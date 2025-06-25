@@ -9,10 +9,12 @@ import { Product } from "./entities/Product";
 import { Article } from "./entities/Article";
 import dotenv from "dotenv";
 import {PushToken} from "./entities/PushToken";
+import {PaymentMethod} from "./entities/PaymentMethod";
+import {Plan} from "./entities/Plan";
 dotenv.config();
 
 export default {
-  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken],
+  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken, PaymentMethod, Plan],
   dbName: process.env.DB_NAME || "fitconnect_db",
   user: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "Pececitos1$", 

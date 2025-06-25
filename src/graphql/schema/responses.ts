@@ -181,4 +181,17 @@ type SendNotificationResponse implements BasicResponse {
     success: Boolean!
     message: String!
 }
+
+type AddCreditCardResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+}
+
+type CardResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    cards: [Card]
+}
 `;

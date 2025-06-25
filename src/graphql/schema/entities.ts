@@ -220,4 +220,15 @@ type ExpoPushToken {
     id: ID!
     token: String!
 }
+
+type Card {
+    id: ID!
+    created_at: String
+    user: User
+    cardBrand: String
+    cardLast4: Int
+    cardExpMonth: String
+    cardExpYear: String
+    status: PaymentMethodStatus
+}
 `;

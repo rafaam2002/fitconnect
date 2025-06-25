@@ -19,7 +19,7 @@ import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
-import { Card } from "./Card";
+import { PaymentMethod } from "./PaymentMethod";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { UserWeight } from "./UserWeight";

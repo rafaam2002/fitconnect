@@ -9,7 +9,7 @@ export const getProducts = async (
   __: any,
   { em, currentUser }: ContextProps
 ) => {
-  if (!currentUser) return CustomResponse(400, "Please login");
+  if (!currentUser) return CustomResponse(401, "Please login");
 
   const products = await em.findAll(Product, {});
 

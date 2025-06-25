@@ -50,6 +50,9 @@ type Mutation {
     #-----------------Token---------------------
     registerToken(token: String!): RegisterTokenResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
+    
+    #-----------------Card--------------------------
+    addCreditCard(paymentMethodId: String!): AddCreditCardResponse!
 }
 
 `;

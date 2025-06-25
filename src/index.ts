@@ -147,7 +147,7 @@ const startServer = async () => {
   const foro = await orm.em.fork().findOne(User, {
     nickname: "forum",
   });
-  console.log("id forum: ", foro.id);
+  // console.log("id forum: ", foro.id);
   //updatePictureUrls(orm.em.fork());
    //storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 

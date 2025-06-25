@@ -9,6 +9,7 @@ export async function sendPushNotification(
     const message = {
         to: token,
         sound: 'default',
+        category_id: 'chat_message',
         badge:1,
         data: {type: 'invite'},
         content_available: true,

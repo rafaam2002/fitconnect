@@ -1,9 +1,9 @@
 import {Entity, PrimaryKey, Property, ManyToOne, Enum} from '@mikro-orm/core';
 import {Subscription} from "./Subscription";
 import {User} from "./User";
-import {Card} from "./Card";
+import {PaymentMethod} from "./PaymentMethod";
 import {BaseEntity} from "./BaseEntity";
-import { Currency, PaymentMethod, TransactionStatus } from '../types/enums';
+import { Currency, PaymentMethodType, TransactionStatus } from '../types/enums';
 
 
 @Entity()
@@ -15,11 +15,11 @@ export class Transaction extends BaseEntity{
     @ManyToOne(() => User)
     user!: User;
 
-    @ManyToOne(() => Card, { nullable: true })
-    card?: Card;
+    @ManyToOne(() => PaymentMethodType, { nullable: true })
+    card?: PaymentMethodType;
 
     @Enum(() => ['credit_card', 'apple_pay', 'google_pay'])
-    paymentMethod!: PaymentMethod;
+    paymentMethod!: PaymentMethodType;
 
     @Property()
     amount!: number;

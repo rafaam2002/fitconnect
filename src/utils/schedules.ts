@@ -1,10 +1,110 @@
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { ScheduleState, UserRol } from "../types/enums";
+import { ScheduleState, ScheduleType, UserRol } from "../types/enums";
 import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
+
+export function createDateWithTime(time: string): Date {
+  const [hours, minutes] = time.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+export const createScheduleProgrammed = async (
+  {
+    daysOfWeek = [],
+    startHour,
+    endHour,
+    maxUsers,
+    title,
+    description,
+    admin,
+    age,
+    type,
+  }: {
+    daysOfWeek: number[];
+    startHour: string;
+    endHour: string;
+    maxUsers: number;
+    title: string;
+    description: string;
+    admin: User;
+    age: number | null;
+    type: ScheduleType;
+  },
+  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+) => {
+  if (!currentUser) {
+    return {
+      success: false,
+      code: "401",
+      message: "Please login",
+    };
+  }
+  if (currentUser.rol === UserRol.STANDARD) {
+    return {
+      success: false,
+      code: "401",
+      message: "You don't have permission to create schedules",
+    };
+  }
+
+  try {
+    const newScheduleProgrammed = em.create(ScheduleProgrammed, {
+      daysOfWeek,
+      startHour,
+      endHour,
+      maxUsers,
+      admin,
+      title,
+      age,
+      type,
+      description,
+    });
+
+    await em.persistAndFlush(newScheduleProgrammed);
+
+    await createInitialSchedules(newScheduleProgrammed, em);
+
+    return {
+      success: true,
+      code: "200",
+      message: "Schedule created succesfully",
+      scheduleProgrammed: newScheduleProgrammed,
+    };
+  } catch (error) {
+    console.log("Error creating schedule", error);
+    return {
+      success: false,
+      code: "500",
+      message: "Error creating schedule",
+      error: error.toString(),
+    };
+  }
+};
+
+const createInitialSchedules = async (
+  scheduleProgrammed: ScheduleProgrammed,
+  em: EntityManager
+) => {
+  const now = moment();
+
+  scheduleProgrammed.daysOfWeek.forEach(async (day) => {
+    // Crear horarios para los dos días más cercanos con el mismo número
+    for (let i = 0; i < 2; i++) {
+      const targetDay = now
+        .clone()
+        .day(day)
+        .add(i * 7, "days");
+      if (targetDay.isSameOrAfter(now, "day")) {
+        await createScheduleInXWeeks(targetDay, day, 0, scheduleProgrammed, em);
+      }
+    }
+  });
+};
 
 export const createScheduleInXWeeks = async (
   now: Moment,
@@ -45,99 +145,12 @@ export const createScheduleInXWeeks = async (
       admin: scheduleProgrammed.admin,
       title: scheduleProgrammed.title,
       description: scheduleProgrammed.description,
+      type: scheduleProgrammed.type,
+      age: scheduleProgrammed.age,
       scheduleProgrammed,
     });
     await em.persistAndFlush(newSchedule);
   } catch (error) {
     console.log("Error creating schedule", error);
-  }
-};
-
-export function createDateWithTime(time: string): Date {
-  const [hours, minutes] = time.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-export const createScheduleProgrammed = async (
-  {
-    daysOfWeek = [],
-    startHour,
-    endHour,
-    maxUsers,
-    title,
-    description,
-    admin,
-    age,
-  }: {
-    daysOfWeek: number[];
-    startHour: string;
-    endHour: string;
-    maxUsers: number;
-    title: string;
-    description: string;
-    admin: User;
-    age: number | null;
-  },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
-) => {
-  if (!currentUser) {
-    return {
-      success: false,
-      code: "401",
-      message: "Please login",
-    };
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return {
-      success: false,
-      code: "401",
-      message: "You don't have permission to create schedules",
-    };
-  }
-
-  try {
-    const newScheduleProgrammed = em.create(ScheduleProgrammed, {
-      daysOfWeek,
-      startHour,
-      endHour,
-      maxUsers,
-      admin,
-      title,
-      age,
-      description,
-    });
-
-    await em.persistAndFlush(newScheduleProgrammed);
-
-    await createInitialSchedules(newScheduleProgrammed, em);
-
-    return {
-      success: true,
-      code: "200",
-      message: "Schedule created succesfully",
-      scheduleProgrammed: newScheduleProgrammed,
-    };
-  } catch (error) {
-    console.log("Error creating schedule", error);
-    return {
-      success: false,
-      code: "500",
-      message: "Error creating schedule",
-      error: error.toString(),
-    };
-  }
-};
-
-const createInitialSchedules = async (
-  scheduleProgramed: ScheduleProgrammed,
-  em: EntityManager
-) => {
-  const now = moment();
-  for (let i = 1; i <= 2; i++) {
-    scheduleProgramed.daysOfWeek.forEach(async (day) => {
-      await createScheduleInXWeeks(now, day, i, scheduleProgramed, em);
-    });
   }
 };

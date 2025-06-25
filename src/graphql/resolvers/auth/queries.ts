@@ -3,8 +3,15 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const login = async (_, args: any, { em }) => {
-  const { email, password } = args;
-  const user:User = await em.findOne(User, { email }, { populate: ["password"] });
+  const { emailOrNickname, password } = args;
+
+  const user: User = await em.findOne(
+    User,
+    {
+      $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
+    },
+    { populate: ["password"] }
+  );
 
   const passwordCorrect =
     user === null ? false : await bcrypt.compare(password, user.password);

@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { User } from "../entities/User";
 import { UserType } from "./user";
-import { ScheduleState, UserRol } from "./enums";
+import { ScheduleState, ScheduleType, UserRol } from "./enums";
 
 export type UserProps = {
   user: User;
@@ -32,6 +32,7 @@ export type ScheduleProps = {
     title: string;
     description: string;
     age?: number | null;
+    type?: ScheduleType;
     startDate: string;
     endDate: string;
     maxUsers: number;
@@ -47,6 +48,15 @@ export type RemoveUserSheduleProps = {
 
 export type RemoveScheduleProps = {
   scheduleId: string;
+};
+
+export type updateScheduleOptionsProps = {
+  scheduleOptions: {
+    maxActiveReservations: number;
+    maxAdvanceBookingDays: number;
+    sameDayBookingAllowed: boolean;
+    fullOpenHours: number;
+  };
 };
 
 export type ScheduleDevelopmentProps = {
@@ -93,8 +103,8 @@ export type ChangeScheduleStatusProp = {
 
 export type UserListProps = {
   textFilter: string;
-  rolFilter?: UserRol[] | null,
-  stateFilter? : "notActive" | "blocked" | "notVerified" | "new" | null;
+  rolFilter?: UserRol[] | null;
+  stateFilter?: "notActive" | "blocked" | "notVerified" | "new" | null;
   page: number;
 };
 

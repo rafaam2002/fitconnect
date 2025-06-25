@@ -20,8 +20,8 @@ input CreateTrainingTaskInput {
 }
 
 input UpdateUserInput {
-    name: String!,
-    surname: String!,
+    name: String,
+    surname: String,
     email: String!,
     phoneNumber: String,
     nickname: String!,
@@ -50,11 +50,19 @@ input CreateScheduleInput {
     title: String!,
     description: String!,
     age: Int,
+    type: ScheduleType!,
     startDate: String!,
     endDate: String!,
     maxUsers: Int!,
     repeatDays: [Int],
     admin: ID!,
+}
+
+input UpdateScheduleOptionsInput {
+    maxActiveReservations: Int!,
+    maxAdvanceBookingDays: Int!,
+    sameDayBookingAllowed: Boolean!,
+    fullOpenHours: Int!,
 }
 
 input CreateScheduleDevelopmentInput {

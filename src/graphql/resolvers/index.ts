@@ -40,6 +40,7 @@ import {
   removeUserWeight,
   removeSchedule,
   updateUserPicture,
+  updateScheduleOptions,
 } from "./user/mutations";
 import { createPlan, removePlan, updatePlan } from "./plan/mutations";
 import { getPlans } from "./plan/queries";
@@ -80,7 +81,7 @@ const resolvers = {
     getUserWeights,
     getPresignedUrl,
     getCards
-   
+
   },
   Mutation: {
     updateUser,
@@ -114,6 +115,7 @@ const resolvers = {
     registerToken,
     sendNotification,
     addCreditCard,
+    updateScheduleOptions
   },
   Subscription: {
     newMessage,

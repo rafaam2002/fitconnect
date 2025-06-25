@@ -11,13 +11,11 @@ import dotenv from "dotenv";
 import { authenticateUser } from "./middlewares/auth";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { WebSocketServer } from "ws";
-import cron from "node-cron";
 import { createServer } from "http";
 import { useServer } from "graphql-ws/use/ws";
 import { User } from "./entities/User";
 import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
-import { updatePictureUrls } from "./utils/createPresignedUrls";
 import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
 import { storeNews } from "./utils/articles";
 

@@ -11,7 +11,6 @@ export const newMessage = {
     () => myPubsub.asyncIterableIterator(MESSAGE_EVENT),
     (payload, variables, context) => {
       const { currentUser } = context;
-      // Suponiendo que payload.newMessage contiene sender y receiver con sus respectivos ids.
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||

@@ -64,6 +64,7 @@ type Schedule {
     maxUsers: Int!
     admin: User!
     state: ScheduleState!
+    type: ScheduleType!
 }
 
 type ScheduleResume {
@@ -84,16 +85,17 @@ type ScheduleProgrammed {
     endHour: String!
     maxUsers: Int!
     admin: User!
+    description: String
+    age: Int
+    type: ScheduleType
 }
     
 type ScheduleOptions {
     id: ID!
     maxActiveReservations: Int!
-    cancellationDeadline: Int!
-    maxStrikesBeforePenalty: Int!
-    penaltyDuration: Int!
     maxAdvanceBookingDays: Int!
     sameDayBookingAllowed: Boolean!
+    fullOpenHours: Int! 
 }
 
 type Poll {

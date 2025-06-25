@@ -69,3 +69,11 @@ export enum PaymentMethodStatus {
   INACTIVE = 'inactive',
   EXPIRED = 'expired'
 }
+
+export enum ScheduleType {
+  STANDARD = "standard",
+  SPARRING = "sparring",
+  FREE = "free",
+  CONDITIONING = "conditioning",
+  COMPETITION = "competition",
+}

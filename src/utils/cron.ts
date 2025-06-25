@@ -9,7 +9,7 @@ export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>
 ) => {
   cron.schedule(
-    "0 4 * * *",
+    "0 4 * * *", // Ejecuta a las 4:00 AM todos los días
     async () => {
       console.log("🚀 Iniciando tareas programadas...");
       // Aquí debes pasar `em` desde tu contexto de MikroORM
@@ -30,9 +30,32 @@ export const cronFunctions = async (
     }
   );
 
-  console.log(
-    "📅 Tarea programada para ejecutarse todos los días a medianoche."
+  cron.schedule(
+    "0 3 * * 0", // Ejecuta a las 3:00 AM todos los domingos
+    async () => {
+      console.log(
+        "🚀 Iniciando tarea programada (creacion de horarios programados)..."
+      );
+      // Aquí debes pasar `em` desde tu contexto de MikroORM
+      try {
+        const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
+        scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+      } catch (error) {
+        console.error(
+          "Error al ejecutar la tarea programada (Creacion horarios programados):",
+          error
+        );
+      }
+      console.log(
+        "✅ Tarea programada completada  (Creacion horarios programados)."
+      );
+    },
+    {
+      timezone: "Europe/Madrid", // Ajusta según tu zona horaria
+    }
   );
+
+  console.log("📅 Tarea programada para ejecutarse cada domingo a las 3AM.");
 };
 
 export const makeCronPresignedUrls = (

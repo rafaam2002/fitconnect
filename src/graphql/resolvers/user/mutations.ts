@@ -817,17 +817,15 @@ export const createSubscription = async (
     args.subscription;
   const { em, currentUser } = context;
 
-  if (!currentUser) {
-    return CustomResponse(401, "Please login");
-  }
+  if (!currentUser) return CustomResponse(401, "Please login");
 
-  if (!planId) {
-    CustomResponse(400, "Please provide a plan Id");
-  }
+  if (!planId) CustomResponse(400, "Please provide a plan Id");
 
-  if (!paymentMethod) {
+  if (!paymentMethod)
     return CustomResponse(400, "Please provide a payment method");
-  }
+
+  if (!currentUser.isVerified)
+    CustomResponse(400, "Please verify your email before subscribing");
 
   const plan = await em.findOne(Plan, { id: planId });
   const user = em.getReference(User, currentUser.id);

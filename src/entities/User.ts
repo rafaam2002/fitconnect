@@ -18,7 +18,7 @@ import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
-import { Card } from "./Card";
+import { PaymentMethod } from "./PaymentMethod";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { UserWeight } from "./UserWeight";
@@ -95,8 +95,8 @@ export class User extends BaseEntity {
   @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
-  @OneToMany(() => Card, (card) => card.user)
-  cards = new Collection<Card>(this);
+  @OneToMany(() => PaymentMethod, (card) => card.user)
+  cards = new Collection<PaymentMethod>(this);
 
   @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscriptions = new Collection<Subscription>(this);

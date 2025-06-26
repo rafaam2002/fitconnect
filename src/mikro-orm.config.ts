@@ -9,18 +9,28 @@ import { Product } from "./entities/Product";
 import { Article } from "./entities/Article";
 import dotenv from "dotenv";
 import {PushToken} from "./entities/PushToken";
+import {PaymentMethod} from "./entities/PaymentMethod";
+import {Plan} from "./entities/Plan";
 dotenv.config();
 
 export default {
-  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken],
-  dbName: process.env.DB_NAME || "fitconnect_db",
-  user: process.env.DB_USERNAME || "postgres",
-  password: process.env.DB_PASSWORD || "Pececitos1$", 
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT) || 5432,
+  entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken, PaymentMethod, Plan],
+  clientUrl: process.env.DATABASE_URL,
+  // dbName: process.env.DB_NAME || "fitconnect_db",
+  // user: process.env.DB_USERNAME || "postgres",
+  // password: process.env.DB_PASSWORD || "Pececitos1$",
+  // host: process.env.DB_HOST || "localhost",
+  // port: parseInt(process.env.DB_PORT) || 5432,
   allowGlobalContext: true,
   driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator, SeedManager],
+  debug: process.env.NODE_ENV !== 'production',
+  driverOptions: {
+    connection: {
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    },
+    family: 4
+  },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],
 };

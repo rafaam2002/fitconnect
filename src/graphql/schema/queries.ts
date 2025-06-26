@@ -50,5 +50,7 @@ type Query {
     #------------------s3-----------------
     getPresignedUrl(key: String ): PresignedUrlResponse!
     
+    #------------------Cards-------------------------
+    getCards: CardResponse!
 }
 `;

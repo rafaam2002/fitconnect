@@ -123,7 +123,7 @@ input CreatePlanInput {
 
 input CreateSubscriptionInput {
     paymentMethod: PaymentMethod
-    cardId: ID!
+    cardId: ID
     planId: ID!
     applePayToken: String
     googlePayToken: String
@@ -133,5 +133,10 @@ input SendNotificationInput {
     title: String!
     body: String!
     forAll: Boolean!
+}
+
+input AddCreditCardInput {
+    paymentMethodId: String!
+    type: String!
 }
 `;

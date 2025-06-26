@@ -46,7 +46,7 @@ export enum CreditCardProvider {
   STRIPE = "stripe",
 }
 
-export enum PaymentMethod {
+export enum PaymentMethodType {
   CREDIT_CARD = "credit_card",
   APPLE_PAY = "apple_pay",
   GOOGLE_PAY = "google_pay",
@@ -62,6 +62,12 @@ export enum TransactionStatus {
   FAILED = "FAILED",
   PENDING = "PENDING",
   REFUND = "REFUND",
+}
+
+export enum PaymentMethodStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  EXPIRED = 'expired'
 }
 
 export enum ScheduleType {

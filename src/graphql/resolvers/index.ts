@@ -24,10 +24,8 @@ import {
   createMessage,
   createPoll,
   createSchedule,
-  createSubscription,
   createOrChangePollVote,
   updateUser,
-  removeSubscription,
   deletePollVote,
   createScheduleDevelopment,
   addUserToSchedule,
@@ -52,6 +50,9 @@ import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
 import { createProduct, updateProductPicture } from "./product/mutations";
 import {registerToken, sendNotification} from "./token/mutations";
+import {createSubscription, removeSubscription} from "./subscription/mutations";
+import {addCreditCard} from "./paymentMethod/mutations";
+import {getCards} from "./paymentMethod/queries";
 
 const resolvers = {
   Query: {
@@ -79,7 +80,8 @@ const resolvers = {
     getTrainingTasks,
     getUserWeights,
     getPresignedUrl,
-   
+    getCards
+
   },
   Mutation: {
     updateUser,
@@ -112,7 +114,8 @@ const resolvers = {
     updateProductPicture,
     registerToken,
     sendNotification,
-    updateScheduleOptions 
+    addCreditCard,
+    updateScheduleOptions
   },
   Subscription: {
     newMessage,

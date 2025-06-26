@@ -14,7 +14,7 @@ import { Poll } from "../../../entities/Poll";
 import { PollVote } from "../../../entities/PollVote";
 import { Plan } from "../../../entities/Plan";
 import { Subscription } from "../../../entities/Subscription";
-import { Card } from "../../../entities/Card";
+import { PaymentMethod } from "../../../entities/PaymentMethod";
 import Stripe from "stripe";
 import { Transaction } from "../../../entities/Transaction";
 import {
@@ -61,9 +61,6 @@ import nodemailer from "nodemailer";
 import { emailHtml } from "../../../utils/emailHtml";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 
-const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY || "sk_test_CGGvfNiIPwLXiDwaOfZ3oX6Y"
-);
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -103,12 +100,12 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       }
     );
 
-    await transporter.sendMail({
+ /*   await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: "rafaam.2002@gmail.com",
       subject: "Confirma tu cuenta",
       html: emailHtml(emailVerificationTk),
-    });
+    });*/
 
     await em.persistAndFlush(newUser);
 
@@ -806,305 +803,6 @@ export const changeScheduleStatus = async (
   return CustomResponse(200, "Schedule status changed successfully", true, {
     schedule,
   });
-};
-
-export const createSubscription = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  const { paymentMethod, cardId, planId, applePayToken, googlePayToken } =
-    args.subscription;
-  const { em, currentUser } = context;
-
-  if (!currentUser) return CustomResponse(401, "Please login");
-
-  if (!planId) CustomResponse(400, "Please provide a plan Id");
-
-  if (!paymentMethod)
-    return CustomResponse(400, "Please provide a payment method");
-
-  if (!currentUser.isVerified)
-    CustomResponse(400, "Please verify your email before subscribing");
-
-  const plan = await em.findOne(Plan, { id: planId });
-  const user = em.getReference(User, currentUser.id);
-
-  if (!plan) {
-    return CustomResponse(404, "Plan not found");
-  }
-
-  if (!user) {
-    return CustomResponse(404, "User not found");
-  }
-
-  const startDate = new Date();
-  const endDate = new Date();
-
-  endDate.setMonth(
-    startDate.getMonth() + (plan.paymentType === PaymentType.MENSUAL ? 1 : 12)
-  );
-
-  const subscription = em.create(Subscription, {
-    user,
-    plan,
-    status: SubscriptionStatus.PENDING,
-    startDate,
-    endDate,
-  });
-
-  await em.persistAndFlush(subscription);
-
-  if (!subscription) {
-    return CustomResponse(404, "Subscription not found");
-  }
-
-  if (subscription.status === SubscriptionStatus.ACTIVE) {
-    return CustomResponse(400, "User already has an active subscription");
-  }
-
-  const paymentData = {
-    em,
-    paymentMethod,
-    cardId,
-    planId,
-    subscription,
-    applePayToken,
-    googlePayToken,
-  };
-
-  await addTransaction(paymentData);
-
-  return CustomResponse(200, "Subscription created successfully", true);
-};
-
-export const removeSubscription = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  const { planId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    return CustomResponse(401, "Please login");
-  }
-
-  if (!planId) {
-    return CustomResponse(400, "Please provide a plan Id");
-  }
-
-  const plan = await em.findOne(Plan, { id: planId });
-  const user = em.getReference(User, currentUser.id);
-
-  if (!user) {
-    return CustomResponse(404, "User not found");
-  }
-  if (!plan) {
-    return CustomResponse(404, "Plan not found");
-  }
-
-  await em.remove(plan).flush();
-
-  return CustomResponse(200, "Plan deleted successfully", true);
-};
-
-export const addTransaction = async (paymentData: any) => {
-  const {
-    em,
-    paymentMethod,
-    cardId,
-    planId,
-    subscription,
-    applePayToken,
-    googlePayToken,
-    user,
-  } = paymentData;
-
-  const amount = subscription.plan.price * 100;
-  const currency = subscription.plan.currency;
-
-  let payment: Stripe.PaymentIntent;
-  let reference: string = "";
-  let authCode: string = "";
-  let charge: Stripe.Charge;
-
-  try {
-    switch (paymentMethod) {
-      case "CARD":
-        if (!cardId) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a card Id",
-          };
-        }
-        const card = await em.findOneOrFail(Card, { id: cardId });
-
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          payment_method: card.tokenization,
-          confirm: true,
-          description: `Pago de la suscripción ${subscription.plan.name}`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      case "APPLE_PAY":
-        if (!applePayToken) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a apple pay token",
-          };
-        }
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          payment_method: applePayToken,
-          confirm: true,
-          description: `Pago de suscripción al plan ${subscription.plan.name} (Apple Pay)`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      case "GOOGLE_PAY":
-        if (!googlePayToken) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a google pay token",
-          };
-        }
-
-        // 🔐 Procesar pago con Google Pay
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          payment_method: googlePayToken,
-          confirm: true,
-          description: `Pago de suscripción al plan ${subscription.plan.name} (Google Pay)`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      default:
-        throw new Error("Método de pago no soportado.");
-    }
-
-    const transaccion = em.create(Transaction, {
-      user,
-      subscription,
-      paymentMethod,
-      amount: subscription.plan.price,
-      currency,
-      status: "SUCCESS",
-      transactionId: payment.id,
-      reference,
-      transactionDate: new Date(),
-      description: `Pago exitoso de suscripción al plan ${subscription.plan.name}`,
-      authCode,
-    });
-
-    subscription.status = "ACTIVE";
-    subscription.startDate = new Date();
-    subscription.endDate = new Date(
-      new Date().setMonth(
-        new Date().getMonth() +
-          (subscription.plan.paymentType === "MENSUAL" ? 1 : 12)
-      )
-    );
-
-    await em.persistAndFlush([transaccion, subscription]);
-
-    return `Pago exitoso. ID de transacción: ${payment.id}`;
-  } catch (error: any) {
-    const transaccion = em.create(Transaction, {
-      user,
-      subscription,
-      paymentMethod,
-      amount: subscription.plan.price,
-      currency,
-      status: "FAILED",
-      transactionId: "",
-      reference: "",
-      transactionDate: new Date(),
-      description: `Pago fallido de suscripción al plan ${subscription.plan.name}: ${error.message}`,
-      authCode: "",
-    });
-
-    await em.persistAndFlush(transaccion);
-    throw new Error(`Error al procesar el pago: ${error.message}`);
-  }
-};
-
-export const addCreditCard = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  const { paymentMethodId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    return CustomResponse(401, "Please login");
-  }
-
-  if (!paymentMethodId) {
-    return CustomResponse(400, "Please provide a payment method Id");
-  }
-
-  let stripeCustomerId = currentUser.stripeCustomerId;
-
-  if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: currentUser.email,
-      name: currentUser.name,
-    });
-    stripeCustomerId = customer.id;
-    currentUser.stripeCustomerId = stripeCustomerId;
-
-    await em.persistAndFlush(currentUser);
-  }
-
-  // Asociar el método de pago al cliente en Stripe
-  await stripe.paymentMethods.attach(paymentMethodId, {
-    customer: stripeCustomerId,
-  });
-
-  // Opcional: Actualizar el método de pago predeterminado para facturación
-  await stripe.customers.update(stripeCustomerId, {
-    invoice_settings: {
-      default_payment_method: paymentMethodId,
-    },
-  });
-
-  // Guardar la tarjeta en la base de datos
-  const card = em.create(Card, {
-    user: currentUser,
-    tokenization: paymentMethodId,
-    provider: CreditCardProvider.STRIPE,
-    // Agrega aquí cualquier otro campo necesario para el modelo de Tarjeta
-  });
-  await em.persistAndFlush(card);
-
-  return `Tarjeta agregada exitosamente para el usuario ${currentUser.name}`;
 };
 
 export const createTrainingTask = async (

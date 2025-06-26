@@ -76,4 +76,10 @@ enum LogicalOperator {
   and
   or
 }
+
+enum PaymentMethodStatus {
+  active
+  inactive
+  expired
+}
 `;

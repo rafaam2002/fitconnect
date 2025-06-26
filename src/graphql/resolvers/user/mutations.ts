@@ -100,12 +100,12 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       }
     );
 
-    await transporter.sendMail({
+ /*   await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: "rafaam.2002@gmail.com",
       subject: "Confirma tu cuenta",
       html: emailHtml(emailVerificationTk),
-    });
+    });*/
 
     await em.persistAndFlush(newUser);
 

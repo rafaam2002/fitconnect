@@ -15,14 +15,22 @@ dotenv.config();
 
 export default {
   entities: [Message, User, Notification, Schedule, ScheduleOptions, Product, Article, PushToken, PaymentMethod, Plan],
-  dbName: process.env.DB_NAME || "fitconnect_db",
-  user: process.env.DB_USERNAME || "postgres",
-  password: process.env.DB_PASSWORD || "Pececitos1$", 
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT) || 5432,
+  clientUrl: process.env.DATABASE_URL,
+  // dbName: process.env.DB_NAME || "fitconnect_db",
+  // user: process.env.DB_USERNAME || "postgres",
+  // password: process.env.DB_PASSWORD || "Pececitos1$",
+  // host: process.env.DB_HOST || "localhost",
+  // port: parseInt(process.env.DB_PORT) || 5432,
   allowGlobalContext: true,
   driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator, SeedManager],
+  debug: process.env.NODE_ENV !== 'production',
+  driverOptions: {
+    connection: {
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    },
+    family: 4
+  },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],
 };

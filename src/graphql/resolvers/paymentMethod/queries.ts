@@ -14,5 +14,5 @@ export const getCards = async (
         user: currentUser.id
     });
 
-    return CustomResponse(200, "Payments found", true, {payments});
+    return CustomResponse(200, "Payments found", true, {cards: payments});
 };

@@ -11,7 +11,8 @@ export const addCreditCard = async (
     args: any,
     context: ContextProps
 ) => {
-    const {paymentMethodId, type} = args;
+    const {paymentMethod: data} = args;
+    const {paymentMethodId, type} = data;
     const {em, currentUser} = context;
 
     if (!currentUser) {
@@ -83,7 +84,8 @@ export const addCreditCard = async (
                 cardLast4: paymentMethod.card.last4,
                 cardExpMonth: paymentMethod.card.exp_month,
                 cardExpYear: paymentMethod.card.exp_year,
-                isDefault
+                isDefault,
+                type: PaymentMethodType.CREDIT_CARD,
             });
             break;
     }

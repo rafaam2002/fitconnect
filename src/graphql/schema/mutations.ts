@@ -53,7 +53,7 @@ type Mutation {
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     
     #-----------------Card--------------------------
-    addCreditCard(paymentMethodId: String!): AddCreditCardResponse!
+    addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
 }
 
 `;

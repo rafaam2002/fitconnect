@@ -15,8 +15,8 @@ export class Transaction extends BaseEntity{
     @ManyToOne(() => User)
     user!: User;
 
-    @ManyToOne(() => PaymentMethodType, { nullable: true })
-    card?: PaymentMethodType;
+    @ManyToOne(() => PaymentMethod, { nullable: true })
+    card?: PaymentMethod;
 
     @Enum(() => ['credit_card', 'apple_pay', 'google_pay'])
     paymentMethod!: PaymentMethodType;

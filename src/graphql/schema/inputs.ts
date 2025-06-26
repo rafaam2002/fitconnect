@@ -137,5 +137,6 @@ input SendNotificationInput {
 
 input AddCreditCardInput {
     paymentMethodId: String!
+    type: String!
 }
 `;

@@ -35,9 +35,12 @@ export const createSubscription = async (
 
     const plan = await em.findOne(Plan, { id: planId });
     const user = await em.findOne(User, { id: currentUser.id }, { populate: ['cards'] });
-    console.log(user.cards)
+
     const defaultCard = user?.cards.find(card => card.isDefault);
 
+    if(!defaultCard) {
+        return CustomResponse(400, "There is no default payment method");
+    }
     if (!plan) {
         return CustomResponse(404, "Plan not found");
     }
@@ -147,7 +150,7 @@ export const addTransaction = async (paymentData: any, user: UserType) => {
                     };
                 }
                 const card = await em.findOneOrFail(PaymentMethodType, { id: cardId });
-
+                console.log('name', 'subscription.plan.name')
                 payment = await stripe.paymentIntents.create({
                     amount,
                     currency,
@@ -220,6 +223,7 @@ export const addTransaction = async (paymentData: any, user: UserType) => {
                 throw new Error("Método de pago no soportado.");
         }
 
+
         const transaccion = em.create(Transaction, {
             user,
             subscription,
@@ -230,7 +234,7 @@ export const addTransaction = async (paymentData: any, user: UserType) => {
             transactionId: payment.id,
             reference,
             transactionDate: new Date(),
-            description: `Pago exitoso de suscripción al plan ${subscription.plan.name}`,
+            description: `Pago exitoso de suscripción al plan ${subscription.plan?.name}`,
             authCode,
         });
 

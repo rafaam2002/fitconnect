@@ -36,7 +36,7 @@ export class User extends BaseEntity {
   password: string;
 
   @Property({ type: t.string, unique: true })
-  email: string;
+  email: string | undefined;
 
   @Property({ nullable: true })
   phoneNumber?: string | null;

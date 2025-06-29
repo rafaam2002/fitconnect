@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "12b325cb-0cf9-4e00-abb3-136fd8a48bc5"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.gondorwebmaster.fitconnect",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@ export type UserType = {
   nickname: string;
   stripeCustomerId: string;
   name: string;
+  isVerified: boolean;
 };
 
 export type UserFilter = {

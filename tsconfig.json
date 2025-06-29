@@ -1,24 +1,16 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "sourceMap": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false,
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "module": "Node16",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "allowImportingTsExtensions": false,
-    "noEmit": false
+    "target": "es6",
+    "moduleResolution": "node16",
+    "sourceMap": true,
+    "outDir": "dist",
+     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false // Importante para MikroORM y decoradores
   },
-  "lib": [
-    "es2015"
-  ]
+  "lib": ["es2015"]
 }
 

@@ -2,7 +2,6 @@
   "name": "fitconnect",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "build": "tsc --noCheck || tsc --skipLibCheck",
     "test": "echo \"Error: no test specified\" && exit 1",

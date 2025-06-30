@@ -7,8 +7,8 @@
     "moduleResolution": "node16",
     "sourceMap": true,
     "outDir": "dist",
-     "experimentalDecorators": true, 
-    "emitDecoratorMetadata": true, 
+     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "useDefineForClassFields": false // Importante para MikroORM y decoradores
   },
   "lib": ["es2015"]

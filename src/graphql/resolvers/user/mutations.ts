@@ -2,21 +2,13 @@ import { User } from "../../../entities/User";
 import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import {
-  CreditCardProvider,
-  PaymentType,
   ScheduleState,
   ScheduleType,
-  SubscriptionStatus,
   UserRol,
 } from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
 import { Poll } from "../../../entities/Poll";
 import { PollVote } from "../../../entities/PollVote";
-import { Plan } from "../../../entities/Plan";
-import { Subscription } from "../../../entities/Subscription";
-import { PaymentMethod } from "../../../entities/PaymentMethod";
-import Stripe from "stripe";
-import { Transaction } from "../../../entities/Transaction";
 import {
   createDateWithTime,
   createScheduleProgrammed,
@@ -96,7 +88,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       { id: user.email },
       process.env.JWT_SECRET,
       {
-        expiresIn: "1d",
+        expiresIn: "30d",
       }
     );
 

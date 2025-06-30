@@ -7,6 +7,7 @@ type Mutation {
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     updateUserPicture(picture: String!, userId: String!): UserResponse!
+    sendChangePasswordEmail(email: String!): DefaultResponse!
 
     #------------------Message-----------------
     createMessage(message: CreateMessageInput!): MessageResponse!

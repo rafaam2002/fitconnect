@@ -17,7 +17,7 @@ import { User } from "./entities/User";
 import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
 import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
-import { storeNews } from "./utils/articles";
+import bcrypt from "bcrypt";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -91,6 +91,55 @@ const startServer = async () => {
     }
   });
 
+  app.get("/auth/reset-password", async (req, res) => {
+    const token = req.query.token as {};
+    try {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+        email: string;
+        purpose: string;
+        password: string;
+      };
+
+      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const user = await em.findOne(User, { email: decodedToken.email });
+      if (!user) {
+        return res
+          .status(400)
+          .send(
+            renderPage(
+              "Cambio de contraseña fallido",
+              "Usuario no encontrado",
+              false
+            )
+          );
+      }
+      const saltRounds = 10;
+      user.password = await bcrypt.hash(decodedToken.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+      await em.persistAndFlush(user);
+      // lógica que valida y activa al usuario
+      // Puedes devolver HTML, o redirigir a tu frontend:
+      return res
+        .status(200)
+        .send(
+          renderPage(
+            "¡Cambio de contraseña completado!",
+            "Podrás iniciar sesión con tu nueva contraseña temporal. Por favor, cámbiala en los ajustes de tu cuenta.",
+            true
+          )
+        );
+    } catch (err) {
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            "Verificación fallida",
+            `Token inválido o caducado. ${err.message}`,
+            false
+          )
+        );
+    }
+  });
+
   await apolloServer.start();
 
   app.use(
@@ -147,8 +196,7 @@ const startServer = async () => {
   });
   // console.log("id forum: ", foro.id);
   //updatePictureUrls(orm.em.fork());
-   //storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
-
+  //storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 };
 
 startServer();

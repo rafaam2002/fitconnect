@@ -49,6 +49,7 @@ type User {
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String
+    isVerified: Boolean
 }
 
 type Schedule {

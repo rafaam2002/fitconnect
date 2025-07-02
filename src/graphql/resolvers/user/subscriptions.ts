@@ -14,7 +14,7 @@ export const newMessage = {
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === FORUM.id
+        payload.newMessage.receiver.id === process.env.DB_FORUM_ID
       );
     }
   ),
@@ -29,7 +29,7 @@ export const fixedMessages = {
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === FORUM.id
+        payload.newMessage.receiver.id === process.env.DB_FORUM_ID
       );
     }
   ),

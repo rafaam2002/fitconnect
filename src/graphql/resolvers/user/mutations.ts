@@ -1,11 +1,7 @@
 import { User } from "../../../entities/User";
 import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
-import {
-  ScheduleState,
-  ScheduleType,
-  UserRol,
-} from "../../../types/enums";
+import { ScheduleState, ScheduleType, UserRol } from "../../../types/enums";
 import { Schedule } from "../../../entities/Schedule";
 import { Poll } from "../../../entities/Poll";
 import { PollVote } from "../../../entities/PollVote";
@@ -52,7 +48,6 @@ import {
 import nodemailer from "nodemailer";
 import { emailHtml } from "../../../utils/emailHtml";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
-
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -584,7 +579,7 @@ export const createPoll = async (
     return CustomResponse(401, "Please login");
   }
 
-  if (currentUser.rol === UserRol.STANDARD) {
+  if (currentUser.rol !== UserRol.COACH && currentUser.rol !== UserRol.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -596,7 +591,7 @@ export const createPoll = async (
 
   try {
     const newPoll = em.create(Poll, {
-      endDate: moment(Number(endDate)).toDate(),
+      endDate: moment(endDate).toDate(),
       title,
       options,
       admin: em.getReference(User, currentUser.id),

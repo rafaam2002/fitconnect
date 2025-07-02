@@ -125,6 +125,29 @@ const updatePassword = async (
     };
 };
 
+const sendChangePasswordEmail = async (_: any, args: any) => {
+    const { email } = args;
+
+    const tmpPassword = generateTempPassword(6);
+
+    const payload = {
+        email: email,
+        purpose: "reset-password",
+        password: tmpPassword,
+    };
+    // firma un JWT corto (por ejemplo, 30 min de vida)
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30m" });
+
+    await transporter.sendMail({
+        from: process.env.GMAIL_USER,
+        to: email,
+        subject: "Change your password",
+        html: changePasswordHtml(token, tmpPassword),
+    });
+
+    return CustomResponse(200, "Change password email sent", true, {});
+};
+
 async function loginWithGoogle(_: any, args: any, {em}) {
     const {id_token} = args;
 
@@ -153,4 +176,4 @@ async function loginWithGoogle(_: any, args: any, {em}) {
     return CustomResponse(200, 'User logged in successfully', true, {tokens: {token}, user});
 }
 
-export {forgotPassword, updatePassword, loginWithGoogle};
+export {forgotPassword, updatePassword, loginWithGoogle, sendChangePasswordEmail};

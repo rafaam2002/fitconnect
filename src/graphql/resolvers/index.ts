@@ -121,6 +121,7 @@ const resolvers = {
     addCreditCard,
     updateScheduleOptions,
     loginWithGoogle,
+    sendEmailVerification,
   },
   Subscription: {
     newMessage,

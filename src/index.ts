@@ -172,9 +172,6 @@ const startServer = async () => {
         const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
-        if (!currentUser) {
-          throw new Error("context: Not authenticated");
-        }
         // Retornar el contexto con el currentUser
         return { em, currentUser };
       },

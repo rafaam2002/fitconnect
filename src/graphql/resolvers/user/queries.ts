@@ -24,12 +24,24 @@ import {
 import { TrainingTask } from "../../../entities/TraningITask";
 import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import { changePasswordHtml, emailHtml } from "../../../utils/emailHtml";
+import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
+import { generateTempPassword } from "../../../utils/users";
 
 dotenv.config();
 
 const region = process.env.AWS_REGION || "eu-north-1";
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "";
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER, // tu email
+    pass: process.env.GMAIL_APP_PASS, // password o app password
+  },
+});
 
 export const s3 = new S3Client({
   region,
@@ -500,6 +512,36 @@ export const getConversation = async (
     });
   }
 };
+
+export const sendEmailVerification = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  const { currentUser } = context;
+
+  if (!currentUser) {
+    return CustomResponse(401, "Please login");
+  }
+
+  const emailVerificationTk = jwt.sign(
+    { id: currentUser.email },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "30d",
+    }
+  );
+
+  await transporter.sendMail({
+    from: process.env.GMAIL_USER,
+    to: currentUser.email,
+    subject: "Confirma tu cuenta",
+    html: emailHtml(emailVerificationTk),
+  });
+
+  return CustomResponse(200, "Verification email sent", true);
+};
+
 
 export const getTodaySchedulesResume = async (
   _: any,

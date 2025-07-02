@@ -17,6 +17,7 @@ import {
   getMonthlySchedules,
   getTrainingTasks,
   getUserWeights,
+  sendEmailVerification,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
 import {updatePassword, forgotPassword, loginWithGoogle} from "./auth/mutations";
@@ -49,10 +50,13 @@ import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
 import { createProduct, updateProductPicture } from "./product/mutations";
-import {registerToken, sendNotification} from "./token/mutations";
-import {createSubscription, removeSubscription} from "./subscription/mutations";
-import {addCreditCard} from "./paymentMethod/mutations";
-import {getCards} from "./paymentMethod/queries";
+import { registerToken, sendNotification } from "./token/mutations";
+import {
+  createSubscription,
+  removeSubscription,
+} from "./subscription/mutations";
+import { addCreditCard } from "./paymentMethod/mutations";
+import { getCards } from "./paymentMethod/queries";
 
 const resolvers = {
   Query: {
@@ -80,8 +84,8 @@ const resolvers = {
     getTrainingTasks,
     getUserWeights,
     getPresignedUrl,
-    getCards
-
+    getCards,
+    sendEmailVerification,
   },
   Mutation: {
     updateUser,

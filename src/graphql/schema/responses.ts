@@ -5,6 +5,12 @@ interface BasicResponse {
     message: String!
 }
 
+type DefaultResponse implements BasicResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
 type PresignedUrlResponse implements BasicResponse {
     code: String!
     success: Boolean!

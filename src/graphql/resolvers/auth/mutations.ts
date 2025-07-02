@@ -4,10 +4,25 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {ChangePasswordSchema} from "../../../validation/schemas";
 import {verifyGoogleToken} from "../../../utils/users";
-import {CustomResponse} from "../errors";
 import {UserProviderType} from "../../../types/enums";
+import { generateTempPassword } from "../../../utils/users";
+import nodemailer from "nodemailer";
+import { changePasswordHtml } from "../../../utils/emailHtml";
+import { CustomResponse } from "../errors";
 
-const forgotPassword = async (_, {email}, {em}: { em: EntityManager }) => {
+export const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER, // tu email
+    pass: process.env.GMAIL_APP_PASS, // password o app password
+  },
+});
+
+ const forgotPassword = async (
+  _,
+  {email},
+  {em}: { em: EntityManager }
+) => {
     const user = await em.findOne(User, {email});
     if (!user) {
         return {

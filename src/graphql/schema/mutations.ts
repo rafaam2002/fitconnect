@@ -8,6 +8,8 @@ type Mutation {
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     updateUserPicture(picture: String!, userId: String!): UserResponse!
     loginWithGoogle(id_token: String!): LoginResponse!
+    sendChangePasswordEmail(email: String!): DefaultResponse!
+
     #------------------Message-----------------
     createMessage(message: CreateMessageInput!): MessageResponse!
     fixMessage(messageId: ID!, fixedEndDate: String!): MessageResponse!

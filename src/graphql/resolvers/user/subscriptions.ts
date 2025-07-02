@@ -1,10 +1,9 @@
-import { PubSub, withFilter } from "graphql-subscriptions";
+import { withFilter } from "graphql-subscriptions";
 import {
   FIXED_MESSAGE_EVENT,
   MESSAGE_EVENT,
   myPubsub,
 } from "../../../constants/subscriptions";
-import { FORUM } from "../../../constants/forum";
 
 export const newMessage = {
   subscribe: withFilter(

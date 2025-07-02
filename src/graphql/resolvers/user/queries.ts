@@ -6,7 +6,6 @@ import { CustomResponse } from "../errors";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
-import { FORUM } from "../../../constants/forum";
 import {
   ContextProps,
   GetConversationProps,
@@ -24,10 +23,9 @@ import {
 import { TrainingTask } from "../../../entities/TraningITask";
 import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
-import { changePasswordHtml, emailHtml } from "../../../utils/emailHtml";
+import { emailHtml } from "../../../utils/emailHtml";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
-import { generateTempPassword } from "../../../utils/users";
 
 dotenv.config();
 

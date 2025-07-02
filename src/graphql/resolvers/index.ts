@@ -20,7 +20,7 @@ import {
   sendEmailVerification,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
-import { updatePassword, forgotPassword, sendChangePasswordEmail } from "./auth/mutations";
+import {updatePassword, forgotPassword, loginWithGoogle} from "./auth/mutations";
 import {
   createMessage,
   createPoll,
@@ -120,8 +120,8 @@ const resolvers = {
     sendNotification,
     addCreditCard,
     updateScheduleOptions,
-    sendChangePasswordEmail
-
+    loginWithGoogle,
+    sendEmailVerification,
   },
   Subscription: {
     newMessage,

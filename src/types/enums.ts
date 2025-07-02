@@ -12,6 +12,13 @@ export enum UserRol {
   COACH = "coach",
 }
 
+export enum UserProviderType  {
+  GOOGLE = 'google',
+  APPLE = 'apple',
+  FACEBOOK = 'facebook',
+  LOCAL = 'local',
+}
+
 export enum NotificationType {
   MESSAGE = "message",
   WARNING = "warning",

@@ -1,6 +1,8 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import { User } from "../entities/User";
 import moment from "moment";
+import { OAuth2Client } from 'google-auth-library';
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const setNotActiveUsers = async (
   em: EntityManager<IDatabaseDriver<Connection>>
@@ -31,3 +33,25 @@ export const generateTempPassword = (length: number = 6): string => {
   }
   return result;
 };
+
+
+export async function verifyGoogleToken(idToken: string) {
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) return null;
+
+    return {
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture,
+    };
+  } catch (error) {
+     console.error('Google token verification failed:', error);
+    return null;
+  }
+}

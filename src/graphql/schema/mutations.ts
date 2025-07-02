@@ -7,6 +7,7 @@ type Mutation {
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     updateUserPicture(picture: String!, userId: String!): UserResponse!
+    loginWithGoogle(id_token: String!): LoginResponse!
     sendChangePasswordEmail(email: String!): DefaultResponse!
 
     #------------------Message-----------------
@@ -55,6 +56,7 @@ type Mutation {
     
     #-----------------Card--------------------------
     addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
+    
 }
 
 `;

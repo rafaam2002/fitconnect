@@ -19,7 +19,7 @@ import {
   getUserWeights,
 } from "./user/queries";
 import { login, loginWithId } from "./auth/queries";
-import { updatePassword, forgotPassword } from "./auth/mutations";
+import {updatePassword, forgotPassword, loginWithGoogle} from "./auth/mutations";
 import {
   createMessage,
   createPoll,
@@ -115,7 +115,8 @@ const resolvers = {
     registerToken,
     sendNotification,
     addCreditCard,
-    updateScheduleOptions
+    updateScheduleOptions,
+    loginWithGoogle,
   },
   Subscription: {
     newMessage,

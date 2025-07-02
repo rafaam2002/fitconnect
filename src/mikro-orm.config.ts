@@ -24,7 +24,7 @@ export default {
   allowGlobalContext: true,
   driver: require("@mikro-orm/postgresql").PostgreSqlDriver,
   extensions: [Migrator, SeedManager],
-  debug: process.env.NODE_ENV !== 'production',
+  debug: false,
   driverOptions: {
     connection: {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,

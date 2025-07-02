@@ -6,7 +6,6 @@ import { CustomResponse } from "../errors";
 import { Schedule } from "../../../entities/Schedule";
 import { ScheduleOptions } from "../../../entities/ScheduleOptions";
 import moment from "moment";
-import { FORUM } from "../../../constants/forum";
 import {
   ContextProps,
   GetConversationProps,
@@ -24,10 +23,9 @@ import {
 import { TrainingTask } from "../../../entities/TraningITask";
 import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
-import { changePasswordHtml, emailHtml } from "../../../utils/emailHtml";
+import { emailHtml } from "../../../utils/emailHtml";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
-import { generateTempPassword } from "../../../utils/users";
 
 dotenv.config();
 
@@ -388,7 +386,7 @@ export const getConversation = async (
   const messageRepo = em.getRepository(Message);
 
   let forumFields = [];
-  if (otherUserId === FORUM.id || !otherUserId) {
+  if (otherUserId === process.env.DB_FORUM_ID || !otherUserId) {
     //forum
     forumFields = ["isFixed", "fixedEndDate", "fixedAdmin"]; //this fields are only available in forum
   }
@@ -427,7 +425,7 @@ export const getConversation = async (
       );
 
     let otherUserIds = rawUserIds.map((row) => row.otheruser);
-    otherUserIds = otherUserIds.filter((id) => id !== FORUM.id); // Excluir el foro si está presente
+    otherUserIds = otherUserIds.filter((id) => id !== process.env.DB_FORUM_ID); // Excluir el foro si está presente
 
     // Para cada otro usuario, se busca la conversación con el currentUser:
     const conversationPromises = otherUserIds.map((otherId) => {
@@ -453,7 +451,7 @@ export const getConversation = async (
 
     const forumMessages = await messageRepo.find(
       {
-        receiver: FORUM.id,
+        receiver: process.env.DB_FORUM_ID,
       },
       {
         orderBy: { created_at: "DESC" },
@@ -471,7 +469,7 @@ export const getConversation = async (
     });
   } else {
     const filter =
-      otherUserId !== FORUM.id
+      otherUserId !== process.env.DB_FORUM_ID
         ? {
             $or: [
               { sender: currentUser.id, receiver: otherUserId },
@@ -479,7 +477,7 @@ export const getConversation = async (
             ],
           }
         : {
-            receiver: FORUM.id,
+            receiver: process.env.DB_FORUM_ID,
           };
     const messages = await messageRepo.find(filter, {
       orderBy: { created_at: "DESC" },

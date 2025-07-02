@@ -1,10 +1,9 @@
-import { PubSub, withFilter } from "graphql-subscriptions";
+import { withFilter } from "graphql-subscriptions";
 import {
   FIXED_MESSAGE_EVENT,
   MESSAGE_EVENT,
   myPubsub,
 } from "../../../constants/subscriptions";
-import { FORUM } from "../../../constants/forum";
 
 export const newMessage = {
   subscribe: withFilter(
@@ -14,7 +13,7 @@ export const newMessage = {
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === FORUM.id
+        payload.newMessage.receiver.id === process.env.DB_FORUM_ID
       );
     }
   ),
@@ -29,7 +28,7 @@ export const fixedMessages = {
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === FORUM.id
+        payload.newMessage.receiver.id === process.env.DB_FORUM_ID
       );
     }
   ),

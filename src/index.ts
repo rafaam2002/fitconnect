@@ -18,6 +18,7 @@ import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
 import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
 import bcrypt from "bcrypt";
+import { storeNews } from "./utils/articles";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -188,12 +189,7 @@ const startServer = async () => {
   makeCronPresignedUrls(orm.em.fork());
   cronFunctions(orm.em.fork());
 
-  const foro = await orm.em.fork().findOne(User, {
-    nickname: "forum",
-  });
-  // console.log("id forum: ", foro.id);
-  //updatePictureUrls(orm.em.fork());
-  //storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
+  storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan
 };
 
 startServer();

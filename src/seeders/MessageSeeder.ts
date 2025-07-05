@@ -3,7 +3,6 @@ import { User } from "../entities/User";
 import { UserRol } from "../types/enums";
 import { Message } from "../entities/Message";
 import { Seeder } from "@mikro-orm/seeder";
-import { FORUM } from "../constants/forum";
 
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

@@ -22,7 +22,7 @@ export class UserSeeder extends Seeder {
             name: "Rafa",
             surname: "Mesa",
             password: "rafa",
-            email: "rafa",
+            email: "rafa@mail.com",
             phoneNumber: "123456789",
             nickname: "rafa",
             isActive: true,

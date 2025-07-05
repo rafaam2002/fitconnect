@@ -464,6 +464,15 @@ export const getConversation = async (
 
     conversationsGrouped.push(forumMessages);
 
+    // Ordenar las conversaciones por la fecha del mensaje más reciente (de forma comprimida)
+    conversationsGrouped.sort((a, b) => {
+      if (!a.length || !b.length) return b.length - a.length;
+      return (
+        new Date(b[0].created_at).getTime() -
+        new Date(a[0].created_at).getTime()
+      );
+    });
+
     return CustomResponse(200, "Conversations found", true, {
       conversations: conversationsGrouped,
     });
@@ -539,7 +548,6 @@ export const sendEmailVerification = async (
 
   return CustomResponse(200, "Verification email sent", true);
 };
-
 
 export const getTodaySchedulesResume = async (
   _: any,

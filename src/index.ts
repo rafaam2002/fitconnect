@@ -16,7 +16,7 @@ import { useServer } from "graphql-ws/use/ws";
 import { User } from "./entities/User";
 import jwt from "jsonwebtoken";
 import { renderPage } from "./utils/emailHtml";
-import { cronFunctions, makeCronPresignedUrls } from "./utils/cron";
+import { cronFunctions } from "./utils/cron";
 import bcrypt from "bcrypt";
 import { storeNews } from "./utils/articles";
 
@@ -186,7 +186,6 @@ const startServer = async () => {
     console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
   });
 
-  makeCronPresignedUrls(orm.em.fork());
   cronFunctions(orm.em.fork());
 
   storeNews(orm.em.fork(), 3, [1,2,3,4]); //limt = 3 free plan

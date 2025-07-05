@@ -17,7 +17,10 @@ export const cronFunctions = async (
         await storeNews(em, 3, [1, 2, 3, 4]);
 
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
+        
         scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+
+        updatePictureUrls(em);
 
         await setNotActiveUsers(em);
       } catch (error) {
@@ -56,13 +59,4 @@ export const cronFunctions = async (
   );
 
   console.log("📅 Tarea programada para ejecutarse cada domingo a las 3AM.");
-};
-
-export const makeCronPresignedUrls = (
-  em: EntityManager<IDatabaseDriver<Connection>>
-) => {
-  cron.schedule("0 */3 * * *", () => {
-    console.log("Executing cron job every 3 hours to update presigned urls");
-    updatePictureUrls(em);
-  });
 };

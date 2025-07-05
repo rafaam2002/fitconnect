@@ -62,7 +62,7 @@ export const getPresignedUrl = async (key: string) => {
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: key,
   });
-  const url = await getSignedUrl(s3, command, { expiresIn: 3.5 * 3600 }); // 3 hours
+  const url = await getSignedUrl(s3, command, { expiresIn: 2 * 24 * 3600 }); // 2 days
   return url;
 };
 

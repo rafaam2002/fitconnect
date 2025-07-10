@@ -13,6 +13,7 @@ import {Subscription} from "./Subscription";
 import {TrainingTask} from "./TraningITask";
 import {UserWeight} from "./UserWeight";
 import {PictureUrl} from "./PictureUrl";
+import { RefreshToken } from "./RefreshToken";
 
 @Entity()
 export class User extends BaseEntity {
@@ -113,6 +114,11 @@ export class User extends BaseEntity {
         eager: true,
     })
     pictureUrl?: PictureUrl;
+
+    @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
+        lazy: true,
+    })
+    refreshTokens = new Collection<RefreshToken>(this);
 
     constructor(user: User) {
         super();

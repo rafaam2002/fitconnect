@@ -1,6 +1,9 @@
+
 import { User } from "../../../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { RefreshToken } from "../../../entities/RefreshToken";
+import crypto from "crypto";
 
 const login = async (_, args: any, { em }) => {
   const { emailOrNickname, password } = args;
@@ -36,7 +39,17 @@ const login = async (_, args: any, { em }) => {
     phoneNumber: user.phoneNumber,
     pictureUrl: user.pictureUrl,
   };
-  const token = await jwt.sign(userForToken, process.env.JWT_SECRET);
+  const token = jwt.sign(userForToken, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
+
+  const refreshTokenString = crypto.randomBytes(64).toString("hex");
+  const refreshToken = new RefreshToken(
+    user,
+    refreshTokenString,
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+  );
+  await em.persistAndFlush(refreshToken);
 
   if (token) {
     return {
@@ -46,7 +59,7 @@ const login = async (_, args: any, { em }) => {
       user: user,
       tokens: {
         token,
-        refreshToken: "",
+        refreshToken: refreshTokenString,
       },
     };
   } else {
@@ -71,3 +84,4 @@ const loginWithId = async (_, args: any, { em }) => {
 };
 
 export { login, loginWithId };
+

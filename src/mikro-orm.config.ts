@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import { PushToken } from "./entities/PushToken";
 import { PaymentMethod } from "./entities/PaymentMethod";
 import { Plan } from "./entities/Plan";
+import { RefreshToken } from "./entities/RefreshToken";
 dotenv.config();
 
 export default {
@@ -25,6 +26,7 @@ export default {
     PushToken,
     PaymentMethod,
     Plan,
+    RefreshToken,
   ],
   clientUrl: process.env.DATABASE_URL,
   // dbName: process.env.DB_NAME || "fitconnect_db",

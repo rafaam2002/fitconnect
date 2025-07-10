@@ -53,6 +53,7 @@ type Mutation {
     #-----------------Token---------------------
     registerToken(token: String!): RegisterTokenResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
+    refreshToken(refreshToken: String!): LoginResponse!
     
     #-----------------Card--------------------------
     addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
@@ -60,3 +61,4 @@ type Mutation {
 }
 
 `;
+

@@ -50,7 +50,7 @@ import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
 import { createProduct, updateProductPicture } from "./product/mutations";
-import { registerToken, sendNotification } from "./token/mutations";
+import { registerToken, sendNotification, refreshToken } from "./token/mutations";
 import {
   createSubscription,
   removeSubscription,
@@ -122,6 +122,7 @@ const resolvers = {
     updateScheduleOptions,
     loginWithGoogle,
     sendChangePasswordEmail,
+    refreshToken,
   },
   Subscription: {
     newMessage,

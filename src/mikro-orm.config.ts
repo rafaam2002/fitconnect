@@ -45,6 +45,13 @@ export default {
     },
     family: 4,
   },
+  pool: {
+    min: 2,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    reapIntervalMillis: 1000,
+    propagateCreateError: false,
+  },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],
 };

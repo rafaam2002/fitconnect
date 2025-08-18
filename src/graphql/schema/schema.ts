@@ -11,7 +11,7 @@ ${graphqlEnums}
 
 type Tokens {
     token: String
-    refeshToken: String
+    refreshToken: String
 }
 
 ${graphqlEntities}

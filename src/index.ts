@@ -149,8 +149,32 @@ const startServer = async () => {
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
+        const em = orm.em.fork();
         const authorization = req.headers.authorization || "";
-        const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+        const query = req.body?.query || "";
+
+        // Operations that don't require an authenticated user
+        const publicOperations = [
+          "login",
+          "loginWithGoogle",
+          "loginWithId",
+          "refreshToken",
+          "getAccessToken",
+          "createUser",
+          "forgotPassword",
+          "sendChangePasswordEmail",
+          "verifyEmail",
+        ];
+
+        // If the query string contains a public operation, skip token authentication
+        const isPublicOperation = publicOperations.some((op) =>
+          query.toLowerCase().includes(op.toLowerCase())
+        );
+
+        if (isPublicOperation) {
+          return { em, currentUser: null };
+        }
+
         const currentUser = await authenticateUser(em, authorization);
         return { em, currentUser };
       },

@@ -367,7 +367,7 @@ export const getPolls = async (
     {
       endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
     },
-    { populate: ["admin"] }
+    { populate: ["admin", "pollVotes.user"] }
   );
 
   return CustomResponse(200, "Polls found", true, { polls });

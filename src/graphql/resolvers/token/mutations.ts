@@ -56,7 +56,7 @@ export const refreshToken = async (_: any, args: any, { em }) => {
   };
 
   const token = jwt.sign(userForToken, process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: "1m",
   });
 
   const newRefreshTokenString = crypto.randomBytes(64).toString("hex");

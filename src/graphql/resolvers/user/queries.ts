@@ -26,6 +26,7 @@ import dotenv from "dotenv";
 import { emailHtml } from "../../../utils/emailHtml";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
+import { GraphQLError } from "graphql";
 
 dotenv.config();
 
@@ -381,7 +382,12 @@ export const getConversation = async (
   const { otherUserId, page = 0, limit = 50 } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   const messageRepo = em.getRepository(Message);
 

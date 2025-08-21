@@ -2,18 +2,19 @@ import {EntityManager, RequiredEntityData} from "@mikro-orm/core";
 import {User} from "../../../entities/User";
 import { Plan } from "../../../entities/Plan";
 import { Currency } from "../../../types/enums";
+import { GraphQLError } from "graphql";
 
 
 
 const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
 
     if (!currentUser) {
-        return {
-            success: false,
-            code: "400",
-            message: "Please login",
-            plan: null,
-        };
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: { status: 401 },
+            },
+        });
     }
 
     if (currentUser.rol !== "boss") {
@@ -50,12 +51,12 @@ const updatePlan = async (_: any, args: any, {em, currentUser}: { em: EntityMana
     const {planId, plan} = args
 
     if (!currentUser) {
-        return {
-            success: false,
-            code: "400",
-            message: "Please login",
-            plan: null,
-        };
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: { status: 401 },
+            },
+        });
     }
 
     if(currentUser && currentUser.rol !== "boss") {
@@ -112,12 +113,12 @@ const removePlan = async (_: any, args: any, {em, currentUser}: { em: EntityMana
     const {planId} = args
 
     if (!currentUser) {
-        return {
-            success: false,
-            code: "400",
-            message: "Please login",
-            plan: null,
-        };
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: { status: 401 },
+            },
+        });
     }
 
     if (!planId) {

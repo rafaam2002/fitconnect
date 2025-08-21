@@ -9,6 +9,7 @@ import { generateTempPassword } from "../../../utils/users";
 import nodemailer from "nodemailer";
 import { changePasswordHtml } from "../../../utils/emailHtml";
 import { CustomResponse } from "../errors";
+import { GraphQLError } from "graphql";
 
 export const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -63,13 +64,12 @@ const updatePassword = async (
     {currentUser, em}
 ) => {
     if (!currentUser) {
-        return {
-            success: false,
-            code: "400",
-            message: "Please login",
-            user: null,
-            token: null,
-        };
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: { status: 401 },
+            },
+        });
     }
 
     try {

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { ContextProps } from "../../../types/resolvers";
 import { CustomResponse } from "../errors";
 import crypto from "crypto";
+import { GraphQLError } from "graphql";
 
 dotenv.config();
 
@@ -30,7 +31,13 @@ export const getPresignedUrl = async (
   },
   context: ContextProps
 ) => {
-  if (!context.currentUser) return CustomResponse(400, "Please login");
+  if (!context.currentUser)
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   const Key = key || `${crypto.randomUUID()}.jpeg`;
   const params = {

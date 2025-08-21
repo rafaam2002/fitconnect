@@ -17,6 +17,7 @@ import {
 } from "../../../constants/subscriptions";
 import moment from "moment";
 import { CustomResponse } from "../errors";
+import { GraphQLError } from "graphql";
 import {
   AddUserWeight,
   ChangeScheduleStatusProp,
@@ -136,7 +137,12 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
   } = fields;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
@@ -210,7 +216,12 @@ export const updateUserPicture = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
@@ -278,7 +289,12 @@ export const createMessage = async (
   const { em, currentUser } = context;
   const { text, receiverId, isFixed, fixedDuration = null } = message;
 
-  if (!currentUser) return CustomResponse(401, "Please login");
+  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   if (isFixed && currentUser.rol === UserRol.STANDARD)
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -333,7 +349,12 @@ export const createSchedule = async (
 
   const finalAge = age && age > 0 ? age : null;
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -393,7 +414,12 @@ export const addUserToSchedule = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   // const userReference = em.getReference(User, currentUser.id);
   const user: User = await em.findOne(
@@ -478,7 +504,12 @@ export const removeUserFromSchedule = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   let id = null;
 
@@ -539,7 +570,12 @@ export const createScheduleDevelopment = async (
   let newEndDate = createDateWithTime(endTime); // endTime es la cadena de tiempo pasada por parámetro, por ejemplo "12:30"
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const userRepo = em.getRepository(User);
@@ -576,7 +612,12 @@ export const createPoll = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol !== UserRol.COACH && currentUser.rol !== UserRol.BOSS) {
@@ -619,7 +660,12 @@ export const createOrChangePollVote = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const pollRepo = em.getRepository(Poll);
@@ -663,7 +709,12 @@ export const deletePollVote = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const pollVoteRepo = em.getRepository(PollVote);
@@ -690,7 +741,12 @@ export const fixMessage = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -730,7 +786,12 @@ export const unfixMessage = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   if (currentUser.rol === UserRol.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -768,7 +829,12 @@ export const changeScheduleStatus = async (
   const { scheduleId } = args;
   const { em, currentUser } = context;
 
-  if (!currentUser) return CustomResponse(401, "Please login");
+  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
@@ -801,7 +867,12 @@ export const createTrainingTask = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {
@@ -837,7 +908,12 @@ export const removeTrainingTask = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {
@@ -865,7 +941,12 @@ export const addUserWeight = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {
@@ -900,7 +981,12 @@ export const removeUserWeight = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const userWeightRepo = em.getRepository(UserWeight);
@@ -930,7 +1016,12 @@ export const removeSchedule = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const scheduleRepo = em.getRepository(Schedule);
@@ -960,7 +1051,12 @@ export const updateScheduleOptions = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol !== UserRol.BOSS) {

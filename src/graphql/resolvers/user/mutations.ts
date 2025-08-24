@@ -932,6 +932,42 @@ export const createTrainingTask = async (
 
   try {
     await em.persistAndFlush(newTrainingTask);
+
+    const title = "¡Nueva tarea de entrenamiento!";
+    const body = content;
+    const data = {
+      type: "new_training_task",
+      trainingTaskId: newTrainingTask.id,
+    };
+
+    if (userId) {
+      // Send to specific user
+      const user = await em.findOne(
+        User,
+        { id: userId },
+        { populate: ["pushTokens"] }
+      );
+      if (user && user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    } else {
+      // Send to all premium users
+      const users = await em.find(
+        User,
+        { rol: UserRol.PREMIUM },
+        { populate: ["pushTokens"] }
+      );
+      users.forEach((user) => {
+        if (user.pushTokens && user.pushTokens.length > 0) {
+          user.pushTokens.getItems().forEach((pushToken) => {
+            sendPushNotification(pushToken.token, title, body, data);
+          });
+        }
+      });
+    }
+
     return CustomResponse(200, "Training task created successfully", true, {
       trainingTask: newTrainingTask,
     });

@@ -59,3 +59,34 @@ export const sendNotification = async (
 
   return CustomResponse(201, "The message has been set.", true);
 };
+
+
+export const removePushToken = async (
+  _: any,
+  { token }: { token: string },
+  { em, currentUser }: ContextProps
+) => {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  const pushTokenRepo = em.getRepository(PushToken);
+  const pushToken = await pushTokenRepo.findOne({ token, user: currentUser });
+
+  if (!pushToken) {
+    return CustomResponse(404, "Push token not found for the current user.", false);
+  }
+
+  try {
+    await em.removeAndFlush(pushToken);
+    return CustomResponse(200, "Push token removed successfully.", true);
+  } catch (error) {
+    console.error("Error removing push token:", error);
+    return CustomResponse(500, "Error removing push token.", false);
+  }
+};

@@ -57,7 +57,7 @@ import {
 } from "./subscription/mutations";
 import { addCreditCard } from "./paymentMethod/mutations";
 import { getCards } from "./paymentMethod/queries";
-import { registerToken, sendNotification } from "./push-token/mutations";
+import { registerToken, sendNotification, removePushToken } from "./push-token/mutations";
 
 const resolvers = {
   Query: {
@@ -118,6 +118,7 @@ const resolvers = {
     createProduct,
     updateProductPicture,
     registerToken,
+    removePushToken,
     sendNotification,
     addCreditCard,
     updateScheduleOptions,

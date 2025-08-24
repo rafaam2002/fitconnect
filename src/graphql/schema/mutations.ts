@@ -50,8 +50,9 @@ type Mutation {
     createProduct(product: CreateProductInput!): ProductResponse!
     updateProductPicture(imageName: String!, productId: String!): ProductResponse!
 
-    #-----------------Token---------------------
+    #-----------------Token-----
     registerToken(token: String!): RegisterTokenResponse!
+    removePushToken(token: String!): DefaultResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshToken(refreshToken: String!): LoginResponse!
     

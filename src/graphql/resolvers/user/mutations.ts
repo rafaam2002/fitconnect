@@ -1,4 +1,5 @@
 import { User } from "../../../entities/User";
+import { sendPushNotification } from "../../../utils/notifications";
 import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import { ScheduleState, ScheduleType, UserRol } from "../../../types/enums";
@@ -289,12 +290,14 @@ export const createMessage = async (
   const { em, currentUser } = context;
   const { text, receiverId, isFixed, fixedDuration = null } = message;
 
-  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
         http: { status: 401 },
       },
     });
+  }
 
   if (isFixed && currentUser.rol === UserRol.STANDARD)
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -308,7 +311,11 @@ export const createMessage = async (
     );
 
   try {
-    const receiver = await em.findOne(User, { id: receiverId });
+    const receiver = await em.findOne(
+      User,
+      { id: receiverId },
+      { populate: ["pushTokens"] }
+    );
     const newMessage = em.create(Message, {
       text,
       receiver,
@@ -317,6 +324,19 @@ export const createMessage = async (
       fixedDuration,
     });
     await em.persistAndFlush(newMessage);
+
+    if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
+      const title = `Nuevo mensaje de ${currentUser.nickname}`;
+      const body = text;
+      const data = {
+        type: "new_message",
+        messageId: newMessage.id,
+        senderId: currentUser.id,
+      };
+      receiver.pushTokens.getItems().forEach((pushToken) => {
+        sendPushNotification(pushToken.token, title, body, data);
+      });
+    }
 
     myPubsub.publish(MESSAGE_EVENT, { newMessage });
     return CustomResponse(200, "Message created successfully", true, {
@@ -640,6 +660,28 @@ export const createPoll = async (
 
     await em.persistAndFlush(newPoll);
 
+    // Send notification to all users
+    const users = await em.find(User, {}, { populate: ["pushTokens"] });
+    const notificationTitle = "¡Nueva encuesta disponible!";
+    const notificationBody = title;
+    const notificationData = {
+      type: "new_poll",
+      pollId: newPoll.id,
+    };
+
+    users.forEach((user) => {
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(
+            pushToken.token,
+            notificationTitle,
+            notificationBody,
+            notificationData
+          );
+        });
+      }
+    });
+
     return CustomResponse(200, "Poll created successfully", true, {
       poll: newPoll,
     });
@@ -829,17 +871,19 @@ export const changeScheduleStatus = async (
   const { scheduleId } = args;
   const { em, currentUser } = context;
 
-  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
         http: { status: 401 },
       },
     });
+  }
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
     { id: scheduleId },
-    { populate: ["users"] }
+    { populate: ["users", "users.pushTokens"] }
   );
 
   if (!schedule) return CustomResponse(404, "Schedule not found");
@@ -847,11 +891,30 @@ export const changeScheduleStatus = async (
   if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS)
     return CustomResponse(403, "You are not authorized to perform this action");
 
-  if (schedule.state === ScheduleState.AVAILABLE)
-    schedule.state = ScheduleState.CANCELLED;
-  else schedule.state = ScheduleState.AVAILABLE;
+  const newState =
+    schedule.state === ScheduleState.AVAILABLE
+      ? ScheduleState.CANCELLED
+      : ScheduleState.AVAILABLE;
+  schedule.state = newState;
 
   await em.persistAndFlush(schedule);
+
+  if (newState === ScheduleState.CANCELLED) {
+    const title = "Horario cancelado";
+    const body = `El horario "${schedule.title}" ha sido cancelado.`;
+    const data = {
+      type: "schedule_cancelled",
+      scheduleId: schedule.id,
+    };
+
+    schedule.users.getItems().forEach((user) => {
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    });
+  }
 
   return CustomResponse(200, "Schedule status changed successfully", true, {
     schedule,
@@ -890,6 +953,42 @@ export const createTrainingTask = async (
 
   try {
     await em.persistAndFlush(newTrainingTask);
+
+    const title = "¡Nueva tarea de entrenamiento!";
+    const body = content;
+    const data = {
+      type: "new_training_task",
+      trainingTaskId: newTrainingTask.id,
+    };
+
+    if (userId) {
+      // Send to specific user
+      const user = await em.findOne(
+        User,
+        { id: userId },
+        { populate: ["pushTokens"] }
+      );
+      if (user && user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    } else {
+      // Send to all premium users
+      const users = await em.find(
+        User,
+        { rol: UserRol.PREMIUM },
+        { populate: ["pushTokens"] }
+      );
+      users.forEach((user) => {
+        if (user.pushTokens && user.pushTokens.length > 0) {
+          user.pushTokens.getItems().forEach((pushToken) => {
+            sendPushNotification(pushToken.token, title, body, data);
+          });
+        }
+      });
+    }
+
     return CustomResponse(200, "Training task created successfully", true, {
       trainingTask: newTrainingTask,
     });

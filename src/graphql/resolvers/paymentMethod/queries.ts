@@ -1,18 +1,24 @@
-import {ContextProps} from "../../../types/resolvers";
-import {CustomResponse} from "../errors";
-import {PaymentMethod} from "../../../entities/PaymentMethod";
+import { ContextProps } from "../../../types/resolvers";
+import { CustomResponse } from "../errors";
+import { PaymentMethod } from "../../../entities/PaymentMethod";
+import { GraphQLError } from "graphql";
 
 export const getCards = async (
-    _: any,
-    __: any,
-    {em, currentUser}: ContextProps
+  _: any,
+  __: any,
+  { em, currentUser }: ContextProps
 ) => {
-    if (!currentUser)
-        return CustomResponse(401, "Please login");
-
-    const payments = await em.find(PaymentMethod, {
-        user: currentUser.id
+  if (!currentUser)
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
     });
 
-    return CustomResponse(200, "Payments found", true, {cards: payments});
+  const payments = await em.find(PaymentMethod, {
+    user: currentUser.id,
+  });
+
+  return CustomResponse(200, "Payments found", true, { cards: payments });
 };

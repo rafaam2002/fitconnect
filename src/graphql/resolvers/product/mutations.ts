@@ -6,6 +6,7 @@ import {
 } from "../../../types/resolvers";
 import { UserRol } from "../../../types/enums";
 import { CustomResponse } from "../errors";
+import { GraphQLError } from "graphql";
 import { Update } from "aws-sdk/clients/dynamodb";
 import { PictureUrl } from "../../../entities/PictureUrl";
 import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
@@ -17,7 +18,12 @@ export const createProduct = async (
 ) => {
   //   const productRepo = em.getRepository(Product);
 
-  if (!currentUser) return CustomResponse(400, "Please login");
+  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   if (currentUser.rol !== UserRol.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
@@ -46,7 +52,12 @@ export const updateProductPicture = async (
   { imageName, productId }: UpdateProductImage,
   { em, currentUser }: ContextProps
 ) => {
-  if (!currentUser) return CustomResponse(400, "Please login");
+  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   if (currentUser.rol !== UserRol.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");

@@ -26,6 +26,7 @@ import dotenv from "dotenv";
 import { emailHtml } from "../../../utils/emailHtml";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
+import { GraphQLError } from "graphql";
 
 dotenv.config();
 
@@ -57,7 +58,12 @@ export const getUsers = async (
   const { em, currentUser } = context;
   const { textFilter, rolFilter, page, stateFilter } = args;
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const pagination = {
@@ -109,7 +115,12 @@ export const me = async (_: any, args: any, context: ContextProps) => {
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   //falta conseguir el usuario actual
   const me: User | null = await userRepo.findOne(
@@ -147,7 +158,12 @@ export const getPromotions = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -166,7 +182,12 @@ export const getSchedules = async (
   const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (scheduleId) {
@@ -212,7 +233,12 @@ export const getSchedulesFromToday = async (
   const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const today = new Date();
@@ -236,7 +262,12 @@ export const getSchedulesResume = async (
   const { em, currentUser } = context;
   const scheduleRepo = em.getRepository(Schedule);
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const today = new Date();
@@ -272,7 +303,12 @@ export const getAdminSchedules = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {
@@ -294,7 +330,12 @@ export const getNotifications = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   const user = await userRepo.findOne(
     { id: currentUser.id },
@@ -315,7 +356,12 @@ export const getAdminPolls = async (
   const userRepo = em.getRepository(User);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {
@@ -338,7 +384,12 @@ export const getPolls = async (
   const { pollId, filter } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const pollRepo = em.getRepository(Poll);
@@ -366,7 +417,7 @@ export const getPolls = async (
     {
       endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
     },
-    { populate: ["admin"] }
+    { populate: ["admin", "pollVotes.user"] }
   );
 
   return CustomResponse(200, "Polls found", true, { polls });
@@ -381,7 +432,12 @@ export const getConversation = async (
   const { otherUserId, page = 0, limit = 50 } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   const messageRepo = em.getRepository(Message);
 
@@ -528,7 +584,12 @@ export const sendEmailVerification = async (
   const { currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const emailVerificationTk = jwt.sign(
@@ -558,7 +619,12 @@ export const getTodaySchedulesResume = async (
   const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const today = new Date();
@@ -595,7 +661,12 @@ export const getSchedulesRange = async (
   const scheduleRepo = em.getRepository(Schedule);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const startOfDay = moment(startDate).format("YYYY/MM/DD HH:mm:ss");
@@ -649,7 +720,12 @@ export const getSchedulesResumeRange = async (
   const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const scheduleOptions = await scheduleOptionsRepo.findOne({
@@ -704,7 +780,12 @@ export const getScheduleOptions = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   const scheduleOptionRepo = em.getRepository(ScheduleOptions);
   const scheduleOptions = await scheduleOptionRepo.findAll();
@@ -722,7 +803,12 @@ export const getAdminStats = async (
   const { em, currentUser } = context;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
   if (currentUser.rol !== UserRol.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -767,7 +853,12 @@ export const getSchedulesStats = async (
   const { month } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   } else if (currentUser.rol !== UserRol.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -875,7 +966,12 @@ export const getMonthlySchedules = async (
   const { month, startHour } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   } else if (currentUser.rol !== UserRol.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -907,7 +1003,12 @@ export const getTrainingTasks = async (
   const { userId, dateRange } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const trainingTaskRepo = em.getRepository(TrainingTask);
@@ -950,7 +1051,12 @@ export const getUserWeights = async (
   const { userId, dateRange } = args;
 
   if (!currentUser) {
-    return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   if (currentUser.rol === UserRol.STANDARD) {

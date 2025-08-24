@@ -1,5 +1,6 @@
 import {ContextProps} from "../../../types/resolvers";
 import {CustomResponse} from "../errors";
+import { GraphQLError } from "graphql";
 import {PaymentMethod} from "../../../entities/PaymentMethod";
 import {stripe} from "../../../utils/const";
 import {PaymentMethodStatus, PaymentMethodType} from "../../../types/enums";
@@ -16,7 +17,12 @@ export const addCreditCard = async (
     const {em, currentUser} = context;
 
     if (!currentUser) {
-        return CustomResponse(401, "Please login");
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
     }
 
     if (!paymentMethodId) {

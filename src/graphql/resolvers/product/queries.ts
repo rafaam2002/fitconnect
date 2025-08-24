@@ -2,6 +2,7 @@ import { EntityManager } from "@mikro-orm/postgresql";
 import { UserType } from "../../../types";
 import { Product } from "../../../entities/Product";
 import { CustomResponse } from "../errors";
+import { GraphQLError } from "graphql";
 import { ContextProps } from "../../../types/resolvers";
 
 export const getProducts = async (
@@ -9,7 +10,12 @@ export const getProducts = async (
   __: any,
   { em, currentUser }: ContextProps
 ) => {
-  if (!currentUser) return CustomResponse(401, "Please login");
+  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
 
   const products = await em.findAll(Product, {});
 

@@ -1,6 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { UserType } from "../../../types";
 import { Article } from "../../../entities/Article";
+import { GraphQLError } from "graphql";
 
 type ContextType = {
   em: EntityManager;
@@ -19,11 +20,12 @@ export const getArticles = async (
 ) => {
 
   if (!currentUser) {
-    return {
-      success: false,
-      code: "401",
-      message: "Please login",
-    };
+    throw new GraphQLError("Please login, token_expired", {
+        extensions: {
+            code: "UNAUTHENTICATED",
+            http: { status: 401 },
+        },
+    });
   }
   const articles = await em.find(
     Article,

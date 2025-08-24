@@ -60,7 +60,7 @@ export const cronFunctions = async (
   );
 
   cron.schedule(
-    "*/10 * * * *", // Every 10 minutes
+    "0 * * * *", // Every hour
     async () => {
       console.log("🚀 Iniciando tarea de recordatorios de horarios...");
       try {
@@ -80,6 +80,6 @@ export const cronFunctions = async (
 
   console.log("📅 Tarea programada para ejecutarse cada domingo a las 3AM.");
   console.log(
-    "📅 Tarea programada para enviar recordatorios de horarios cada 10 minutos."
+    "📅 Tarea programada para enviar recordatorios de horarios cada hora."
   );
 };

@@ -162,7 +162,7 @@ export const sendScheduleReminders = async (em: EntityManager) => {
 
   const now = moment();
   const twoHoursFromNow = now.clone().add(2, "hours");
-  const twoHoursAndTenMinutesFromNow = twoHoursFromNow.clone().add(10, "minutes");
+  const threeHoursFromNow = twoHoursFromNow.clone().add(1, "hour"); // Changed from 10 minutes to 1 hour
 
   try {
     const scheduleRepo = em.getRepository(Schedule);
@@ -170,7 +170,7 @@ export const sendScheduleReminders = async (em: EntityManager) => {
       {
         startDate: {
           $gte: twoHoursFromNow.toDate(),
-          $lt: twoHoursAndTenMinutesFromNow.toDate(),
+          $lt: threeHoursFromNow.toDate(), // Use the new 1-hour window
         },
         state: ScheduleState.AVAILABLE,
       },

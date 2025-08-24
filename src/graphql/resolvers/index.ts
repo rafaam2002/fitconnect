@@ -50,13 +50,14 @@ import { getProducts } from "./product/queries";
 import { getArticles } from "./article/queries";
 import { getPresignedUrl } from "./s3/queries";
 import { createProduct, updateProductPicture } from "./product/mutations";
-import { registerToken, sendNotification, refreshToken } from "./token/mutations";
+import {   refreshToken } from "./refresh-token/mutations";
 import {
   createSubscription,
   removeSubscription,
 } from "./subscription/mutations";
 import { addCreditCard } from "./paymentMethod/mutations";
 import { getCards } from "./paymentMethod/queries";
+import { registerToken, sendNotification } from "./push-token/mutations";
 
 const resolvers = {
   Query: {

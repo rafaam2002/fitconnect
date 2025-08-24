@@ -9,11 +9,12 @@ export async function sendPushNotification(
     const message = {
         to: token,
         sound: 'default',
-        category_id: 'chat_message',
-        badge:1,
-        data: {type: 'invite'},
+        title,
+        body,
+        data,
         content_available: true,
-        priority: 'high'
+        priority: 'high',
+        badge: 1,
     };
 
     const response = await fetch('https://exp.host/--/api/v2/push/send', {

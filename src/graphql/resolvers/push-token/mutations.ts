@@ -2,10 +2,8 @@ import { ContextProps, NotificationProps } from "../../../types/resolvers";
 import { CustomResponse } from "../errors";
 import { PushToken } from "../../../entities/PushToken";
 import { sendPushNotification } from "../../../utils/notifications";
-import { RefreshToken } from "../../../entities/RefreshToken";
-import jwt from "jsonwebtoken";
-import { User } from "../../../entities/User";
-import crypto from "crypto";
+import { GraphQLError } from "graphql";
+
 
 export const registerToken = async (
   _: any,
@@ -15,8 +13,13 @@ export const registerToken = async (
   const { token } = args;
   const { em, currentUser } = context;
 
-  if (!currentUser) {
-    return CustomResponse(404, "Please login");
+if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
   }
 
   const existing = await em.findOne(PushToken, { token });

@@ -1,4 +1,5 @@
 import { User } from "../../../entities/User";
+import { sendPushNotification } from "../../../utils/notifications";
 import jwt from "jsonwebtoken";
 import { Message } from "../../../entities/Message";
 import { ScheduleState, ScheduleType, UserRol } from "../../../types/enums";
@@ -289,12 +290,14 @@ export const createMessage = async (
   const { em, currentUser } = context;
   const { text, receiverId, isFixed, fixedDuration = null } = message;
 
-  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
         http: { status: 401 },
       },
     });
+  }
 
   if (isFixed && currentUser.rol === UserRol.STANDARD)
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -308,7 +311,11 @@ export const createMessage = async (
     );
 
   try {
-    const receiver = await em.findOne(User, { id: receiverId });
+    const receiver = await em.findOne(
+      User,
+      { id: receiverId },
+      { populate: ["pushTokens"] }
+    );
     const newMessage = em.create(Message, {
       text,
       receiver,
@@ -317,6 +324,19 @@ export const createMessage = async (
       fixedDuration,
     });
     await em.persistAndFlush(newMessage);
+
+    if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
+      const title = `Nuevo mensaje de ${currentUser.nickname}`;
+      const body = text;
+      const data = {
+        type: "new_message",
+        messageId: newMessage.id,
+        senderId: currentUser.id,
+      };
+      receiver.pushTokens.getItems().forEach((pushToken) => {
+        sendPushNotification(pushToken.token, title, body, data);
+      });
+    }
 
     myPubsub.publish(MESSAGE_EVENT, { newMessage });
     return CustomResponse(200, "Message created successfully", true, {

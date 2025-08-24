@@ -1,9 +1,0 @@
-PUSH NOTIFICATIONS
-
-2 horas antes de la clase
-si la clase se cancela
-si llega un mensaje
-si se crea un nuevo producto
-si se hace una encuesta
-Premium:
-si se crea una tarea

@@ -1,4 +1,6 @@
 import { Product } from "../../../entities/Product";
+import { User } from "../../../entities/User";
+import { sendPushNotification } from "../../../utils/notifications";
 import {
   ContextProps,
   CreateProduct,
@@ -38,7 +40,29 @@ export const createProduct = async (
       price,
     });
 
-    em.persistAndFlush(product);
+    await em.persistAndFlush(product);
+
+    // Send notification to all users
+    const users = await em.find(User, {}, { populate: ["pushTokens"] });
+    const notificationTitle = "¡Nuevo producto disponible!";
+    const notificationBody = name;
+    const notificationData = {
+      type: "new_product",
+      productId: product.id,
+    };
+
+    users.forEach((user) => {
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(
+            pushToken.token,
+            notificationTitle,
+            notificationBody,
+            notificationData
+          );
+        });
+      }
+    });
 
     return CustomResponse(200, "Product created", true, { product });
   } catch (error) {

@@ -660,6 +660,28 @@ export const createPoll = async (
 
     await em.persistAndFlush(newPoll);
 
+    // Send notification to all users
+    const users = await em.find(User, {}, { populate: ["pushTokens"] });
+    const notificationTitle = "¡Nueva encuesta disponible!";
+    const notificationBody = title;
+    const notificationData = {
+      type: "new_poll",
+      pollId: newPoll.id,
+    };
+
+    users.forEach((user) => {
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(
+            pushToken.token,
+            notificationTitle,
+            notificationBody,
+            notificationData
+          );
+        });
+      }
+    });
+
     return CustomResponse(200, "Poll created successfully", true, {
       poll: newPoll,
     });

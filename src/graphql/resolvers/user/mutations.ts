@@ -871,17 +871,19 @@ export const changeScheduleStatus = async (
   const { scheduleId } = args;
   const { em, currentUser } = context;
 
-  if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
         http: { status: 401 },
       },
     });
+  }
 
   const scheduleRepo = em.getRepository(Schedule);
   const schedule = await scheduleRepo.findOne(
     { id: scheduleId },
-    { populate: ["users"] }
+    { populate: ["users", "users.pushTokens"] }
   );
 
   if (!schedule) return CustomResponse(404, "Schedule not found");
@@ -889,11 +891,30 @@ export const changeScheduleStatus = async (
   if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS)
     return CustomResponse(403, "You are not authorized to perform this action");
 
-  if (schedule.state === ScheduleState.AVAILABLE)
-    schedule.state = ScheduleState.CANCELLED;
-  else schedule.state = ScheduleState.AVAILABLE;
+  const newState =
+    schedule.state === ScheduleState.AVAILABLE
+      ? ScheduleState.CANCELLED
+      : ScheduleState.AVAILABLE;
+  schedule.state = newState;
 
   await em.persistAndFlush(schedule);
+
+  if (newState === ScheduleState.CANCELLED) {
+    const title = "Horario cancelado";
+    const body = `El horario "${schedule.title}" ha sido cancelado.`;
+    const data = {
+      type: "schedule_cancelled",
+      scheduleId: schedule.id,
+    };
+
+    schedule.users.getItems().forEach((user) => {
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach((pushToken) => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    });
+  }
 
   return CustomResponse(200, "Schedule status changed successfully", true, {
     schedule,

@@ -5,6 +5,7 @@ import { ScheduleState, ScheduleType, UserRol } from "../types/enums";
 import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
+import { sendPushNotification } from "./notifications";
 
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
@@ -153,4 +154,52 @@ export const createScheduleInXWeeks = async (
   } catch (error) {
     console.log("Error creating schedule", error);
   }
+};
+
+
+export const sendScheduleReminders = async (em: EntityManager) => {
+  console.log("🚀 Checking for upcoming schedules to send reminders...");
+
+  const now = moment();
+  const twoHoursFromNow = now.clone().add(2, "hours");
+  const twoHoursAndTenMinutesFromNow = twoHoursFromNow.clone().add(10, "minutes");
+
+  try {
+    const scheduleRepo = em.getRepository(Schedule);
+    const upcomingSchedules = await scheduleRepo.find(
+      {
+        startDate: {
+          $gte: twoHoursFromNow.toDate(),
+          $lt: twoHoursAndTenMinutesFromNow.toDate(),
+        },
+        state: ScheduleState.AVAILABLE,
+      },
+      { populate: ["users", "users.pushTokens"] }
+    );
+
+    if (upcomingSchedules.length > 0) {
+      console.log(`Found ${upcomingSchedules.length} upcoming schedules.`);
+      for (const schedule of upcomingSchedules) {
+        const title = "¡Tu clase está a punto de empezar!";
+        const body = `Tu clase de "${
+          schedule.title
+        }" empieza a las ${moment(schedule.startDate).format("HH:mm")}.`;
+        const data = {
+          type: "schedule_reminder",
+          scheduleId: schedule.id,
+        };
+
+        schedule.users.getItems().forEach((user) => {
+          if (user.pushTokens && user.pushTokens.length > 0) {
+            user.pushTokens.getItems().forEach((pushToken) => {
+              sendPushNotification(pushToken.token, title, body, data);
+            });
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error sending schedule reminders:", error);
+  }
+  console.log("✅ Finished checking for upcoming schedules.");
 };

@@ -4,6 +4,7 @@ import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import cron from "node-cron";
 import { updatePictureUrls } from "./createPresignedUrls";
 import { setNotActiveUsers } from "./users";
+import { sendScheduleReminders } from "./schedules";
 
 export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>
@@ -17,7 +18,7 @@ export const cronFunctions = async (
         await storeNews(em, 3, [1, 2, 3, 4]);
 
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
-        
+
         scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
 
         updatePictureUrls(em);
@@ -58,5 +59,27 @@ export const cronFunctions = async (
     }
   );
 
+  cron.schedule(
+    "*/10 * * * *", // Every 10 minutes
+    async () => {
+      console.log("🚀 Iniciando tarea de recordatorios de horarios...");
+      try {
+        await sendScheduleReminders(em.fork());
+      } catch (error) {
+        console.error(
+          "Error al ejecutar la tarea de recordatorios de horarios:",
+          error
+        );
+      }
+      console.log("✅ Tarea de recordatorios de horarios completada.");
+    },
+    {
+      timezone: "Europe/Madrid",
+    }
+  );
+
   console.log("📅 Tarea programada para ejecutarse cada domingo a las 3AM.");
+  console.log(
+    "📅 Tarea programada para enviar recordatorios de horarios cada 10 minutos."
+  );
 };

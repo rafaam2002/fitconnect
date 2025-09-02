@@ -74,9 +74,9 @@ export class Subscription  extends BaseEntity{
     @OneToMany(() => Invoice, invoice => invoice.subscription)
     invoices = new Collection<Invoice>(this);
 
-    /*get isActive(): boolean {
+    get isActive(): boolean {
         return [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING].includes(this.status);
-    }*/
+    }
 
     get isInTrial(): boolean {
         return this.status === SubscriptionStatus.TRIALING;

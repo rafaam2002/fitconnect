@@ -1,9 +1,9 @@
 import Stripe from "stripe";
 
-import { User } from "../entities/User";
-import { Subscription } from "../entities/Subscription";
-import { Transaction } from "../entities/Transaction";
-import { Product } from "../entities/Product";
+import {User} from "../entities/User";
+import {Subscription, SubscriptionStatus} from "../entities/Subscription";
+import {Transaction, TransactionStatus} from "../entities/Transaction";
+import {Product} from "../entities/Product";
 import {stripe} from "../utils/const";
 import {EntityManager} from "@mikro-orm/core";
 
@@ -55,12 +55,12 @@ export class StripeService  {
                 const user = await em.findOne(User, { stripeCustomerId: invoice.customer as string });
                 if (!user) return;
 
-                const transaction = em.create(Transaction, {
+                const transaction = em.create<Transaction>(Transaction, {
                     user,
                     stripePaymentIntentId: invoice.payment_intent as string,
                     amount: invoice.amount_paid,
                     currency: invoice.currency,
-                    status: "succeeded",
+                    status: TransactionStatus.SUCCEEDED,
                 });
                 await em.persistAndFlush(transaction);
 
@@ -71,9 +71,9 @@ export class StripeService  {
 
             case "customer.subscription.updated": {
                 const sub = event.data.object as Stripe.Subscription;
-                const localSub = await em.findOne(Subscription, { stripeSubscriptionId: sub.id });
+                const localSub: Subscription = await em.findOne(Subscription, { stripeSubscriptionId: sub.id });
                 if (localSub) {
-                    localSub.status = sub.status;
+                    localSub.status = sub.status as SubscriptionStatus;
                     localSub.currentPeriodEnd = new Date(sub.current_period_end * 1000);
                     await em.persistAndFlush(localSub);
                 }
@@ -84,7 +84,7 @@ export class StripeService  {
                 const sub = event.data.object as Stripe.Subscription;
                 const localSub = await em.findOne(Subscription, { stripeSubscriptionId: sub.id });
                 if (localSub) {
-                    localSub.status = "canceled";
+                    localSub.status = SubscriptionStatus.CANCELED;
                     await em.persistAndFlush(localSub);
                 }
                 break;

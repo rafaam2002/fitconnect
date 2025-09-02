@@ -1,9 +1,10 @@
-import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './BaseService.js';
+import {EntityManager, QueryOrder} from '@mikro-orm/core';
+import {BaseService} from './BaseService.js';
 import {User} from "../entities/User";
 import {Subscription, SubscriptionStatus} from "../entities/Subscription";
 import {StripeCustomer} from "../entities/StripeCustomer";
-import {PaymentMethod} from "../entities/PaymentMethod";
+import {PaymentMethod, PaymentMethodStatus} from "../entities/PaymentMethod";
+import {Plan} from "../entities/Plan";
 
 interface CreateSubscriptionInput {
     userId: string;
@@ -72,7 +73,7 @@ export class SubscriptionService extends BaseService {
             paymentMethod = await this.em.findOne(PaymentMethod, {
                 stripePaymentMethodId: input.paymentMethodId,
                 stripeCustomer,
-                status: 'active'
+                status: PaymentMethodStatus.ACTIVE
             });
 
             if (!paymentMethod) {
@@ -119,7 +120,7 @@ export class SubscriptionService extends BaseService {
             );
 
             // Crear en base de datos
-            const subscription = this.em.create(Subscription, {
+            const subscription = this.em.create<Subscription>(Subscription, {
                 stripeSubscriptionId: stripeSubscription.id,
                 user,
                 stripeCustomer,
@@ -188,7 +189,7 @@ export class SubscriptionService extends BaseService {
                 const paymentMethod = await this.em.findOne(PaymentMethod, {
                     stripePaymentMethodId: input.paymentMethodId,
                     stripeCustomer: subscription.stripeCustomer,
-                    status: 'active'
+                    status: PaymentMethodStatus.ACTIVE
                 });
 
                 if (!paymentMethod) {
@@ -226,7 +227,7 @@ export class SubscriptionService extends BaseService {
     }
 
     async cancelSubscription(input: CancelSubscriptionInput): Promise<Subscription> {
-        const subscription = await this.em.findOne(Subscription, {
+        const subscription: Subscription = await this.em.findOne(Subscription, {
             id: input.subscriptionId
         });
 
@@ -255,13 +256,14 @@ export class SubscriptionService extends BaseService {
                 );
             } else {
                 // Cancelar inmediatamente
-                updatedStripeSubscription = await this.stripe.subscriptions.cancel(
-                    subscription.stripeSubscriptionId,
-                    {
-                        metadata: {
-                            cancellation_reason: input.cancellationReason
-                        }
+                await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+                    metadata: {
+                        cancellation_reason: input.cancellationReason
                     }
+                });
+
+                updatedStripeSubscription = await this.stripe.subscriptions.cancel(
+                    subscription.stripeSubscriptionId
                 );
             }
 
@@ -352,8 +354,8 @@ export class SubscriptionService extends BaseService {
 
         return await this.em.find(Subscription, { user }, {
             populate: ['plan', 'defaultPaymentMethod'],
-            orderBy: { createdAt: 'DESC' }
-        });
+            orderBy: { createdAt: QueryOrder.DESC }
+        }as any);
     }
 
     async syncSubscriptionFromStripe(stripeSubscriptionId: string): Promise<Subscription | null> {
@@ -364,7 +366,7 @@ export class SubscriptionService extends BaseService {
             const stripeCustomer = await this.em.findOne(StripeCustomer, {
                 stripeCustomerId: stripeSubscription.customer as string
             }, {
-                populate: ['user']
+                populate: ['user'] as any
             });
 
             if (!stripeCustomer) {
@@ -380,13 +382,13 @@ export class SubscriptionService extends BaseService {
                 throw new Error('Plan not found in database');
             }
 
-            let subscription = await this.em.findOne(Subscription, {
+            let subscription: Subscription = await this.em.findOne(Subscription, {
                 stripeSubscriptionId
             });
 
             if (!subscription) {
                 // Crear nueva suscripción
-                subscription = this.em.create(Subscription, {
+                subscription = this.em.create<Subscription>(Subscription, {
                     stripeSubscriptionId,
                     user: stripeCustomer.user,
                     stripeCustomer,

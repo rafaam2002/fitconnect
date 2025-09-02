@@ -14,7 +14,7 @@ export class WebhookEventLog extends BaseEntity {
 
     @Property({ length: 100 })
     @Index()
-    stripeEventId!: string; // evt_xxxxx
+    stripeEventId!: string;
 
     @Property({ length: 100 })
     eventType!: string; // customer.created, invoice.paid, etc.

@@ -1,4 +1,4 @@
-import {EntityManager, QueryOrder} from '@mikro-orm/core';
+import {EntityManager, FilterQuery, QueryOrder} from '@mikro-orm/core';
 import { Plan, PlanInterval, PlanStatus } from '../entities/Plan';
 import { BaseService } from './BaseService.js';
 
@@ -52,9 +52,9 @@ export class PlanService extends BaseService {
                 idempotencyKey: this.generateIdempotencyKey('plan', input.name, input.amount.toString())
             });
 
-            const {name, description, amount, interval, intervalCount, trialPeriodDays, features, metadata} = input;
+            const {name,currency, description, amount, interval, intervalCount, trialPeriodDays, features, metadata} = input;
             // Crear en base de datos
-            const plan: any = this.em.create(Plan, {
+            const plan: Plan = this.em.create<Plan>(Plan, {
                 stripePriceId: stripePrice.id,
                 stripeProductId: stripeProduct.id,
                 name,
@@ -118,9 +118,11 @@ export class PlanService extends BaseService {
     }
 
     async listPlans(onlyActive: boolean = true): Promise<Plan[]> {
-        const where = onlyActive ? { isActive: true, status: PlanStatus.ACTIVE } : {};
+        const where: FilterQuery<Plan> = onlyActive
+            ? { isActive: true, status: PlanStatus.ACTIVE }
+            : {};
 
-        return await this.em.find(Plan, where, {
+        return await this.em.find<Plan>(Plan, where, {
             orderBy: { amount: QueryOrder.ASC }
         });
     }
@@ -155,11 +157,11 @@ export class PlanService extends BaseService {
             const stripePrice = await this.stripe.prices.retrieve(stripePriceId);
             const stripeProduct = await this.stripe.products.retrieve(stripePrice.product as string);
 
-            let plan = await this.em.findOne(Plan, { stripePriceId });
+            let plan: Plan = await this.em.findOne(Plan, { stripePriceId });
 
             if (!plan) {
                 // Crear nuevo plan
-                plan = this.em.create(Plan, {
+                plan = this.em.create<Plan>(Plan, {
                     stripePriceId: stripePrice.id,
                     stripeProductId: stripeProduct.id,
                     name: stripeProduct.name,

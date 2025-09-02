@@ -1,8 +1,9 @@
-import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './BaseService.js';
-import {Transaction, TransactionStatus} from "../entities/Transaction";
+import {EntityManager, QueryOrder} from '@mikro-orm/core';
+import {BaseService} from './BaseService.js';
+import {Transaction, TransactionStatus, TransactionType} from "../entities/Transaction";
 import {User} from "../entities/User";
-import {PaymentMethod} from "../entities/PaymentMethod";
+import {PaymentMethod, PaymentMethodStatus} from "../entities/PaymentMethod";
+import {StripeCustomer} from "../entities/StripeCustomer";
 
 interface CreateChargeInput {
     userId: string;
@@ -35,7 +36,7 @@ export class TransactionService extends BaseService {
         if (input.paymentMethodId) {
             paymentMethod = await this.em.findOne(PaymentMethod, {
                 stripePaymentMethodId: input.paymentMethodId,
-                status: 'active'
+                status: PaymentMethodStatus.ACTIVE
             });
 
             if (!paymentMethod) {
@@ -45,7 +46,7 @@ export class TransactionService extends BaseService {
 
         try {
             // Crear PaymentIntent en Stripe
-            const paymentIntent = await this.stripe.paymentIntents.create({
+            const paymentIntent: any = await this.stripe.paymentIntents.create({
                 amount: input.amount,
                 currency: input.currency || 'usd',
                 payment_method: input.paymentMethodId,
@@ -61,7 +62,7 @@ export class TransactionService extends BaseService {
             });
 
             // Crear transacción en BD
-            const transaction = this.em.create(Transaction, {
+            const transaction = this.em.create<Transaction>(Transaction, {
                 stripePaymentIntentId: paymentIntent.id,
                 stripeChargeId: paymentIntent.charges.data[0]?.id,
                 user,
@@ -120,7 +121,7 @@ export class TransactionService extends BaseService {
             });
 
             // Crear transacción de reembolso
-            const refundTransaction = this.em.create(Transaction, {
+            const refundTransaction = this.em.create<Transaction>(Transaction, {
                 stripeChargeId: stripeRefund.charge as string,
                 user: originalTransaction.user,
                 paymentMethod: originalTransaction.paymentMethod,
@@ -164,9 +165,9 @@ export class TransactionService extends BaseService {
 
         return await this.em.find(Transaction, { user }, {
             populate: ['paymentMethod', 'subscription'],
-            orderBy: { createdAt: 'DESC' },
+            orderBy: { createdAt: QueryOrder.ASC },
             limit
-        });
+        } as any);
     }
 
     async syncTransactionFromStripe(stripeChargeId: string): Promise<Transaction | null> {
@@ -179,10 +180,10 @@ export class TransactionService extends BaseService {
             });
 
             // Buscar usuario por customer ID
-            const stripeCustomer = await this.em.findOne(StripeCustomer, {
+            const stripeCustomer = await this.em.findOne<StripeCustomer>(StripeCustomer, {
                 stripeCustomerId: stripeCharge.customer as string
             }, {
-                populate: ['user']
+                populate: ['user'] as any
             });
 
             if (!stripeCustomer) {
@@ -200,7 +201,7 @@ export class TransactionService extends BaseService {
 
             if (!transaction) {
                 // Crear nueva transacción
-                transaction = this.em.create(Transaction, {
+                transaction = this.em.create<Transaction>(Transaction, {
                     stripeChargeId,
                     stripePaymentIntentId: stripeCharge.payment_intent as string,
                     user: stripeCustomer.user,

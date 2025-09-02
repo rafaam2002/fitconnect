@@ -1,4 +1,4 @@
-import { EntityManager } from '@mikro-orm/core';
+import {EntityManager, FindOptions, QueryOrder} from '@mikro-orm/core';
 import { BaseService } from './BaseService.js';
 import { CustomerService } from './CustomerService.js';
 import { SubscriptionService } from './SubscriptionService.js';
@@ -36,7 +36,7 @@ export class WebhookService extends BaseService {
         }
 
         // Verificar si ya hemos procesado este evento
-        const existingLog = await this.em.findOne(WebhookEventLog, {
+        const existingLog: WebhookEventLog = await this.em.findOne(WebhookEventLog, {
             stripeEventId: event.id
         });
 
@@ -46,11 +46,11 @@ export class WebhookService extends BaseService {
         }
 
         // Crear o actualizar log del evento
-        let eventLog = existingLog || this.em.create(WebhookEventLog, {
+        let eventLog = existingLog ?? this.em.create<WebhookEventLog>(WebhookEventLog, {
             stripeEventId: event.id,
             eventType: event.type,
             payload: event.data.object,
-            status: WebhookEventStatus.PENDING
+            status: WebhookEventStatus.PENDING,
         });
 
         this.em.persist(eventLog);
@@ -175,7 +175,7 @@ export class WebhookService extends BaseService {
             status: WebhookEventStatus.FAILED,
             retryCount: { $lt: maxRetries }
         }, {
-            orderBy: { createdAt: 'ASC' },
+            orderBy: { created_at: QueryOrder.ASC },
             limit: 10
         });
 

@@ -60,12 +60,6 @@ export class Plan extends BaseEntity  {
     @Property({ type: 'json', nullable: true })
     metadata?: Record<string, any>;
 
-    @Property({ type: 'datetime' })
-    createdAt: Date = new Date();
-
-    @Property({ type: 'datetime', onUpdate: () => new Date() })
-    updatedAt: Date = new Date();
-
     // Relaciones
     @OneToMany(() => Subscription, subscription => subscription.plan)
     subscriptions = new Collection<Subscription>(this);

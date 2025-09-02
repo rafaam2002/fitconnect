@@ -21,7 +21,7 @@ export class StripeCustomer extends BaseEntity {
     isActive: boolean = true;
 
     @Property({ type: 'json', nullable: true })
-    metadata?: Record<string, any>;
+    metadata?: Record<string, any>|null;
 
     @Property({ length: 10, default: 'usd' })
     defaultCurrency: string = 'usd';

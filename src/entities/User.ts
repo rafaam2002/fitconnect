@@ -1,5 +1,16 @@
-import {BeforeCreate, Collection, Entity, ManyToMany, OneToMany, OneToOne, Property, t,} from "@mikro-orm/core";
-import {UserProviderType, UserRol} from "../types/enums";
+import {
+    BeforeCreate,
+    BeforeUpdate,
+    Collection,
+    Entity, Enum,
+    Index,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    Property,
+    t,
+} from "@mikro-orm/core";
+import {UserProviderType} from "../types/enums";
 import {BaseEntity} from "./BaseEntity";
 import {Schedule} from "./Schedule";
 import {Message} from "./Message";
@@ -14,6 +25,21 @@ import {TrainingTask} from "./TraningITask";
 import {UserWeight} from "./UserWeight";
 import {PictureUrl} from "./PictureUrl";
 import { RefreshToken } from "./RefreshToken";
+import {Transaction} from "./Transaction";
+import {StripeCustomer} from "./StripeCustomer";
+
+export enum UserRole {
+    STANDARD = "standard",
+    BOSS = "boss",
+    PREMIUM = "premium",
+    COACH = "coach",
+}
+
+export enum UserStatus {
+    ACTIVE = 'active',
+    INACTIVE = 'inactive',
+    PENDING = 'pending'
+}
 
 @Entity()
 export class User extends BaseEntity {
@@ -27,6 +53,7 @@ export class User extends BaseEntity {
     password?: string | null;
 
     @Property({type: t.string, unique: true})
+    @Index()
     email: string | undefined;
 
     @Property({nullable: true})
@@ -47,8 +74,8 @@ export class User extends BaseEntity {
     @Property({type: t.boolean})
     isVerified: boolean = false;
 
-    @Property({type: t.string})
-    rol: UserRol
+    @Enum(() => UserRole)
+    role!: UserRole.STANDARD;
 
     @Property({type: t.string})
     provider: UserProviderType = UserProviderType.LOCAL;
@@ -89,11 +116,11 @@ export class User extends BaseEntity {
     @OneToMany(() => PollVote, (PollVote) => PollVote.user, {lazy: true})
     pollVotes = new Collection<PollVote>(this);
 
-    @OneToMany(() => PaymentMethod, (card) => card.user)
-    cards = new Collection<PaymentMethod>(this);
-
     @OneToMany(() => Subscription, (subscription) => subscription.user)
     subscriptions = new Collection<Subscription>(this);
+
+    @OneToMany(() => Transaction, transaction => transaction.user)
+    transactions = new Collection<Transaction>(this);
 
     @Property({nullable: true})
     stripeCustomerId?: string;
@@ -120,12 +147,15 @@ export class User extends BaseEntity {
     })
     refreshTokens = new Collection<RefreshToken>(this);
 
+    @OneToMany(() => StripeCustomer, customer => customer.user)
+    stripeCustomers = new Collection<StripeCustomer>(this);
+
     constructor(user: User) {
         super();
         this.name = user.name;
         this.surname = user.surname;
         this.nickname = user.nickname;
-        this.rol = UserRol.STANDARD;
+        this.role = UserRole.STANDARD;
         this.isActive = true;
         this.isBlocked = false;
         this.password = user.password;
@@ -139,5 +169,18 @@ export class User extends BaseEntity {
             const saltRounds = 10;
             this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
         }
+    }
+
+    @BeforeCreate()
+    @BeforeUpdate()
+    validateEmail() {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(this.email)) {
+            throw new Error('Invalid email format');
+        }
+    }
+
+    get fullName(): string {
+        return `${this.name} ${this.surname}`;
     }
 }

@@ -343,7 +343,7 @@ export const createMessage = async (
       sms: newMessage,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error creating message", error);
     return CustomResponse(500, "Error creating message", false);
   }
 };

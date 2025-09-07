@@ -40,7 +40,7 @@ const login = async (_, args: any, { em }) => {
     pictureUrl: user.pictureUrl,
   };
   const token = jwt.sign(userForToken, process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: "30m",
   });
 
   const refreshTokenString = crypto.randomBytes(64).toString("hex");

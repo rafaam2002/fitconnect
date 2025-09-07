@@ -36,7 +36,7 @@ export const transporter = nodemailer.createTransport({
     }
 
     const resetToken = jwt.sign({id: user.id}, process.env.JWT_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "30m",
     });
 
     console.log(`Reset token for ${email}: ${resetToken}`);

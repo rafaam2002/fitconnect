@@ -12,6 +12,9 @@ import { GraphQLError } from "graphql";
 import { Update } from "aws-sdk/clients/dynamodb";
 import { PictureUrl } from "../../../entities/PictureUrl";
 import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
+interface RemoveProductProps {
+    ids: string[];
+}
 
 export const createProduct = async (
   _: any,
@@ -110,4 +113,51 @@ export const updateProductPicture = async (
     console.error("Error updating product picture", error);
     return CustomResponse(500, "Error updating product picture", false, null);
   }
+};
+
+export const removeProduct = async (
+    _: any,
+    args: RemoveProductProps,
+    context: ContextProps
+) => {
+    const { ids } = args;
+    const { em, currentUser } = context;
+
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: { status: 401 },
+            },
+        });
+    }
+
+    if (!ids || ids.length === 0) {
+        return CustomResponse(400, "At least one product ID is required");
+    }
+
+    const productRepo = em.getRepository(Product);
+
+    const products = await productRepo.find({
+        id: { $in: ids },
+    });
+
+    if (products.length === 0) {
+        return CustomResponse(404, "No products found with the provided IDs");
+    }
+
+    if (products.length !== ids.length) {
+        const foundIds = products.map(product => product.id);
+        const notFoundIds = ids.filter(id => !foundIds.includes(id));
+        return CustomResponse(404, `Some products not found: ${notFoundIds.join(', ')}`);
+    }
+
+    try {
+        await em.removeAndFlush(products);
+
+        return CustomResponse(200, `${products.length} product(s) deleted successfully`, true);
+    } catch (error) {
+        console.error('Error deleting products:', error);
+        return CustomResponse(500, "Error occurred while deleting products");
+    }
 };

@@ -28,6 +28,7 @@ type Mutation {
     createPoll(poll: CreatePollInput!): PollResponse!
     createOrChangePollVote(vote: CreatePollVoteInput! ): PollResponse!
     deletePollVote(pollId: ID!): PollResponse!
+    removePolls(ids: [String]!): PollResponse!
 
     #------------------Plan--------------------------
     createPlan(plan: CreatePlanInput!): PlanResponse!
@@ -49,6 +50,7 @@ type Mutation {
     #------------------Product------------------
     createProduct(product: CreateProductInput!): ProductResponse!
     updateProductPicture(imageName: String!, productId: String!): ProductResponse!
+    removeProduct(ids: [String]!): ProductResponse!
 
     #-----------------Token-----
     registerToken(token: String!): RegisterTokenResponse!

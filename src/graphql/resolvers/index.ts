@@ -1,135 +1,153 @@
 import {
-  me,
-  getUsers,
-  findUser,
-  getSchedules,
-  getPolls,
-  getConversation,
-  getNotifications,
-  getScheduleOptions,
-  getSchedulesResume,
-  getTodaySchedulesResume,
-  getSchedulesFromToday,
-  getSchedulesRange,
-  getSchedulesResumeRange,
-  getAdminStats,
-  getSchedulesStats,
-  getMonthlySchedules,
-  getTrainingTasks,
-  getUserWeights,
-  sendEmailVerification,
-} from "./user/queries";
-import { login, loginWithId } from "./auth/queries";
-import {updatePassword, forgotPassword, loginWithGoogle, sendChangePasswordEmail} from "./auth/mutations";
-import {
-  createMessage,
-  createPoll,
-  createSchedule,
-  createOrChangePollVote,
-  updateUser,
-  deletePollVote,
-  createScheduleDevelopment,
-  addUserToSchedule,
-  removeUserFromSchedule,
-  createUser,
-  changeScheduleStatus,
-  fixMessage,
-  unfixMessage,
-  createTrainingTask,
-  removeTrainingTask,
-  addUserWeight,
-  removeUserWeight,
-  removeSchedule,
-  updateUserPicture,
-  updateScheduleOptions,
-} from "./user/mutations";
-import { createPlan, removePlan, updatePlan } from "./plan/mutations";
-import { getPlans } from "./plan/queries";
-import { fixedMessages, newMessage } from "./user/subscriptions";
-import { getProducts } from "./product/queries";
-import { getArticles } from "./article/queries";
-import { getPresignedUrl } from "./s3/queries";
-import { createProduct, updateProductPicture } from "./product/mutations";
-import {   refreshToken } from "./refresh-token/mutations";
-import {
-  createSubscription,
-  removeSubscription,
-} from "./subscription/mutations";
-import { addCreditCard } from "./paymentMethod/mutations";
-import { getCards } from "./paymentMethod/queries";
-import { registerToken, sendNotification, removePushToken } from "./push-token/mutations";
-
-const resolvers = {
-  Query: {
-    login,
-    loginWithId,
-    getUsers,
-    me,
     findUser,
-    getSchedules,
-    getPolls,
+    getAdminStats,
     getConversation,
-    getPlans,
+    getMonthlySchedules,
     getNotifications,
-    getSchedulesResume,
+    getPolls,
     getScheduleOptions,
-    getTodaySchedulesResume,
+    getSchedules,
     getSchedulesFromToday,
     getSchedulesRange,
+    getSchedulesResume,
     getSchedulesResumeRange,
-    getProducts,
-    getArticles,
-    getAdminStats,
     getSchedulesStats,
-    getMonthlySchedules,
+    getTodaySchedulesResume,
     getTrainingTasks,
+    getUsers,
     getUserWeights,
-    getPresignedUrl,
-    getCards,
+    me,
     sendEmailVerification,
-  },
-  Mutation: {
-    updateUser,
-    createUser,
-    updateUserPicture,
-    updatePassword,
-    forgotPassword,
+} from "./user/queries";
+import {login, loginWithId} from "./auth/queries";
+import {forgotPassword, loginWithGoogle, sendChangePasswordEmail, updatePassword} from "./auth/mutations";
+import {
+    addUserToSchedule,
+    addUserWeight,
+    changeScheduleStatus,
     createMessage,
     createSchedule,
-    createPoll,
-    createOrChangePollVote,
-    createPlan,
-    updatePlan,
-    removePlan,
-    createSubscription,
-    removeSubscription,
-    changeScheduleStatus,
-    deletePollVote,
     createScheduleDevelopment,
-    addUserToSchedule,
-    removeUserFromSchedule,
-    unfixMessage,
-    fixMessage,
     createTrainingTask,
-    removeTrainingTask,
-    addUserWeight,
-    removeUserWeight,
+    createUser,
+    fixMessage,
     removeSchedule,
-    createProduct,
-    updateProductPicture,
-    registerToken,
-    removePushToken,
-    sendNotification,
-    addCreditCard,
+    removeTrainingTask,
+    removeUserFromSchedule,
+    removeUserWeight,
+    unfixMessage,
     updateScheduleOptions,
-    loginWithGoogle,
-    sendChangePasswordEmail,
-    refreshToken,
-  },
-  Subscription: {
-    newMessage,
-    fixedMessages,
-  },
+    updateUser,
+    updateUserPicture,
+} from "./user/mutations";
+import {createPlan, removePlan, updatePlan} from "./plan/mutations";
+import {getPlans} from "./plan/queries";
+import {fixedMessages, newMessage} from "./user/subscriptions";
+import {getProducts} from "./product/queries";
+import {getArticles} from "./article/queries";
+import {getPresignedUrl} from "./s3/queries";
+import {createProduct, removeProduct, updateProductPicture} from "./product/mutations";
+import {refreshToken} from "./refresh-token/mutations";
+import {createSubscription, removeSubscription,} from "./subscription/mutations";
+import {addCreditCard} from "./paymentMethod/mutations";
+import {getCards} from "./paymentMethod/queries";
+import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
+import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
+
+const resolvers = {
+    Query: {
+        //Auth
+        login,
+        loginWithId,
+        //User
+        getUsers,
+        findUser,
+        getUserWeights,
+        me,
+        //Polls
+        getPolls,
+        //Schedules
+        getSchedules,
+        getSchedulesResume,
+        getScheduleOptions,
+        getConversation,
+        getTodaySchedulesResume,
+        getSchedulesFromToday,
+        getSchedulesRange,
+        getSchedulesResumeRange,
+        getSchedulesStats,
+        getMonthlySchedules,
+        //Plan
+        getPlans,
+        //Product
+        getProducts,
+        //Articles
+        getArticles,
+        //Admin
+        getAdminStats,
+        getTrainingTasks,
+        getPresignedUrl,
+        //Payments
+        getCards,
+        //System
+        getNotifications,
+        sendEmailVerification,
+    },
+    Mutation: {
+        //User
+        updateUser,
+        createUser,
+        updateUserPicture,
+        updatePassword,
+        forgotPassword,
+        createMessage,
+        removeUserWeight,
+        addUserWeight,
+        //Poll
+        createPoll,
+        createOrChangePollVote,
+        deletePollVote,
+        removePolls,
+        //Plan
+        createPlan,
+        updatePlan,
+        removePlan,
+        //Subscription
+        createSubscription,
+        removeSubscription,
+        changeScheduleStatus,
+        //Schedule
+        createScheduleDevelopment,
+        addUserToSchedule,
+        createSchedule,
+        removeSchedule,
+        removeUserFromSchedule,
+        //Messages
+        unfixMessage,
+        fixMessage,
+        createTrainingTask,
+        removeTrainingTask,
+        //Product
+        createProduct,
+        updateProductPicture,
+        removeProduct,
+        //Auth
+        registerToken,
+        removePushToken,
+        updateScheduleOptions,
+        loginWithGoogle,
+        sendChangePasswordEmail,
+        refreshToken,
+        //Payments
+        addCreditCard,
+        //System
+        sendNotification,
+
+    },
+    Subscription: {
+        newMessage,
+        fixedMessages,
+    },
 };
 
 export default resolvers;

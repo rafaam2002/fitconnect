@@ -1,4 +1,4 @@
-import { UserRol } from "./enums";
+import {UserRole} from "../entities/User";
 
 export type UserType = {
   id: string;
@@ -7,7 +7,7 @@ export type UserType = {
   created_at: Date;
   updated_at: Date;
   deleted_at: Date;
-  rol: UserRol;
+  role: UserRole;
   isActive: boolean;
   isBlocked: boolean;
   profilePicture: string;
@@ -25,6 +25,6 @@ export type UserFilter = {
   email: string;
   phoneNumber: string;
   nickname: string;
-  rol: UserRol;
+  role: UserRole;
   isActive: boolean;
 };

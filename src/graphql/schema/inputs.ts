@@ -139,4 +139,18 @@ input AddCreditCardInput {
     paymentMethodId: String!
     type: String!
 }
+
+input CreateCustomerInput {
+    userId: ID!
+    email: String
+    name: String
+    phoneNumber: String
+}
+
+input UpdateCustomerInput {
+    stripeCustomerId: ID!
+    email: String
+    name: String
+    phoneNumber: String
+}
 `;

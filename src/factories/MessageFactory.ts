@@ -3,7 +3,6 @@ import { faker } from "@faker-js/faker";
 import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
 import { Message } from "../entities/Message";
-import { UserRol } from "../types/enums";
 import { randomSenderAndReceiver, randomUser } from "../utils/factories";
 
 export class MessageFactory extends Factory<Message> {

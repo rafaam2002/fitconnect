@@ -1,20 +1,14 @@
 import { Product } from "../../../entities/Product";
-import { User } from "../../../entities/User";
+import {User, UserRole} from "../../../entities/User";
 import { sendPushNotification } from "../../../utils/notifications";
 import {
-  ContextProps,
-  CreateProduct,
-  UpdateProductImage,
+    ContextProps,
+    CreateProduct, RemoveProductProps,
+    UpdateProductImage,
 } from "../../../types/resolvers";
-import { UserRol } from "../../../types/enums";
 import { CustomResponse } from "../errors";
 import { GraphQLError } from "graphql";
-import { Update } from "aws-sdk/clients/dynamodb";
-import { PictureUrl } from "../../../entities/PictureUrl";
 import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
-interface RemoveProductProps {
-    ids: string[];
-}
 
 export const createProduct = async (
   _: any,
@@ -30,7 +24,7 @@ export const createProduct = async (
       },
     });
 
-  if (currentUser.rol !== UserRol.BOSS)
+  if (currentUser.role !== UserRole.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   if (!name || !description || !price)
@@ -86,7 +80,7 @@ export const updateProductPicture = async (
       },
     });
 
-  if (currentUser.rol !== UserRol.BOSS)
+  if (currentUser.role !== UserRole.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   const productRepo = em.getRepository(Product);

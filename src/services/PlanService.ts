@@ -1,0 +1,195 @@
+import {EntityManager, FilterQuery, QueryOrder} from '@mikro-orm/core';
+import { Plan, PlanInterval, PlanStatus } from '../entities/Plan';
+import { BaseService } from './BaseService.js';
+
+interface CreatePlanInput {
+    name: string;
+    description?: string;
+    amount: number;
+    currency?: string;
+    interval: PlanInterval;
+    intervalCount?: number;
+    trialPeriodDays?: number;
+    features?: string[];
+    metadata?: Record<string, any>;
+}
+
+interface UpdatePlanInput {
+    planId: string;
+    name?: string;
+    description?: string;
+    features?: string[];
+    metadata?: Record<string, any>;
+    isActive?: boolean;
+}
+
+export class PlanService extends BaseService {
+    constructor(em: EntityManager) {
+        super(em);
+    }
+
+    async createPlan(input: CreatePlanInput): Promise<Plan> {
+        try {
+            // Crear producto en Stripe
+            const stripeProduct = await this.stripe.products.create({
+                name: input.name,
+                description: input.description,
+                metadata: input.metadata || {}
+            });
+
+            // Crear precio en Stripe
+            const stripePrice = await this.stripe.prices.create({
+                product: stripeProduct.id,
+                unit_amount: input.amount,
+                currency: input.currency || 'usd',
+                recurring: {
+                    interval: input.interval,
+                    interval_count: input.intervalCount || 1,
+                    trial_period_days: input.trialPeriodDays
+                },
+                metadata: input.metadata || {}
+            }, {
+                idempotencyKey: this.generateIdempotencyKey('plan', input.name, input.amount.toString())
+            });
+
+            const {name,currency, description, amount, interval, intervalCount, trialPeriodDays, features, metadata} = input;
+            // Crear en base de datos
+            const plan: Plan = this.em.create<Plan>(Plan, {
+                stripePriceId: stripePrice.id,
+                stripeProductId: stripeProduct.id,
+                name,
+                description,
+                amount,
+                currency: currency || 'EUR',
+                interval,
+                intervalCount: intervalCount || 1,
+                trialPeriodDays,
+                features,
+                metadata
+            });
+
+            this.em.persist(plan);
+            await this.em.flush();
+
+            return plan;
+        } catch (error) {
+            this.handleStripeError(error);
+        }
+    }
+
+    async updatePlan(input: UpdatePlanInput): Promise<Plan> {
+        const plan = await this.em.findOne(Plan, { id: input.planId });
+
+        if (!plan) {
+            throw new Error('Plan not found');
+        }
+
+        try {
+            // Actualizar producto en Stripe (solo metadatos y descripción)
+            if (input.name || input.description || input.metadata) {
+                await this.stripe.products.update(plan.stripeProductId!, {
+                    name: input.name,
+                    description: input.description,
+                    metadata: input.metadata
+                });
+            }
+
+            // Actualizar en base de datos
+            if (input.name) plan.name = input.name;
+            if (input.description) plan.description = input.description;
+            if (input.features) plan.features = input.features;
+            if (input.metadata) plan.metadata = { ...plan.metadata, ...input.metadata };
+            if (input.isActive !== undefined) plan.isActive = input.isActive;
+
+            await this.em.flush();
+
+            return plan;
+        } catch (error) {
+            this.handleStripeError(error);
+        }
+    }
+
+    async getPlan(planId: string): Promise<Plan | null> {
+        return await this.em.findOne(Plan, { id: planId });
+    }
+
+    async getPlanByStripeId(stripePriceId: string): Promise<Plan | null> {
+        return await this.em.findOne(Plan, { stripePriceId });
+    }
+
+    async listPlans(onlyActive: boolean = true): Promise<Plan[]> {
+        const where: FilterQuery<Plan> = onlyActive
+            ? { isActive: true, status: PlanStatus.ACTIVE }
+            : {};
+
+        return await this.em.find<Plan>(Plan, where, {
+            orderBy: { amount: QueryOrder.ASC }
+        });
+    }
+
+    async deactivatePlan(planId: string): Promise<Plan> {
+        const plan = await this.em.findOne(Plan, { id: planId });
+
+        if (!plan) {
+            throw new Error('Plan not found');
+        }
+
+        try {
+            // Desactivar precio en Stripe
+            await this.stripe.prices.update(plan.stripePriceId, {
+                active: false
+            });
+
+            // Actualizar en base de datos
+            plan.isActive = false;
+            plan.status = PlanStatus.INACTIVE;
+
+            await this.em.flush();
+
+            return plan;
+        } catch (error) {
+            this.handleStripeError(error);
+        }
+    }
+
+    async syncPlanFromStripe(stripePriceId: string): Promise<Plan | null> {
+        try {
+            const stripePrice = await this.stripe.prices.retrieve(stripePriceId);
+            const stripeProduct = await this.stripe.products.retrieve(stripePrice.product as string);
+
+            let plan: Plan = await this.em.findOne(Plan, { stripePriceId });
+
+            if (!plan) {
+                // Crear nuevo plan
+                plan = this.em.create<Plan>(Plan, {
+                    stripePriceId: stripePrice.id,
+                    stripeProductId: stripeProduct.id,
+                    name: stripeProduct.name,
+                    description: stripeProduct.description || undefined,
+                    amount: stripePrice.unit_amount || 0,
+                    currency: stripePrice.currency,
+                    interval: stripePrice.recurring?.interval as PlanInterval,
+                    intervalCount: stripePrice.recurring?.interval_count || 1,
+                    trialPeriodDays: stripePrice.recurring?.trial_period_days || undefined,
+                    isActive: stripePrice.active,
+                    status: stripePrice.active ? PlanStatus.ACTIVE : PlanStatus.INACTIVE,
+                    metadata: stripeProduct.metadata
+                });
+            } else {
+                // Actualizar existente
+                plan.name = stripeProduct.name;
+                plan.description = stripeProduct.description || undefined;
+                plan.isActive = stripePrice.active;
+                plan.status = stripePrice.active ? PlanStatus.ACTIVE : PlanStatus.INACTIVE;
+                plan.metadata = stripeProduct.metadata;
+            }
+
+            this.em.persist(plan);
+            await this.em.flush();
+
+            return plan;
+        } catch (error) {
+            this.handleStripeError(error);
+        }
+    }
+}

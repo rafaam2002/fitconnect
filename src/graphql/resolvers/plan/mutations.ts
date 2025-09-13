@@ -1,9 +1,8 @@
 import {EntityManager, RequiredEntityData} from "@mikro-orm/core";
-import {User} from "../../../entities/User";
-import { Plan } from "../../../entities/Plan";
-import { Currency } from "../../../types/enums";
-import { GraphQLError } from "graphql";
-
+import {User, UserRole} from "../../../entities/User";
+import {Plan} from "../../../entities/Plan";
+import {Currency} from "../../../types/enums";
+import {GraphQLError} from "graphql";
 
 
 const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
@@ -17,7 +16,7 @@ const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em,
         });
     }
 
-    if (currentUser.rol !== "boss") {
+    if (currentUser.role !== UserRole.BOSS) {
         return {
             success: false,
             code: "400",
@@ -27,7 +26,7 @@ const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em,
     }
     if (plan.currency === null) plan.currency = Currency.EUR;
 
-    let newPlan: Plan = em.create(Plan, {...plan });
+    let newPlan: Plan = em.create(Plan, plan );
 
     await em.persistAndFlush(newPlan);
 
@@ -59,7 +58,7 @@ const updatePlan = async (_: any, args: any, {em, currentUser}: { em: EntityMana
         });
     }
 
-    if(currentUser && currentUser.rol !== "boss") {
+    if(currentUser && currentUser.role !== UserRole.BOSS) {
         return {
             success: false,
             code: "403",

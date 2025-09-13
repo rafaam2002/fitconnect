@@ -234,4 +234,14 @@ type Card {
     cardExpYear: String
     status: PaymentMethodStatus
 }
+
+type StripeCustomer {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    stripeCustomerId: String!
+    user: User
+    isActive: Boolean
+    defaultCurrency: String
+}
 `;

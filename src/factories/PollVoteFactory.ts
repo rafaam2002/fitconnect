@@ -3,9 +3,7 @@ import { faker } from "@faker-js/faker";
 import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
 import { PollVote } from "../entities/PollVote";
-import { randomPoll, randomUser, randomUserAndPoll } from "../utils/factories";
 import { Poll } from "../entities/Poll";
-import { UserRol } from "../types/enums";
 
 export class PollVoteFactory extends Factory<PollVote> {
   model = PollVote;

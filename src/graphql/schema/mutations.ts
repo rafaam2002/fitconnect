@@ -60,7 +60,11 @@ type Mutation {
     
     #-----------------Card--------------------------
     addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
-    
+   
+    #------------------------StripeCustomer-------------------------
+    createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
+    updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!
+    deactivateCustomer(customerId: ID!): StripeCustomerResponse!
 }
 
 `;

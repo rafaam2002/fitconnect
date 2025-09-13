@@ -1,11 +1,11 @@
-import {ContextProps, DeletePollProps, PollProps, VoteProps} from "../../../types/resolvers";
+import {ContextProps, DeletePollProps, DeletePollsProps, PollProps, VoteProps} from "../../../types/resolvers";
 import {GraphQLError} from "graphql";
-import {UserRol} from "../../../types/enums";
 import {CustomResponse} from "../errors";
-import {User} from "../../../entities/User";
+import {User, UserRole} from "../../../entities/User";
 import {sendPushNotification} from "../../../utils/notifications";
 import {Poll} from "../../../entities/Poll";
 import {PollVote} from "../../../entities/PollVote";
+import moment from "moment";
 
 export const createPoll = async (
     _: any,
@@ -26,7 +26,7 @@ export const createPoll = async (
         });
     }
 
-    if (currentUser.rol !== UserRol.COACH && currentUser.rol !== UserRol.BOSS) {
+    if (currentUser.role !== UserRole.COACH && currentUser.role !== UserRole.BOSS) {
         return CustomResponse(403, "You are not authorized to perform this action");
     }
 
@@ -159,10 +159,6 @@ export const deletePollVote = async (
 
     return CustomResponse(200, "Poll Vote deleted successfully", true);
 };
-
-interface DeletePollsProps {
-    ids: string[];
-}
 
 export const removePolls = async (
     _: any,

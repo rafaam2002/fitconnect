@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
-import { User } from "../entities/User";
+import {User, UserRole} from "../entities/User";
 import { UserType } from "./user";
-import { ScheduleState, ScheduleType, UserRol } from "./enums";
+import { ScheduleState, ScheduleType } from "./enums";
 
 export type UserProps = {
   user: User;
@@ -103,7 +103,7 @@ export type ChangeScheduleStatusProp = {
 
 export type UserListProps = {
   textFilter: string;
-  rolFilter?: UserRol[] | null;
+  rolFilter?: UserRole[] | null;
   stateFilter?: "notActive" | "blocked" | "notVerified" | "new" | null;
   page: number;
 };
@@ -200,4 +200,12 @@ export type NotificationProps = {
     title: string;
     forAll: boolean;
   }
+}
+
+export type DeletePollsProps = {
+    ids: string[];
+}
+
+export type RemoveProductProps = {
+    ids: string[];
 }

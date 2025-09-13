@@ -1,156 +1,185 @@
 import {
-  BeforeCreate,
-  Collection,
-  Entity,
-  ManyToMany,
-  OneToMany,
-  OneToOne,
-  Property,
-  t,
+    BeforeCreate,
+    Collection,
+    Entity,
+    Enum,
+    Index,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    Property,
+    t,
 } from "@mikro-orm/core";
-import { UserProviderType, UserRol } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Schedule } from "./Schedule";
-import { Message } from "./Message";
-import { Notification } from "./Notification";
-import { Poll } from "./Poll";
-import { Promotion } from "./Promotion";
-import { PollVote } from "./PollVote";
+import {UserProviderType} from "../types/enums";
+import {BaseEntity} from "./BaseEntity";
+import {Schedule} from "./Schedule";
+import {Message} from "./Message";
+import {Notification} from "./Notification";
+import {Poll} from "./Poll";
+import {Promotion} from "./Promotion";
+import {PollVote} from "./PollVote";
 import bcrypt from "bcrypt";
-import { PaymentMethod } from "./PaymentMethod";
-import { Subscription } from "./Subscription";
-import { TrainingTask } from "./TraningITask";
-import { UserWeight } from "./UserWeight";
-import { PictureUrl } from "./PictureUrl";
-import { RefreshToken } from "./RefreshToken";
-import { PushToken } from "./PushToken";
+import {Subscription} from "./Subscription";
+import {TrainingTask} from "./TraningITask";
+import {UserWeight} from "./UserWeight";
+import {PictureUrl} from "./PictureUrl";
+import {RefreshToken} from "./RefreshToken";
+import {Transaction} from "./Transaction";
+import {PushToken} from "./PushToken";
+
+export enum UserRole {
+    STANDARD = "standard",
+    BOSS = "boss",
+    PREMIUM = "premium",
+    COACH = "coach",
+}
+
+export enum UserStatus {
+    ACTIVE = 'active',
+    INACTIVE = 'inactive',
+    PENDING = 'pending'
+}
 
 @Entity()
 export class User extends BaseEntity {
-  @Property({ type: t.string, nullable: true })
-  name?: string | null;
+    @Property({type: t.string, nullable: true})
+    name?: string | null;
 
-  @Property({ type: t.string, nullable: true })
-  surname?: string | null;
+    @Property({type: t.string, nullable: true})
+    surname?: string | null;
 
-  @Property({ type: t.string, lazy: true, nullable: true }) // means that the property will be loaded only when accessed
-  password?: string | null;
+    @Property({type: t.string, lazy: true, nullable: true}) // means that the property will be loaded only when accessed
+    password?: string | null;
 
-  @Property({ type: t.string, unique: true })
-  email: string | undefined;
+    @Property({type: t.string, unique: true})
+    @Index()
+    email: string | undefined;
 
-  @Property({ nullable: true })
-  phoneNumber?: string | null;
+    @Property({nullable: true})
+    phoneNumber?: string | null;
 
-  // @Property({ nullable: true })
-  // profilePicture?: string;
+    // @Property({ nullable: true })
+    // profilePicture?: string;
 
-  @Property({ type: t.string, unique: true })
-  nickname: string;
+    @Property({type: t.string, unique: true})
+    nickname: string;
 
-  @Property()
-  isActive: boolean;
+    @Property()
+    isActive: boolean;
 
-  @Property({ type: t.boolean })
-  isBlocked: boolean;
+    @Property({type: t.boolean})
+    isBlocked: boolean;
 
-  @Property({ type: t.boolean })
-  isVerified: boolean = false;
+    @Property({type: t.boolean})
+    isVerified: boolean = false;
 
-  @Property({ type: t.string })
-  rol: UserRol;
+    @Enum(() => UserRole)
+    role!: UserRole;
 
-  @Property({ type: t.string })
-  provider: UserProviderType = UserProviderType.LOCAL;
+    @Property({type: t.string})
+    provider: UserProviderType = UserProviderType.LOCAL;
 
-  @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
-    owner: true,
-    eager: true,
-  })
-  schedules = new Collection<Schedule>(this);
+    @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
+        owner: true,
+        eager: true,
+    })
+    schedules = new Collection<Schedule>(this);
 
-  @ManyToMany(() => Promotion, (promotion) => promotion.users, {
-    owner: true,
-    eager: true,
-  })
-  promotions = new Collection<Promotion>(this);
+    @ManyToMany(() => Promotion, (promotion) => promotion.users, {
+        owner: true,
+        eager: true,
+    })
+    promotions = new Collection<Promotion>(this);
 
-  // Relación OneToMany con Schedule (admin)
-  @OneToMany(() => Schedule, (schedule) => schedule.admin, { lazy: true })
-  adminSchedules = new Collection<Schedule>(this);
+    // Relación OneToMany con Schedule (admin)
+    @OneToMany(() => Schedule, (schedule) => schedule.admin, {lazy: true})
+    adminSchedules = new Collection<Schedule>(this);
 
-  // Relación OneToMany con Message (sender)
-  @OneToMany(() => Message, (message) => message.sender, { lazy: true })
-  messagesSent = new Collection<Message>(this);
+    // Relación OneToMany con Message (sender)
+    @OneToMany(() => Message, (message) => message.sender, {lazy: true})
+    messagesSent = new Collection<Message>(this);
 
-  // Relación OneToMany con Message (receiver)
-  @OneToMany(() => Message, (message) => message.receiver, { lazy: true })
-  messagesReceived = new Collection<Message>(this);
+    // Relación OneToMany con Message (receiver)
+    @OneToMany(() => Message, (message) => message.receiver, {lazy: true})
+    messagesReceived = new Collection<Message>(this);
 
-  // Relación OneToMany con Notification
-  @OneToMany(() => Notification, (notification) => notification.user, {
-    lazy: true,
-  })
-  notifications = new Collection<Notification>(this);
+    // Relación OneToMany con Notification
+    @OneToMany(() => Notification, (notification) => notification.user, {
+        lazy: true,
+    })
+    notifications = new Collection<Notification>(this);
 
-  @OneToMany(() => Poll, (poll) => poll.admin, { lazy: true })
-  adminPolls = new Collection<Poll>(this);
+    @OneToMany(() => Poll, (poll) => poll.admin, {lazy: true})
+    adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
-  pollVotes = new Collection<PollVote>(this);
+    @OneToMany(() => PollVote, (PollVote) => PollVote.user, {lazy: true})
+    pollVotes = new Collection<PollVote>(this);
 
-  @OneToMany(() => PaymentMethod, (card) => card.user)
-  cards = new Collection<PaymentMethod>(this);
+    @OneToMany(() => Subscription, (subscription) => subscription.user)
+    subscriptions = new Collection<Subscription>(this);
 
-  @OneToMany(() => Subscription, (subscription) => subscription.user)
-  subscriptions = new Collection<Subscription>(this);
+    @OneToMany(() => Transaction, transaction => transaction.user)
+    transactions = new Collection<Transaction>(this);
 
-  @Property({ nullable: true })
-  stripeCustomerId?: string;
+    @Property({nullable: true})
+    stripeCustomerId?: string;
 
-  @OneToMany(() => TrainingTask, (trainingTask) => trainingTask.user, {
-    lazy: true,
-  })
-  trainingTasks = new Collection<TrainingTask>(this);
+    @OneToMany(() => TrainingTask, (trainingTask) => trainingTask.user, {
+        lazy: true,
+    })
+    trainingTasks = new Collection<TrainingTask>(this);
 
-  @OneToMany(() => UserWeight, (userWeight) => userWeight.user, {
-    lazy: true,
-  })
-  userWeights = new Collection<UserWeight>(this);
+    @OneToMany(() => UserWeight, (userWeight) => userWeight.user, {
+        lazy: true,
+    })
+    userWeights = new Collection<UserWeight>(this);
 
-  @OneToOne(() => PictureUrl, (picture) => picture.user, {
-    nullable: true,
-    owner: true,
-    eager: true,
-  })
-  pictureUrl?: PictureUrl;
+    @OneToOne(() => PictureUrl, (picture) => picture.user, {
+        nullable: true,
+        owner: true,
+        eager: true,
+    })
+    pictureUrl?: PictureUrl;
 
-  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
-    lazy: true,
-  })
-  refreshTokens = new Collection<RefreshToken>(this);
+    @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
+        lazy: true,
+    })
+    refreshTokens = new Collection<RefreshToken>(this);
 
-  @OneToMany(() => PushToken, (pushToken) => pushToken.user, { lazy: true })
-  pushTokens = new Collection<PushToken>(this);
+    @OneToMany(() => PushToken, (pushToken) => pushToken.user, {lazy: true})
+    pushTokens = new Collection<PushToken>(this);
 
-  constructor(user: User) {
-    super();
-    this.name = user.name;
-    this.surname = user.surname;
-    this.nickname = user.nickname;
-    this.rol = UserRol.STANDARD;
-    this.isActive = true;
-    this.isBlocked = false;
-    this.password = user.password;
-    this.provider = user.provider || UserProviderType.LOCAL;
-  }
-
-  @BeforeCreate()
-  async hashPassword() {
-    if (this.password) {
-      // Hasheamos la contraseña con bcrypt
-      const saltRounds = 10;
-      this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+    constructor(user: User) {
+        super();
+        this.name = user.name;
+        this.surname = user.surname;
+        this.nickname = user.nickname;
+        this.role = UserRole.STANDARD;
+        this.isActive = true;
+        this.isBlocked = false;
+        this.password = user.password;
+        this.provider = user.provider || UserProviderType.LOCAL
     }
-  }
+
+    get fullName(): string {
+        return `${this.name} ${this.surname}`;
+    }
+
+    /* @BeforeCreate()
+     @BeforeUpdate()
+     validateEmail() {
+         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+         if (!emailRegex.test(this.email)) {
+             throw new Error('Invalid email format');
+         }
+     }*/
+
+    @BeforeCreate()
+    async hashPassword() {
+        if (this.password) {
+            // Hasheamos la contraseña con bcrypt
+            const saltRounds = 10;
+            this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+        }
+    }
 }

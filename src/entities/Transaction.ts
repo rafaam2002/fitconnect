@@ -1,47 +1,92 @@
-import {Entity, PrimaryKey, Property, ManyToOne, Enum} from '@mikro-orm/core';
-import {Subscription} from "./Subscription";
-import {User} from "./User";
-import {PaymentMethod} from "./PaymentMethod";
+import {Entity, Enum, Index, ManyToOne, Property} from '@mikro-orm/core';
 import {BaseEntity} from "./BaseEntity";
-import { Currency, PaymentMethodType, TransactionStatus } from '../types/enums';
+import {Subscription} from "./Subscription";
+import {PaymentMethod} from "./PaymentMethod";
+import {User} from "./User";
+import {Invoice} from "./Invoice";
 
+export enum TransactionType {
+    CHARGE = 'charge',
+    REFUND = 'refund',
+    PAYMENT = 'payment',
+    SUBSCRIPTION = 'subscription'
+}
+
+export enum TransactionStatus {
+    PENDING = 'pending',
+    SUCCEEDED = 'succeeded',
+    FAILED = 'failed',
+    CANCELED = 'canceled',
+    REFUNDED = 'refunded',
+    PARTIALLY_REFUNDED = 'partially_refunded'
+}
 
 @Entity()
-export class Transaction extends BaseEntity{
+export class Transaction extends BaseEntity {
+    @Property({length: 100, nullable: true})
+    @Index()
+    stripeChargeId?: string; // ch_xxxxx
 
-    @ManyToOne(() => Subscription)
-    subscription!: Subscription;
+    @Property({length: 100, nullable: true})
+    stripePaymentIntentId?: string; // pi_xxxxx
 
     @ManyToOne(() => User)
+    @Index()
     user!: User;
 
-    @ManyToOne(() => PaymentMethod, { nullable: true })
-    card?: PaymentMethod;
+    @ManyToOne(() => PaymentMethod, {nullable: true})
+    paymentMethod?: PaymentMethod;
 
-    @Enum(() => ['credit_card', 'apple_pay', 'google_pay'])
-    paymentMethod!: PaymentMethodType;
+    @ManyToOne(() => Subscription, {nullable: true})
+    subscription?: Subscription;
 
-    @Property()
-    amount!: number;
+    @ManyToOne(() => Invoice, {nullable: true})
+    @Index()
+    invoice?: Invoice;
 
-    @Property()
-    currency!: Currency; // EUR, USD
+    @Enum(() => TransactionType)
+    @Index()
+    type!: TransactionType;
 
-    @Property()
+    @Enum(() => TransactionStatus)
+    @Index()
     status!: TransactionStatus;
 
-    @Property()
-    transactionId!: string;
+    @Property({type: 'bigint'})
+    amount!: number; // en centavos
 
-    @Property()
-    reference!: string;
+    @Property({type: 'bigint', default: 0})
+    amountRefunded: number = 0;
 
-    @Property()
-    transactionDate!: Date;
+    @Property({length: 10, default: 'usd'})
+    currency: string = 'usd';
 
-    @Property()
-    description!: string;
+    @Property({type: 'text', nullable: true})
+    description?: string;
 
-    @Property()
-    authCode!: string;
+    @Property({type: 'text', nullable: true})
+    failureReason?: string;
+
+    @Property({type: 'json', nullable: true})
+    metadata?: Record<string, any>;
+
+    get formattedAmount(): string {
+        return (this.amount / 100).toFixed(2);
+    }
+
+    get formattedAmountRefunded(): string {
+        return (this.amountRefunded / 100).toFixed(2);
+    }
+
+    get netAmount(): number {
+        return this.amount - this.amountRefunded;
+    }
+
+    get isSuccessful(): boolean {
+        return this.status === TransactionStatus.SUCCEEDED;
+    }
+
+    get isRefunded(): boolean {
+        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.status);
+    }
 }

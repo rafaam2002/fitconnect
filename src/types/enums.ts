@@ -5,13 +5,6 @@ export enum Durations {
   ONE_MONTH = "1 mes",
 }
 
-export enum UserRol {
-  STANDARD = "standard",
-  BOSS = "boss",
-  PREMIUM = "premium",
-  COACH = "coach",
-}
-
 export enum UserProviderType  {
   GOOGLE = 'google',
   APPLE = 'apple',

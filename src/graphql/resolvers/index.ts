@@ -54,7 +54,7 @@ import {getCards} from "./paymentMethod/queries";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
 import {createCustomer, deactivateCustomer, updateCustomer} from "./customer/mutations";
-import {getCustomer} from "./customer/queries";
+import {getCustomer, getCustomerByUserId} from "./customer/queries";
 
 const resolvers = {
     Query: {
@@ -95,6 +95,7 @@ const resolvers = {
         getNotifications,
         sendEmailVerification,
         getCustomer,
+        getCustomerByUserId
     },
     Mutation: {
         //User

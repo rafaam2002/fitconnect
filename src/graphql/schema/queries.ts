@@ -55,6 +55,6 @@ type Query {
     
     #------------------------StripeCustomer-------------------------
     getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
-    getCustomerByUserId(stripeCustomerId: ID!): StripeCustomerResponse!
+    getCustomerByUserId(userId: ID!): StripeCustomerResponse!
 }
 `;

@@ -1,8 +1,8 @@
 import {Entity, Enum, Index, ManyToOne, Property} from '@mikro-orm/core';
-import {User} from './User.entity.js';
-import {PaymentMethod} from './PaymentMethod.entity.js';
-import {Subscription} from './Subscription.entity.js';
 import {BaseEntity} from "./BaseEntity";
+import {Subscription} from "./Subscription";
+import {PaymentMethod} from "./PaymentMethod";
+import {User} from "./User";
 
 export enum TransactionType {
     CHARGE = 'charge',
@@ -82,6 +82,6 @@ export class Transaction extends BaseEntity {
     }
 
     get isRefunded(): boolean {
-        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.status);
+        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.currentStatus);
     }
 }

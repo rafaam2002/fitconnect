@@ -26,7 +26,7 @@ input UpdateUserInput {
     phoneNumber: String,
     nickname: String!,
     isBlocked: Boolean,
-    rol: UserRol,
+    role: UserRol,
 }
 
 input CreateUserInput {

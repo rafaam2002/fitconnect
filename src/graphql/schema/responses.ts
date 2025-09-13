@@ -173,7 +173,7 @@ type UserResumeResponse {
     id: ID!
     nickname: String!
     pictureUrl: PictureUrl
-    rol: UserRol!
+    role: UserRol!
 }
 
 type AdminStatsResponse {

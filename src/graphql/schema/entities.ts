@@ -45,7 +45,7 @@ type User {
     nickname: String!
     isActive: Boolean
     isBlocked: Boolean
-    rol: UserRol!
+    role: UserRol!
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String

@@ -64,7 +64,7 @@ type Mutation {
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
     updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!
-    deactivateCustomer(customerId: ID!): StripeCustomerResponse!
+    deactivateCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
 }
 
 `;

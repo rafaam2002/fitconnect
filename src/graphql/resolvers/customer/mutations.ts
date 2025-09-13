@@ -1,64 +1,37 @@
 import {CustomerService} from "../../../services/CustomerService";
+import {CustomResponse} from "../errors";
 
 export const createCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
         const customer = await customerService.createCustomer(args.customer);
 
-        return {
-            success: true,
-            message: 'Customer created successfully',
-            customer,
-            errors: []
-        };
+        return CustomResponse(200, 'Customer created successfully', true, customer);
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to create customer',
-            customer: null,
-            errors: [error.message]
-        };
+        return CustomResponse(500, 'Failed to create customer', false, null);
+
     }
 }
 
 export const updateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        const customer = await customerService.updateCustomer(args.input);
+        const customer = await customerService.updateCustomer(args.customer);
 
-        return {
-            success: true,
-            message: 'Customer updated successfully',
-            customer,
-            errors: []
-        };
+        return CustomResponse(200, 'Customer updated successfully', true, customer);
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to update customer',
-            customer: null,
-            errors: [error.message]
-        };
+        return CustomResponse(500, 'Failed to update customer', false, null);
     }
 }
 
 export const deactivateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        await customerService.deactivateCustomer(args.stripeCustomerId);
+        const customer = await customerService.deactivateCustomer(args.stripeCustomerId);
 
-        return {
-            success: true,
-            message: 'Customer deactivated successfully',
-            customer: null,
-            errors: []
-        };
+        return CustomResponse(200, 'Customer deactivated successfully', true, null);
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to deactivate customer',
-            customer: null,
-            errors: [error.message]
-        };
+        return CustomResponse(500, 'Failed to deactivate customer', false, null);
     }
 }

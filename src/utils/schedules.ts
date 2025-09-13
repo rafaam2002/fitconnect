@@ -1,8 +1,8 @@
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { ScheduleState, ScheduleType, UserRol } from "../types/enums";
-import { User } from "../entities/User";
+import { ScheduleState, ScheduleType } from "../types/enums";
+import {User, UserRole} from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
 import { sendPushNotification } from "./notifications";
@@ -45,7 +45,7 @@ export const createScheduleProgrammed = async (
       message: "Please login",
     };
   }
-  if (currentUser.rol === UserRol.STANDARD) {
+  if (currentUser.role === UserRole.STANDARD) {
     return {
       success: false,
       code: "401",
@@ -54,7 +54,7 @@ export const createScheduleProgrammed = async (
   }
 
   try {
-    const newScheduleProgrammed = em.create(ScheduleProgrammed, {
+    const newScheduleProgrammed = em.create<ScheduleProgrammed>(ScheduleProgrammed, {
       daysOfWeek,
       startHour,
       endHour,
@@ -138,7 +138,7 @@ export const createScheduleInXWeeks = async (
   });
 
   try {
-    const newSchedule = em.create(Schedule, {
+    const newSchedule = em.create<Schedule>(Schedule, {
       startDate: startDate.toDate(),
       endDate: endDate.toDate(),
       maxUsers: scheduleProgrammed.maxUsers,

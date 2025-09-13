@@ -204,7 +204,7 @@ export class PaymentMethodService extends BaseService {
             stripeCustomer,
             status: PaymentMethodStatus.ACTIVE
         }, {
-            orderBy: { isDefault: QueryOrder.DESC, createdAt: QueryOrder.ASC }
+            orderBy: { isDefault: QueryOrder.DESC, created_at: QueryOrder.ASC }
         });
     }
 
@@ -254,7 +254,7 @@ export class PaymentMethodService extends BaseService {
     private extractPaymentMethodData(stripePaymentMethod: any): Partial<PaymentMethod> {
         return {
             stripePaymentMethodId: stripePaymentMethod.id,
-            type: stripePaymentMethod.type as PaymentMethodType,
+            type: stripePaymentMethod.type as any,
             status: PaymentMethodStatus.ACTIVE,
             brand: stripePaymentMethod.card?.brand,
             last4: stripePaymentMethod.card?.last4,

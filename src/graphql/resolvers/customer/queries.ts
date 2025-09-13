@@ -1,3 +1,4 @@
+import {CustomerService} from "../../../services/CustomerService";
 
 
 export const getCustomer = async(parent: any, args: any, context: any) => {

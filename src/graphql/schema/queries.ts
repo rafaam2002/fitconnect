@@ -52,5 +52,9 @@ type Query {
     
     #------------------Cards-------------------------
     getCards: CardResponse!
+    
+    #------------------------StripeCustomer-------------------------
+    getCustomer(id: ID!): StripeCustomerResponse!
+    getCustomerByUserId(id: ID!): StripeCustomerResponse!
 }
 `;

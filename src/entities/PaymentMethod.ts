@@ -26,7 +26,7 @@ export class PaymentMethod extends BaseEntity  {
     @Index()
     stripeCustomer!: StripeCustomer;
 
-    @Enum(PaymentMethodType)
+    @Enum(()=>PaymentMethodType)
     type!: PaymentMethodType;
 
     @Enum(() => PaymentMethodStatus)

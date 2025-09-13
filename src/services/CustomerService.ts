@@ -71,6 +71,8 @@ export class CustomerService extends BaseService {
                 defaultCurrency: 'EUR',
             });
 
+            user.stripeCustomerId =customerEntity.id;
+
             this.em.persist(customerEntity);
             await this.em.flush();
 

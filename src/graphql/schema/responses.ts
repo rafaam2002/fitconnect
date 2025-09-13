@@ -207,4 +207,12 @@ type CardResponse implements BasicResponse {
     message: String!
     cards: [Card]
 }
+
+type StripeCustomerResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    customers: [StripeCustomer]
+    customer: StripeCustomer
+}
 `;

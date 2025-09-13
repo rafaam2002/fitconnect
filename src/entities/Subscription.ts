@@ -1,11 +1,11 @@
-import {Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Index, Enum} from '@mikro-orm/core';
-import { v4 } from 'uuid';
+import {Collection, Entity, Enum, Index, ManyToOne, OneToMany, Property} from '@mikro-orm/core';
 import {StripeCustomer} from "./StripeCustomer";
 import {User} from "./User";
 import {PaymentMethod} from "./PaymentMethod";
 import {BaseEntity} from "./BaseEntity";
 import {Plan} from "./Plan";
 import {Invoice} from "./Invoice";
+import {Transaction} from "./Transaction";
 
 
 export enum SubscriptionStatus {
@@ -20,8 +20,8 @@ export enum SubscriptionStatus {
 }
 
 @Entity()
-export class Subscription  extends BaseEntity{
-    @Property({ length: 100 })
+export class Subscription extends BaseEntity {
+    @Property({length: 100})
     @Index()
     stripeSubscriptionId!: string; // sub_xxxxx
 
@@ -35,39 +35,42 @@ export class Subscription  extends BaseEntity{
     @ManyToOne(() => Plan)
     plan!: Plan;
 
-    @ManyToOne(() => PaymentMethod, { nullable: true })
+    @ManyToOne(() => PaymentMethod, {nullable: true})
     defaultPaymentMethod?: PaymentMethod;
 
-    @Enum( () => SubscriptionStatus)
+    @OneToMany(() => Transaction, transaction => transaction.subscription)
+    transactions = new Collection<Transaction>(this);
+
+    @Enum(() => SubscriptionStatus)
     @Index()
     status!: SubscriptionStatus;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     currentPeriodStart?: Date;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     @Index()
     currentPeriodEnd?: Date;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     trialStart?: Date;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     trialEnd?: Date;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     canceledAt?: Date;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     cancelAtPeriodEnd?: boolean;
 
-    @Property({ type: 'datetime', nullable: true })
+    @Property({type: 'datetime', nullable: true})
     endedAt?: Date;
 
-    @Property({ type: 'bigint', nullable: true })
+    @Property({type: 'bigint', nullable: true})
     quantity?: number;
 
-    @Property({ type: 'json', nullable: true })
+    @Property({type: 'json', nullable: true})
     metadata?: Record<string, any>;
 
     // Relaciones

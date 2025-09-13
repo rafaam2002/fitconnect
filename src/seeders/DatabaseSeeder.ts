@@ -20,7 +20,7 @@ export class DatabaseSeeder extends Seeder {
       PollSeeder,
       MessageSeeder,
       PollVoteSeeder,
-      PlanSeeder,
+      // PlanSeeder,
       NotificationSeeder,
       ProductSeeder,
     ]);

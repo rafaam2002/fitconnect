@@ -74,7 +74,7 @@ export class Invoice extends BaseEntity  {
     metadata?: Record<string, any>;
 
     // Relaciones
-    @OneToMany(() => Transaction, transaction => transaction.subscription)
+    @OneToMany(() => Transaction, transaction => transaction.invoice)
     transactions = new Collection<Transaction>(this);
 
     get isPaid(): boolean {

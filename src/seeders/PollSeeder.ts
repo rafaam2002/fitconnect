@@ -1,15 +1,13 @@
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
-import { PollFactory } from "../factories/PollFactory";
-import { User } from "../entities/User";
-import { UserRol } from "../types/enums";
+import {User, UserRole} from "../entities/User";
 
 export class PollSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const userRepo = em.getRepository(User);
-    const users = await userRepo.find({
-      rol: { $in: [UserRol.BOSS, UserRol.COACH] },
-    });
+    // const users = await userRepo.find({
+    //   e: { $in: [UserRole.BOSS, UserRole.COACH] },
+    // });
     // new PollFactory(em, users).each((poll) => {
       
     // }).make(4);

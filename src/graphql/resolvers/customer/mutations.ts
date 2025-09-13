@@ -1,9 +1,9 @@
 import {CustomerService} from "../../../services/CustomerService";
 
-export const createCustomer= async(parent: any, args: any, context: any) =>{
+export const createCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        const customer = await customerService.createCustomer(args.input);
+        const customer = await customerService.createCustomer(args.customer);
 
         return {
             success: true,
@@ -21,7 +21,7 @@ export const createCustomer= async(parent: any, args: any, context: any) =>{
     }
 }
 
-export const updateCustomer = async(parent: any, args: any, context: any) =>{
+export const updateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
         const customer = await customerService.updateCustomer(args.input);
@@ -42,7 +42,7 @@ export const updateCustomer = async(parent: any, args: any, context: any) =>{
     }
 }
 
-export const deactivateCustomer= async(parent: any, args: any, context: any) => {
+export const deactivateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
         await customerService.deactivateCustomer(args.stripeCustomerId);

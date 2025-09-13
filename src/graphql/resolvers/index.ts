@@ -53,6 +53,7 @@ import {addCreditCard} from "./paymentMethod/mutations";
 import {getCards} from "./paymentMethod/queries";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
+import {createCustomer} from "./customer/mutations";
 
 const resolvers = {
     Query: {
@@ -142,6 +143,7 @@ const resolvers = {
         addCreditCard,
         //System
         sendNotification,
+        createCustomer
 
     },
     Subscription: {

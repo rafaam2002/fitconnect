@@ -1,1037 +1,1034 @@
-import { User } from "../../../entities/User";
-import { sendPushNotification } from "../../../utils/notifications";
+import {User, UserRole} from "../../../entities/User";
+import {sendPushNotification} from "../../../utils/notifications";
 import jwt from "jsonwebtoken";
-import { Message } from "../../../entities/Message";
-import { ScheduleState, ScheduleType, UserRol } from "../../../types/enums";
-import { Schedule } from "../../../entities/Schedule";
-import { Poll } from "../../../entities/Poll";
-import { PollVote } from "../../../entities/PollVote";
-import {
-  createDateWithTime,
-  createScheduleProgrammed,
-} from "../../../utils/schedules";
-import { updateUserSchema } from "../../../validation/schemas";
-import {
-  FIXED_MESSAGE_EVENT,
-  MESSAGE_EVENT,
-  myPubsub,
-} from "../../../constants/subscriptions";
+import {Message} from "../../../entities/Message";
+import {ScheduleState, ScheduleType} from "../../../types/enums";
+import {Schedule} from "../../../entities/Schedule";
+import {createDateWithTime, createScheduleProgrammed,} from "../../../utils/schedules";
+import {updateUserSchema} from "../../../validation/schemas";
+import {FIXED_MESSAGE_EVENT, MESSAGE_EVENT, myPubsub,} from "../../../constants/subscriptions";
 import moment from "moment";
-import { CustomResponse } from "../errors";
-import { GraphQLError } from "graphql";
+import {CustomResponse} from "../errors";
+import {GraphQLError} from "graphql";
 import {
-  AddUserWeight,
-  ChangeScheduleStatusProp,
-  ContextProps,
-  CreateTrainingTaskProps,
-  DeletePollProps,
-  FixMessageProps,
-  MessageProps,
-  PollProps,
-  RemoveScheduleProps,
-  removeTrainingTaskProps,
-  RemoveUserSheduleProps,
-  RemoveUserWeight,
-  ScheduleDevelopmentProps,
-  ScheduleProps,
-  UnfixMessageProps,
-  updateScheduleOptionsProps,
-  UserPictureProps,
-  UserProps,
-  VoteProps,
+    AddUserWeight,
+    ChangeScheduleStatusProp,
+    ContextProps,
+    CreateTrainingTaskProps,
+    FixMessageProps,
+    MessageProps,
+    RemoveScheduleProps,
+    removeTrainingTaskProps,
+    RemoveUserSheduleProps,
+    RemoveUserWeight,
+    ScheduleDevelopmentProps,
+    ScheduleProps,
+    UnfixMessageProps,
+    updateScheduleOptionsProps,
+    UserPictureProps,
+    UserProps,
 } from "../../../types/resolvers";
-import { TrainingTask } from "../../../entities/TraningITask";
-import { UserWeight } from "../../../entities/UserWeight";
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from "../../../utils/createPresignedUrls";
+import {TrainingTask} from "../../../entities/TraningITask";
+import {UserWeight} from "../../../entities/UserWeight";
+import {createPictureUrl, getPresignedUrl,} from "../../../utils/createPresignedUrls";
 
 import nodemailer from "nodemailer";
-import { emailHtml } from "../../../utils/emailHtml";
-import { ScheduleOptions } from "../../../entities/ScheduleOptions";
+import {emailHtml} from "../../../utils/emailHtml";
+import {ScheduleOptions} from "../../../entities/ScheduleOptions";
+import {createCustomer} from "../customer/mutations";
+import {StripeCustomer} from "../../../entities/StripeCustomer";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER, // tu email
-    pass: process.env.GMAIL_APP_PASS, // password o app password
-  },
+    service: "gmail",
+    auth: {
+        user: process.env.GMAIL_USER, // tu email
+        pass: process.env.GMAIL_APP_PASS, // password o app password
+    },
 });
 
 type AddScheduleProps = { scheduleId: string };
 export const createUser = async (_, args: UserProps, context: ContextProps) => {
-  const { user } = args;
-  const { em } = context;
-  const userRepo = em.getRepository(User);
+    const {user} = args;
+    const {em} = context;
+    const userRepo = em.getRepository(User);
 
-  if (!user.email || !user.password || !user.nickname) {
-    return CustomResponse(400, "Please provide all required fields");
-  }
+    if (!user.email || !user.password || !user.nickname) {
+        return CustomResponse(400, "Please provide all required fields");
+    }
 
-  const existingUser = await userRepo.findOne({
-    $or: [{ email: user.email }, { nickname: user.nickname }],
-  });
-
-  if (existingUser) {
-    return CustomResponse(400, "User already exists");
-  }
-
-  const newUser = em.create(User, {
-    ...user,
-  });
-  try {
-    const emailVerificationTk = jwt.sign(
-      { id: user.email },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "30d",
-      }
-    );
-
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: "rafaam.2002@gmail.com",
-      subject: "Confirma tu cuenta",
-      html: emailHtml(emailVerificationTk),
+    const existingUser = await userRepo.findOne({
+        $or: [{email: user.email}, {nickname: user.nickname}],
     });
 
-    await em.persistAndFlush(newUser);
+    if (existingUser) {
+        return CustomResponse(400, "User already exists");
+    }
 
-    const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+    const newUser = em.create(User, {
+        ...user,
     });
+    try {
 
-    return CustomResponse(200, "User created successfully", true, {
-      user: newUser,
-      tokens: {
-        token,
-      },
-    });
-  } catch (error) {
-    if (error.code === "EAUTH")
-      return CustomResponse(
-        500,
-        `Error sending verification email ${error.message}`
-      );
-    else
-      return CustomResponse(
-        500,
-        `Error creating user ${error.name}, column: ${error.column}`
-      );
-  }
+        const emailVerificationTk = jwt.sign(
+            {id: user.email},
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "30d",
+            }
+        );
+
+        await transporter.sendMail({
+            from: process.env.GMAIL_USER,
+            to: "rafaam.2002@gmail.com",
+            subject: "Confirma tu cuenta",
+            html: emailHtml(emailVerificationTk),
+        });
+        await em.persistAndFlush(newUser)
+        const stripeData = {
+            customer: {
+                userId: newUser.id,
+                phoneNumber: 123456789,
+                name: newUser.nickname,
+                email: newUser.email,
+            }
+        }
+
+         await createCustomer(_, stripeData, context)
+
+        const token = jwt.sign({id: newUser.id}, process.env.JWT_SECRET, {
+            expiresIn: "1d",
+        });
+
+        return CustomResponse(200, "User created successfully", true, {
+            user: newUser,
+            tokens: {
+                token,
+            },
+        });
+    } catch (error) {
+        if (error.code === "EAUTH")
+            return CustomResponse(
+                500,
+                `Error sending verification email ${error.message}`
+            );
+        else
+            return CustomResponse(
+                500,
+                `Error creating user ${error.name}, column: ${error.column}`
+            );
+    }
 };
 
 export const updateUser = async (_, args: UserProps, context: ContextProps) => {
-  const { user: fields, userId } = args;
-  const { em, currentUser } = context;
-  const userRepo = em.getRepository(User);
-  const {
-    name,
-    email,
-    surname,
-    nickname,
-    phoneNumber,
-    isActive,
-    isBlocked,
-    rol,
-  } = fields;
+    const {user: fields, userId} = args;
+    const {em, currentUser} = context;
+    const userRepo = em.getRepository(User);
+    const {
+        name,
+        email,
+        surname,
+        nickname,
+        phoneNumber,
+        isActive,
+        isBlocked,
+        role,
+    } = fields;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-  const updateUser = await userRepo.findOne({ id: userId });
-
-  const oldEmail = updateUser.email;
-
-  if (!updateUser) {
-    return CustomResponse(404, "User not found");
-  }
-
-  updateUser.name = name;
-  updateUser.email = email;
-  updateUser.surname = surname;
-  updateUser.nickname = nickname;
-  updateUser.phoneNumber = phoneNumber || updateUser.phoneNumber;
-  updateUser.isActive = isActive || updateUser.isActive;
-  updateUser.isBlocked = isBlocked || updateUser.isBlocked;
-  updateUser.rol = rol || updateUser.rol;
-
-  try {
-    // Validar los datos de entrada
-    updateUserSchema.parse(updateUser);
-  } catch (error) {
-    return CustomResponse(400, `Validation Error ${error.message}`, false, {
-      user: null,
-    });
-  }
-
-  if (oldEmail !== email) {
-    try {
-      const usersWithexistingEmail = await userRepo.findOne({ email });
-      if (usersWithexistingEmail.length > 1) {
-        return CustomResponse(400, "Email already exists");
-      }
-    } catch (error) {
-      return CustomResponse(
-        500,
-        `Error checking existing email: ${error.message}`,
-        false,
-        { user: null }
-      );
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
     }
-  }
 
-  const existingNickName = await userRepo.find({ nickname });
+    if (currentUser.id !== userId && currentUser.role !== UserRole.BOSS) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
+    const updateUser = await userRepo.findOne({id: userId});
 
-  if (existingNickName.length > 1) {
-    return CustomResponse(400, "Nickname already exists");
-  }
+    const oldEmail = updateUser.email;
 
-  try {
-    await em.persistAndFlush(updateUser);
+    if (!updateUser) {
+        return CustomResponse(404, "User not found");
+    }
 
-    return CustomResponse(200, "User updated successfully", true, {
-      user: updateUser,
-    });
-  } catch (error) {
-    return CustomResponse(500, "Error updating user", false, { user: null });
-  }
+    updateUser.name = name;
+    updateUser.email = email;
+    updateUser.surname = surname;
+    updateUser.nickname = nickname;
+    updateUser.phoneNumber = phoneNumber || updateUser.phoneNumber;
+    updateUser.isActive = isActive || updateUser.isActive;
+    updateUser.isBlocked = isBlocked || updateUser.isBlocked;
+    updateUser.rol = role || updateUser.rol;
+
+    try {
+        // Validar los datos de entrada
+        updateUserSchema.parse(updateUser);
+    } catch (error) {
+        return CustomResponse(400, `Validation Error ${error.message}`, false, {
+            user: null,
+        });
+    }
+
+    if (oldEmail !== email) {
+        try {
+            const usersWithexistingEmail = await userRepo.findOne({email});
+            if (usersWithexistingEmail.length > 1) {
+                return CustomResponse(400, "Email already exists");
+            }
+        } catch (error) {
+            return CustomResponse(
+                500,
+                `Error checking existing email: ${error.message}`,
+                false,
+                {user: null}
+            );
+        }
+    }
+
+    const existingNickName = await userRepo.find({nickname});
+
+    if (existingNickName.length > 1) {
+        return CustomResponse(400, "Nickname already exists");
+    }
+
+    try {
+        await em.persistAndFlush(updateUser);
+
+        return CustomResponse(200, "User updated successfully", true, {
+            user: updateUser,
+        });
+    } catch (error) {
+        return CustomResponse(500, "Error updating user", false, {user: null});
+    }
 };
 
 export const updateUserPicture = async (
-  _: any,
-  args: UserPictureProps,
-  context: ContextProps
+    _: any,
+    args: UserPictureProps,
+    context: ContextProps
 ) => {
-  const { userId, picture } = args;
-  const { em, currentUser } = context;
+    const {userId, picture} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
 
-  if (currentUser.id !== userId && currentUser.rol !== UserRol.BOSS) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (currentUser.id !== userId && currentUser.role !== UserRole.BOSS) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  const userRepo = em.getRepository(User);
-  const updateUser: User = await userRepo.findOne({ id: userId });
+    const userRepo = em.getRepository(User);
+    const updateUser: User = await userRepo.findOne({id: userId});
 
-  if (!updateUser) {
-    return CustomResponse(404, "User not found");
-  }
+    if (!updateUser) {
+        return CustomResponse(404, "User not found");
+    }
 
-  if (!updateUser.pictureUrl) {
-    const pictureUrl = await createPictureUrl(
-      em,
-      {
-        id: userId,
-        name: picture,
-        type: "user",
-      },
-      await getPresignedUrl(picture)
-    );
-    updateUser.pictureUrl = pictureUrl;
-  } else {
-    //updateUser.pictureUrl.name = picture;
-    updateUser.pictureUrl.url = await getPresignedUrl(picture);
-  }
-  try {
-    em.persistAndFlush(updateUser);
+    if (!updateUser.pictureUrl) {
+        const pictureUrl = await createPictureUrl(
+            em,
+            {
+                id: userId,
+                name: picture,
+                type: "user",
+            },
+            await getPresignedUrl(picture)
+        );
+        updateUser.pictureUrl = pictureUrl;
+    } else {
+        //updateUser.pictureUrl.name = picture;
+        updateUser.pictureUrl.url = await getPresignedUrl(picture);
+    }
+    try {
+        em.persistAndFlush(updateUser);
 
-    return CustomResponse(200, "User updated successfully", true, {
-      user: updateUser,
-    });
-  } catch (error) {
-    console.error(error);
-    return CustomResponse(500, "Error updating user", false, { user: null });
-  }
+        return CustomResponse(200, "User updated successfully", true, {
+            user: updateUser,
+        });
+    } catch (error) {
+        console.error(error);
+        return CustomResponse(500, "Error updating user", false, {user: null});
+    }
 };
 
 export const removeUser = async (_, args, context: ContextProps) => {
-  const { id } = args;
-  const { em } = context;
+    const {id} = args;
+    const {em} = context;
 
-  if (!id) {
-    return CustomResponse(400, "Please provide a user id");
-  }
-  const user = em.getReference(User, id);
+    if (!id) {
+        return CustomResponse(400, "Please provide a user id");
+    }
+    const user = em.getReference(User, id);
 
-  if (!user) {
-    return CustomResponse(404, "User not found");
-  }
+    if (!user) {
+        return CustomResponse(404, "User not found");
+    }
 
-  await em.removeAndFlush(user);
+    await em.removeAndFlush(user);
 
-  return user;
+    return user;
 };
 
 export const createMessage = async (
-  _: any,
-  args: MessageProps,
-  context: ContextProps
+    _: any,
+    args: MessageProps,
+    context: ContextProps
 ) => {
-  const { message } = args;
-  const { em, currentUser } = context;
-  const { text, receiverId, isFixed, fixedDuration = null } = message;
+    const {message} = args;
+    const {em, currentUser} = context;
+    const {text, receiverId, isFixed, fixedDuration = null} = message;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (isFixed && currentUser.rol === UserRol.STANDARD)
-    return CustomResponse(403, "You are not authorized to perform this action");
-
-  if (isFixed && receiverId != process.env.DB_FORUM_ID)
-    return CustomResponse(
-      403,
-      "You can only fix messages in the forum",
-      false,
-      { user: null }
-    );
-
-  try {
-    const receiver = await em.findOne(
-      User,
-      { id: receiverId },
-      { populate: ["pushTokens"] }
-    );
-    const newMessage = em.create(Message, {
-      text,
-      receiver,
-      sender: em.getReference(User, currentUser.id),
-      isFixed: !!isFixed,
-      fixedDuration,
-    });
-    await em.persistAndFlush(newMessage);
-
-    if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
-      const title = `Nuevo mensaje de ${currentUser.nickname}`;
-      const body = text;
-      const data = {
-        type: "new_message",
-        messageId: newMessage.id,
-        senderId: currentUser.id,
-      };
-      receiver.pushTokens.getItems().forEach((pushToken) => {
-        sendPushNotification(pushToken.token, title, body, data);
-      });
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
     }
 
-    myPubsub.publish(MESSAGE_EVENT, { newMessage });
-    return CustomResponse(200, "Message created successfully", true, {
-      sms: newMessage,
-    });
-  } catch (error) {
-    console.error("Error creating message", error);
-    return CustomResponse(500, "Error creating message", false);
-  }
+    if (isFixed && currentUser.role === UserRole.STANDARD)
+        return CustomResponse(403, "You are not authorized to perform this action");
+
+    if (isFixed && receiverId != process.env.DB_FORUM_ID)
+        return CustomResponse(
+            403,
+            "You can only fix messages in the forum",
+            false,
+            {user: null}
+        );
+
+    try {
+        const receiver = await em.findOne(
+            User,
+            {id: receiverId},
+            {populate: ["pushTokens"]}
+        );
+        const newMessage = em.create(Message, {
+            text,
+            receiver,
+            sender: em.getReference(User, currentUser.id),
+            isFixed: !!isFixed,
+            fixedDuration,
+        });
+        await em.persistAndFlush(newMessage);
+
+        if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
+            const title = `Nuevo mensaje de ${currentUser.nickname}`;
+            const body = text;
+            const data = {
+                type: "new_message",
+                messageId: newMessage.id,
+                senderId: currentUser.id,
+            };
+            receiver.pushTokens.getItems().forEach((pushToken) => {
+                sendPushNotification(pushToken.token, title, body, data);
+            });
+        }
+
+        myPubsub.publish(MESSAGE_EVENT, {newMessage});
+        return CustomResponse(200, "Message created successfully", true, {
+            sms: newMessage,
+        });
+    } catch (error) {
+        console.error("Error creating message", error);
+        return CustomResponse(500, "Error creating message", false);
+    }
 };
 
 export const createSchedule = async (
-  _: any,
-  args: ScheduleProps,
-  context: ContextProps
+    _: any,
+    args: ScheduleProps,
+    context: ContextProps
 ) => {
-  const { schedule } = args;
-  const { em, currentUser } = context;
-  const {
-    title,
-    description,
-    startDate,
-    endDate,
-    maxUsers,
-    repeatDays,
-    age,
-    admin,
-    type = ScheduleType.STANDARD,
-  } = schedule;
-
-  const finalAge = age && age > 0 ? age : null;
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-
-  const adminRef = em.getReference(User, admin);
-
-  if (repeatDays.length > 0) {
-    const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
-    const endHour = moment(endDate).subtract(1, "hours").format("HH:mm");
-
-    return createScheduleProgrammed(
-      {
-        daysOfWeek: repeatDays,
+    const {schedule} = args;
+    const {em, currentUser} = context;
+    const {
         title,
         description,
-        startHour,
-        endHour,
+        startDate,
+        endDate,
         maxUsers,
-        admin: adminRef,
-        age: finalAge,
-        type,
-      },
-      { em, currentUser }
+        repeatDays,
+        age,
+        admin,
+        type = ScheduleType.STANDARD,
+    } = schedule;
+
+    const finalAge = age && age > 0 ? age : null;
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
+
+    const adminRef = em.getReference(User, admin);
+
+    if (repeatDays.length > 0) {
+        const startHour = moment(startDate).subtract(1, "hours").format("HH:mm");
+        const endHour = moment(endDate).subtract(1, "hours").format("HH:mm");
+
+        return createScheduleProgrammed(
+            {
+                daysOfWeek: repeatDays,
+                title,
+                description,
+                startHour,
+                endHour,
+                maxUsers,
+                admin: adminRef,
+                age: finalAge,
+                type,
+            },
+            {em, currentUser}
+        );
+    } else {
+        const newSchedule = em.create(Schedule, {
+            title,
+            description,
+            age: finalAge,
+            type,
+            startDate,
+            endDate,
+            maxUsers,
+            state: ScheduleState.AVAILABLE,
+            admin: adminRef,
+        });
+
+        await em.persistAndFlush(newSchedule);
+
+        try {
+            return CustomResponse(200, "Schedule created successfully", true, {
+                schedule: newSchedule,
+            });
+        } catch (error) {
+            return CustomResponse(500, "Error creating schedule");
+        }
+    }
+};
+
+export const addUserToSchedule = async (
+    _: any,
+    args: AddScheduleProps,
+    context: ContextProps
+) => {
+    const {scheduleId} = args;
+    const {em, currentUser} = context;
+
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+    // const userReference = em.getReference(User, currentUser.id);
+    const user: User = await em.findOne(
+        User,
+        {id: currentUser.id},
+        {populate: ["schedules"]}
     );
-  } else {
+
+    const scheduleRepo = em.getRepository(Schedule);
+    const schedule = await scheduleRepo.findOne(
+        {id: scheduleId},
+        {populate: ["users"]}
+    );
+    if (!schedule) {
+        return CustomResponse(404, "Schedule not found");
+    }
+
+    const scheduleOptions: ScheduleOptions = em.findOne(ScheduleOptions, {
+        id: {$ne: null},
+    });
+
+    const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
+    const isHourDisabled = moment().isAfter(Number(schedule.startDate));
+    const isFull = schedule.users.length >= schedule.maxUsers;
+    const isBooked = user.schedules.getItems().some((s) => s.id === schedule.id);
+    const isUserBoss = currentUser.role === UserRole.BOSS;
+    const isUserCoachOfEvent =
+        currentUser.role === UserRole.COACH && schedule.admin.id === currentUser.id;
+    const maxBookings =
+        user!.schedules!.length >= scheduleOptions.maxActiveReservations;
+
+    const maxBookingsToday =
+        !scheduleOptions?.sameDayBookingAllowed &&
+        user.schedules
+            .getItems()
+            .some((s) =>
+                moment(Number(s.startDate)).isSame(
+                    moment(Number(schedule.startDate)),
+                    "day"
+                )
+            );
+
+    const maxAdvanceDate = moment()
+        .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, "days")
+        .startOf("day");
+
+    const isAdvanceBookingDisabled =
+        moment(Number(schedule.startDate)).isAfter(maxAdvanceDate) &&
+        !scheduleOptions?.sameDayBookingAllowed;
+
+    const disabled =
+        (isStateDisabled ||
+            isFull ||
+            isHourDisabled ||
+            (!isBooked &&
+                (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
+        !(isUserBoss || isUserCoachOfEvent);
+
+    if (disabled)
+        return CustomResponse(400, "Schedule is not available for booking", false, {
+            schedule,
+        });
+
+    if (schedule.users.contains(user)) {
+        return CustomResponse(400, "User already in schedule");
+    }
+    schedule.users.add(user);
+
+    await em.persistAndFlush(schedule);
+
+    return CustomResponse(200, "User added to schedule", true, {
+        schedule,
+    });
+};
+
+export const removeUserFromSchedule = async (
+    _: any,
+    args: RemoveUserSheduleProps,
+    context: ContextProps
+) => {
+    const {scheduleId, userId} = args;
+    const {em, currentUser} = context;
+
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+    let id = null;
+
+    const scheduleRepo = em.getRepository(Schedule);
+    const schedule = await scheduleRepo.findOne(
+        {id: scheduleId},
+        {populate: ["users"]}
+    );
+
+    if (!schedule) {
+        return CustomResponse(404, "Schedule not found");
+    }
+
+    if (userId) {
+        if (
+            userId === currentUser.id ||
+            (currentUser.role === UserRole.COACH && userId === schedule.admin.id) ||
+            currentUser.role === UserRole.BOSS
+        ) {
+            id = userId;
+        } else {
+            return CustomResponse(
+                403,
+                "You are not authorized to perform this action"
+            );
+        }
+    } else {
+        id = currentUser.id;
+    }
+
+    const user = await em.findOne(User, {id});
+
+    if (!schedule.users.contains(user)) {
+        return CustomResponse(403, "User not in schedule");
+    }
+    schedule.users.remove(user);
+
+    await em.persistAndFlush(schedule);
+
+    return CustomResponse(200, "User removed from schedule", true, {
+        schedule,
+    });
+};
+
+export const createScheduleDevelopment = async (
+    _: any,
+    args: ScheduleDevelopmentProps,
+    context: ContextProps
+) => {
+    const {scheduleDevelopment} = args;
+    const {em, currentUser} = context;
+    const {title, startTime, endTime, maxUsers} = scheduleDevelopment;
+    let {state = ScheduleState.AVAILABLE} = scheduleDevelopment;
+
+    if (state === null) state = ScheduleState.AVAILABLE;
+
+    let newStartDate = createDateWithTime(startTime); // startTime es la cadena de tiempo pasada por parámetro, por ejemplo "11:30"
+    let newEndDate = createDateWithTime(endTime); // endTime es la cadena de tiempo pasada por parámetro, por ejemplo "12:30"
+
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+
+    const userRepo = em.getRepository(User);
+    const admin = em.getReference(User, currentUser.id);
+
     const newSchedule = em.create(Schedule, {
-      title,
-      description,
-      age: finalAge,
-      type,
-      startDate,
-      endDate,
-      maxUsers,
-      state: ScheduleState.AVAILABLE,
-      admin: adminRef,
+        title,
+        startDate: newStartDate,
+        endDate: newEndDate,
+        maxUsers,
+        state,
+        admin,
     });
 
     await em.persistAndFlush(newSchedule);
 
     try {
-      return CustomResponse(200, "Schedule created successfully", true, {
-        schedule: newSchedule,
-      });
+        return CustomResponse(200, "Schedule created successfully", true, {
+            schedule: newSchedule,
+        });
     } catch (error) {
-      return CustomResponse(500, "Error creating schedule");
+        return CustomResponse(500, "Error creating schedule");
     }
-  }
-};
-
-export const addUserToSchedule = async (
-  _: any,
-  args: AddScheduleProps,
-  context: ContextProps
-) => {
-  const { scheduleId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-  // const userReference = em.getReference(User, currentUser.id);
-  const user: User = await em.findOne(
-    User,
-    { id: currentUser.id },
-    { populate: ["schedules"] }
-  );
-
-  const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne(
-    { id: scheduleId },
-    { populate: ["users"] }
-  );
-  if (!schedule) {
-    return CustomResponse(404, "Schedule not found");
-  }
-
-  const scheduleOptions: ScheduleOptions = em.findOne(ScheduleOptions, {
-    id: { $ne: null },
-  });
-
-  const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
-  const isHourDisabled = moment().isAfter(Number(schedule.startDate));
-  const isFull = schedule.users.length >= schedule.maxUsers;
-  const isBooked = user.schedules.getItems().some((s) => s.id === schedule.id);
-  const isUserBoss = currentUser.rol === UserRol.BOSS;
-  const isUserCoachOfEvent =
-    currentUser.rol === UserRol.COACH && schedule.admin.id === currentUser.id;
-  const maxBookings =
-    user!.schedules!.length >= scheduleOptions.maxActiveReservations;
-
-  const maxBookingsToday =
-    !scheduleOptions?.sameDayBookingAllowed &&
-    user.schedules
-      .getItems()
-      .some((s) =>
-        moment(Number(s.startDate)).isSame(
-          moment(Number(schedule.startDate)),
-          "day"
-        )
-      );
-
-  const maxAdvanceDate = moment()
-    .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, "days")
-    .startOf("day");
-
-  const isAdvanceBookingDisabled =
-    moment(Number(schedule.startDate)).isAfter(maxAdvanceDate) &&
-    !scheduleOptions?.sameDayBookingAllowed;
-
-  const disabled =
-    (isStateDisabled ||
-      isFull ||
-      isHourDisabled ||
-      (!isBooked &&
-        (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
-    !(isUserBoss || isUserCoachOfEvent);
-
-  if (disabled)
-    return CustomResponse(400, "Schedule is not available for booking", false, {
-      schedule,
-    });
-
-  if (schedule.users.contains(user)) {
-    return CustomResponse(400, "User already in schedule");
-  }
-  schedule.users.add(user);
-
-  await em.persistAndFlush(schedule);
-
-  return CustomResponse(200, "User added to schedule", true, {
-    schedule,
-  });
-};
-
-export const removeUserFromSchedule = async (
-  _: any,
-  args: RemoveUserSheduleProps,
-  context: ContextProps
-) => {
-  const { scheduleId, userId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-  let id = null;
-
-  const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne(
-    { id: scheduleId },
-    { populate: ["users"] }
-  );
-
-  if (!schedule) {
-    return CustomResponse(404, "Schedule not found");
-  }
-
-  if (userId) {
-    if (
-      userId === currentUser.id ||
-      (currentUser.rol === UserRol.COACH && userId === schedule.admin.id) ||
-      currentUser.rol === UserRol.BOSS
-    ) {
-      id = userId;
-    } else {
-      return CustomResponse(
-        403,
-        "You are not authorized to perform this action"
-      );
-    }
-  } else {
-    id = currentUser.id;
-  }
-
-  const user = await em.findOne(User, { id });
-
-  if (!schedule.users.contains(user)) {
-    return CustomResponse(403, "User not in schedule");
-  }
-  schedule.users.remove(user);
-
-  await em.persistAndFlush(schedule);
-
-  return CustomResponse(200, "User removed from schedule", true, {
-    schedule,
-  });
-};
-
-export const createScheduleDevelopment = async (
-  _: any,
-  args: ScheduleDevelopmentProps,
-  context: ContextProps
-) => {
-  const { scheduleDevelopment } = args;
-  const { em, currentUser } = context;
-  const { title, startTime, endTime, maxUsers } = scheduleDevelopment;
-  let { state = ScheduleState.AVAILABLE } = scheduleDevelopment;
-
-  if (state === null) state = ScheduleState.AVAILABLE;
-
-  let newStartDate = createDateWithTime(startTime); // startTime es la cadena de tiempo pasada por parámetro, por ejemplo "11:30"
-  let newEndDate = createDateWithTime(endTime); // endTime es la cadena de tiempo pasada por parámetro, por ejemplo "12:30"
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  const userRepo = em.getRepository(User);
-  const admin = em.getReference(User, currentUser.id);
-
-  const newSchedule = em.create(Schedule, {
-    title,
-    startDate: newStartDate,
-    endDate: newEndDate,
-    maxUsers,
-    state,
-    admin,
-  });
-
-  await em.persistAndFlush(newSchedule);
-
-  try {
-    return CustomResponse(200, "Schedule created successfully", true, {
-      schedule: newSchedule,
-    });
-  } catch (error) {
-    return CustomResponse(500, "Error creating schedule");
-  }
 };
 
 export const fixMessage = async (
-  _: any,
-  args: FixMessageProps,
-  context: ContextProps
+    _: any,
+    args: FixMessageProps,
+    context: ContextProps
 ) => {
-  const { messageId, fixedEndDate } = args;
-  const { em, currentUser } = context;
+    const {messageId, fixedEndDate} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  const messageRepo = em.getRepository(Message);
-  const message = await messageRepo.findOne({ id: messageId });
+    const messageRepo = em.getRepository(Message);
+    const message = await messageRepo.findOne({id: messageId});
 
-  if (!message) {
-    return CustomResponse(404, "Message not found");
-  }
+    if (!message) {
+        return CustomResponse(404, "Message not found");
+    }
 
-  if (
-    currentUser.rol !== UserRol.BOSS &&
-    message.sender.id !== currentUser.id
-  ) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (
+        currentUser.role !== UserRole.BOSS &&
+        message.sender.id !== currentUser.id
+    ) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  message.isFixed = true;
-  message.fixedEndDate = fixedEndDate;
-  message.fixedAdmin = em.getReference(User, currentUser.id);
+    message.isFixed = true;
+    message.fixedEndDate = fixedEndDate;
+    message.fixedAdmin = em.getReference(User, currentUser.id);
 
-  await em.persistAndFlush(message);
+    await em.persistAndFlush(message);
 
-  myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
+    myPubsub.publish(FIXED_MESSAGE_EVENT, {message});
 
-  return CustomResponse(200, "Message fixed succesfully", true);
+    return CustomResponse(200, "Message fixed succesfully", true);
 };
 
 export const unfixMessage = async (
-  _: any,
-  args: UnfixMessageProps,
-  context: ContextProps
+    _: any,
+    args: UnfixMessageProps,
+    context: ContextProps
 ) => {
-  const { messageId } = args;
-  const { em, currentUser } = context;
+    const {messageId} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  const messageRepo = em.getRepository(Message);
-  const message: Message = await messageRepo.findOne({ id: messageId });
+    const messageRepo = em.getRepository(Message);
+    const message: Message = await messageRepo.findOne({id: messageId});
 
-  if (!message) {
-    return CustomResponse(404, "Message not found");
-  }
-  if (
-    currentUser.rol === UserRol.COACH &&
-    message.fixedAdmin.id !== currentUser.id
-  ) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (!message) {
+        return CustomResponse(404, "Message not found");
+    }
+    if (
+        currentUser.role === UserRole.COACH &&
+        message.fixedAdmin.id !== currentUser.id
+    ) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  message.isFixed = false;
-  message.fixedEndDate = null;
+    message.isFixed = false;
+    message.fixedEndDate = null;
 
-  em.persist(message);
-  await em.flush();
+    em.persist(message);
+    await em.flush();
 
-  myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
+    myPubsub.publish(FIXED_MESSAGE_EVENT, {message});
 
-  return CustomResponse(200, "Message unfixed successfully", true);
+    return CustomResponse(200, "Message unfixed successfully", true);
 };
 
 export const changeScheduleStatus = async (
-  _: any,
-  args: ChangeScheduleStatusProp,
-  context: ContextProps
+    _: any,
+    args: ChangeScheduleStatusProp,
+    context: ContextProps
 ) => {
-  const { scheduleId } = args;
-  const { em, currentUser } = context;
+    const {scheduleId} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne(
-    { id: scheduleId },
-    { populate: ["users", "users.pushTokens"] }
-  );
-
-  if (!schedule) return CustomResponse(404, "Schedule not found");
-
-  if (schedule.admin.id !== currentUser.id && currentUser.rol !== UserRol.BOSS)
-    return CustomResponse(403, "You are not authorized to perform this action");
-
-  const newState =
-    schedule.state === ScheduleState.AVAILABLE
-      ? ScheduleState.CANCELLED
-      : ScheduleState.AVAILABLE;
-  schedule.state = newState;
-
-  await em.persistAndFlush(schedule);
-
-  if (newState === ScheduleState.CANCELLED) {
-    const title = "Horario cancelado";
-    const body = `El horario "${schedule.title}" ha sido cancelado.`;
-    const data = {
-      type: "schedule_cancelled",
-      scheduleId: schedule.id,
-    };
-
-    schedule.users.getItems().forEach((user) => {
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        user.pushTokens.getItems().forEach((pushToken) => {
-          sendPushNotification(pushToken.token, title, body, data);
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
         });
-      }
-    });
-  }
+    }
 
-  return CustomResponse(200, "Schedule status changed successfully", true, {
-    schedule,
-  });
+    const scheduleRepo = em.getRepository(Schedule);
+    const schedule = await scheduleRepo.findOne(
+        {id: scheduleId},
+        {populate: ["users", "users.pushTokens"]}
+    );
+
+    if (!schedule) return CustomResponse(404, "Schedule not found");
+
+    if (schedule.admin.id !== currentUser.id && currentUser.role !== UserRole.BOSS)
+        return CustomResponse(403, "You are not authorized to perform this action");
+
+    const newState =
+        schedule.state === ScheduleState.AVAILABLE
+            ? ScheduleState.CANCELLED
+            : ScheduleState.AVAILABLE;
+    schedule.state = newState;
+
+    await em.persistAndFlush(schedule);
+
+    if (newState === ScheduleState.CANCELLED) {
+        const title = "Horario cancelado";
+        const body = `El horario "${schedule.title}" ha sido cancelado.`;
+        const data = {
+            type: "schedule_cancelled",
+            scheduleId: schedule.id,
+        };
+
+        schedule.users.getItems().forEach((user) => {
+            if (user.pushTokens && user.pushTokens.length > 0) {
+                user.pushTokens.getItems().forEach((pushToken) => {
+                    sendPushNotification(pushToken.token, title, body, data);
+                });
+            }
+        });
+    }
+
+    return CustomResponse(200, "Schedule status changed successfully", true, {
+        schedule,
+    });
 };
 
 export const createTrainingTask = async (
-  _: any,
-  args: CreateTrainingTaskProps,
-  context: ContextProps
+    _: any,
+    args: CreateTrainingTaskProps,
+    context: ContextProps
 ) => {
-  const { content, userId, date, repeat = false } = args.trainingTask;
-  const { em, currentUser } = context;
+    const {content, userId, date, repeat = false} = args.trainingTask;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-
-  const userReference = userId && em.getReference(User, userId);
-
-  const newTrainingTask = em.create(TrainingTask, {
-    content,
-    user: userReference,
-    repeat,
-    date,
-  });
-
-  try {
-    await em.persistAndFlush(newTrainingTask);
-
-    const title = "¡Nueva tarea de entrenamiento!";
-    const body = content;
-    const data = {
-      type: "new_training_task",
-      trainingTaskId: newTrainingTask.id,
-    };
-
-    if (userId) {
-      // Send to specific user
-      const user = await em.findOne(
-        User,
-        { id: userId },
-        { populate: ["pushTokens"] }
-      );
-      if (user && user.pushTokens && user.pushTokens.length > 0) {
-        user.pushTokens.getItems().forEach((pushToken) => {
-          sendPushNotification(pushToken.token, title, body, data);
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
         });
-      }
-    } else {
-      // Send to all premium users
-      const users = await em.find(
-        User,
-        { rol: UserRol.PREMIUM },
-        { populate: ["pushTokens"] }
-      );
-      users.forEach((user) => {
-        if (user.pushTokens && user.pushTokens.length > 0) {
-          user.pushTokens.getItems().forEach((pushToken) => {
-            sendPushNotification(pushToken.token, title, body, data);
-          });
-        }
-      });
     }
 
-    return CustomResponse(200, "Training task created successfully", true, {
-      trainingTask: newTrainingTask,
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
+
+    const userReference = userId && em.getReference(User, userId);
+
+    const newTrainingTask = em.create(TrainingTask, {
+        content,
+        user: userReference,
+        repeat,
+        date,
     });
-  } catch (error) {
-    console.error(error);
-    return CustomResponse(500, "Error creating training task");
-  }
+
+    try {
+        await em.persistAndFlush(newTrainingTask);
+
+        const title = "¡Nueva tarea de entrenamiento!";
+        const body = content;
+        const data = {
+            type: "new_training_task",
+            trainingTaskId: newTrainingTask.id,
+        };
+
+        if (userId) {
+            // Send to specific user
+            const user = await em.findOne(
+                User,
+                {id: userId},
+                {populate: ["pushTokens"]}
+            );
+            if (user && user.pushTokens && user.pushTokens.length > 0) {
+                user.pushTokens.getItems().forEach((pushToken) => {
+                    sendPushNotification(pushToken.token, title, body, data);
+                });
+            }
+        } else {
+            // Send to all premium users
+            const users = await em.find(
+                User,
+                {rol: UserRole.PREMIUM},
+                {populate: ["pushTokens"]}
+            );
+            users.forEach((user) => {
+                if (user.pushTokens && user.pushTokens.length > 0) {
+                    user.pushTokens.getItems().forEach((pushToken) => {
+                        sendPushNotification(pushToken.token, title, body, data);
+                    });
+                }
+            });
+        }
+
+        return CustomResponse(200, "Training task created successfully", true, {
+            trainingTask: newTrainingTask,
+        });
+    } catch (error) {
+        console.error(error);
+        return CustomResponse(500, "Error creating training task");
+    }
 };
 
 export const removeTrainingTask = async (
-  _: any,
-  args: removeTrainingTaskProps,
-  context: ContextProps
+    _: any,
+    args: removeTrainingTaskProps,
+    context: ContextProps
 ) => {
-  const { taskId } = args;
-  const { em, currentUser } = context;
+    const {taskId} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
 
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  const trainingTaskRepo = em.getRepository(TrainingTask);
-  const trainingTask = await trainingTaskRepo.findOne({ id: taskId });
+    const trainingTaskRepo = em.getRepository(TrainingTask);
+    const trainingTask = await trainingTaskRepo.findOne({id: taskId});
 
-  if (!trainingTask) {
-    return CustomResponse(404, "Training task not found");
-  }
+    if (!trainingTask) {
+        return CustomResponse(404, "Training task not found");
+    }
 
-  await em.removeAndFlush(trainingTask);
+    await em.removeAndFlush(trainingTask);
 
-  return CustomResponse(200, "Training task removed successfully", true);
+    return CustomResponse(200, "Training task removed successfully", true);
 };
 
 export const addUserWeight = async (
-  _: any,
-  args: AddUserWeight,
-  context: ContextProps
+    _: any,
+    args: AddUserWeight,
+    context: ContextProps
 ) => {
-  const { weight, date, userId } = args.userWeight;
-  const { em, currentUser } = context;
+    const {weight, date, userId} = args.userWeight;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+
+    if (currentUser.role === UserRole.STANDARD) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
+
+    const userReference = em.getReference(User, userId);
+
+    const newWeight = em.create(UserWeight, {
+        weight,
+        date,
+        user: userReference,
     });
-  }
 
-  if (currentUser.rol === UserRol.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-
-  const userReference = em.getReference(User, userId);
-
-  const newWeight = em.create(UserWeight, {
-    weight,
-    date,
-    user: userReference,
-  });
-
-  try {
-    await em.persistAndFlush(newWeight);
-    return CustomResponse(200, "Weight added successfully", true, {
-      weight: newWeight,
-    });
-  } catch (error) {
-    console.error(error);
-    return CustomResponse(500, "Error adding weight");
-  }
+    try {
+        await em.persistAndFlush(newWeight);
+        return CustomResponse(200, "Weight added successfully", true, {
+            weight: newWeight,
+        });
+    } catch (error) {
+        console.error(error);
+        return CustomResponse(500, "Error adding weight");
+    }
 };
 
 export const removeUserWeight = async (
-  _: any,
-  args: RemoveUserWeight,
-  context: ContextProps
+    _: any,
+    args: RemoveUserWeight,
+    context: ContextProps
 ) => {
-  const { userWeightId } = args;
-  const { em, currentUser } = context;
+    const {userWeightId} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
 
-  const userWeightRepo = em.getRepository(UserWeight);
-  const userWeight = await userWeightRepo.findOne({ id: userWeightId });
+    const userWeightRepo = em.getRepository(UserWeight);
+    const userWeight = await userWeightRepo.findOne({id: userWeightId});
 
-  if (!userWeight) {
-    return CustomResponse(404, "User weight not found");
-  }
-  if (
-    userWeight.user.id !== currentUser.id &&
-    currentUser.rol !== UserRol.BOSS
-  ) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (!userWeight) {
+        return CustomResponse(404, "User weight not found");
+    }
+    if (
+        userWeight.user.id !== currentUser.id &&
+        currentUser.role !== UserRole.BOSS
+    ) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  await em.removeAndFlush(userWeight);
+    await em.removeAndFlush(userWeight);
 
-  return CustomResponse(200, "User weight removed successfully", true);
+    return CustomResponse(200, "User weight removed successfully", true);
 };
 
 export const removeSchedule = async (
-  _: any,
-  args: RemoveScheduleProps,
-  context: ContextProps
+    _: any,
+    args: RemoveScheduleProps,
+    context: ContextProps
 ) => {
-  const { scheduleId } = args;
-  const { em, currentUser } = context;
+    const {scheduleId} = args;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
 
-  const scheduleRepo = em.getRepository(Schedule);
-  const schedule = await scheduleRepo.findOne({ id: scheduleId });
+    const scheduleRepo = em.getRepository(Schedule);
+    const schedule = await scheduleRepo.findOne({id: scheduleId});
 
-  if (!schedule) {
-    return CustomResponse(404, "Schedule not found");
-  }
+    if (!schedule) {
+        return CustomResponse(404, "Schedule not found");
+    }
 
-  if (
-    schedule.admin.id !== currentUser.id &&
-    currentUser.rol !== UserRol.BOSS
-  ) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (
+        schedule.admin.id !== currentUser.id &&
+        currentUser.role !== UserRole.BOSS
+    ) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
 
-  await em.removeAndFlush(schedule);
+    await em.removeAndFlush(schedule);
 
-  return CustomResponse(200, "Schedule removed successfully", true);
+    return CustomResponse(200, "Schedule removed successfully", true);
 };
 
 export const updateScheduleOptions = async (
-  _: any,
-  { scheduleOptions: scheduleOptionsParams }: updateScheduleOptionsProps,
-  context: ContextProps
+    _: any,
+    {scheduleOptions: scheduleOptionsParams}: updateScheduleOptionsProps,
+    context: ContextProps
 ) => {
-  const { em, currentUser } = context;
+    const {em, currentUser} = context;
 
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
+    if (!currentUser) {
+        throw new GraphQLError("Please login, token_expired", {
+            extensions: {
+                code: "UNAUTHENTICATED",
+                http: {status: 401},
+            },
+        });
+    }
+
+    if (currentUser.role !== UserRole.BOSS) {
+        return CustomResponse(403, "You are not authorized to perform this action");
+    }
+
+    const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
+    let scheduleOptions = await scheduleOptionsRepo.findOne({
+        id: {$ne: null},
     });
-  }
 
-  if (currentUser.rol !== UserRol.BOSS) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
+    if (!scheduleOptions) {
+        scheduleOptions = em.create(ScheduleOptions, {});
+    }
 
-  const scheduleOptionsRepo = em.getRepository(ScheduleOptions);
-  let scheduleOptions = await scheduleOptionsRepo.findOne({
-    id: { $ne: null },
-  });
+    scheduleOptions.maxActiveReservations =
+        scheduleOptionsParams.maxActiveReservations;
+    scheduleOptions.maxAdvanceBookingDays =
+        scheduleOptionsParams.maxAdvanceBookingDays;
+    scheduleOptions.sameDayBookingAllowed =
+        scheduleOptionsParams.sameDayBookingAllowed;
 
-  if (!scheduleOptions) {
-    scheduleOptions = em.create(ScheduleOptions, {});
-  }
-
-  scheduleOptions.maxActiveReservations =
-    scheduleOptionsParams.maxActiveReservations;
-  scheduleOptions.maxAdvanceBookingDays =
-    scheduleOptionsParams.maxAdvanceBookingDays;
-  scheduleOptions.sameDayBookingAllowed =
-    scheduleOptionsParams.sameDayBookingAllowed;
-
-  try {
-    await em.persistAndFlush(scheduleOptions);
-    return CustomResponse(200, "Schedule options updated successfully", true, {
-      scheduleOptions,
-    });
-  } catch (error) {
-    console.error(error);
-    return CustomResponse(500, "Error updating schedule options");
-  }
+    try {
+        await em.persistAndFlush(scheduleOptions);
+        return CustomResponse(200, "Schedule options updated successfully", true, {
+            scheduleOptions,
+        });
+    } catch (error) {
+        console.error(error);
+        return CustomResponse(500, "Error updating schedule options");
+    }
 };

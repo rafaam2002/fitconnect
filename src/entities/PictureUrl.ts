@@ -10,19 +10,7 @@ import {
   Property,
   t,
 } from "@mikro-orm/core";
-import { UserRol } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Schedule } from "./Schedule";
-import { Message } from "./Message";
-import { Notification } from "./Notification";
-import { Poll } from "./Poll";
-import { Promotion } from "./Promotion";
-import { PollVote } from "./PollVote";
-import bcrypt from "bcrypt";
-import { PaymentMethod } from "./PaymentMethod";
-import { Subscription } from "./Subscription";
-import { TrainingTask } from "./TraningITask";
-import { UserWeight } from "./UserWeight";
+
 import { User } from "./User";
 import { Product } from "./Product";
 

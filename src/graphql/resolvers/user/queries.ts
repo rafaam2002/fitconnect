@@ -1,5 +1,4 @@
-import { User } from "../../../entities/User";
-import { UserRol } from "../../../types/enums";
+import {User, UserRole} from "../../../entities/User";
 import { Poll } from "../../../entities/Poll";
 import { Message } from "../../../entities/Message";
 import { CustomResponse } from "../errors";
@@ -311,7 +310,7 @@ export const getAdminSchedules = async (
     });
   }
 
-  if (currentUser.rol === UserRol.STANDARD) {
+  if (currentUser.role === UserRole.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const user = await userRepo.findOne(
@@ -364,7 +363,7 @@ export const getAdminPolls = async (
     });
   }
 
-  if (currentUser.rol === UserRol.STANDARD) {
+  if (currentUser.role === UserRole.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -810,7 +809,7 @@ export const getAdminStats = async (
       },
     });
   }
-  if (currentUser.rol !== UserRol.BOSS) {
+  if (currentUser.role !== UserRole.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const userRepo = em.getRepository(User);
@@ -859,7 +858,7 @@ export const getSchedulesStats = async (
         http: { status: 401 },
       },
     });
-  } else if (currentUser.rol !== UserRol.BOSS) {
+  } else if (currentUser.role !== UserRole.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -972,7 +971,7 @@ export const getMonthlySchedules = async (
         http: { status: 401 },
       },
     });
-  } else if (currentUser.rol !== UserRol.BOSS) {
+  } else if (currentUser.role !== UserRole.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const startOfMonth = moment().month(month).startOf("month").toDate();
@@ -1059,7 +1058,7 @@ export const getUserWeights = async (
     });
   }
 
-  if (currentUser.rol === UserRol.STANDARD) {
+  if (currentUser.role === UserRole.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 

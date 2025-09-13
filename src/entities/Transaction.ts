@@ -3,6 +3,7 @@ import {BaseEntity} from "./BaseEntity";
 import {Subscription} from "./Subscription";
 import {PaymentMethod} from "./PaymentMethod";
 import {User} from "./User";
+import {Invoice} from "./Invoice";
 
 export enum TransactionType {
     CHARGE = 'charge',
@@ -38,6 +39,10 @@ export class Transaction extends BaseEntity {
 
     @ManyToOne(() => Subscription, {nullable: true})
     subscription?: Subscription;
+
+    @ManyToOne(() => Invoice, {nullable: true})
+    @Index()
+    invoice?: Invoice;
 
     @Enum(() => TransactionType)
     @Index()
@@ -82,6 +87,6 @@ export class Transaction extends BaseEntity {
     }
 
     get isRefunded(): boolean {
-        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.currentStatus);
+        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.status);
     }
 }

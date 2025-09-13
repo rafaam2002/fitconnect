@@ -32,7 +32,7 @@ type Mutation {
 
     #------------------Plan--------------------------
     createPlan(plan: CreatePlanInput!): PlanResponse!
-    updatePlan(planId: ID!, plan: CreatePlanInput!): PlanResponse!
+    updatePlan(plan: CreatePlanInput!): PlanResponse!
     removePlan(planId: ID!): PlanResponse!,
 
     #------------------Subscription-----------------

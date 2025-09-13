@@ -139,14 +139,15 @@ type Plan {
     updated_at: String!
     name: String!
     description: String!
-    price: Float!
+    amount: Float!
     currency: String!
-    paymentType: PaymentType!
-    durationInDays: Int!
+    interval: PlanInterval!
+    intervalCount: Int
+    trialPeriodDays: Int
+    status: PlanStatus!
+    isActive: Boolean!
+    features: [String]!
     subscriptions: [Subscription]
-    features: [String]
-    icon: String
-    isBestChoice: Boolean
 }
 
 type Notification {
@@ -167,7 +168,7 @@ type Subscription {
     status: SubscriptionStatus!
     startDate: String!
     endDate: String!
-    transctions: [Transaction]
+    transactions: [Transaction]
 }
 
 type Card {

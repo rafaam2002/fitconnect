@@ -82,4 +82,17 @@ enum PaymentMethodStatus {
   inactive
   expired
 }
+
+enum PlanInterval {
+   day
+   week
+   month
+   year
+}
+
+enum PlanStatus {
+    active
+    inactive
+    archived
+}
 `;

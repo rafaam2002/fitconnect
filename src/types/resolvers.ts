@@ -201,3 +201,11 @@ export type NotificationProps = {
     forAll: boolean;
   }
 }
+
+export type DeletePollsProps = {
+    ids: string[];
+}
+
+export type RemoveProductProps = {
+    ids: string[];
+}

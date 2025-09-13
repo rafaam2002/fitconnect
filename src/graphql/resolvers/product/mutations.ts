@@ -2,9 +2,9 @@ import { Product } from "../../../entities/Product";
 import { User } from "../../../entities/User";
 import { sendPushNotification } from "../../../utils/notifications";
 import {
-  ContextProps,
-  CreateProduct,
-  UpdateProductImage,
+    ContextProps,
+    CreateProduct, RemoveProductProps,
+    UpdateProductImage,
 } from "../../../types/resolvers";
 import { UserRol } from "../../../types/enums";
 import { CustomResponse } from "../errors";
@@ -12,9 +12,6 @@ import { GraphQLError } from "graphql";
 import { Update } from "aws-sdk/clients/dynamodb";
 import { PictureUrl } from "../../../entities/PictureUrl";
 import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
-interface RemoveProductProps {
-    ids: string[];
-}
 
 export const createProduct = async (
   _: any,

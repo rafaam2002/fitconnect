@@ -329,7 +329,28 @@ export const createMessage = async (
         });
         await em.persistAndFlush(newMessage);
 
-        if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
+        if (receiverId === process.env.DB_FORUM_ID) {
+            const users = await em.find(User, {
+                id: { $ne: currentUser.id },
+                isBlocked: false,
+                isActive: true,
+            }, { populate: ["pushTokens"] });
+            const title = "Nuevo mensaje en el foro";
+            const body = `${currentUser.nickname}: ${text}`;
+            const data = {
+                type: "new_message",
+                messageId: newMessage.id,
+                senderId: currentUser.id,
+            };
+
+            users.forEach(user => {
+                if (user.pushTokens && user.pushTokens.length > 0) {
+                    user.pushTokens.getItems().forEach((pushToken) => {
+                        sendPushNotification(pushToken.token, title, body, data);
+                    });
+                }
+            });
+        } else if (receiver && receiver.pushTokens && receiver.pushTokens.length > 0) {
             const title = `Nuevo mensaje de ${currentUser.nickname}`;
             const body = text;
             const data = {

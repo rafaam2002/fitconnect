@@ -49,7 +49,7 @@ export const refreshToken = async (_: any, args: any, { em }) => {
     surname: user.surname,
     isBlocked: user.isBlocked,
     isActive: user.isActive,
-    rol: user.rol,
+    role: user.role,
     nickname: user.nickname,
     phoneNumber: user.phoneNumber,
     pictureUrl: user.pictureUrl,

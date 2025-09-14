@@ -160,7 +160,7 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
     updateUser.phoneNumber = phoneNumber || updateUser.phoneNumber;
     updateUser.isActive = isActive || updateUser.isActive;
     updateUser.isBlocked = isBlocked || updateUser.isBlocked;
-    updateUser.rol = role || updateUser.rol;
+    updateUser.role = role || updateUser.role;
 
     try {
         // Validar los datos de entrada
@@ -828,7 +828,7 @@ export const createTrainingTask = async (
             // Send to all premium users
             const users = await em.find(
                 User,
-                {rol: UserRole.PREMIUM},
+                {role: UserRole.PREMIUM},
                 {populate: ["pushTokens"]}
             );
             users.forEach((user) => {

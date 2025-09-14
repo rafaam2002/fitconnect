@@ -55,7 +55,7 @@ export const getUsers = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { textFilter, rolFilter, page, stateFilter } = args;
+  const { textFilter, roleFilter, page, stateFilter } = args;
   if (!currentUser) {
         throw new GraphQLError("Please login, token_expired", {
       extensions: {
@@ -83,8 +83,8 @@ export const getUsers = async (
     ];
   }
 
-  if (rolFilter) {
-    where.rol = rolFilter;
+  if (roleFilter) {
+    where.role = roleFilter;
   }
 
   if (stateFilter) {
@@ -451,11 +451,11 @@ export const getConversation = async (
     "sender.id",
     "sender.profilePicture",
     "sender.nickname",
-    "sender.rol",
+    "sender.role",
     "receiver.id",
     "receiver.profilePicture",
     "receiver.nickname",
-    "receiver.rol",
+    "receiver.role",
     "text",
     "created_at",
     ...forumFields,

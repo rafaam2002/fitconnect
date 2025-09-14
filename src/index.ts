@@ -152,6 +152,8 @@ const startServer = async () => {
         const em = orm.em.fork();
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
+        //sacar query por consola para debug
+        //console.log("Query: ", query);
 
         // Operations that don't require an authenticated user
         const publicOperations = [

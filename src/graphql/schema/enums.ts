@@ -6,7 +6,7 @@ enum NotificationType{
     info
 }
 
-enum UserRol {
+enum UserRole {
     standard
     boss
     premium

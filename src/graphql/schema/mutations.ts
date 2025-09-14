@@ -58,8 +58,8 @@ type Mutation {
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshToken(refreshToken: String!): LoginResponse!
     
-    #-----------------Card--------------------------
-    addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
+    #-----------------PaymentMethod--------------------------
+    createPaymentMethod(paymentMethod: CreatePaymentMethodInput): PaymentMethodResponse!
    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!

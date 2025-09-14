@@ -109,11 +109,8 @@ input FindPlanInput {
 }
 
 input CreateSubscriptionInput {
-    paymentMethod: PaymentMethod
-    cardId: ID
     planId: ID!
-    applePayToken: String
-    googlePayToken: String
+    userId: ID!
 }
 
 input SendNotificationInput {
@@ -122,9 +119,11 @@ input SendNotificationInput {
     forAll: Boolean!
 }
 
-input AddCreditCardInput {
-    paymentMethodId: String!
-    type: String!
+input CreatePaymentMethodInput {
+    stripeCustomerId: String!
+    type: PaymentMethodType!
+    card: CardInput
+    setAsDefault: Boolean
 }
 
 input CreateCustomerInput {
@@ -152,5 +151,12 @@ input CreatePlanInput {
     trialPeriodDays: Int
     features: [String]
     status: PlanStatus
+}
+
+input CardInput {
+    number: String!
+    exp_month: Int!
+    exp_year: Int!
+    cvc: String!
 }
 `;

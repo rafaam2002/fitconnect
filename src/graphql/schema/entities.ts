@@ -172,12 +172,10 @@ type Subscription {
 }
 
 type Card {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    user: User!
-    type: CreditCardType!
-    provider: CreditCardProvider!
+    number: String!
+    exp_month: String!
+    exp_year: String!
+    cvc: Int!
 }
 
 type Transaction {
@@ -244,5 +242,19 @@ type StripeCustomer {
     user: User
     isActive: Boolean
     defaultCurrency: String
+}
+
+type PaymentMethod {
+    id: ID!
+    stripeCustomer: StripeCustomer!
+    type: PaymentMethodType
+    status: PaymentMethodStatus
+    brand: String
+    last4: String
+    expiryMonth: String
+    expiryYear: String
+    country: String
+    isDefault: Boolean
+    stripePaymentMethodId: String 
 }
 `;

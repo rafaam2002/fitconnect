@@ -214,4 +214,11 @@ type StripeCustomerResponse implements BasicResponse {
     customer: StripeCustomer
 }
 
+type PaymentMethodResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    paymentMethods: [PaymentMethod]
+    paymentMethod: PaymentMethod
+}
 `;

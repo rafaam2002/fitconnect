@@ -21,8 +21,8 @@ enum ScheduleType {
     competition
 }
 
-enum PaymentMethod {
-    credit_card
+enum PaymentMethodType {
+    card
     apple_pay
     google_pay
 }

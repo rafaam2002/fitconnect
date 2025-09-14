@@ -115,8 +115,8 @@ export class PaymentMethodService extends BaseService {
         try {
             // Crear payment method en Stripe
             const stripePaymentMethod = await this.stripe.paymentMethods.create({
-                type: input.type,
-                card: input.card
+                //type: input.type,
+                payment_method: 'pm_card_visa'
             });
 
             // Adjuntar al customer

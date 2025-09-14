@@ -30,7 +30,9 @@ type Query {
     getPolls(pollId: ID, filter: PollFilter): PollResponse!
 
     #----------------- Plan ----------------------
-    getPlans(planId: ID): PlanResponse!
+    listPlans(onlyActive: Boolean): PlanResponse!
+    getPlanByStripeId(stripePriceId: ID): PlanResponse!
+    getPlan(planId: ID): PlanResponse!
 
     #------------------Product-----------------
     getProducts: ProductResponse!
@@ -54,7 +56,7 @@ type Query {
     getCards: CardResponse!
     
     #------------------------StripeCustomer-------------------------
-    getCustomer(id: ID!): StripeCustomerResponse!
-    getCustomerByUserId(id: ID!): StripeCustomerResponse!
+    getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
+    getCustomerByUserId(userId: ID!): StripeCustomerResponse!
 }
 `;

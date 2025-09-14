@@ -15,12 +15,13 @@ interface CreatePlanInput {
 }
 
 interface UpdatePlanInput {
-    planId: string;
+    id: string;
     name?: string;
     description?: string;
     features?: string[];
     metadata?: Record<string, any>;
-    isActive?: boolean;
+    status?: PlanStatus;
+    isActive: boolean;
 }
 
 export class PlanService extends BaseService {
@@ -78,7 +79,7 @@ export class PlanService extends BaseService {
     }
 
     async updatePlan(input: UpdatePlanInput): Promise<Plan> {
-        const plan = await this.em.findOne(Plan, { id: input.planId });
+        const plan = await this.em.findOne(Plan, { id: input.id });
 
         if (!plan) {
             throw new Error('Plan not found');
@@ -90,7 +91,13 @@ export class PlanService extends BaseService {
                 await this.stripe.products.update(plan.stripeProductId!, {
                     name: input.name,
                     description: input.description,
-                    metadata: input.metadata
+                    metadata: input.metadata,
+                    active: input.status ===  PlanStatus.ACTIVE,
+
+                });
+
+                await this.stripe.prices.update(plan.stripePriceId, {
+                    active: input.status === PlanStatus.ACTIVE,
                 });
             }
 
@@ -99,7 +106,8 @@ export class PlanService extends BaseService {
             if (input.description) plan.description = input.description;
             if (input.features) plan.features = input.features;
             if (input.metadata) plan.metadata = { ...plan.metadata, ...input.metadata };
-            if (input.isActive !== undefined) plan.isActive = input.isActive;
+            if (input.isActive !== undefined) plan.isActive = input.status ===  PlanStatus.ACTIVE;
+            if(input.status) plan.status = input.status
 
             await this.em.flush();
 
@@ -139,6 +147,9 @@ export class PlanService extends BaseService {
             await this.stripe.prices.update(plan.stripePriceId, {
                 active: false
             });
+            await this.stripe.products.update(plan.stripeProductId, {
+                active: false,
+            })
 
             // Actualizar en base de datos
             plan.isActive = false;

@@ -1,8 +1,7 @@
-import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './BaseService.js';
+import {EntityManager} from '@mikro-orm/core';
+import {BaseService} from './BaseService.js';
 import {StripeCustomer} from "../entities/StripeCustomer";
 import {User} from "../entities/User";
-import {PromiseResult} from "aws-sdk/lib/request";
 
 interface CreateCustomerInput {
     userId: string;
@@ -27,7 +26,7 @@ export class CustomerService extends BaseService {
 
     async createCustomer(input: CreateCustomerInput): Promise<StripeCustomer> {
         // Buscar usuario
-        const user = await this.em.findOne(User, { id: input.userId });
+        const user = await this.em.findOne(User, {id: input.userId});
         const metadata: Record<string, any> = {};
 
         if (!user) {
@@ -71,7 +70,7 @@ export class CustomerService extends BaseService {
                 defaultCurrency: 'EUR',
             });
 
-            user.stripeCustomerId =customerEntity.id;
+            user.stripeCustomerId = customerEntity.id;
 
             this.em.persist(customerEntity);
             await this.em.flush();
@@ -106,7 +105,7 @@ export class CustomerService extends BaseService {
 
             // Actualizar en base de datos
             if (input.metadata) {
-                customer.metadata = { ...customer.metadata, ...input.metadata };
+                customer.metadata = {...customer.metadata, ...input.metadata};
             }
 
             await this.em.flush();
@@ -118,16 +117,21 @@ export class CustomerService extends BaseService {
     }
 
     async getCustomer(stripeCustomerId: string): Promise<StripeCustomer | null> {
-        return await this.em.findOne(StripeCustomer, {
+        const customer = await this.em.findOne(StripeCustomer, {
             stripeCustomerId,
             isActive: true
         }, {
             populate: ['user', 'paymentMethods', 'subscriptions']
         });
+
+        if (!customer) {
+            throw new Error('User not found');
+        }
+        return customer;
     }
 
     async getCustomerByUserId(userId: string): Promise<StripeCustomer | null> {
-        const user = await this.em.findOne(User, { id: userId });
+        const user = await this.em.findOne(User, {id: userId});
         if (!user) return null;
 
         return await this.em.findOne(StripeCustomer, {
@@ -163,7 +167,7 @@ export class CustomerService extends BaseService {
             }
 
             // Buscar en BD
-            let customer:any = await this.em.findOne(StripeCustomer, { stripeCustomerId });
+            let customer: any = await this.em.findOne(StripeCustomer, {stripeCustomerId});
 
             if (!customer) {
                 // Si no existe, necesitamos encontrar el usuario por metadata o email
@@ -172,7 +176,7 @@ export class CustomerService extends BaseService {
                     throw new Error('Cannot sync customer: no userId in metadata');
                 }
 
-                const user = await this.em.findOne(User, { id: userId });
+                const user = await this.em.findOne(User, {id: userId});
                 if (!user) {
                     throw new Error('User not found for sync');
                 }

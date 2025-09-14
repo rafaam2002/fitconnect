@@ -35,8 +35,7 @@ import {createPictureUrl, getPresignedUrl,} from "../../../utils/createPresigned
 import nodemailer from "nodemailer";
 import {emailHtml} from "../../../utils/emailHtml";
 import {ScheduleOptions} from "../../../entities/ScheduleOptions";
-import {createCustomer} from "../customer/mutations";
-import {StripeCustomer} from "../../../entities/StripeCustomer";
+import {createCustomer, updateCustomer} from "../customer/mutations";
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -93,7 +92,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
             }
         }
 
-         await createCustomer(_, stripeData, context)
+        await createCustomer(_, stripeData, context)
 
         const token = jwt.sign({id: newUser.id}, process.env.JWT_SECRET, {
             expiresIn: "1d",
@@ -196,6 +195,14 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
 
     try {
         await em.persistAndFlush(updateUser);
+        const stripeData = {
+            customer: {
+                email: updateUser.email,
+                name: updateUser.name,
+                phoneNumber: updateUser.phoneNumber,
+            }
+        }
+        await updateCustomer(_, stripeData, context)
 
         return CustomResponse(200, "User updated successfully", true, {
             user: updateUser,

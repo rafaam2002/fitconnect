@@ -21,8 +21,8 @@ enum ScheduleType {
     competition
 }
 
-enum PaymentMethod {
-    credit_card
+enum PaymentMethodType {
+    card
     apple_pay
     google_pay
 }
@@ -81,5 +81,18 @@ enum PaymentMethodStatus {
   active
   inactive
   expired
+}
+
+enum PlanInterval {
+   day
+   week
+   month
+   year
+}
+
+enum PlanStatus {
+    active
+    inactive
+    archived
 }
 `;

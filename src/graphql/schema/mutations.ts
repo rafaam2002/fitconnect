@@ -32,7 +32,7 @@ type Mutation {
 
     #------------------Plan--------------------------
     createPlan(plan: CreatePlanInput!): PlanResponse!
-    updatePlan(planId: ID!, plan: CreatePlanInput!): PlanResponse!
+    updatePlan(plan: CreatePlanInput!): PlanResponse!
     removePlan(planId: ID!): PlanResponse!,
 
     #------------------Subscription-----------------
@@ -58,13 +58,13 @@ type Mutation {
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshToken(refreshToken: String!): LoginResponse!
     
-    #-----------------Card--------------------------
-    addCreditCard(paymentMethod: AddCreditCardInput): AddCreditCardResponse!
+    #-----------------PaymentMethod--------------------------
+    createPaymentMethod(paymentMethod: CreatePaymentMethodInput): PaymentMethodResponse!
    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
     updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!
-    deactivateCustomer(customerId: ID!): StripeCustomerResponse!
+    deactivateCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
 }
 
 `;

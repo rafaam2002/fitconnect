@@ -1,157 +1,80 @@
-import {EntityManager, RequiredEntityData} from "@mikro-orm/core";
-import {User, UserRole} from "../../../entities/User";
-import {Plan} from "../../../entities/Plan";
-import {Currency} from "../../../types/enums";
-import {GraphQLError} from "graphql";
+// src/graphql/resolvers/planResolver.ts
 
+// ===== QUERY RESOLVERS =====
 
-const createPlan = async (_: any, {plan}: {plan: RequiredEntityData<Plan>}, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
+import {PlanService} from "../../../services/PlanService";
+import {CustomResponse} from "../errors";
 
-    if (!currentUser) {
-        throw new GraphQLError("Please login, token_expired", {
-            extensions: {
-                code: "UNAUTHENTICATED",
-                http: { status: 401 },
-            },
-        });
-    }
+export async function getPlan(parent: any, args: any, context: any) {
+    const planService = new PlanService(context.em);
+    const plan = await planService.getPlan(args.planId);
 
-    if (currentUser.role !== UserRole.BOSS) {
-        return {
-            success: false,
-            code: "400",
-            message: "You are not authorized to perform this action",
-            plan: null,
-        };
-    }
-    if (plan.currency === null) plan.currency = Currency.EUR;
+    return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
+}
 
-    let newPlan: Plan = em.create(Plan, plan );
+export async function getPlanByStripeId(parent: any, args: any, context: any) {
+    const planService = new PlanService(context.em);
+    const plan = await planService.getPlanByStripeId(args.stripePriceId);
 
-    await em.persistAndFlush(newPlan);
+    return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
+}
 
-    if (!newPlan.id)
-        return {
-            success: false,
-            code: "400",
-            message: "Plan not created",
-            plan: null
-        };
+export async function listPlans(parent: any, args: any, context: any) {
+    const planService = new PlanService(context.em);
+    const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
+    const plans = await planService.listPlans(onlyActive);
 
-    return {
-        success: true,
-        code: '201',
-        message: 'Plan was created successfully',
-        plan: newPlan
+    return CustomResponse(200, 'Plans are fetched successfully.', true, {plans});
+}
+
+// ===== MUTATION RESOLVERS =====
+
+export const createPlan = async (parent: any, args: any, context: any) => {
+    try {
+        const planService = new PlanService(context.em);
+        const plan = await planService.createPlan(args.plan);
+
+        return CustomResponse(200, 'Plan created successfully.', true, {plan});
+
+    } catch (error: any) {
+        return CustomResponse(500, 'Failed to create plan.', false, {error: error.message});
     }
 }
 
-const updatePlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
-    const {planId, plan} = args
+export const updatePlan = async (parent: any, args: any, context: any) => {
+    try {
+        const planService = new PlanService(context.em);
+        const plan = await planService.updatePlan(args.plan);
 
-    if (!currentUser) {
-        throw new GraphQLError("Please login, token_expired", {
-            extensions: {
-                code: "UNAUTHENTICATED",
-                http: { status: 401 },
-            },
-        });
-    }
-
-    if(currentUser && currentUser.role !== UserRole.BOSS) {
-        return {
-            success: false,
-            code: "403",
-            message: "You are not authorized to perform this action",
-            plan: null,
-        }
-    }
-
-    if (!planId) {
-        return {
-            success: false,
-            code: "400",
-            message: "Faltan parámetros obligatorios",
-            plan: null,
-        };
-    }
-
-
-    let updatedPlan: Plan = await em.findOne(Plan, {id: planId});
-
-    if (!updatedPlan) {
-        return {
-            success: false,
-            code: "404",
-            message: "No se encontró el plan",
-            plan: null,
-        };
-    }
-
-    Object.assign(updatedPlan, {...plan})
-
-    await em.flush();
-
-    if (!updatedPlan.id)
-        return {
-            success: false,
-            code: "400",
-            message: "No se pudo crear el plan",
-            plan: null
-        };
-
-    return {
-        success: true,
-        code: '201',
-        message: 'Plan was updated successfully',
-        plan: updatedPlan
+        return CustomResponse(200, 'Plan updated successfully.', true, {plan});
+    } catch (error: any) {
+        return CustomResponse(500, 'Failed to update plan.', true, {error: error.message});
     }
 }
 
-const removePlan = async (_: any, args: any, {em, currentUser}: { em: EntityManager, currentUser: User }) => {
-    const {planId} = args
+export const removePlan = async (parent: any, args: any, context: any) => {
+    try {
+        const planService = new PlanService(context.em);
+        const plan = await planService.deactivatePlan(args.planId);
 
-    if (!currentUser) {
-        throw new GraphQLError("Please login, token_expired", {
-            extensions: {
-                code: "UNAUTHENTICATED",
-                http: { status: 401 },
-            },
-        });
+        return CustomResponse(200, 'Plan deactivated successfully', true, {plan})
+
+    } catch (error: any) {
+        return CustomResponse(500, 'Failed to remove plan.', false, {error: error.message});
     }
-
-    if (!planId) {
-        return {
-            success: false,
-            code: "400",
-            message: "Faltan parámetros obligatorios",
-            plan: null,
-        };
-    }
-
-    const plan = await em.findOne(Plan, {id: planId})
-
-    if (!plan) {
-        return {
-            success: false,
-            code: "404",
-            message: "No se encuentra el plan",
-            plan: null,
-        };
-    }
-
-    await em.remove(plan).flush();
-
-    return {
-        success: true,
-        code: '200',
-        message: 'Plan was deleted successfully',
-        plan: null
-    };
 }
 
-export {
-    createPlan,
-    updatePlan,
-    removePlan
-}
+// ===== EXPORT RESOLVERS OBJECT =====
+export const planResolvers = {
+    Query: {
+        getPlan,
+        getPlanByStripeId,
+        listPlans
+    },
+
+    Mutation: {
+        createPlan,
+        updatePlan,
+        removePlan
+    }
+};

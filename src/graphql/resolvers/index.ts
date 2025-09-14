@@ -40,20 +40,20 @@ import {
     updateUser,
     updateUserPicture,
 } from "./user/mutations";
-import {createPlan, removePlan, updatePlan} from "./plan/mutations";
-import {getPlans} from "./plan/queries";
+import {createPlan, getPlan, getPlanByStripeId, listPlans, removePlan, updatePlan} from "./plan/mutations";
 import {fixedMessages, newMessage} from "./user/subscriptions";
 import {getProducts} from "./product/queries";
 import {getArticles} from "./article/queries";
 import {getPresignedUrl} from "./s3/queries";
 import {createProduct, removeProduct, updateProductPicture} from "./product/mutations";
 import {refreshToken} from "./refresh-token/mutations";
-import {createSubscription, removeSubscription,} from "./subscription/mutations";
-import {addCreditCard} from "./paymentMethod/mutations";
+import {createSubscription,} from "./subscription/mutations";
+import {createPaymentMethod,} from "./paymentMethod/mutations";
 import {getCards} from "./paymentMethod/queries";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
-import {createCustomer} from "./customer/mutations";
+import {createCustomer, deactivateCustomer, updateCustomer} from "./customer/mutations";
+import {getCustomer, getCustomerByUserId} from "./customer/queries";
 
 const resolvers = {
     Query: {
@@ -79,7 +79,9 @@ const resolvers = {
         getSchedulesStats,
         getMonthlySchedules,
         //Plan
-        getPlans,
+        listPlans,
+        getPlanByStripeId,
+        getPlan,
         //Product
         getProducts,
         //Articles
@@ -93,6 +95,8 @@ const resolvers = {
         //System
         getNotifications,
         sendEmailVerification,
+        getCustomer,
+        getCustomerByUserId
     },
     Mutation: {
         //User
@@ -115,7 +119,6 @@ const resolvers = {
         removePlan,
         //Subscription
         createSubscription,
-        removeSubscription,
         changeScheduleStatus,
         //Schedule
         createScheduleDevelopment,
@@ -140,10 +143,13 @@ const resolvers = {
         sendChangePasswordEmail,
         refreshToken,
         //Payments
-        addCreditCard,
+        createPaymentMethod,
         //System
         sendNotification,
-        createCustomer
+        //Customer
+        createCustomer,
+        updateCustomer,
+        deactivateCustomer,
 
     },
     Subscription: {

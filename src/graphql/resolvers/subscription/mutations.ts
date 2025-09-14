@@ -1,274 +1,160 @@
-import Stripe from "stripe";
-import { PaymentMethod } from "../../../entities/PaymentMethod";
-import { ContextProps } from "../../../types/resolvers";
-import { Plan } from "../../../entities/Plan";
-import { User } from "../../../entities/User";
-import {
-  CreditCardProvider,
-  PaymentMethodType,
-  PaymentType,
-  SubscriptionStatus,
-} from "../../../types/enums";
-import { Subscription } from "../../../entities/Subscription";
-import { CustomResponse } from "../errors";
-import { Transaction } from "../../../entities/Transaction";
-import { stripe } from "../../../utils/const";
-import { UserType } from "../../../types";
+// ===== QUERY RESOLVERS =====
 
-export const createSubscription = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  const { planId, applePayToken, googlePayToken } = args.subscription;
-  const { em, currentUser } = context;
-  const paymentMethod = "credit_card";
-  if (!currentUser) return CustomResponse(401, "Please login");
+import {SubscriptionService} from "../../../services/SubscriptionService";
+import {CustomResponse} from "../errors";
 
-  if (!planId) CustomResponse(400, "Please provide a plan Id");
+export const getSubscription = async (parent: any, args: any, context: any) => {
+    const subscriptionService = new SubscriptionService(context.em);
+    return await subscriptionService.getSubscription(args.subscriptionId);
+}
 
-  if (!paymentMethod)
-    return CustomResponse(400, "Please provide a payment method");
+export const listUserSubscriptions = async (parent: any, args: any, context: any) => {
+    const subscriptionService = new SubscriptionService(context.em);
+    return await subscriptionService.listUserSubscriptions(args.userId);
+}
 
-  if (!currentUser.isVerified)
-    return CustomResponse(400, "Please verify your email before subscribing");
+export const getActiveSubscription = async (parent: any, args: any, context: any) => {
+    const subscriptionService = new SubscriptionService(context.em);
+    const subscriptions = await subscriptionService.listUserSubscriptions(args.userId);
+    return subscriptions.find(sub => sub.isActive) || null;
+}
 
-  const plan = await em.findOne(Plan, { id: planId });
-  const user = await em.findOne(
-    User,
-    { id: currentUser.id },
-    { populate: ["cards"] }
-  );
+// ===== MUTATION RESOLVERS =====
 
-  const defaultCard = user?.cards.find((card) => card.isDefault);
+export const createSubscription = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.createSubscription(args.input);
 
-  if (!defaultCard) {
-    return CustomResponse(400, "There is no default payment method");
-  }
-  if (!plan) {
-    return CustomResponse(404, "Plan not found");
-  }
+        return CustomResponse(200, 'Subscription created successfully.', true, {subscription});
 
-  if (!user) {
-    return CustomResponse(404, "User not found");
-  }
-
-  const startDate = new Date();
-  const endDate = new Date();
-
-  endDate.setMonth(
-    startDate.getMonth() + (plan.paymentType === PaymentType.MENSUAL ? 1 : 12)
-  );
-
-  const subscription = em.create(Subscription, {
-    user,
-    plan,
-    status: SubscriptionStatus.PENDING,
-    startDate,
-    endDate,
-  });
-
-  await em.persistAndFlush(subscription);
-
-  if (!subscription) {
-    return CustomResponse(404, "Subscription not found");
-  }
-
-  if (subscription.status === SubscriptionStatus.ACTIVE) {
-    return CustomResponse(400, "User already has an active subscription");
-  }
-
-  const paymentData = {
-    em,
-    paymentMethod,
-    cardId: defaultCard.id,
-    planId,
-    subscription,
-    applePayToken,
-    googlePayToken,
-  };
-
-  await addTransaction(paymentData, currentUser);
-
-  return CustomResponse(200, "Subscription created successfully", true);
-};
-
-export const removeSubscription = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  const { planId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    return CustomResponse(401, "Please login");
-  }
-
-  if (!planId) {
-    return CustomResponse(400, "Please provide a plan Id");
-  }
-
-  const plan = await em.findOne(Plan, { id: planId });
-  const user = em.getReference(User, currentUser.id);
-
-  if (!user) {
-    return CustomResponse(404, "User not found");
-  }
-  if (!plan) {
-    return CustomResponse(404, "Plan not found");
-  }
-
-  await em.remove(plan).flush();
-
-  return CustomResponse(200, "Plan deleted successfully", true);
-};
-
-export const addTransaction = async (paymentData: any, user: UserType) => {
-  const {
-    em,
-    paymentMethod,
-    cardId,
-    planId,
-    subscription,
-    applePayToken,
-    googlePayToken,
-  } = paymentData;
-
-  const amount = subscription.plan.price * 100;
-  const currency = subscription.plan.currency;
-
-  let payment: Stripe.PaymentIntent;
-  let reference: string = "";
-  let authCode: string = "";
-  let charge: Stripe.Charge;
-
-  try {
-    switch (paymentMethod) {
-      case PaymentMethodType.CREDIT_CARD:
-        if (!cardId) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a paymentMethod Id",
-          };
-        }
-        const card = await em.findOneOrFail(PaymentMethodType, { id: cardId });
-        console.log("name", "subscription.plan.name");
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          customer: user.stripeCustomerId,
-          payment_method: card.stripePaymentMethodId,
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: "never",
-          },
-          confirm: true,
-          description: `Pago de la suscripción ${subscription.plan.name}`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      case "APPLE_PAY":
-        if (!applePayToken) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a apple pay token",
-          };
-        }
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          payment_method: applePayToken,
-          confirm: true,
-          description: `Pago de suscripción al plan ${subscription.plan.name} (Apple Pay)`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      case "GOOGLE_PAY":
-        if (!googlePayToken) {
-          return {
-            success: false,
-            code: "400",
-            message: "Please provide a google pay token",
-          };
-        }
-
-        // 🔐 Procesar pago con Google Pay
-        payment = await stripe.paymentIntents.create({
-          amount,
-          currency,
-          payment_method: googlePayToken,
-          confirm: true,
-          description: `Pago de suscripción al plan ${subscription.plan.name} (Google Pay)`,
-        });
-
-        charge = payment.latest_charge
-          ? await stripe.charges.retrieve(payment.latest_charge as string)
-          : null;
-
-        reference = payment.client_secret || "";
-        authCode = charge?.id || "";
-        break;
-      default:
-        throw new Error("Método de pago no soportado.");
+    } catch (error: any) {
+        return CustomResponse(500, 'Error creating Subscription', true, {error: error.message});
     }
+}
 
-    const transaccion = em.create(Transaction, {
-      user,
-      subscription,
-      paymentMethod,
-      amount: subscription.plan.price,
-      currency,
-      status: "SUCCESS",
-      transactionId: payment.id,
-      reference,
-      transactionDate: new Date(),
-      description: `Pago exitoso de suscripción al plan ${subscription.plan?.name}`,
-      authCode,
-    });
+export const updateSubscription = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.updateSubscription(args.input);
 
-    subscription.status = "ACTIVE";
-    subscription.startDate = new Date();
-    subscription.endDate = new Date(
-      new Date().setMonth(
-        new Date().getMonth() +
-          (subscription.plan.paymentType === "MENSUAL" ? 1 : 12)
-      )
-    );
+        return {
+            success: true,
+            message: 'Subscription updated successfully',
+            subscription,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to update subscription',
+            subscription: null,
+            errors: [error.message]
+        };
+    }
+}
 
-    await em.persistAndFlush([transaccion, subscription]);
+export const cancelSubscription = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.cancelSubscription(args.input);
 
-    return `Pago exitoso. ID de transacción: ${payment.id}`;
-  } catch (error: any) {
-    const transaccion = em.create(Transaction, {
-      user,
-      subscription,
-      paymentMethod,
-      amount: subscription.plan.price,
-      currency,
-      status: "FAILED",
-      transactionId: "",
-      reference: "",
-      transactionDate: new Date(),
-      description: `Pago fallido de suscripción al plan ${subscription.plan.name}: ${error.message}`,
-      authCode: "",
-    });
+        return {
+            success: true,
+            message: 'Subscription canceled successfully',
+            subscription,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to cancel subscription',
+            subscription: null,
+            errors: [error.message]
+        };
+    }
+}
 
-    await em.persistAndFlush(transaccion);
-    throw new Error(`Error al procesar el pago: ${error.message}`);
-  }
+export const pauseSubscription = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.pauseSubscription(args.subscriptionId);
+
+        return {
+            success: true,
+            message: 'Subscription paused successfully',
+            subscription,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to pause subscription',
+            subscription: null,
+            errors: [error.message]
+        };
+    }
+}
+
+export const resumeSubscription = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.resumeSubscription(args.subscriptionId);
+
+        return {
+            success: true,
+            message: 'Subscription resumed successfully',
+            subscription,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to resume subscription',
+            subscription: null,
+            errors: [error.message]
+        };
+    }
+}
+
+export const changeSubscriptionPlan = async (parent: any, args: any, context: any) => {
+    try {
+        const subscriptionService = new SubscriptionService(context.em);
+        const subscription = await subscriptionService.updateSubscription({
+            subscriptionId: args.subscriptionId,
+            planId: args.newPlanId
+        });
+
+        return {
+            success: true,
+            message: 'Subscription plan changed successfully',
+            subscription,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to change subscription plan',
+            subscription: null,
+            errors: [error.message]
+        };
+    }
+}
+
+// ===== EXPORT RESOLVERS OBJECT =====
+export const subscriptionResolvers = {
+    Query: {
+        getSubscription,
+        listUserSubscriptions,
+        getActiveSubscription
+    },
+
+    Mutation: {
+        createSubscription,
+        updateSubscription,
+        cancelSubscription,
+        pauseSubscription,
+        resumeSubscription,
+        changeSubscriptionPlan
+    }
 };

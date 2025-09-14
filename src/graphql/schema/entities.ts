@@ -45,7 +45,7 @@ type User {
     nickname: String!
     isActive: Boolean
     isBlocked: Boolean
-    rol: UserRol!
+    role: UserRol!
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String
@@ -139,14 +139,15 @@ type Plan {
     updated_at: String!
     name: String!
     description: String!
-    price: Float!
+    amount: Float!
     currency: String!
-    paymentType: PaymentType!
-    durationInDays: Int!
+    interval: PlanInterval!
+    intervalCount: Int
+    trialPeriodDays: Int
+    status: PlanStatus!
+    isActive: Boolean!
+    features: [String]!
     subscriptions: [Subscription]
-    features: [String]
-    icon: String
-    isBestChoice: Boolean
 }
 
 type Notification {
@@ -167,16 +168,14 @@ type Subscription {
     status: SubscriptionStatus!
     startDate: String!
     endDate: String!
-    transctions: [Transaction]
+    transactions: [Transaction]
 }
 
 type Card {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    user: User!
-    type: CreditCardType!
-    provider: CreditCardProvider!
+    number: String!
+    exp_month: String!
+    exp_year: String!
+    cvc: Int!
 }
 
 type Transaction {
@@ -243,5 +242,19 @@ type StripeCustomer {
     user: User
     isActive: Boolean
     defaultCurrency: String
+}
+
+type PaymentMethod {
+    id: ID!
+    stripeCustomer: StripeCustomer!
+    type: PaymentMethodType
+    status: PaymentMethodStatus
+    brand: String
+    last4: String
+    expiryMonth: String
+    expiryYear: String
+    country: String
+    isDefault: Boolean
+    stripePaymentMethodId: String 
 }
 `;

@@ -149,8 +149,6 @@ type MessageResponse implements BasicResponse{
     conversation: ConversationResponse
 }
 
-
-
 type PlanResponse implements BasicResponse{
     code: String!
     success: Boolean!
@@ -166,14 +164,14 @@ type SubscriptionResponse implements BasicResponse{
 }
 
 type IdResponse {
-id: ID!
+    id: ID!
 }
 
 type UserResumeResponse {
     id: ID!
     nickname: String!
     pictureUrl: PictureUrl
-    rol: UserRol!
+    role: UserRol!
 }
 
 type AdminStatsResponse {
@@ -214,5 +212,13 @@ type StripeCustomerResponse implements BasicResponse {
     message: String!
     customers: [StripeCustomer]
     customer: StripeCustomer
+}
+
+type PaymentMethodResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    paymentMethods: [PaymentMethod]
+    paymentMethod: PaymentMethod
 }
 `;

@@ -34,8 +34,8 @@ export class Plan extends BaseEntity  {
     @Property({ type: 'bigint' })
     amount!: number; // en centavos
 
-    @Property({ length: 10, default: 'usd' })
-    currency: string = 'usd';
+    @Property({ length: 10, default: 'eur' })
+    currency: string = 'eur';
 
     @Enum(() => PlanInterval)
     interval!: PlanInterval;
@@ -44,7 +44,7 @@ export class Plan extends BaseEntity  {
     intervalCount: number = 1;
 
     @Property({ type: 'smallint', nullable: true })
-    trialPeriodDays?: number;
+    trialPeriodDays?: number= 7;
 
     @Enum( () => PlanStatus)
     @Index()

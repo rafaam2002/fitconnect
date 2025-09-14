@@ -26,7 +26,7 @@ input UpdateUserInput {
     phoneNumber: String,
     nickname: String!,
     isBlocked: Boolean,
-    rol: UserRol,
+    role: UserRol,
 }
 
 input CreateUserInput {
@@ -108,25 +108,9 @@ input FindPlanInput {
     planId: ID!
 }
 
-input CreatePlanInput {
-    name: String!
-    description: String!
-    price: Float!
-    durationInDays: Int!
-    isActive: Boolean!
-    currency: String
-    paymentType: PaymentType!
-    icon: String
-    features: [String]!
-    isBestChoice: Boolean
-}
-
 input CreateSubscriptionInput {
-    paymentMethod: PaymentMethod
-    cardId: ID
     planId: ID!
-    applePayToken: String
-    googlePayToken: String
+    userId: ID!
 }
 
 input SendNotificationInput {
@@ -135,9 +119,11 @@ input SendNotificationInput {
     forAll: Boolean!
 }
 
-input AddCreditCardInput {
-    paymentMethodId: String!
-    type: String!
+input CreatePaymentMethodInput {
+    stripeCustomerId: String!
+    type: PaymentMethodType!
+    card: CardInput
+    setAsDefault: Boolean
 }
 
 input CreateCustomerInput {
@@ -152,5 +138,25 @@ input UpdateCustomerInput {
     email: String
     name: String
     phoneNumber: String
+}
+
+input CreatePlanInput {
+    id: ID
+    name: String
+    description: String
+    amount: Float
+    currency: String
+    interval: PlanInterval
+    intervalCount: Int
+    trialPeriodDays: Int
+    features: [String]
+    status: PlanStatus
+}
+
+input CardInput {
+    number: String!
+    exp_month: Int!
+    exp_year: Int!
+    cvc: String!
 }
 `;

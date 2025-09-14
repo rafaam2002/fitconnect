@@ -153,6 +153,4 @@ input CreatePlanInput {
     features: [String]
     status: PlanStatus
 }
-
-
 `;

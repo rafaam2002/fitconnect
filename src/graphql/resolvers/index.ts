@@ -40,8 +40,7 @@ import {
     updateUser,
     updateUserPicture,
 } from "./user/mutations";
-import {createPlan, removePlan, updatePlan} from "./plan/mutations";
-import {getPlans} from "./plan/queries";
+import {createPlan, getPlan, getPlanByStripeId, listPlans, removePlan, updatePlan} from "./plan/mutations";
 import {fixedMessages, newMessage} from "./user/subscriptions";
 import {getProducts} from "./product/queries";
 import {getArticles} from "./article/queries";
@@ -80,7 +79,9 @@ const resolvers = {
         getSchedulesStats,
         getMonthlySchedules,
         //Plan
-        getPlans,
+        listPlans,
+        getPlanByStripeId,
+        getPlan,
         //Product
         getProducts,
         //Articles

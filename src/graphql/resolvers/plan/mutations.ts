@@ -7,18 +7,24 @@ import {CustomResponse} from "../errors";
 
 export async function getPlan(parent: any, args: any, context: any) {
     const planService = new PlanService(context.em);
-    return await planService.getPlan(args.planId);
+    const plan = await planService.getPlan(args.planId);
+
+    return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
 }
 
 export async function getPlanByStripeId(parent: any, args: any, context: any) {
     const planService = new PlanService(context.em);
-    return await planService.getPlanByStripeId(args.stripePriceId);
+    const plan = await planService.getPlanByStripeId(args.stripePriceId);
+
+    return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
 }
 
 export async function listPlans(parent: any, args: any, context: any) {
     const planService = new PlanService(context.em);
     const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
-    return await planService.listPlans(onlyActive);
+    const plans = await planService.listPlans(onlyActive);
+
+    return CustomResponse(200, 'Plans are fetched successfully.', true, {plans});
 }
 
 // ===== MUTATION RESOLVERS =====

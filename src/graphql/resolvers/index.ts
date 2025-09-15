@@ -48,7 +48,7 @@ import {getPresignedUrl} from "./s3/queries";
 import {createProduct, removeProduct, updateProductPicture} from "./product/mutations";
 import {refreshToken} from "./refresh-token/mutations";
 import {createSubscription,} from "./subscription/mutations";
-import {createPaymentMethod,} from "./paymentMethod/mutations";
+import {confirmSetupIntent, createSetupIntent, listUserPaymentMethods,} from "./paymentMethod/mutations";
 import {getCards} from "./paymentMethod/queries";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
@@ -91,7 +91,7 @@ const resolvers = {
         getTrainingTasks,
         getPresignedUrl,
         //Payments
-        getCards,
+        listUserPaymentMethods,
         //System
         getNotifications,
         sendEmailVerification,
@@ -143,7 +143,9 @@ const resolvers = {
         sendChangePasswordEmail,
         refreshToken,
         //Payments
-        createPaymentMethod,
+        createSetupIntent,
+        confirmSetupIntent,
+
         //System
         sendNotification,
         //Customer

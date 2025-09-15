@@ -58,5 +58,9 @@ type Query {
     #------------------------StripeCustomer-------------------------
     getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
     getCustomerByUserId(userId: ID!): StripeCustomerResponse!
+    
+    #------------------------Payments-------------------------
+    listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
+
 }
 `;

@@ -221,4 +221,12 @@ type PaymentMethodResponse implements BasicResponse {
     paymentMethods: [PaymentMethod]
     paymentMethod: PaymentMethod
 }
+
+type SetupIntentResponse implements BasicResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  clientSecret: String          
+  setupIntentId: String
+}
 `;

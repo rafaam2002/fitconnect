@@ -59,7 +59,9 @@ type Mutation {
     refreshToken(refreshToken: String!): LoginResponse!
     
     #-----------------PaymentMethod--------------------------
-    createPaymentMethod(paymentMethod: CreatePaymentMethodInput): PaymentMethodResponse!
+    createSetupIntent(stripeCustomerId: String!, usage: String): SetupIntentResponse!
+    confirmSetupIntent(setupIntentId: String!, setAsDefault: Boolean): PaymentMethodResponse!
+
    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!

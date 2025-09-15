@@ -3,9 +3,10 @@
 // ===== QUERY RESOLVERS =====
 
 import {PaymentMethodService} from "../../../services/PaymentMethod";
+import {CustomResponse} from "../errors";
+import {GraphQLError} from "graphql";
 
 export const getPaymentMethod = async(parent: any, args: any, context: any) => {
-    const paymentMethodService = new PaymentMethodService(context.em);
     const paymentMethod = await context.em.findOne('PaymentMethod', {
         stripePaymentMethodId: args.paymentMethodId
     }, {
@@ -31,12 +32,14 @@ export const listUserPaymentMethods = async(parent: any, args: any, context: any
     }
 
     const paymentMethodService = new PaymentMethodService(context.em);
-    return await paymentMethodService.listPaymentMethods(stripeCustomer.stripeCustomerId);
+    const paymentMethods = await paymentMethodService.listPaymentMethods(stripeCustomer.stripeCustomerId);
+
+    return CustomResponse(200, 'Payment methods are fetched successfully.', true, {paymentMethods});
 }
 
 export const getDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
     const paymentMethods = await context.em.find('PaymentMethod', {
-        stripeCustomer: { stripeCustomerId: args.stripeCustomerId },
+        stripeCustomer: {stripeCustomerId: args.stripeCustomerId},
         isDefault: true,
         status: 'ACTIVE'
     }, {
@@ -46,8 +49,7 @@ export const getDefaultPaymentMethod = async(parent: any, args: any, context: an
     return paymentMethods[0] || null;
 }
 
-export const getUserDefaultPaymentMethod = async(parent: any, args: any, context: any)  =>{
-    // Obtener customer del usuario
+export const getUserDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
     const stripeCustomer = await context.em.findOne('StripeCustomer', {
         user: args.userId,
         isActive: true
@@ -66,20 +68,69 @@ export const getUserDefaultPaymentMethod = async(parent: any, args: any, context
     return paymentMethods[0] || null;
 }
 
+// ✅ NUEVO: Obtener métodos de pago expirados
 export const getExpiredPaymentMethods = async(parent: any, args: any, context: any) => {
-    const paymentMethods = await context.em.find('PaymentMethod', {
-        stripeCustomer: { stripeCustomerId: args.stripeCustomerId },
-        status: 'ACTIVE'
-    }, {
-        populate: ['stripeCustomer']
-    });
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        return await paymentMethodService.getExpiredPaymentMethods(args.stripeCustomerId);
+    } catch (error: any) {
+        console.error('Error getting expired payment methods:', error);
+        return [];
+    }
+}
 
-    // Filtrar los que están expirados
-    return paymentMethods.filter(pm => pm.isExpired);
+// ✅ NUEVO: Obtener estadísticas de métodos de pago
+export const getPaymentMethodsStats = async(parent: any, args: any, context: any) => {
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        return await paymentMethodService.getPaymentMethodsStats(args.stripeCustomerId);
+    } catch (error: any) {
+        console.error('Error getting payment methods stats:', error);
+        return {
+            total: 0,
+            active: 0,
+            expired: 0,
+            byBrand: {},
+            hasDefault: false
+        };
+    }
 }
 
 // ===== MUTATION RESOLVERS =====
 
+// Crear Setup Intent
+export const createSetupIntent = async(parent: any, args: any, context: any) => {
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        const result = await paymentMethodService.createSetupIntent({
+            stripeCustomerId: args.stripeCustomerId,
+            usage: args.usage || 'on_session',
+            metadata: args.metadata || {}
+        });
+
+        return CustomResponse(200, 'Setup Intent created successfully.', true, {clientSecret: result.clientSecret, setupIntentId: result.setupIntentId});
+
+    } catch (error: any) {
+        throw new GraphQLError( error.message);
+    }
+}
+
+// Confirmar Setup Intent
+export const confirmSetupIntent = async(parent: any, args: any, context: any) => {
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        const paymentMethod = await paymentMethodService.confirmSetupIntent({
+            setupIntentId: args.setupIntentId,
+            setAsDefault: args.setAsDefault
+        });
+
+        return CustomResponse(200, 'Payment method confirmed and attached successfully', true, {paymentMethod})
+    } catch (error: any) {
+        throw new GraphQLError( error.message);
+    }
+}
+
+// Adjuntar método de pago existente
 export const attachPaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -101,27 +152,7 @@ export const attachPaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
-export const createPaymentMethod = async(parent: any, args: any, context: any) => {
-    try {
-        const paymentMethodService = new PaymentMethodService(context.em);
-        const paymentMethod = await paymentMethodService.createPaymentMethod(args.paymentMethod);
-
-        return {
-            success: true,
-            message: 'Payment method created successfully',
-            paymentMethod,
-            errors: []
-        };
-    } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to create payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
-    }
-}
-
+// ✅ MANTENIDO: Remover método de pago
 export const removePaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -143,6 +174,7 @@ export const removePaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
+// ✅ MANTENIDO: Establecer método de pago por defecto
 export const setDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -164,7 +196,8 @@ export const setDefaultPaymentMethod = async(parent: any, args: any, context: an
     }
 }
 
-export const updatePaymentMethodMetadata= async(parent: any, args: any, context: any) => {
+// ✅ MANTENIDO: Actualizar metadatos
+export const updatePaymentMethodMetadata = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethod = await context.em.findOne('PaymentMethod', {
             stripePaymentMethodId: args.paymentMethodId
@@ -179,7 +212,7 @@ export const updatePaymentMethodMetadata= async(parent: any, args: any, context:
             };
         }
 
-        // Actualizar metadata localmente (Stripe no permite actualizar metadata de payment methods directamente)
+        // Actualizar metadata localmente
         paymentMethod.metadata = {
             ...paymentMethod.metadata,
             ...args.metadata
@@ -203,7 +236,8 @@ export const updatePaymentMethodMetadata= async(parent: any, args: any, context:
     }
 }
 
-export const markPaymentMethodAsExpired= async(parent: any, args: any, context: any) => {
+// ✅ MANTENIDO: Marcar como expirado
+export const markPaymentMethodAsExpired = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethod = await context.em.findOne('PaymentMethod', {
             stripePaymentMethodId: args.paymentMethodId
@@ -219,7 +253,7 @@ export const markPaymentMethodAsExpired= async(parent: any, args: any, context: 
         }
 
         paymentMethod.status = 'EXPIRED';
-        paymentMethod.isDefault = false; // Si era default, ya no puede serlo
+        paymentMethod.isDefault = false;
 
         await context.em.flush();
 
@@ -239,7 +273,32 @@ export const markPaymentMethodAsExpired= async(parent: any, args: any, context: 
     }
 }
 
-export const syncPaymentMethodFromStripe= async(parent: any, args: any, context: any) => {
+// ✅ NUEVO: Limpiar métodos de pago expirados
+export const cleanupExpiredPaymentMethods = async(parent: any, args: any, context: any) => {
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        const result = await paymentMethodService.cleanupExpiredPaymentMethods(args.stripeCustomerId);
+
+        return {
+            success: true,
+            message: `Successfully cleaned up ${result.cleaned} expired payment methods`,
+            cleanedCount: result.cleaned,
+            paymentMethods: result.paymentMethods,
+            errors: []
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Failed to cleanup expired payment methods',
+            cleanedCount: 0,
+            paymentMethods: [],
+            errors: [error.message]
+        };
+    }
+}
+
+// ✅ MANTENIDO: Sincronizar desde Stripe
+export const syncPaymentMethodFromStripe = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.syncPaymentMethodFromStripe(args.paymentMethodId);
@@ -247,9 +306,9 @@ export const syncPaymentMethodFromStripe= async(parent: any, args: any, context:
         if (!paymentMethod) {
             return {
                 success: false,
-                message: 'Payment method not found in Stripe',
+                message: 'Payment method not found in Stripe or not attached to customer',
                 paymentMethod: null,
-                errors: ['Payment method not found in Stripe or not attached to a customer']
+                errors: ['Payment method not found in Stripe']
             };
         }
 
@@ -269,48 +328,19 @@ export const syncPaymentMethodFromStripe= async(parent: any, args: any, context:
     }
 }
 
-export const validatePaymentMethod= async(parent: any, args: any, context: any) => {
+// ✅ ACTUALIZADO: Validar método de pago con nueva lógica
+export const validatePaymentMethod = async(parent: any, args: any, context: any) => {
     try {
-        const paymentMethod = await context.em.findOne('PaymentMethod', {
-            stripePaymentMethodId: args.paymentMethodId
-        });
-
-        if (!paymentMethod) {
-            return {
-                success: false,
-                message: 'Payment method not found',
-                paymentMethod: null,
-                errors: ['Payment method not found']
-            };
-        }
-
-        const validationErrors = [];
-
-        // Verificar si está expirado
-        if (paymentMethod.isExpired) {
-            validationErrors.push('Payment method is expired');
-        }
-
-        // Verificar si está activo
-        if (paymentMethod.status !== 'ACTIVE') {
-            validationErrors.push('Payment method is not active');
-        }
-
-        // Si hay errores, marcar como inválido
-        if (validationErrors.length > 0) {
-            return {
-                success: false,
-                message: 'Payment method validation failed',
-                paymentMethod,
-                errors: validationErrors
-            };
-        }
+        const paymentMethodService = new PaymentMethodService(context.em);
+        const result = await paymentMethodService.validatePaymentMethod(args.paymentMethodId);
 
         return {
-            success: true,
-            message: 'Payment method is valid',
-            paymentMethod,
-            errors: []
+            success: result.isValid,
+            message: result.isValid
+                ? 'Payment method is valid'
+                : `Payment method validation failed: ${result.errors.join(', ')}`,
+            paymentMethod: result.paymentMethod,
+            errors: result.errors
         };
     } catch (error: any) {
         return {
@@ -322,25 +352,35 @@ export const validatePaymentMethod= async(parent: any, args: any, context: any) 
     }
 }
 
-// ===== EXPORT RESOLVERS OBJECT =====
+// ===== EXPORT RESOLVERS OBJECT FINAL =====
 export const paymentMethodResolvers = {
     Query: {
+        // Consultas básicas (mantenidas)
         getPaymentMethod,
         listPaymentMethods,
         listUserPaymentMethods,
         getDefaultPaymentMethod,
         getUserDefaultPaymentMethod,
-        getExpiredPaymentMethods
+
+        // ✅ Nuevas consultas
+        getExpiredPaymentMethods,
+        getPaymentMethodsStats
     },
 
     Mutation: {
+        createSetupIntent,
+        confirmSetupIntent,
+
         attachPaymentMethod,
-        createPaymentMethod,
         removePaymentMethod,
         setDefaultPaymentMethod,
+
         updatePaymentMethodMetadata,
         markPaymentMethodAsExpired,
         syncPaymentMethodFromStripe,
-        validatePaymentMethod
+        validatePaymentMethod,
+
+        cleanupExpiredPaymentMethods
+
     }
 };

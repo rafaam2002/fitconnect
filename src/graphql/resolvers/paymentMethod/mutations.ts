@@ -130,7 +130,6 @@ export const confirmSetupIntent = async(parent: any, args: any, context: any) =>
     }
 }
 
-// Adjuntar método de pago existente
 export const attachPaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -143,12 +142,11 @@ export const attachPaymentMethod = async(parent: any, args: any, context: any) =
             errors: []
         };
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to attach payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'ERROR_ATTACHING_PAYMENT_METHOD'
+            }
+        });
     }
 }
 

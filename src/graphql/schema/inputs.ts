@@ -111,6 +111,8 @@ input FindPlanInput {
 input CreateSubscriptionInput {
     planId: ID!
     userId: ID!
+    paymentMethodId: ID
+    trialPeriodDays: Int
 }
 
 input SendNotificationInput {
@@ -158,5 +160,11 @@ input CardInput {
     exp_month: Int!
     exp_year: Int!
     cvc: String!
+}
+
+input AttachPaymentMethodInput {
+    paymentMethodId: ID!
+    stripeCustomerId: ID!
+    setAsDefault: Boolean
 }
 `;

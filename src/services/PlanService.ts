@@ -127,7 +127,7 @@ export class PlanService extends BaseService {
 
     async listPlans(onlyActive: boolean = true): Promise<Plan[]> {
         const where: FilterQuery<Plan> = onlyActive
-            ? { isActive: true, status: PlanStatus.ACTIVE }
+            ? { status: PlanStatus.ACTIVE }
             : {};
 
         return await this.em.find<Plan>(Plan, where, {

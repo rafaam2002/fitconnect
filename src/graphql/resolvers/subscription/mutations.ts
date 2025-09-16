@@ -2,6 +2,7 @@
 
 import {SubscriptionService} from "../../../services/SubscriptionService";
 import {CustomResponse} from "../errors";
+import {GraphQLError} from "graphql";
 
 export const getSubscription = async (parent: any, args: any, context: any) => {
     const subscriptionService = new SubscriptionService(context.em);
@@ -24,12 +25,16 @@ export const getActiveSubscription = async (parent: any, args: any, context: any
 export const createSubscription = async (parent: any, args: any, context: any) => {
     try {
         const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.createSubscription(args.input);
+        const subscription = await subscriptionService.createSubscription(args.subscription);
 
         return CustomResponse(200, 'Subscription created successfully.', true, {subscription});
 
     } catch (error: any) {
-        return CustomResponse(500, 'Error creating Subscription', true, {error: error.message});
+        throw new GraphQLError(error.message, {
+            extensions: {
+                code: "ERROR_CREATE_SUBSCRIPTION",
+            },
+        });
     }
 }
 

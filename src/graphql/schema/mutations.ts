@@ -63,6 +63,7 @@ type Mutation {
     confirmSetupIntent(setupIntentId: String!, setAsDefault: Boolean): PaymentMethodResponse!
     attachPaymentMethod(input: AttachPaymentMethodInput!): AttachPaymentMethodResponse!
     removePaymentMethod(paymentId: ID!): PaymentMethodResponse!
+    setDefaultPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!

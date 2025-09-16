@@ -52,7 +52,7 @@ import {
     attachPaymentMethod,
     confirmSetupIntent,
     createSetupIntent,
-    listUserPaymentMethods, removePaymentMethod,
+    listUserPaymentMethods, removePaymentMethod, setDefaultPaymentMethod,
 } from "./paymentMethod/mutations";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
@@ -151,6 +151,7 @@ const resolvers = {
         confirmSetupIntent,
         attachPaymentMethod,
         removePaymentMethod,
+        setDefaultPaymentMethod,
         //System
         sendNotification,
         //Customer

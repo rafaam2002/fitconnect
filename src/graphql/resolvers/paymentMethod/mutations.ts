@@ -171,29 +171,22 @@ export const removePaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
-// ✅ MANTENIDO: Establecer método de pago por defecto
 export const setDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.setDefaultPaymentMethod(args.paymentMethodId);
 
-        return {
-            success: true,
-            message: 'Default payment method updated successfully',
-            paymentMethod,
-            errors: []
-        };
+        return CustomResponse(200, 'Default payment method updated successfully.', true, {paymentMethod});
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to set default payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_SET_DEFAULT_PAYMENT_METHOD',
+            }
+        })
     }
 }
 
-// ✅ MANTENIDO: Actualizar metadatos
 export const updatePaymentMethodMetadata = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethod = await context.em.findOne('PaymentMethod', {

@@ -52,9 +52,8 @@ import {
     attachPaymentMethod,
     confirmSetupIntent,
     createSetupIntent,
-    listUserPaymentMethods,
+    listUserPaymentMethods, removePaymentMethod,
 } from "./paymentMethod/mutations";
-import {getCards} from "./paymentMethod/queries";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
 import {createCustomer, deactivateCustomer, updateCustomer} from "./customer/mutations";
@@ -151,6 +150,7 @@ const resolvers = {
         createSetupIntent,
         confirmSetupIntent,
         attachPaymentMethod,
+        removePaymentMethod,
         //System
         sendNotification,
         //Customer

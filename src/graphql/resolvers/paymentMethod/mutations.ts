@@ -98,7 +98,6 @@ export const getPaymentMethodsStats = async(parent: any, args: any, context: any
 
 // ===== MUTATION RESOLVERS =====
 
-// Crear Setup Intent
 export const createSetupIntent = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -111,11 +110,14 @@ export const createSetupIntent = async(parent: any, args: any, context: any) => 
         return CustomResponse(200, 'Setup Intent created successfully.', true, {clientSecret: result.clientSecret, setupIntentId: result.setupIntentId});
 
     } catch (error: any) {
-        throw new GraphQLError( error.message);
+        return new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_CREATING_PAYMENT',
+            }
+        });
     }
 }
 
-// Confirmar Setup Intent
 export const confirmSetupIntent = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
@@ -126,7 +128,11 @@ export const confirmSetupIntent = async(parent: any, args: any, context: any) =>
 
         return CustomResponse(200, 'Payment method confirmed and attached successfully', true, {paymentMethod})
     } catch (error: any) {
-        throw new GraphQLError( error.message);
+        throw new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_CREATING_PAYMENT',
+            }
+        });
     }
 }
 
@@ -150,25 +156,18 @@ export const attachPaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
-// ✅ MANTENIDO: Remover método de pago
 export const removePaymentMethod = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
-        await paymentMethodService.removePaymentMethod(args.paymentMethodId);
+        await paymentMethodService.removePaymentMethod(args.paymentId);
 
-        return {
-            success: true,
-            message: 'Payment method removed successfully',
-            paymentMethod: null,
-            errors: []
-        };
+        return CustomResponse(200, 'Payment method removed successfully.', true);
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to remove payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_DELETE_PAYMENT_METHOD',
+            }
+        })
     }
 }
 

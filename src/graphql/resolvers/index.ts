@@ -52,14 +52,17 @@ import {
     attachPaymentMethod,
     confirmSetupIntent,
     createSetupIntent,
-    listUserPaymentMethods, removePaymentMethod, setDefaultPaymentMethod,
+    listUserPaymentMethods,
+    markPaymentMethodAsExpired, removePaymentMethod, setDefaultPaymentMethod, updatePaymentMethodMetadata,
 } from "./paymentMethod/mutations";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
 import {createCustomer, deactivateCustomer, updateCustomer} from "./customer/mutations";
 import {getCustomer, getCustomerByUserId} from "./customer/queries";
+import GraphQLJSON from 'graphql-type-json';
 
 const resolvers = {
+    JSON: GraphQLJSON,
     Query: {
         //Auth
         login,
@@ -152,6 +155,8 @@ const resolvers = {
         attachPaymentMethod,
         removePaymentMethod,
         setDefaultPaymentMethod,
+        updatePaymentMethodMetadata,
+        markPaymentMethodAsExpired,
         //System
         sendNotification,
         //Customer

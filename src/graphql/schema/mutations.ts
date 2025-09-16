@@ -1,5 +1,4 @@
 export const graphqlMutations = `   
-
 type Mutation {
     #------------------User-----------------
     createUser( user: CreateUserInput!): LoginResponse!
@@ -64,6 +63,8 @@ type Mutation {
     attachPaymentMethod(input: AttachPaymentMethodInput!): AttachPaymentMethodResponse!
     removePaymentMethod(paymentId: ID!): PaymentMethodResponse!
     setDefaultPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
+    updatePaymentMethodMetadata(paymentMethodId: ID!, metadata: JSON): PaymentMethodResponse!
+    markPaymentMethodAsExpired(paymentMethodId: ID!): PaymentMethodResponse!
    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!

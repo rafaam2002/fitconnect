@@ -5,6 +5,8 @@
 import {PaymentMethodService} from "../../../services/PaymentMethod";
 import {CustomResponse} from "../errors";
 import {GraphQLError} from "graphql";
+import {PaymentMethod} from "../../../entities/PaymentMethod";
+import {PaymentMethodStatus} from "../../../types/enums";
 
 export const getPaymentMethod = async(parent: any, args: any, context: any) => {
     const paymentMethod = await context.em.findOne('PaymentMethod', {
@@ -189,7 +191,7 @@ export const setDefaultPaymentMethod = async(parent: any, args: any, context: an
 
 export const updatePaymentMethodMetadata = async(parent: any, args: any, context: any) => {
     try {
-        const paymentMethod = await context.em.findOne('PaymentMethod', {
+        const paymentMethod = await context.em.findOne(PaymentMethod, {
             stripePaymentMethodId: args.paymentMethodId
         });
 
@@ -210,60 +212,46 @@ export const updatePaymentMethodMetadata = async(parent: any, args: any, context
 
         await context.em.flush();
 
-        return {
-            success: true,
-            message: 'Payment method metadata updated successfully',
-            paymentMethod,
-            errors: []
-        };
+        return CustomResponse(200, 'Payment method updated successfully.', true, {paymentMethod});
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to update payment method metadata',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_UPDATE_PAYMENT_METHOD',
+            }
+        })
     }
 }
 
-// ✅ MANTENIDO: Marcar como expirado
 export const markPaymentMethodAsExpired = async(parent: any, args: any, context: any) => {
     try {
-        const paymentMethod = await context.em.findOne('PaymentMethod', {
+        const paymentMethod = await context.em.findOne(PaymentMethod, {
             stripePaymentMethodId: args.paymentMethodId
         });
 
         if (!paymentMethod) {
-            return {
-                success: false,
-                message: 'Payment method not found',
-                paymentMethod: null,
-                errors: ['Payment method not found']
-            };
+            return new GraphQLError( `Payment method not found`, {
+                extensions: {
+                    code: 'PAYMENT_NOT_FOUND',
+                }
+            })
         }
 
-        paymentMethod.status = 'EXPIRED';
+        paymentMethod.status = PaymentMethodStatus.EXPIRED;
         paymentMethod.isDefault = false;
 
         await context.em.flush();
 
-        return {
-            success: true,
-            message: 'Payment method marked as expired',
-            paymentMethod,
-            errors: []
-        };
+        return CustomResponse(200, 'Payment method updated successfully.', true, {paymentMethod});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to mark payment method as expired',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError( error.message, {
+            extensions: {
+                code: 'ERROR_MARK_PAYMENT_METHOD_AS_EXPIRED',
+            }
+        })
     }
 }
 
-// ✅ NUEVO: Limpiar métodos de pago expirados
 export const cleanupExpiredPaymentMethods = async(parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);

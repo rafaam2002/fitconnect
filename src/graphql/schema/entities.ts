@@ -1,4 +1,7 @@
+
 export const graphqlEntities = `
+scalar JSON
+
 type PictureUrl {
     name: String!
     url: String!

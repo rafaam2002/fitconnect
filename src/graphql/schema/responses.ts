@@ -236,4 +236,11 @@ type AttachPaymentMethodResponse implements BasicResponse {
     message: String!
     paymentMethod: PaymentMethod
 }
+
+type StatsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    stats: Stats
+}
 `;

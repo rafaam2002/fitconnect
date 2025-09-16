@@ -1,6 +1,6 @@
 import {EntityManager, QueryOrder} from '@mikro-orm/core';
 import {StripeCustomer} from '../entities/StripeCustomer';
-import {PaymentMethod, PaymentMethodStatus, PaymentMethodType} from '../entities/PaymentMethod';
+import {PaymentMethod, PaymentMethodStatus} from '../entities/PaymentMethod';
 import {BaseService} from './BaseService.js';
 
 interface AttachPaymentMethodInput {
@@ -415,13 +415,10 @@ export class PaymentMethodService extends BaseService {
             throw new Error('Stripe customer not found');
         }
 
-        const paymentMethods = await this.em.find(PaymentMethod, {
-            stripeCustomer,
-            status: PaymentMethodStatus.ACTIVE
+        return await this.em.find(PaymentMethod, {
+            stripeCustomer: stripeCustomer.id,
+            status: PaymentMethodStatus.EXPIRED
         });
-
-        // Filtrar los que están expirados
-        return paymentMethods.filter(pm => pm.isExpired);
     }
 
     // ✅ NUEVO: Limpiar métodos de pago expirados
@@ -470,7 +467,7 @@ export class PaymentMethodService extends BaseService {
         });
 
         const active = paymentMethods.filter(pm => pm.status === PaymentMethodStatus.ACTIVE);
-        const expired = paymentMethods.filter(pm => pm.isExpired);
+        const expired = paymentMethods.filter(pm => pm.status === PaymentMethodStatus.EXPIRED);
         const hasDefault = paymentMethods.some(pm => pm.isDefault);
 
         const byBrand: Record<string, number> = {};

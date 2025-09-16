@@ -9,17 +9,36 @@ import {PaymentMethod} from "../../../entities/PaymentMethod";
 import {PaymentMethodStatus} from "../../../types/enums";
 
 export const getPaymentMethod = async (parent: any, args: any, context: any) => {
-    const paymentMethod = await context.em.findOne(PaymentMethod, {
-        stripePaymentMethodId: args.paymentMethodId
-    }, {
-        populate: ['stripeCustomer', 'stripeCustomer.user']
-    });
-    return CustomResponse(200, 'Payment method is fetched successfully.', true, {paymentMethod});
+    try {
+        const paymentMethod = await context.em.findOne(PaymentMethod, {
+            stripePaymentMethodId: args.paymentMethodId
+        }, {
+            populate: ['stripeCustomer', 'stripeCustomer.user']
+        });
+        return CustomResponse(200, 'Payment method is fetched successfully.', true, {paymentMethod});
+    } catch (err) {
+        return new GraphQLError(err.message, {
+            extensions: {
+                code: 'PAYMENT_METHOD_NOT_FOUND',
+            }
+        });
+    }
 }
 
 export const listPaymentMethods = async (parent: any, args: any, context: any) => {
-    const paymentMethodService = new PaymentMethodService(context.em);
-    return await paymentMethodService.listPaymentMethods(args.stripeCustomerId);
+    try {
+        const paymentMethodService = new PaymentMethodService(context.em);
+        const paymentMethods = await paymentMethodService.listPaymentMethods(args.stripeCustomerId);
+
+        return CustomResponse(200, 'Payment methods is fetched successfully.', true, {paymentMethods});
+    } catch (err) {
+        return new GraphQLError(err.message, {
+            extensions: {
+                code: 'PAYMENTS_METHOD_NOT_FOUND',
+            }
+        })
+    }
+
 }
 
 export const listUserPaymentMethods = async (parent: any, args: any, context: any) => {
@@ -40,15 +59,23 @@ export const listUserPaymentMethods = async (parent: any, args: any, context: an
 }
 
 export const getDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
-    const paymentMethods = await context.em.find('PaymentMethod', {
-        stripeCustomer: {stripeCustomerId: args.stripeCustomerId},
-        isDefault: true,
-        status: 'ACTIVE'
-    }, {
-        populate: ['stripeCustomer', 'stripeCustomer.user']
-    });
+    try {
+        const paymentMethod = await context.em.findOne(PaymentMethod, {
+            stripeCustomer: {stripeCustomerId: args.stripeCustomerId},
+            isDefault: true,
+            status: PaymentMethodStatus.ACTIVE
+        }, {
+            populate: ['stripeCustomer', 'stripeCustomer.user']
+        });
 
-    return paymentMethods[0] || null;
+        return CustomResponse(200, 'Default Payment Method is fetched successfully.', true, {paymentMethod});
+    } catch (err) {
+        return new GraphQLError(err.message, {
+            extensions: {
+                code: 'CANNOT_FOUND_DEFAULT_PAYMENT_METHOD',
+            }
+        })
+    }
 }
 
 export const getUserDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
@@ -70,31 +97,39 @@ export const getUserDefaultPaymentMethod = async (parent: any, args: any, contex
     return paymentMethods[0] || null;
 }
 
-// ✅ NUEVO: Obtener métodos de pago expirados
 export const getExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
-        return await paymentMethodService.getExpiredPaymentMethods(args.stripeCustomerId);
+        const paymentMethods = await paymentMethodService.getExpiredPaymentMethods(args.stripeCustomerId);
+
+        return CustomResponse(200, 'Expired method payments are fetched successfully.', true, {paymentMethods});
     } catch (error: any) {
-        console.error('Error getting expired payment methods:', error);
-        return [];
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'PAYMENT_METHODS_NOT_FOUND',
+            }
+        })
     }
 }
 
-// ✅ NUEVO: Obtener estadísticas de métodos de pago
 export const getPaymentMethodsStats = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
-        return await paymentMethodService.getPaymentMethodsStats(args.stripeCustomerId);
+        const stats = await paymentMethodService.getPaymentMethodsStats(args.stripeCustomerId);
+
+        return CustomResponse(200, 'Payment method stats are fetched successfully.', true, {stats});
     } catch (error: any) {
-        console.error('Error getting payment methods stats:', error);
-        return {
+        return new GraphQLError(`${{
             total: 0,
             active: 0,
             expired: 0,
             byBrand: {},
             hasDefault: false
-        };
+        }}`, {
+            extensions: {
+                code: 'STATS_PAYMENT_METHODS_NOT_FOUND',
+            }
+        })
     }
 }
 

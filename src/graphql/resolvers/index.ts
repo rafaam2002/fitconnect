@@ -51,7 +51,8 @@ import {createSubscription,} from "./subscription/mutations";
 import {
     attachPaymentMethod, cleanupExpiredPaymentMethods,
     confirmSetupIntent,
-    createSetupIntent, getPaymentMethod,
+    createSetupIntent, getDefaultPaymentMethod, getExpiredPaymentMethods, getPaymentMethod,
+    getPaymentMethodsStats, listPaymentMethods,
     listUserPaymentMethods,
     markPaymentMethodAsExpired, removePaymentMethod, setDefaultPaymentMethod, updatePaymentMethodMetadata,
     validatePaymentMethod,
@@ -106,7 +107,11 @@ const resolvers = {
         getCustomer,
         getCustomerByUserId,
         //Payments
-        getPaymentMethod
+        getPaymentMethod,
+        listPaymentMethods,
+        getDefaultPaymentMethod,
+        getExpiredPaymentMethods,
+        getPaymentMethodsStats
     },
     Mutation: {
         //User

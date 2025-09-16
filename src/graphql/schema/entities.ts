@@ -260,4 +260,12 @@ type PaymentMethod {
     isDefault: Boolean
     stripePaymentMethodId: String 
 }
+
+type Stats {
+    total: Int
+    active: Int
+    expired: Int
+    hasDefault: Boolean
+    byBrand: JSON
+}
 `;

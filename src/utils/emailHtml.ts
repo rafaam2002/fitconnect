@@ -232,7 +232,7 @@ export const changePasswordHtml = (token: string, tmpPassword) =>
           <a href="${process.env.API_URL}/auth/reset-password?token=${token}" class="button">Cambiar contraseña</a>
         </p>
         <p>
-          Este enlace es válido por 1 hora. Si no solicitaste este cambio de contraseña, puedes ignorar este mensaje de forma segura.
+          Este enlace es válido por 30 minutos. Si no solicitaste este cambio de contraseña, puedes ignorar este mensaje de forma segura.
         </p>
         <div class="footer">
           © 2025 fitconnect. Todos los derechos reservados.

@@ -8,21 +8,21 @@ import {GraphQLError} from "graphql";
 import {PaymentMethod} from "../../../entities/PaymentMethod";
 import {PaymentMethodStatus} from "../../../types/enums";
 
-export const getPaymentMethod = async(parent: any, args: any, context: any) => {
-    const paymentMethod = await context.em.findOne('PaymentMethod', {
+export const getPaymentMethod = async (parent: any, args: any, context: any) => {
+    const paymentMethod = await context.em.findOne(PaymentMethod, {
         stripePaymentMethodId: args.paymentMethodId
     }, {
         populate: ['stripeCustomer', 'stripeCustomer.user']
     });
-    return paymentMethod;
+    return CustomResponse(200, 'Payment method is fetched successfully.', true, {paymentMethod});
 }
 
-export const listPaymentMethods = async(parent: any, args: any, context: any) => {
+export const listPaymentMethods = async (parent: any, args: any, context: any) => {
     const paymentMethodService = new PaymentMethodService(context.em);
     return await paymentMethodService.listPaymentMethods(args.stripeCustomerId);
 }
 
-export const listUserPaymentMethods = async(parent: any, args: any, context: any) => {
+export const listUserPaymentMethods = async (parent: any, args: any, context: any) => {
     // Obtener customer del usuario
     const stripeCustomer = await context.em.findOne('StripeCustomer', {
         user: args.userId,
@@ -39,7 +39,7 @@ export const listUserPaymentMethods = async(parent: any, args: any, context: any
     return CustomResponse(200, 'Payment methods are fetched successfully.', true, {paymentMethods});
 }
 
-export const getDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
+export const getDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
     const paymentMethods = await context.em.find('PaymentMethod', {
         stripeCustomer: {stripeCustomerId: args.stripeCustomerId},
         isDefault: true,
@@ -51,7 +51,7 @@ export const getDefaultPaymentMethod = async(parent: any, args: any, context: an
     return paymentMethods[0] || null;
 }
 
-export const getUserDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
+export const getUserDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
     const stripeCustomer = await context.em.findOne('StripeCustomer', {
         user: args.userId,
         isActive: true
@@ -71,7 +71,7 @@ export const getUserDefaultPaymentMethod = async(parent: any, args: any, context
 }
 
 // ✅ NUEVO: Obtener métodos de pago expirados
-export const getExpiredPaymentMethods = async(parent: any, args: any, context: any) => {
+export const getExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         return await paymentMethodService.getExpiredPaymentMethods(args.stripeCustomerId);
@@ -82,7 +82,7 @@ export const getExpiredPaymentMethods = async(parent: any, args: any, context: a
 }
 
 // ✅ NUEVO: Obtener estadísticas de métodos de pago
-export const getPaymentMethodsStats = async(parent: any, args: any, context: any) => {
+export const getPaymentMethodsStats = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         return await paymentMethodService.getPaymentMethodsStats(args.stripeCustomerId);
@@ -100,7 +100,7 @@ export const getPaymentMethodsStats = async(parent: any, args: any, context: any
 
 // ===== MUTATION RESOLVERS =====
 
-export const createSetupIntent = async(parent: any, args: any, context: any) => {
+export const createSetupIntent = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const result = await paymentMethodService.createSetupIntent({
@@ -109,10 +109,13 @@ export const createSetupIntent = async(parent: any, args: any, context: any) => 
             metadata: args.metadata || {}
         });
 
-        return CustomResponse(200, 'Setup Intent created successfully.', true, {clientSecret: result.clientSecret, setupIntentId: result.setupIntentId});
+        return CustomResponse(200, 'Setup Intent created successfully.', true, {
+            clientSecret: result.clientSecret,
+            setupIntentId: result.setupIntentId
+        });
 
     } catch (error: any) {
-        return new GraphQLError( error.message, {
+        return new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_CREATING_PAYMENT',
             }
@@ -120,7 +123,7 @@ export const createSetupIntent = async(parent: any, args: any, context: any) => 
     }
 }
 
-export const confirmSetupIntent = async(parent: any, args: any, context: any) => {
+export const confirmSetupIntent = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.confirmSetupIntent({
@@ -130,7 +133,7 @@ export const confirmSetupIntent = async(parent: any, args: any, context: any) =>
 
         return CustomResponse(200, 'Payment method confirmed and attached successfully', true, {paymentMethod})
     } catch (error: any) {
-        throw new GraphQLError( error.message, {
+        throw new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_CREATING_PAYMENT',
             }
@@ -138,17 +141,12 @@ export const confirmSetupIntent = async(parent: any, args: any, context: any) =>
     }
 }
 
-export const attachPaymentMethod = async(parent: any, args: any, context: any) => {
+export const attachPaymentMethod = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.attachPaymentMethod(args.input);
 
-        return {
-            success: true,
-            message: 'Payment method attached successfully',
-            paymentMethod,
-            errors: []
-        };
+        return CustomResponse(200, 'Payment method attached successfully.', true, {paymentMethod})
     } catch (error: any) {
         return new GraphQLError(error.message, {
             extensions: {
@@ -158,14 +156,14 @@ export const attachPaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
-export const removePaymentMethod = async(parent: any, args: any, context: any) => {
+export const removePaymentMethod = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         await paymentMethodService.removePaymentMethod(args.paymentId);
 
         return CustomResponse(200, 'Payment method removed successfully.', true);
     } catch (error: any) {
-        return new GraphQLError( error.message, {
+        return new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_DELETE_PAYMENT_METHOD',
             }
@@ -173,7 +171,7 @@ export const removePaymentMethod = async(parent: any, args: any, context: any) =
     }
 }
 
-export const setDefaultPaymentMethod = async(parent: any, args: any, context: any) => {
+export const setDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.setDefaultPaymentMethod(args.paymentMethodId);
@@ -181,7 +179,7 @@ export const setDefaultPaymentMethod = async(parent: any, args: any, context: an
         return CustomResponse(200, 'Default payment method updated successfully.', true, {paymentMethod});
 
     } catch (error: any) {
-        return new GraphQLError( error.message, {
+        return new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_SET_DEFAULT_PAYMENT_METHOD',
             }
@@ -189,19 +187,18 @@ export const setDefaultPaymentMethod = async(parent: any, args: any, context: an
     }
 }
 
-export const updatePaymentMethodMetadata = async(parent: any, args: any, context: any) => {
+export const updatePaymentMethodMetadata = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethod = await context.em.findOne(PaymentMethod, {
             stripePaymentMethodId: args.paymentMethodId
         });
 
         if (!paymentMethod) {
-            return {
-                success: false,
-                message: 'Payment method not found',
-                paymentMethod: null,
-                errors: ['Payment method not found']
-            };
+            return new GraphQLError('Payment method not found', {
+                extensions: {
+                    code: 'ERROR_UPDATE_PAYMENT_METHOD',
+                }
+            });
         }
 
         // Actualizar metadata localmente
@@ -215,7 +212,7 @@ export const updatePaymentMethodMetadata = async(parent: any, args: any, context
         return CustomResponse(200, 'Payment method updated successfully.', true, {paymentMethod});
 
     } catch (error: any) {
-        return new GraphQLError( error.message, {
+        return new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_UPDATE_PAYMENT_METHOD',
             }
@@ -223,14 +220,14 @@ export const updatePaymentMethodMetadata = async(parent: any, args: any, context
     }
 }
 
-export const markPaymentMethodAsExpired = async(parent: any, args: any, context: any) => {
+export const markPaymentMethodAsExpired = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethod = await context.em.findOne(PaymentMethod, {
             stripePaymentMethodId: args.paymentMethodId
         });
 
         if (!paymentMethod) {
-            return new GraphQLError( `Payment method not found`, {
+            return new GraphQLError(`Payment method not found`, {
                 extensions: {
                     code: 'PAYMENT_NOT_FOUND',
                 }
@@ -244,7 +241,7 @@ export const markPaymentMethodAsExpired = async(parent: any, args: any, context:
 
         return CustomResponse(200, 'Payment method updated successfully.', true, {paymentMethod});
     } catch (error: any) {
-        return new GraphQLError( error.message, {
+        return new GraphQLError(error.message, {
             extensions: {
                 code: 'ERROR_MARK_PAYMENT_METHOD_AS_EXPIRED',
             }
@@ -252,81 +249,60 @@ export const markPaymentMethodAsExpired = async(parent: any, args: any, context:
     }
 }
 
-export const cleanupExpiredPaymentMethods = async(parent: any, args: any, context: any) => {
+export const cleanupExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const result = await paymentMethodService.cleanupExpiredPaymentMethods(args.stripeCustomerId);
 
-        return {
-            success: true,
-            message: `Successfully cleaned up ${result.cleaned} expired payment methods`,
-            cleanedCount: result.cleaned,
-            paymentMethods: result.paymentMethods,
-            errors: []
-        };
+        return CustomResponse(200, `Successfully cleaned up ${result.cleaned} expired payment methods`, true, {});
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to cleanup expired payment methods',
-            cleanedCount: 0,
-            paymentMethods: [],
-            errors: [error.message]
-        };
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'ERROR_CLEAR_EXPIRED_PAYMENT_METHOD',
+            }
+        })
     }
 }
 
-// ✅ MANTENIDO: Sincronizar desde Stripe
-export const syncPaymentMethodFromStripe = async(parent: any, args: any, context: any) => {
+export const syncPaymentMethodFromStripe = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const paymentMethod = await paymentMethodService.syncPaymentMethodFromStripe(args.paymentMethodId);
 
         if (!paymentMethod) {
-            return {
-                success: false,
-                message: 'Payment method not found in Stripe or not attached to customer',
-                paymentMethod: null,
-                errors: ['Payment method not found in Stripe']
-            };
+            return new GraphQLError('Payment method not found in Stripe or not attached to customer', {
+                extensions: {
+                    code: 'PAYMENT_METHOD_NOT_FOUND_ON_STRIPE_OR_NOT_ATTACHED',
+                }
+            })
         }
 
-        return {
-            success: true,
-            message: 'Payment method synchronized successfully',
-            paymentMethod,
-            errors: []
-        };
+        return CustomResponse(200, 'Payment method synchronized successfully.', true, {paymentMethod});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to synchronize payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'FAILED_SYNCRONIZE_PAYMENT_METHOD',
+            }
+        })
     }
 }
 
-// ✅ ACTUALIZADO: Validar método de pago con nueva lógica
-export const validatePaymentMethod = async(parent: any, args: any, context: any) => {
+export const validatePaymentMethod = async (parent: any, args: any, context: any) => {
     try {
         const paymentMethodService = new PaymentMethodService(context.em);
         const result = await paymentMethodService.validatePaymentMethod(args.paymentMethodId);
 
-        return {
-            success: result.isValid,
-            message: result.isValid
-                ? 'Payment method is valid'
-                : `Payment method validation failed: ${result.errors.join(', ')}`,
-            paymentMethod: result.paymentMethod,
-            errors: result.errors
-        };
+        return CustomResponse(200, result.isValid
+            ? 'Payment method is valid'
+            : `Payment method validation failed: ${result.errors.join(', ')}`, true, {paymentMethod: result.paymentMethod});
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to validate payment method',
-            paymentMethod: null,
-            errors: [error.message]
-        };
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'ERROR_VALID_PAYMENT_METHOD',
+            }
+        })
     }
 }
 

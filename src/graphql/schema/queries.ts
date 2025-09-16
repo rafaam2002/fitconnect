@@ -11,6 +11,7 @@ type Query {
     #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)
     #each page will have 50 messages, default = 0 (first page)
     sendEmailVerification: DefaultResponse!
+    
     # ----------------- Message -----------------
     getConversation(otherUserId: ID, page: Int, limit: Int): MessageResponse!
     getNotifications: NotificationResponse!
@@ -61,6 +62,9 @@ type Query {
     
     #------------------------Payments-------------------------
     listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
+    getPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
+    
+    
 
 }
 `;

@@ -49,11 +49,12 @@ import {createProduct, removeProduct, updateProductPicture} from "./product/muta
 import {refreshToken} from "./refresh-token/mutations";
 import {createSubscription,} from "./subscription/mutations";
 import {
-    attachPaymentMethod,
+    attachPaymentMethod, cleanupExpiredPaymentMethods,
     confirmSetupIntent,
-    createSetupIntent,
+    createSetupIntent, getPaymentMethod,
     listUserPaymentMethods,
     markPaymentMethodAsExpired, removePaymentMethod, setDefaultPaymentMethod, updatePaymentMethodMetadata,
+    validatePaymentMethod,
 } from "./paymentMethod/mutations";
 import {registerToken, removePushToken, sendNotification} from "./push-token/mutations";
 import {createOrChangePollVote, createPoll, deletePollVote, removePolls} from "./poll/mutations";
@@ -103,7 +104,9 @@ const resolvers = {
         getNotifications,
         sendEmailVerification,
         getCustomer,
-        getCustomerByUserId
+        getCustomerByUserId,
+        //Payments
+        getPaymentMethod
     },
     Mutation: {
         //User
@@ -157,6 +160,8 @@ const resolvers = {
         setDefaultPaymentMethod,
         updatePaymentMethodMetadata,
         markPaymentMethodAsExpired,
+        cleanupExpiredPaymentMethods,
+        validatePaymentMethod,
         //System
         sendNotification,
         //Customer

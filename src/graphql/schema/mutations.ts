@@ -65,7 +65,9 @@ type Mutation {
     setDefaultPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     updatePaymentMethodMetadata(paymentMethodId: ID!, metadata: JSON): PaymentMethodResponse!
     markPaymentMethodAsExpired(paymentMethodId: ID!): PaymentMethodResponse!
-   
+    cleanupExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
+    validatePaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
+    
     #------------------------StripeCustomer-------------------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
     updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!

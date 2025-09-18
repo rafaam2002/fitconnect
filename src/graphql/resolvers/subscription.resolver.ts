@@ -1,7 +1,7 @@
 // ===== QUERY RESOLVERS =====
 
-import {SubscriptionService} from "../../../services/SubscriptionService";
-import {CustomResponse} from "../errors";
+import {SubscriptionService} from "../../services/SubscriptionService";
+import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
 
 export const getSubscription = async (parent: any, args: any, context: any) => {
@@ -21,7 +21,6 @@ export const getActiveSubscription = async (parent: any, args: any, context: any
 }
 
 // ===== MUTATION RESOLVERS =====
-
 export const createSubscription = async (parent: any, args: any, context: any) => {
     try {
         const subscriptionService = new SubscriptionService(context.em);

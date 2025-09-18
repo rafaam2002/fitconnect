@@ -1,7 +1,8 @@
 import { EntityManager } from "@mikro-orm/postgresql";
-import { UserType } from "../../../types";
-import { Article } from "../../../entities/Article";
+import { UserType } from "../../types";
+import { Article } from "../../entities/Article";
 import { GraphQLError } from "graphql";
+import {CustomResponse} from "./errors";
 
 type ContextType = {
   em: EntityManager;
@@ -13,6 +14,7 @@ type PaginationProps = {
   offset: number;
 };
 
+// ===== QUERY RESOLVERS =====
 export const getArticles = async (
   _: any,
   { limit, offset }: PaginationProps,
@@ -38,11 +40,15 @@ export const getArticles = async (
 
   const totalArticles = await em.count(Article);
 
-  return {
-    success: true,
-    code: "200",
-    message: "Articles found",
-    articles,
-    hasMore: offset + limit < totalArticles,
-  };
+  return CustomResponse(200, 'Articles are fetched successfully.', true, {articles, hasMore: offset+limit<totalArticles})
+
 };
+
+ export const articleResolvers = {
+     Query: {
+         getArticles
+     },
+     Mutation: {
+
+     }
+ }

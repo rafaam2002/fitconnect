@@ -2,11 +2,11 @@
 
 // ===== QUERY RESOLVERS =====
 
-import {PaymentMethodService} from "../../../services/PaymentMethod";
-import {CustomResponse} from "../errors";
+import {PaymentMethodService} from "../../services/PaymentMethod";
+import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
-import {PaymentMethod} from "../../../entities/PaymentMethod";
-import {PaymentMethodStatus} from "../../../types/enums";
+import {PaymentMethod} from "../../entities/PaymentMethod";
+import {PaymentMethodStatus} from "../../types/enums";
 
 export const getPaymentMethod = async (parent: any, args: any, context: any) => {
     try {

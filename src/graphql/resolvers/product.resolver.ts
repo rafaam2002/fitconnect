@@ -1,15 +1,34 @@
-import { Product } from "../../../entities/Product";
-import {User, UserRole} from "../../../entities/User";
-import { sendPushNotification } from "../../../utils/notifications";
+import { Product } from "../../entities/Product";
+import {User, UserRole} from "../../entities/User";
+import { sendPushNotification } from "../../utils/notifications";
 import {
     ContextProps,
     CreateProduct, RemoveProductProps,
     UpdateProductImage,
-} from "../../../types/resolvers";
-import { CustomResponse } from "../errors";
+} from "../../types/resolvers";
+import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql";
-import { createPictureUrl, getPresignedUrl } from "../../../utils/createPresignedUrls";
+import { createPictureUrl, getPresignedUrl } from "../../utils/createPresignedUrls";
 
+// ===== QUERY RESOLVERS =====
+export const getProducts = async (
+    _: any,
+    __: any,
+    { em, currentUser }: ContextProps
+) => {
+    if (!currentUser) throw new GraphQLError("Please login, token_expired", {
+        extensions: {
+            code: "UNAUTHENTICATED",
+            http: { status: 401 },
+        },
+    });
+
+    const products = await em.findAll(Product, {});
+
+    return CustomResponse(200, "Products found", true, {products});
+};
+
+// ===== MUTATION RESOLVERS =====
 export const createProduct = async (
   _: any,
   { product: { name, description, price } }: CreateProduct,
@@ -155,3 +174,14 @@ export const removeProduct = async (
         return CustomResponse(500, "Error occurred while deleting products");
     }
 };
+
+export const productResolvers = {
+    Query: {
+        getProducts,
+    },
+    Mutation: {
+        createProduct,
+        updateProductPicture,
+        removeProduct,
+    }
+}

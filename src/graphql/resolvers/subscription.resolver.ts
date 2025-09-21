@@ -40,21 +40,17 @@ export const createSubscription = async (parent: any, args: any, context: any) =
 export const updateSubscription = async (parent: any, args: any, context: any) => {
     try {
         const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.updateSubscription(args.input);
+        const subscription = await subscriptionService.updateSubscription(args.subscription);
 
-        return {
-            success: true,
-            message: 'Subscription updated successfully',
-            subscription,
-            errors: []
-        };
+
+        return CustomResponse(200, 'Subscription updated successfully.', true, {subscription});
+
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to update subscription',
-            subscription: null,
-            errors: [error.message]
-        };
+        throw new GraphQLError(error.message, {
+            extensions: {
+                code: "ERROR_UPDATE_SUBSCRIPTION",
+            }
+        })
     }
 }
 
@@ -63,19 +59,13 @@ export const cancelSubscription = async (parent: any, args: any, context: any) =
         const subscriptionService = new SubscriptionService(context.em);
         const subscription = await subscriptionService.cancelSubscription(args.input);
 
-        return {
-            success: true,
-            message: 'Subscription canceled successfully',
-            subscription,
-            errors: []
-        };
+        return CustomResponse(200, 'Subscription cancelled successfully.', true, {subscription});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to cancel subscription',
-            subscription: null,
-            errors: [error.message]
-        };
+        throw new GraphQLError(error.message, {
+            extensions: {
+                code: "ERROR_CANCEL_SUBSCRIPTION",
+            }
+        })
     }
 }
 
@@ -84,19 +74,13 @@ export const pauseSubscription = async (parent: any, args: any, context: any) =>
         const subscriptionService = new SubscriptionService(context.em);
         const subscription = await subscriptionService.pauseSubscription(args.subscriptionId);
 
-        return {
-            success: true,
-            message: 'Subscription paused successfully',
-            subscription,
-            errors: []
-        };
+        return CustomResponse(200, 'Subscription paused successfully.', true, {subscription});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to pause subscription',
-            subscription: null,
-            errors: [error.message]
-        };
+       throw new GraphQLError(error.message, {
+           extensions: {
+               code: "ERROR_PAUSE_SUBSCRIPTION",
+           }
+       })
     }
 }
 
@@ -105,19 +89,13 @@ export const resumeSubscription = async (parent: any, args: any, context: any) =
         const subscriptionService = new SubscriptionService(context.em);
         const subscription = await subscriptionService.resumeSubscription(args.subscriptionId);
 
-        return {
-            success: true,
-            message: 'Subscription resumed successfully',
-            subscription,
-            errors: []
-        };
+        return CustomResponse(200, 'Subscription resumed successfully.', true, {subscription});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to resume subscription',
-            subscription: null,
-            errors: [error.message]
-        };
+       throw new GraphQLError(error.message, {
+           extensions: {
+               code: "ERROR_RESUME_SUBSCRIPTION",
+           }
+       })
     }
 }
 
@@ -129,28 +107,22 @@ export const changeSubscriptionPlan = async (parent: any, args: any, context: an
             planId: args.newPlanId
         });
 
-        return {
-            success: true,
-            message: 'Subscription plan changed successfully',
-            subscription,
-            errors: []
-        };
+        CustomResponse(200, 'Subscription changed successfully.', true, {subscription});
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to change subscription plan',
-            subscription: null,
-            errors: [error.message]
-        };
+        throw new GraphQLError(error.message, {
+            extensions: {
+                code: "ERROR_CHANGE_SUBSCRIPTION",
+            }
+        })
     }
 }
 
 // ===== EXPORT RESOLVERS OBJECT =====
 export const subscriptionResolvers = {
     Query: {
-        getSubscription,
-        listUserSubscriptions,
-        getActiveSubscription
+        // getSubscription,
+        // listUserSubscriptions,
+        // getActiveSubscription
     },
 
     Mutation: {

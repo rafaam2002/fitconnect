@@ -307,7 +307,7 @@ export class SubscriptionService extends BaseService {
                 }
             );
 
-            subscription.status = SubscriptionStatus.PAUSED;
+            subscription.status = SubscriptionStatus.PAUSED as SubscriptionStatus;
             await this.em.flush();
 
             return subscription;
@@ -327,7 +327,7 @@ export class SubscriptionService extends BaseService {
             const updatedStripeSubscription = await this.stripe.subscriptions.update(
                 subscription.stripeSubscriptionId,
                 {
-                    pause_collection: undefined
+                    pause_collection: null
                 }
             );
 

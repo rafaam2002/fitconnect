@@ -23,7 +23,7 @@ export const createCustomer = async (parent: any, args: any, context: any) => {
         const customerService = new CustomerService(context.em);
         const customer = await customerService.createCustomer(args.customer);
 
-        return CustomResponse(200, 'Customer created successfully', true, customer);
+        return CustomResponse(200, 'Customer created successfully', true, {customer});
     } catch (error: any) {
         return new GraphQLError(error.message, {
             extensions: {

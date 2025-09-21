@@ -7,6 +7,7 @@ import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
 import {PaymentMethod} from "../../entities/PaymentMethod";
 import {PaymentMethodStatus} from "../../types/enums";
+import {StripeCustomer} from "../../entities/StripeCustomer";
 
 export const getPaymentMethod = async (parent: any, args: any, context: any) => {
     try {
@@ -79,7 +80,7 @@ export const getDefaultPaymentMethod = async (parent: any, args: any, context: a
 }
 
 export const getUserDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
-    const stripeCustomer = await context.em.findOne('StripeCustomer', {
+    const stripeCustomer = await context.em.findOne(StripeCustomer, {
         user: args.userId,
         isActive: true
     });
@@ -94,7 +95,7 @@ export const getUserDefaultPaymentMethod = async (parent: any, args: any, contex
         status: 'ACTIVE'
     });
 
-    return paymentMethods[0] || null;
+    return CustomResponse(200, 'Default User Payment Method is fetched successfully.', true, {paymentMethod: paymentMethods[0]});
 }
 
 export const getExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
@@ -350,8 +351,6 @@ export const paymentMethodResolvers = {
         listUserPaymentMethods,
         getDefaultPaymentMethod,
         getUserDefaultPaymentMethod,
-
-        // ✅ Nuevas consultas
         getExpiredPaymentMethods,
         getPaymentMethodsStats
     },
@@ -366,9 +365,8 @@ export const paymentMethodResolvers = {
 
         updatePaymentMethodMetadata,
         markPaymentMethodAsExpired,
-        syncPaymentMethodFromStripe,
+        // syncPaymentMethodFromStripe,
         validatePaymentMethod,
-
         cleanupExpiredPaymentMethods
 
     }

@@ -65,7 +65,11 @@ type Query {
     getPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     listPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
     getDefaultPaymentMethod(stripeCustomerId: ID!): PaymentMethodResponse!
+    getUserDefaultPaymentMethod(userId: ID!): PaymentMethodResponse!
     getExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
     getPaymentMethodsStats(stripeCustomerId: ID!): StatsResponse!
+    
+    #------------------------Subscriptions-------------------------
+    
 }
 `;

@@ -169,7 +169,7 @@ export const removePushToken = async (
 
 export const pushTokenResolvers = {
     Query: {
-        refreshToken,
+        // refreshToken,
     },
     Mutation: {
         registerToken,

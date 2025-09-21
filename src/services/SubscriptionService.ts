@@ -354,7 +354,7 @@ export class SubscriptionService extends BaseService {
 
         return await this.em.find(Subscription, { user }, {
             populate: ['plan', 'defaultPaymentMethod'],
-            orderBy: { createdAt: QueryOrder.DESC }
+            orderBy: { created_at: QueryOrder.DESC }
         }as any);
     }
 

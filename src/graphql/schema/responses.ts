@@ -162,6 +162,7 @@ type SubscriptionResponse implements BasicResponse {
     success: Boolean!
     message: String!
     subscription: Subscription
+    subscriptions: [Subscription]
 }
 
 type IdResponse {

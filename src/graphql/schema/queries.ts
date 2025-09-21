@@ -70,6 +70,8 @@ type Query {
     getPaymentMethodsStats(stripeCustomerId: ID!): StatsResponse!
     
     #------------------------Subscriptions-------------------------
-    
+    getSubscription(subscriptionId: ID!): SubscriptionResponse!
+    listUserSubscriptions(userId: ID!): SubscriptionResponse!
+    getActiveSubscription(userId: ID!): SubscriptionResponse!
 }
 `;

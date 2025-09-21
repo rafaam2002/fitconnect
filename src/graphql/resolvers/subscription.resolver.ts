@@ -6,18 +6,23 @@ import {GraphQLError} from "graphql";
 
 export const getSubscription = async (parent: any, args: any, context: any) => {
     const subscriptionService = new SubscriptionService(context.em);
-    return await subscriptionService.getSubscription(args.subscriptionId);
+    const subscription = subscriptionService.getSubscription(args.subscriptionId);
+
+    return CustomResponse(200, 'Subscription fetched successfully', true, {subscription});
 }
 
 export const listUserSubscriptions = async (parent: any, args: any, context: any) => {
     const subscriptionService = new SubscriptionService(context.em);
-    return await subscriptionService.listUserSubscriptions(args.userId);
+    const subscriptions = await subscriptionService.listUserSubscriptions(args.userId);
+
+    return CustomResponse(200, 'User subscriptions are fetched succesffully', true, {subscriptions})
 }
 
 export const getActiveSubscription = async (parent: any, args: any, context: any) => {
     const subscriptionService = new SubscriptionService(context.em);
     const subscriptions = await subscriptionService.listUserSubscriptions(args.userId);
-    return subscriptions.find(sub => sub.isActive) || null;
+
+    return CustomResponse(200, 'Active Subscription fetched successfully', true, {subscription: subscriptions.find(sub => sub.isActive) || null});
 }
 
 // ===== MUTATION RESOLVERS =====
@@ -120,9 +125,9 @@ export const changeSubscriptionPlan = async (parent: any, args: any, context: an
 // ===== EXPORT RESOLVERS OBJECT =====
 export const subscriptionResolvers = {
     Query: {
-        // getSubscription,
-        // listUserSubscriptions,
-        // getActiveSubscription
+        getSubscription,
+        listUserSubscriptions,
+        getActiveSubscription
     },
 
     Mutation: {

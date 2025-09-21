@@ -157,10 +157,12 @@ type PlanResponse implements BasicResponse{
     plans: [Plan]
 }
 
-type SubscriptionResponse implements BasicResponse{
+type SubscriptionResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
+    subscription: Subscription
+    subscriptions: [Subscription]
 }
 
 type IdResponse {

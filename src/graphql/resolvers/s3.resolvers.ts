@@ -1,7 +1,7 @@
 import aws from "aws-sdk";
 import dotenv from "dotenv";
-import { ContextProps } from "../../../types/resolvers";
-import { CustomResponse } from "../errors";
+import { ContextProps } from "../../types/resolvers";
+import { CustomResponse } from "./errors";
 import crypto from "crypto";
 import { GraphQLError } from "graphql";
 
@@ -22,6 +22,7 @@ export const s3 = new aws.S3({
   signatureVersion: "v4",
 });
 
+// ===== QUERY RESOLVERS =====
 export const getPresignedUrl = async (
   _: any,
   {
@@ -58,3 +59,12 @@ export const getPresignedUrl = async (
     return CustomResponse(500, "Error generating presigned URL", false, null);
   }
 };
+
+export const s3Resolvers = {
+    Query: {
+        getPresignedUrl,
+    },
+    Mutation: {
+
+    }
+}

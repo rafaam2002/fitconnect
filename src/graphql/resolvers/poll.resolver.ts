@@ -1,10 +1,10 @@
-import {ContextProps, DeletePollProps, DeletePollsProps, PollProps, VoteProps} from "../../../types/resolvers";
+import {ContextProps, DeletePollProps, DeletePollsProps, PollProps, VoteProps} from "../../types/resolvers";
 import {GraphQLError} from "graphql";
-import {CustomResponse} from "../errors";
-import {User, UserRole} from "../../../entities/User";
-import {sendPushNotification} from "../../../utils/notifications";
-import {Poll} from "../../../entities/Poll";
-import {PollVote} from "../../../entities/PollVote";
+import {CustomResponse} from "./errors";
+import {User, UserRole} from "../../entities/User";
+import {sendPushNotification} from "../../utils/notifications";
+import {Poll} from "../../entities/Poll";
+import {PollVote} from "../../entities/PollVote";
 import moment from "moment";
 
 export const createPoll = async (
@@ -213,3 +213,15 @@ export const removePolls = async (
         return CustomResponse(500, "Error occurred while deleting polls");
     }
 };
+
+export const pollResolvers = {
+    Query: {
+
+    },
+    Mutation: {
+        createPoll,
+        createOrChangePollVote,
+        deletePollVote,
+        removePolls,
+    }
+}

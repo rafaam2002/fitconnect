@@ -61,7 +61,7 @@ export class Subscription extends BaseEntity {
     @Property({type: 'datetime', nullable: true})
     canceledAt?: Date;
 
-    @Property({type: 'datetime', nullable: true})
+    @Property({type: 'boolean', nullable: true})
     cancelAtPeriodEnd?: boolean;
 
     @Property({type: 'datetime', nullable: true})

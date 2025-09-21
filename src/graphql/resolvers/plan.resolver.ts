@@ -1,25 +1,23 @@
-// src/graphql/resolvers/planResolver.ts
+import {PlanService} from "../../services/PlanService";
+import {CustomResponse} from "./errors";
+import {GraphQLError} from "graphql";
 
 // ===== QUERY RESOLVERS =====
-
-import {PlanService} from "../../../services/PlanService";
-import {CustomResponse} from "../errors";
-
-export async function getPlan(parent: any, args: any, context: any) {
+export const getPlan = async (parent: any, args: any, context: any) => {
     const planService = new PlanService(context.em);
     const plan = await planService.getPlan(args.planId);
 
     return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
 }
 
-export async function getPlanByStripeId(parent: any, args: any, context: any) {
+export const getPlanByStripeId = async (parent: any, args: any, context: any) => {
     const planService = new PlanService(context.em);
     const plan = await planService.getPlanByStripeId(args.stripePriceId);
 
     return CustomResponse(200, 'Plan is fetched successfully.', true, {plan});
 }
 
-export async function listPlans(parent: any, args: any, context: any) {
+export const listPlans = async (parent: any, args: any, context: any) => {
     const planService = new PlanService(context.em);
     const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
     const plans = await planService.listPlans(onlyActive);
@@ -37,7 +35,11 @@ export const createPlan = async (parent: any, args: any, context: any) => {
         return CustomResponse(200, 'Plan created successfully.', true, {plan});
 
     } catch (error: any) {
-        return CustomResponse(500, 'Failed to create plan.', false, {error: error.message});
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'FAILED_CREATE_PLAN',
+            }
+        })
     }
 }
 
@@ -48,7 +50,11 @@ export const updatePlan = async (parent: any, args: any, context: any) => {
 
         return CustomResponse(200, 'Plan updated successfully.', true, {plan});
     } catch (error: any) {
-        return CustomResponse(500, 'Failed to update plan.', true, {error: error.message});
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'FAILED_UPDATE_PLAN',
+            }
+        })
     }
 }
 
@@ -60,7 +66,11 @@ export const removePlan = async (parent: any, args: any, context: any) => {
         return CustomResponse(200, 'Plan deactivated successfully', true, {plan})
 
     } catch (error: any) {
-        return CustomResponse(500, 'Failed to remove plan.', false, {error: error.message});
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: 'FAILED_DELETE_PLAN',
+            }
+        })
     }
 }
 

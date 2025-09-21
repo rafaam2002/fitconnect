@@ -39,9 +39,14 @@ enum ScheduleState {
 }
 
 enum SubscriptionStatus{
+    incomplete
+    incomplete_expired
+    trialing
     active
-    cancelled
-    pending
+    past_due
+    canceled
+    unpaid
+    paused
 }
 
 enum CreditCardType {

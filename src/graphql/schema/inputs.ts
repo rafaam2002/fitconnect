@@ -113,6 +113,22 @@ input CreateSubscriptionInput {
     userId: ID!
     paymentMethodId: ID
     trialPeriodDays: Int
+    quantity: Int
+    metadata: JSON
+}
+
+input UpdateSubscriptionInput {
+    subscriptionId: ID!
+    planId: ID!
+    paymentMethodId: ID
+    quantity: Int
+    metadata: JSON
+}
+
+input CancelSubscriptionInput {
+    subscriptionId: String,
+    cancelAtPeriodEnd: Boolean
+    cancellationReason: String
 }
 
 input SendNotificationInput {

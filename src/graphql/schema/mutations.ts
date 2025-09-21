@@ -35,8 +35,13 @@ type Mutation {
     removePlan(planId: ID!): PlanResponse!,
 
     #------------------Subscription-----------------
-    createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!,
-    removeSubscription(planId: ID!): PlanResponse!,
+    createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!
+    updateSubscription(subscription: UpdateSubscriptionInput!): SubscriptionResponse!
+    cancelSubscription(input: CancelSubscriptionInput): SubscriptionResponse!
+    pauseSubscription(subscriptionId: ID!): SubscriptionResponse!
+    resumeSubscription(subscriptionId: ID!): SubscriptionResponse!
+    removeSubscription(planId: ID!): PlanResponse!
+    changeSubscriptionPlan(subscriptionId: ID!, newPlanId: ID!): SubscriptionResponse!
 
     #------------------TrainingTask-----------------
     createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!

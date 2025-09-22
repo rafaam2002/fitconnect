@@ -143,7 +143,7 @@ type Plan {
     name: String!
     description: String!
     amount: Float!
-    currency: String!
+    currency: Currency!
     interval: PlanInterval!
     intervalCount: Int
     trialPeriodDays: Int
@@ -183,20 +183,18 @@ type Card {
 
 type Transaction {
     id: ID!
+    stripeChargeId: ID
+    stripePaymentId: ID
+    user: User
+    paymentMethod: PaymentMethod
+    type: TransactionType
+    status: TransactionStatus
+    formattedAmount: Float
+    currency: Currency
+    description: String
+    isSuccessful: Boolean
+    metadata: JSON
     created_at: String!
-    updated_at: String!
-    subscription: ID!
-    user: IdResponse!
-    card: IdResponse!
-    paymentMethod: PaymentMethod!
-    amount: Float!
-    currency: Currency!
-    status: TransactionStatus!
-    transactionId: String!
-    reference: String!
-    transactionDate: String!
-    description: String!
-    authCode: String!
 }
 
 type UserStats {
@@ -244,7 +242,7 @@ type StripeCustomer {
     stripeCustomerId: String!
     user: User
     isActive: Boolean
-    defaultCurrency: String
+    defaultCurrency: Currency
 }
 
 type PaymentMethod {

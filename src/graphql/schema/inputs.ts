@@ -163,7 +163,7 @@ input CreatePlanInput {
     name: String
     description: String
     amount: Float
-    currency: String
+    currency: Currency
     interval: PlanInterval
     intervalCount: Int
     trialPeriodDays: Int
@@ -182,5 +182,21 @@ input AttachPaymentMethodInput {
     paymentMethodId: ID!
     stripeCustomerId: ID!
     setAsDefault: Boolean
+}
+
+input CreateChargeInput {
+    userId: ID!
+    amount: Int
+    currency: Currency
+    paymentMethodId: ID
+    description: String
+    metadata: JSON  
+}
+
+input RefundTransactionInput {
+    transactionId: ID!
+    amount: Float
+    reason: String
+    metadata: JSON
 }
 `;

@@ -100,4 +100,20 @@ enum PlanStatus {
     inactive
     archived
 }
+
+enum TransactionStatus {
+    pending
+    succeeded
+    failed
+    canceled
+    refunded
+    partially_refunded
+}
+
+enum TransactionType {
+    charge
+    refund
+    payment
+    subscription
+}
 `;

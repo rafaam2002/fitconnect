@@ -9,9 +9,11 @@ import {paymentMethodResolvers} from "./payment-method.resolver";
 import {pushTokenResolvers} from "./token.resolver";
 import {pollResolvers} from "./poll.resolver";
 import {customerResolvers} from "./customer.resolver";
+import {transactionResolvers} from "./transaction.resolver";
 
 const resolvers = {
     Query: {
+        ...transactionResolvers.Query,
         ...subscriptionResolvers.Query,
         ...s3Resolvers.Query,
         ...pushTokenResolvers.Query,
@@ -25,6 +27,7 @@ const resolvers = {
         ...articleResolvers.Query,
     },
     Mutation: {
+        ...transactionResolvers.Mutation,
         ...subscriptionResolvers.Mutation,
         ...s3Resolvers.Mutation,
         ...pushTokenResolvers.Mutation,

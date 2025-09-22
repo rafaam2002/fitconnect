@@ -1,6 +1,6 @@
 export const graphqlMutations = `   
 type Mutation {
-    #------------------User-----------------
+    #------------------User--------------------
     createUser( user: CreateUserInput!): LoginResponse!
     updateUser ( user: UpdateUserInput!, userId: String!): UserResponse!
     forgotPassword(email: String!): String!
@@ -23,18 +23,18 @@ type Mutation {
     removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!
     updateScheduleOptions(scheduleOptions: UpdateScheduleOptionsInput!): ScheduleOptionsResponse! 
 
-    #------------------Poll--------------------------
+    #------------------Poll---------------------
     createPoll(poll: CreatePollInput!): PollResponse!
     createOrChangePollVote(vote: CreatePollVoteInput! ): PollResponse!
     deletePollVote(pollId: ID!): PollResponse!
     removePolls(ids: [String]!): PollResponse!
 
-    #------------------Plan--------------------------
+    #------------------Plan--------------------
     createPlan(plan: CreatePlanInput!): PlanResponse!
     updatePlan(plan: CreatePlanInput!): PlanResponse!
     removePlan(planId: ID!): PlanResponse!,
 
-    #------------------Subscription-----------------
+    #------------------Subscription-------------
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!
     updateSubscription(subscription: UpdateSubscriptionInput!): SubscriptionResponse!
     cancelSubscription(input: CancelSubscriptionInput): SubscriptionResponse!
@@ -43,26 +43,26 @@ type Mutation {
     removeSubscription(planId: ID!): PlanResponse!
     changeSubscriptionPlan(subscriptionId: ID!, newPlanId: ID!): SubscriptionResponse!
 
-    #------------------TrainingTask-----------------
+    #---------------TrainingTask---------------
     createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!
     removeTrainingTask(trainingTaskId: ID!): TrainingTaskResponse!
 
-    #------------------UserWeight------------------
+    #----------------UserWeight----------------
     addUserWeight(userWeight: AddUserWeightInput!): UserResponse!
     removeUserWeight(userWeightId: ID!): UserResponse!
 
-    #------------------Product------------------
+    #-----------------Product------------------
     createProduct(product: CreateProductInput!): ProductResponse!
     updateProductPicture(imageName: String!, productId: String!): ProductResponse!
     removeProduct(ids: [String]!): ProductResponse!
 
-    #-----------------Token-----
+    #-----------------Token--------------------
     registerToken(token: String!): RegisterTokenResponse!
     removePushToken(token: String!): DefaultResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshToken(refreshToken: String!): LoginResponse!
     
-    #-----------------PaymentMethod--------------------------
+    #-----------------PaymentMethod------------
     createSetupIntent(stripeCustomerId: String!, usage: String): SetupIntentResponse!
     confirmSetupIntent(setupIntentId: String!, setAsDefault: Boolean): PaymentMethodResponse!
     attachPaymentMethod(input: AttachPaymentMethodInput!): AttachPaymentMethodResponse!
@@ -73,11 +73,16 @@ type Mutation {
     cleanupExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
     validatePaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     
-    #------------------------StripeCustomer-------------------------
+    #----------------StripeCustomer-------------
     createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
     updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!
     deactivateCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
     
+    #----------------Transactions---------------
+    createCharge(input: CreateChargeInput!): TransactionResponse!
+    refundTransaction(input: RefundTransactionInput!): TransactionResponse!
+    retryFailedTransaction(transactionId: ID!): TransactionResponse!
+    markTransactionAsReconciled(transactionId: ID!): TransactionResponse!
 }
 
 `;

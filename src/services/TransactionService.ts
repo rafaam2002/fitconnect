@@ -37,6 +37,8 @@ export class TransactionService extends BaseService {
             paymentMethod = await this.em.findOne(PaymentMethod, {
                 stripePaymentMethodId: input.paymentMethodId,
                 status: PaymentMethodStatus.ACTIVE
+            },{
+                populate: ['stripeCustomer'] as any
             });
 
             if (!paymentMethod) {
@@ -47,12 +49,16 @@ export class TransactionService extends BaseService {
         try {
             // Crear PaymentIntent en Stripe
             const paymentIntent: any = await this.stripe.paymentIntents.create({
+                automatic_payment_methods: {
+                    enabled: true,
+                    allow_redirects: 'never'
+                },
                 amount: input.amount,
-                currency: input.currency || 'usd',
+                currency: input.currency || 'eur',
                 payment_method: input.paymentMethodId,
                 customer: paymentMethod?.stripeCustomer.stripeCustomerId,
                 description: input.description,
-                confirm: !!input.paymentMethodId, // Confirmar si hay método de pago
+                confirm: !!input.paymentMethodId,
                 metadata: {
                     userId: user.id,
                     ...input.metadata
@@ -64,7 +70,7 @@ export class TransactionService extends BaseService {
             // Crear transacción en BD
             const transaction = this.em.create<Transaction>(Transaction, {
                 stripePaymentIntentId: paymentIntent.id,
-                stripeChargeId: paymentIntent.charges.data[0]?.id,
+                stripeChargeId: paymentIntent.latest_charge,
                 user,
                 paymentMethod,
                 type: TransactionType.CHARGE,

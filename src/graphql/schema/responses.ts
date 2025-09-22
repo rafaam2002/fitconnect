@@ -245,4 +245,12 @@ type StatsResponse implements BasicResponse {
     message: String!
     stats: Stats
 }
+
+type TransactionResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    transactions: [Transaction]
+    transaction: Transaction
+}
 `;

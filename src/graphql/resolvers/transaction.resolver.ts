@@ -3,19 +3,23 @@ import { TransactionService } from '../../services/TransactionService.js';
 import {ContextProps} from "../../types/resolvers";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
-import {Transaction} from "../../entities/Transaction";
+import {Transaction, TransactionStatus} from "../../entities/Transaction";
 
 // ===== QUERY RESOLVERS =====
 
 export const getTransaction = async(parent: any, args: any, context: ContextProps) => {
     const transactionService = new TransactionService(context.em);
-    return await transactionService.getTransaction(args.transactionId);
+    const transaction = await transactionService.getTransaction(args.transactionId);
+
+    return CustomResponse(200, 'Transaction is fetched sucessfully.', true, {transaction});
 }
 
 export const listUserTransactions = async(parent: any, args: any, context: ContextProps) => {
     const transactionService = new TransactionService(context.em);
     const limit = args.limit || 50;
-    return await transactionService.listUserTransactions(args.userId, limit);
+    const transactions = transactionService.listUserTransactions(args.userId, limit);
+
+    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
 }
 
 export const getTransactionsByStatus = async(parent: any, args: any, context: ContextProps) => {
@@ -24,22 +28,23 @@ export const getTransactionsByStatus = async(parent: any, args: any, context: Co
         status: args.status
     }, {
         populate: ['paymentMethod', 'subscription'],
-        orderBy: { createdAt: 'DESC' },
+        orderBy: { created_at: 'DESC' },
         limit: args.limit || 50
     });
-    return transactions;
+
+    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
 }
 
 export const getSuccessfulTransactions = async(parent: any, args: any, context: ContextProps) => {
-    const transactions = await context.em.find('Transaction', {
+    const transactions = await context.em.find(Transaction, {
         user: args.userId,
-        status: 'SUCCEEDED'
+        status: TransactionStatus.SUCCEEDED
     }, {
         populate: ['paymentMethod', 'subscription'],
-        orderBy: { createdAt: 'DESC' },
+        orderBy: { created_at: 'DESC' },
         limit: args.limit || 50
     });
-    return transactions;
+    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
 }
 
 export const getFailedTransactions = async(parent: any, args: any, context: ContextProps) => {
@@ -48,31 +53,31 @@ export const getFailedTransactions = async(parent: any, args: any, context: Cont
         status: 'FAILED'
     }, {
         populate: ['paymentMethod'],
-        orderBy: { createdAt: 'DESC' },
+        orderBy: { created_at: 'DESC' },
         limit: args.limit || 50
     });
-    return transactions;
+    return CustomResponse(200, 'Transactions failed.', true, {transactions});
 }
 
 export const getUserTransactionsSummary = async(parent: any, args: any, context: ContextProps) => {
-    const allTransactions = await context.em.find('Transaction', {
+    const allTransactions = await context.em.find(Transaction, {
         user: args.userId
     });
 
     const summary = {
         totalTransactions: allTransactions.length,
-        successfulTransactions: allTransactions.filter(t => t.status === 'SUCCEEDED').length,
-        failedTransactions: allTransactions.filter(t => t.status === 'FAILED').length,
+        successfulTransactions: allTransactions.filter(t => t.status === TransactionStatus.SUCCEEDED).length,
+        failedTransactions: allTransactions.filter(t => t.status === TransactionStatus.FAILED).length,
         totalAmount: allTransactions
-            .filter(t => t.status === 'SUCCEEDED')
+            .filter(t => t.status === TransactionStatus.SUCCEEDED)
             .reduce((sum, t) => sum + t.amount, 0),
         totalRefunded: allTransactions
             .reduce((sum, t) => sum + t.amountRefunded, 0),
         lastTransaction: allTransactions
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] || null
+            .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0] || null
     };
 
-    return summary;
+    return CustomResponse(200, 'Summary has been loaded successfully.', true, {summary});
 }
 
 // ===== MUTATION RESOLVERS =====
@@ -178,12 +183,12 @@ export const markTransactionAsReconciled = async(parent: any, args: any, context
 // ===== EXPORT RESOLVERS OBJECT =====
 export const transactionResolvers = {
     Query: {
-        // getTransaction,
-        // listUserTransactions,
-        // getTransactionsByStatus,
-        // getSuccessfulTransactions,
-        // getFailedTransactions,
-        // getUserTransactionsSummary
+       getTransaction,
+        listUserTransactions,
+        getTransactionsByStatus,
+        getSuccessfulTransactions,
+        getFailedTransactions,
+        getUserTransactionsSummary
     },
 
     Mutation: {

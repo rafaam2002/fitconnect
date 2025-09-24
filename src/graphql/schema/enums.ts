@@ -70,13 +70,6 @@ enum Currency {
     usd
 }
 
-enum TransactionStatus {
-    SUCCESS
-    FAILED
-    PENDING
-    REFUND
-}
-
 enum LogicalOperator {
   and
   or

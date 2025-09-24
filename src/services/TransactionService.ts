@@ -171,7 +171,7 @@ export class TransactionService extends BaseService {
 
         return await this.em.find(Transaction, { user }, {
             populate: ['paymentMethod', 'subscription'],
-            orderBy: { createdAt: QueryOrder.ASC },
+            orderBy: { created_at: QueryOrder.ASC },
             limit
         } as any);
     }

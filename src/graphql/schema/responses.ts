@@ -252,5 +252,6 @@ type TransactionResponse implements BasicResponse {
     message: String!
     transactions: [Transaction]
     transaction: Transaction
+    summary: JSON
 }
 `;

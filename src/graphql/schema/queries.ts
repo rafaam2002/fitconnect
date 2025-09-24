@@ -27,40 +27,37 @@ type Query {
     getSchedulesStats(month: Int!): SchedulesStatsResponse!
     getMonthlySchedules(month: Int!,startHour: String!): ScheduleResponse!
 
-    #----------------- Poll ----------------------
+    #----------------- Poll --------------
     getPolls(pollId: ID, filter: PollFilter): PollResponse!
 
-    #----------------- Plan ----------------------
+    #----------------- Plan --------------
     listPlans(onlyActive: Boolean): PlanResponse!
     getPlanByStripeId(stripePriceId: ID): PlanResponse!
     getPlan(planId: ID): PlanResponse!
 
-    #------------------Product-----------------
+    #------------------Product------------
     getProducts: ProductResponse!
 
-    #------------------Article-----------------
+    #------------------Article------------
     getArticles(limit: Int!, offset: Int!): ArticleResponse!
 
-    #------------------Admin-----------------
+    #------------------Admin--------------
     getAdminStats: AdminStatsResponse!
 
-    #-------------------TrainingTask-----------------
+    #---------------TrainingTask----------
     getTrainingTasks(userId: String,dateRange: [String]! ): TrainingTaskResponse!
 
-    #-------------------UserWeight-----------------
+    #-------------------UserWeight--------
     getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!
 
     #------------------s3-----------------
     getPresignedUrl(key: String ): PresignedUrlResponse!
     
-    #------------------Cards-------------------------
-    getCards: CardResponse!
-    
-    #------------------------StripeCustomer-------------------------
+    #--------------StripeCustomer---------
     getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
     getCustomerByUserId(userId: ID!): StripeCustomerResponse!
     
-    #------------------------Payments-------------------------
+    #-----------------Payments------------
     listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
     getPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     listPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
@@ -69,9 +66,18 @@ type Query {
     getExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
     getPaymentMethodsStats(stripeCustomerId: ID!): StatsResponse!
     
-    #------------------------Subscriptions-------------------------
+    #--------------Subscriptions---------
     getSubscription(subscriptionId: ID!): SubscriptionResponse!
     listUserSubscriptions(userId: ID!): SubscriptionResponse!
     getActiveSubscription(userId: ID!): SubscriptionResponse!
+    
+    #--------------Transactions---------
+    getTransaction(transactionId: ID!): TransactionResponse!
+    listUserTransactions(userId: ID!, limit: Int): TransactionResponse!
+    getTransactionsByStatus(userId: ID!, status: TransactionStatus!, limit: Int): TransactionResponse!
+    getSuccessfulTransactions(userId: ID!, limit: Int): TransactionResponse!
+    getFailedTransactions(userId: ID!, limit: Int): TransactionResponse!
+    getUserTransactionsSummary(userId: ID!): TransactionResponse!
+    
 }
 `;

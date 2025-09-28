@@ -153,7 +153,7 @@ const startServer = async () => {
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
         //sacar query por consola para debug
-        //console.log("Query: ", query);
+        console.log("Query: ", query);
 
         // Operations that don't require an authenticated user
         const publicOperations = [

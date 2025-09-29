@@ -44,20 +44,15 @@ export default {
         process.env.NODE_ENV === "production"
           ? { rejectUnauthorized: false }
           : false,
-      keepalives: true,
-      // Send keepalive probe after 25s of inactivity
-      keepalives_idle: 25000,
     },
     family: 4,
   },
   pool: {
     min: 2,
     max: 10,
-    // Destroy connection if idle for 45s. Must be > keepalives_idle
-    idleTimeoutMillis: 45000,
+    idleTimeoutMillis: 30000,
     reapIntervalMillis: 1000,
     propagateCreateError: false,
-    acquireTimeoutMillis: 60000,
   },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],

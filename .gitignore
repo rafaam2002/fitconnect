@@ -29,3 +29,6 @@ build
 # misc
 .vscode
 .eslintcache
+
+# database dumps
+remote_dump.sql

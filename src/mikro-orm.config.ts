@@ -50,9 +50,9 @@ export default {
   pool: {
     min: 2,
     max: 10,
-    idleTimeoutMillis: 30000,
     reapIntervalMillis: 1000,
-    propagateCreateError: false,
+    propagateCreateError: true,
+    idleTimeoutMillis: 600000,
   },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],

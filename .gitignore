@@ -32,3 +32,5 @@ build
 
 # database dumps
 remote_dump.sql
+
+GEMINI.md

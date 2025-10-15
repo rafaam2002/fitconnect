@@ -52,7 +52,7 @@ export default {
     max: 10,
     reapIntervalMillis: 1000,
     propagateCreateError: true,
-    idleTimeoutMillis: 600000,
+    idleTimeoutMillis: 30000,
   },
   //subscribers : [PollVoteSubscriber],
   //    EntityRepository: [CustomPollRepository],

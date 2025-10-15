@@ -21,6 +21,7 @@ import bcrypt from "bcrypt";
 import { storeNews } from "./utils/articles";
 import { createRetryingEntityManager } from "./utils/orm-retry";
 
+
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
 // } = require("apollo-server-core");
@@ -58,7 +59,7 @@ const startServer = async () => {
         id: string;
       };
 
-      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const em: EntityManager<IDatabaseDriver<Connection>> = createRetryingEntityManager(orm);
       const user = await em.findOne(User, { email: decodedToken.id });
       if (!user) {
         return res
@@ -102,7 +103,7 @@ const startServer = async () => {
         password: string;
       };
 
-      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const em: EntityManager<IDatabaseDriver<Connection>> = createRetryingEntityManager(orm);
       const user = await em.findOne(User, { email: decodedToken.email });
       if (!user) {
         return res
@@ -150,7 +151,6 @@ const startServer = async () => {
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        // const em = orm.em.fork(); //createRetryingEntityManager(orm);
         const em = createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
@@ -198,9 +198,7 @@ const startServer = async () => {
         const authorization =
           (ctx.connectionParams?.Authorization as string) || "";
         // Crear un nuevo fork del EntityManager
-        // const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
-        const em: EntityManager<IDatabaseDriver<Connection>> =
-          createRetryingEntityManager(orm);
+        const em: EntityManager<IDatabaseDriver<Connection>> = createRetryingEntityManager(orm);
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
         // Retornar el contexto con el currentUser
@@ -216,9 +214,9 @@ const startServer = async () => {
     console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
   });
 
-  cronFunctions(orm.em.fork());
+  cronFunctions(createRetryingEntityManager(orm));
 
-  storeNews(orm.em.fork(), 3, [1, 2, 3, 4]); //limt = 3 free plan
+  storeNews(createRetryingEntityManager(orm), 3, [1, 2, 3, 4]); //limt = 3 free plan
 };
 
 startServer();

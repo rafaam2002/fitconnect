@@ -2118,11 +2118,13 @@ export const newMessage = {
         () => myPubsub.asyncIterableIterator(MESSAGE_EVENT),
         (payload, variables, context) => {
             const { currentUser } = context;
-            return (
+            const result = (
                 payload.newMessage.receiver.id === currentUser.id ||
                 payload.newMessage.sender.id === currentUser.id ||
                 payload.newMessage.receiver.id === process.env.DB_FORUM_ID
             );
+
+            return result;
         }
     ),
 };

@@ -78,39 +78,40 @@ const startServer = async () => {
                 id: string;
             };
 
-            const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
-            const user = await em.findOne(User, {email: decodedToken.id});
-            if (!user) {
-                return res
-                    .status(400)
-                    .send(
-                        renderPage("Verificación fallida", "Usuario no encontrado", false)
-                    );
-            }
-            user.isVerified = true;
-            await em.persistAndFlush(user);
-
-            return res
-                .status(200)
-                .send(
-                    renderPage(
-                        "¡Correo verificado!",
-                        "Gracias por confirmar tu email. Ya puedes entrar en la app.",
-                        true
-                    )
-                );
-        } catch (err) {
-            return res
-                .status(400)
-                .send(
-                    renderPage(
-                        "Verificación fallida",
-                        `Token inválido o caducado. ${err.message}`,
-                        false
-                    )
-                );
-        }
-    });
+      const em: EntityManager<IDatabaseDriver<Connection>> = orm.em.fork();
+      const user = await em.findOne(User, { email: decodedToken.id });
+      if (!user) {
+        return res
+          .status(400)
+          .send(
+            renderPage("Verificación fallida", "Usuario no encontrado", false)
+          );
+      }
+      user.isVerified = true;
+      await em.persistAndFlush(user);
+      // lógica que valida y activa al usuario
+      // Puedes devolver HTML, o redirigir a tu frontend:
+      return res
+        .status(200)
+        .send(
+          renderPage(
+            "¡Correo verificado!",
+            "Gracias por confirmar tu email. Ya puedes entrar en la app.",
+            true
+          )
+        );
+    } catch (err) {
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            "Verificación fallida",
+            `Token inválido o caducado. ${err.message}`,
+            false
+          )
+        );
+    }
+  });
 
     app.get("/auth/reset-password", async (req, res) => {
         const token = req.query.token as {};
@@ -180,7 +181,7 @@ const startServer = async () => {
                 const authorization = req.headers.authorization || "";
                 const query = req.body?.query || "";
                 //sacar query por consola para debug
-                //console.log("Query: ", query);
+                console.log("Query: ", query);
 
                 // Operations that don't require an authenticated user
                 const publicOperations = [

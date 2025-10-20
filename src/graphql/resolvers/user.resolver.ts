@@ -2163,7 +2163,9 @@ export const userResolvers = {
         getSchedulesStats,
         getMonthlySchedules,
         getTrainingTasks,
-        getUserWeights
+        getUserWeights,
+        getUsers,
+        getPolls,
     },
     Mutation: {
         createUser,

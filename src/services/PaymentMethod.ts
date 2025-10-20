@@ -333,7 +333,9 @@ export class PaymentMethodService extends BaseService {
             }
 
             let paymentMethod: PaymentMethod | any = await this.em.findOne(PaymentMethod, {
-                stripePaymentMethodId: paymentMethodId
+                stripeCustomer,
+                fingerprint: stripePaymentMethod.card.fingerprint,
+                status: PaymentMethodStatus.ACTIVE
             });
 
             const paymentMethodData = this.extractPaymentMethodData(stripePaymentMethod);

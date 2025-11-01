@@ -174,45 +174,44 @@ const startServer = async () => {
     // ===== APOLLO SERVER =====
     await apolloServer.start();
     app.use(
-        "/",
-        cors<cors.CorsRequest>(),
-        express.json(),
-        expressMiddleware(apolloServer, {
-            context: async ({req}) => {
-                const em = orm.em.fork();
-                const authorization = req.headers.authorization || "";
-                const query = req.body?.query || "";
-                //sacar query por consola para debug
-                console.log("Query: ", query);
+      "/",
+      cors<cors.CorsRequest>(),
+      express.json(),
+      expressMiddleware(apolloServer, {
+        context: async ({ req }) => {
+          const em = createRetryingEntityManager(orm);
+          const authorization = req.headers.authorization || "";
+          const query = req.body?.query || "";
+          //sacar query por consola para debug
+          // console.log("Query: ", query);
 
-                // Operations that don't require an authenticated user
-                const publicOperations = [
-                    "login",
-                    "loginWithGoogle",
-                    "loginWithId",
-                    "refreshToken",
-                    "getAccessToken",
-                    "createUser",
-                    "forgotPassword",
-                    "sendChangePasswordEmail",
-                    "verifyEmail",
-                ];
+          // Operations that don't require an authenticated user
+          const publicOperations = [
+            "login",
+            "loginWithGoogle",
+            "loginWithId",
+            "refreshToken",
+            "getAccessToken",
+            "createUser",
+            "forgotPassword",
+            "sendChangePasswordEmail",
+            "verifyEmail",
+          ];
 
-                // If the query string contains a public operation, skip token authentication
-                const isPublicOperation = publicOperations.some((op) =>
-                    query.toLowerCase().includes(op.toLowerCase())
-                );
+          // If the query string contains a public operation, skip token authentication
+          const isPublicOperation = publicOperations.some((op) =>
+            query.toLowerCase().includes(op.toLowerCase())
+          );
 
-                if (isPublicOperation) {
-                    return {em, currentUser: null};
-                }
+          if (isPublicOperation) {
+            return { em, currentUser: null };
+          }
 
-                const currentUser = await authenticateUser(em, authorization);
-                return {em, currentUser};
-            },
-        })
+          const currentUser = await authenticateUser(em, authorization);
+          return { em, currentUser };
+        },
+      })
     );
-
     // ===== WEBSOCKET SERVER =====
     const wsServer = new WebSocketServer({
         server: httpServer,

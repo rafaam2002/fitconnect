@@ -116,13 +116,12 @@ const startServer = async () => {
   });
 
     app.get("/auth/reset-password", async (req, res) => {
-        const token = req.query.token as {};
+        const token = req.query.token as string;
         try {
-            const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+          const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
                 email: string;
-                purpose: string;
                 password: string;
-            };
+          };
 
             const em: EntityManager<IDatabaseDriver<Connection>> = createRetryingEntityManager(orm);
             const user = await em.findOne(User, {email: decodedToken.email});

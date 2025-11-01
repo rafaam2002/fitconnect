@@ -1,4 +1,4 @@
-import {Subscription} from "../entities/Subscription";
+import {Subscription, SubscriptionStatus} from "../entities/Subscription";
 import {CustomerService} from "../services/CustomerService";
 import {SubscriptionService} from "../services/SubscriptionService";
 import {MikroORM} from "@mikro-orm/core";
@@ -26,7 +26,7 @@ async function reconcileWithStripe() {
 
     // Reconciliar suscripciones
     const subscriptions = await em.find(Subscription, {
-        status: { $in: ['active', 'trialing', 'past_due'] }
+        status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING, SubscriptionStatus.PAST_DUE] }
     });
 
     for (const subscription of subscriptions) {

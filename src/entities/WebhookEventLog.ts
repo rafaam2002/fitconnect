@@ -34,6 +34,9 @@ export class WebhookEventLog extends BaseEntity {
     @Property({ type: 'datetime', nullable: true })
     processedAt?: Date;
 
+    @Property({ type: 'datetime', nullable: true })
+    lastAttemptAt?: Date;
+
     markAsProcessed(): void {
         this.status = WebhookEventStatus.PROCESSED;
         this.processedAt = new Date();

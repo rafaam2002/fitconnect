@@ -24,6 +24,14 @@ export class CustomerService extends BaseService {
         super(em);
     }
 
+    async findByStripeCustomerId(customerId: string) {
+        const customer = await this.em.findOne(StripeCustomer, {stripeCustomerId: customerId});
+
+        if (!customer) throw new Error('Stripe Customer not found');
+
+        return customer;
+    }
+
     async createCustomer(input: CreateCustomerInput): Promise<StripeCustomer> {
         // Buscar usuario
         const user = await this.em.findOne(User, {id: input.userId});
@@ -70,7 +78,7 @@ export class CustomerService extends BaseService {
                 defaultCurrency: 'EUR',
             });
 
-            user.stripeCustomerId = customerEntity.id;
+            user.stripeCustomerId = customerEntity.stripeCustomerId;
 
             this.em.persist(customerEntity);
             await this.em.flush();
@@ -144,16 +152,17 @@ export class CustomerService extends BaseService {
 
     async deactivateCustomer(stripeCustomerId: string): Promise<void> {
         const customer = await this.em.findOne(StripeCustomer, {
-            stripeCustomerId,
-            isActive: true
+            stripeCustomerId
         });
 
         if (!customer) {
             throw new Error('Stripe customer not found');
         }
-
-        // Marcar como inactivo en BD (no eliminamos de Stripe)
-        customer.isActive = false;
+        if (customer.isActive)
+            customer.isActive = false;
+        else if (customer.isActive === false) {
+            console.log(`Customer ${stripeCustomerId} already inactive`);
+        }
         await this.em.flush();
     }
 

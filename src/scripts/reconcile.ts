@@ -1,0 +1,44 @@
+import {Subscription} from "../entities/Subscription";
+import {CustomerService} from "../services/CustomerService";
+import {SubscriptionService} from "../services/SubscriptionService";
+import {MikroORM} from "@mikro-orm/core";
+import {StripeCustomer} from "../entities/StripeCustomer";
+import config from "../mikro-orm.config";
+
+async function reconcileWithStripe() {
+    const orm = await MikroORM.init(config);
+    const em = orm.em.fork();
+
+    const customerService = new CustomerService(em);
+    const subscriptionService = new SubscriptionService(em);
+
+    // Reconciliar customers
+    const customers = await em.find(StripeCustomer, { isActive: true });
+
+    for (const customer of customers) {
+        try {
+            await customerService.syncCustomerFromStripe(customer.stripeCustomerId);
+            console.log(`✅ Synced customer: ${customer.stripeCustomerId}`);
+        } catch (error) {
+            console.error(`❌ Failed to sync customer ${customer.stripeCustomerId}:`, error.message);
+        }
+    }
+
+    // Reconciliar suscripciones
+    const subscriptions = await em.find(Subscription, {
+        status: { $in: ['active', 'trialing', 'past_due'] }
+    });
+
+    for (const subscription of subscriptions) {
+        try {
+            await subscriptionService.syncSubscriptionFromStripe(subscription.stripeSubscriptionId);
+            console.log(`✅ Synced subscription: ${subscription.stripeSubscriptionId}`);
+        } catch (error) {
+            console.error(`❌ Failed to sync subscription ${subscription.stripeSubscriptionId}:`, error.message);
+        }
+    }
+
+    await orm.close();
+}
+
+reconcileWithStripe().catch(console.error);

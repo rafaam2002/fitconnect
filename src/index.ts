@@ -257,7 +257,7 @@ const startServer = async () => {
         console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
         console.log(`🩺 Health check at http://localhost:${port}/health`);
     });
-
+ 
   cronFunctions(createRetryingEntityManager(orm));
 
   storeNews(createRetryingEntityManager(orm), 3, [1, 2, 3, 4]); //limt = 3 free plan

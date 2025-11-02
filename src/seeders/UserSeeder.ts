@@ -3,15 +3,15 @@ import {Seeder} from "@mikro-orm/seeder";
 import {UserFactory} from "../factories/UserFactory";
 import {Schedule} from "../entities/Schedule";
 import {faker} from "@faker-js/faker";
-import {User, UserRole} from "../entities/User";
+import {User} from "../entities/User";
 import {Promotion} from "../entities/Promotion";
 import {PollVoteFactory} from "../factories/PollVoteFactory";
 import {PollFactory} from "../factories/PollFactory";
 import {ScheduleOptions} from "../entities/ScheduleOptions";
 import {stripe} from "../utils/const";
 import {Stripe} from "stripe";
-import Company = module
 import {CompanyFactory} from "../factories/CompanyFactory";
+import { UserRoleEnum } from "../types/enums";
 
 
 export class UserSeeder extends Seeder {
@@ -30,7 +30,7 @@ export class UserSeeder extends Seeder {
             nickname: "rafa",
             isActive: true,
             isBlocked: false,
-            role: UserRole.BOSS,
+           // role: UserRoleEnum.BOSS,
         });
         await em.persistAndFlush(myUser);
 

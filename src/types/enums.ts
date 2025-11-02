@@ -77,3 +77,10 @@ export enum ScheduleType {
   CONDITIONING = "conditioning",
   COMPETITION = "competition",
 }
+
+export enum UserRoleEnum {
+  STANDARD = "standard",
+  BOSS = "boss",
+  PREMIUM = "premium",
+  COACH = "coach",
+}

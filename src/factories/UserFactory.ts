@@ -1,7 +1,8 @@
 import { Factory } from "@mikro-orm/seeder";
 import { faker } from "@faker-js/faker";
-import {User, UserRole} from "../entities/User";
+import {User} from "../entities/User";
 import { Schedule } from "../entities/Schedule";
+import { UserRoleEnum } from "../types/enums";
 
 export class UserFactory extends Factory<User> {
   model = User;
@@ -21,11 +22,6 @@ export class UserFactory extends Factory<User> {
       }),
       isActive: faker.datatype.boolean(),
       isBlocked: faker.datatype.boolean(),
-      role: faker.helpers.weightedArrayElement([
-        { value: UserRole.BOSS, weight: 0.1 },
-        { value: UserRole.COACH, weight: 0.1 },
-        { value: UserRole.STANDARD, weight: 0.8},
-      ]),
       created_at: new Date(),
     };
   }

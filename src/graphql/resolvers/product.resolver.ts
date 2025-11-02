@@ -1,5 +1,5 @@
 import { Product } from "../../entities/Product";
-import {User, UserRole} from "../../entities/User";
+import {User} from "../../entities/User";
 import { sendPushNotification } from "../../utils/notifications";
 import {
     ContextProps,
@@ -9,6 +9,7 @@ import {
 import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql";
 import { createPictureUrl, getPresignedUrl } from "../../utils/createPresignedUrls";
+import { UserRoleEnum } from "../../types/enums";
 
 // ===== QUERY RESOLVERS =====
 export const getProducts = async (
@@ -43,7 +44,7 @@ export const createProduct = async (
       },
     });
 
-  if (currentUser.role !== UserRole.BOSS)
+  if (currentUser.role !== UserRoleEnum.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   if (!name || !description || !price)
@@ -99,7 +100,7 @@ export const updateProductPicture = async (
       },
     });
 
-  if (currentUser.role !== UserRole.BOSS)
+  if (currentUser.role !== UserRoleEnum.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   const productRepo = em.getRepository(Product);

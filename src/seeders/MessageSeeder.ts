@@ -1,7 +1,8 @@
 import type { EntityManager } from "@mikro-orm/core";
-import {User, UserRole} from "../entities/User";
+import {User} from "../entities/User";
 import { Message } from "../entities/Message";
 import { Seeder } from "@mikro-orm/seeder";
+import { UserRoleEnum } from "../types/enums";
 
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -17,7 +18,7 @@ export class MessageSeeder extends Seeder {
       nickname: "forum",
       isActive: false,
       isBlocked: false,
-      role: UserRole.BOSS,
+      //role: UserRoleEnum.BOSS,
     });
 
     const forumMessage = em.create(Message, {

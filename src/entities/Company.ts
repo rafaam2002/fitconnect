@@ -1,6 +1,13 @@
 import { BaseEntity } from "./BaseEntity";
-import { Collection, Entity, OneToMany, Property } from "@mikro-orm/core";
+import {
+  Collection,
+  Entity,
+  OneToMany,
+  OneToOne,
+  Property,
+} from "@mikro-orm/core";
 import { MemberShip } from "./MemberShip";
+import { ScheduleOptions } from "./ScheduleOptions";
 
 @Entity()
 export class Company extends BaseEntity {
@@ -15,4 +22,11 @@ export class Company extends BaseEntity {
 
   @OneToMany(() => MemberShip, (memberShip) => memberShip.company)
   memberships = new Collection<MemberShip>(this);
+
+  @OneToOne(
+    () => ScheduleOptions,
+    (scheduleOptions) => scheduleOptions.company,
+    { nullable: true }
+  )
+  scheduleOptions?: ScheduleOptions;
 }

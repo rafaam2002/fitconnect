@@ -4,6 +4,7 @@ import {Subscription} from "./Subscription";
 import {User} from "./User";
 import {Transaction} from "./Transaction";
 import {BaseEntity} from "./BaseEntity";
+import {Company} from "./Company";
 
 export enum InvoiceStatus {
     DRAFT = 'draft',
@@ -72,6 +73,9 @@ export class Invoice extends BaseEntity  {
 
     @Property({ type: 'json', nullable: true })
     metadata?: Record<string, any>;
+
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
 
     // Relaciones
     @OneToMany(() => Transaction, transaction => transaction.invoice)

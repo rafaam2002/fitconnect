@@ -1,36 +1,33 @@
-import {
-  Cascade,
-  Collection,
-  Entity,
-  OneToMany,
-  Property,
-  t,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { PictureUrl } from "./PictureUrl";
+import {Cascade, Collection, Entity, ManyToOne, OneToMany, Property, t,} from "@mikro-orm/core";
+import {BaseEntity} from "./BaseEntity";
+import {PictureUrl} from "./PictureUrl";
+import {Company} from "./Company";
 
 @Entity()
 export class Product extends BaseEntity {
-  @Property({ type: t.string })
-  name: string;
+    @Property({type: t.string})
+    name: string;
 
-  @Property({ type: t.string })
-  description: string;
+    @Property({type: t.string})
+    description: string;
 
-  @Property({ type: t.float })
-  price: number;
+    @Property({type: t.float})
+    price: number;
 
-  @OneToMany(() => PictureUrl, (picture) => picture.product, {
-    cascade: [Cascade.REMOVE],
-    eager: true,  
-  })
-  pictures = new Collection<PictureUrl>(this);
+    @OneToMany(() => PictureUrl, (picture) => picture.product, {
+        cascade: [Cascade.REMOVE],
+        eager: true,
+    })
+    pictures = new Collection<PictureUrl>(this);
 
-  constructor(product: Product) {
-    super();
-    this.name = product.name;
-    this.description = product.description;
-    this.price = product.price;
-    this.pictures = product.pictures;
-  }
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
+
+    constructor(product: Product) {
+        super();
+        this.name = product.name;
+        this.description = product.description;
+        this.price = product.price;
+        this.pictures = product.pictures;
+    }
 }

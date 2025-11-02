@@ -9,12 +9,16 @@ import {PollVoteFactory} from "../factories/PollVoteFactory";
 import {PollFactory} from "../factories/PollFactory";
 import {ScheduleOptions} from "../entities/ScheduleOptions";
 import {stripe} from "../utils/const";
+import {Stripe} from "stripe";
+import Company = module
+import {CompanyFactory} from "../factories/CompanyFactory";
 
 
 export class UserSeeder extends Seeder {
     async run(em: EntityManager): Promise<void> {
         const schedules = await em.find(Schedule, {});
-        const promotions = await em.find(Promotion, {});
+        const promotions = await em.find(Promotion, {})
+
         let cont = 0;
 
         const myUser = em.create(User, {
@@ -49,6 +53,8 @@ export class UserSeeder extends Seeder {
                         })
                         .make(1);
                 }
+
+                new CompanyFactory(em).make(1)
             })
             .make(50, {
                 schedules: faker.helpers.arrayElements(schedules, {min: 5, max: 10}),

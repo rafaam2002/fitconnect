@@ -2,6 +2,7 @@ import {Entity, PrimaryKey, Property, ManyToOne, Index, Unique, Enum} from '@mik
 import { v4 } from 'uuid';
 import {StripeCustomer} from "./StripeCustomer";
 import {BaseEntity} from "./BaseEntity";
+import {Company} from "./Company";
 
 export enum PaymentMethodType {
     CARD = 'card',
@@ -58,6 +59,9 @@ export class PaymentMethod extends BaseEntity  {
 
     @Property({ type: 'boolean', default: false })
     isDefault: boolean = false;
+
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
 
     get displayName(): string {
         if (this.type === PaymentMethodType.CARD && this.brand && this.last4) {

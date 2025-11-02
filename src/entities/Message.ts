@@ -1,51 +1,49 @@
-import {
-  BeforeCreate,
-  BeforeUpdate,
-  Entity,
-  ManyToOne,
-  Property,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
+import {BeforeCreate, BeforeUpdate, Entity, ManyToOne, Property,} from "@mikro-orm/core";
+import {BaseEntity} from "./BaseEntity";
+import {User} from "./User";
+import {Company} from "./Company";
 
 @Entity()
 export class Message extends BaseEntity {
-  //  @Field(() => String)
-  @Property()
-  text: string;
+    //  @Field(() => String)
+    @Property()
+    text: string;
 
-  // @Field(() => Boolean)
-  @Property()
-  isFixed: boolean;
+    // @Field(() => Boolean)
+    @Property()
+    isFixed: boolean;
 
-  //  @Field(() => Number, { nullable: true })
-  @Property({ nullable: true })
-  fixedEndDate?: Date;
+    //  @Field(() => Number, { nullable: true })
+    @Property({nullable: true})
+    fixedEndDate?: Date;
 
-  @ManyToOne(() => User, { nullable: true })
-  fixedAdmin?: User;
+    @ManyToOne(() => User, {nullable: true})
+    fixedAdmin?: User;
 
-  @ManyToOne(() => User)
-  sender: User;
+    @ManyToOne(() => User)
+    sender: User;
 
-  // Relación ManyToOne con User (receiver)
-  @ManyToOne(() => User)
-  receiver: User;
+    // Relación ManyToOne con User (receiver)
+    @ManyToOne(() => User)
+    receiver: User;
 
-  @BeforeCreate()
-  @BeforeUpdate()
-  validate() {
-    if (this.sender === this.receiver) {
-      throw new Error("Sender and receiver can not be the same.");
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
+
+    constructor(message: Message) {
+        super();
+        this.text = message.text;
+        this.isFixed = message.isFixed;
+        this.fixedEndDate = message.fixedEndDate;
+        this.sender = message.sender;
+        this.receiver = message.receiver;
     }
-  }
 
-  constructor(message: Message) {
-    super();
-    this.text = message.text;
-    this.isFixed = message.isFixed;
-    this.fixedEndDate = message.fixedEndDate;
-    this.sender = message.sender;
-    this.receiver = message.receiver;
-  }
+    @BeforeCreate()
+    @BeforeUpdate()
+    validate() {
+        if (this.sender === this.receiver) {
+            throw new Error("Sender and receiver can not be the same.");
+        }
+    }
 }

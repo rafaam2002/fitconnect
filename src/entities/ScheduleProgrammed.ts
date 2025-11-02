@@ -1,62 +1,67 @@
 import {
-  Collection,
-  Entity,
-  EntityRepositoryType,
-  ManyToOne,
-  OneToMany,
-  Property,
-  EntityManager,
-  Cascade,
+    Cascade,
+    Collection,
+    Entity,
+    EntityManager,
+    EntityRepositoryType,
+    ManyToOne,
+    OneToMany,
+    Property,
 } from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { Schedule } from "./Schedule";
-import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
-import { ScheduleType } from "../types/enums";
-@Entity({ repository: () => CustomScheduleProgrammedRepository })
+import {BaseEntity} from "./BaseEntity";
+import {User} from "./User";
+import {Schedule} from "./Schedule";
+import {CustomScheduleProgrammedRepository} from "../customRepositories/scheduleProgrammedRepository";
+import {ScheduleType} from "../types/enums";
+import {Company} from "./Company";
+
+@Entity({repository: () => CustomScheduleProgrammedRepository})
 export class ScheduleProgrammed extends BaseEntity {
-  [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
-  @Property()
-  daysOfWeek: number[];
+    [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
+    @Property()
+    daysOfWeek: number[];
 
-  @Property({ type: "time" })
-  startHour: string;
+    @Property({type: "time"})
+    startHour: string;
 
-  @Property({ type: "time" })
-  endHour: string; // in minutes
+    @Property({type: "time"})
+    endHour: string; // in minutes
 
-  @Property()
-  maxUsers: number;
+    @Property()
+    maxUsers: number;
 
-  @ManyToOne(() => User, { nullable: true })
-  admin?: User;
+    @ManyToOne(() => User, {nullable: true})
+    admin?: User;
 
-  @Property()
-  title: string;
+    @Property()
+    title: string;
 
-  @Property()
-  description: string;
+    @Property()
+    description: string;
 
-  @Property({ default: ScheduleType.STANDARD })
-  type: ScheduleType = ScheduleType.STANDARD;
+    @Property({default: ScheduleType.STANDARD})
+    type: ScheduleType = ScheduleType.STANDARD;
 
-  @Property({ nullable: true })
-  age: number;
+    @Property({nullable: true})
+    age: number;
 
-  @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
-    cascade: [Cascade.REMOVE],
-  })
-  schedules = new Collection<Schedule>(this);
+    @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
+        cascade: [Cascade.REMOVE],
+    })
+    schedules = new Collection<Schedule>(this);
 
-  constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
-    super();
-    this.daysOfWeek = scheduleProgrammed.daysOfWeek;
-    this.startHour = scheduleProgrammed.startHour;
-    this.endHour = scheduleProgrammed.endHour;
-    this.maxUsers = scheduleProgrammed.maxUsers;
-    this.admin = scheduleProgrammed.admin;
-    this.title = scheduleProgrammed.title;
-    this.description = scheduleProgrammed.description;
-    this.age = scheduleProgrammed.age;
-  }
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
+
+    constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
+        super();
+        this.daysOfWeek = scheduleProgrammed.daysOfWeek;
+        this.startHour = scheduleProgrammed.startHour;
+        this.endHour = scheduleProgrammed.endHour;
+        this.maxUsers = scheduleProgrammed.maxUsers;
+        this.admin = scheduleProgrammed.admin;
+        this.title = scheduleProgrammed.title;
+        this.description = scheduleProgrammed.description;
+        this.age = scheduleProgrammed.age;
+    }
 }

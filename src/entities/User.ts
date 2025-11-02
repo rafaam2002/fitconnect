@@ -4,7 +4,7 @@ import {
     Entity,
     Enum,
     Index,
-    ManyToMany,
+    ManyToMany, ManyToOne,
     OneToMany,
     OneToOne,
     Property,
@@ -26,6 +26,7 @@ import {PictureUrl} from "./PictureUrl";
 import {RefreshToken} from "./RefreshToken";
 import {Transaction} from "./Transaction";
 import {PushToken} from "./PushToken";
+import {Company} from "./Company";
 
 export enum UserRole {
     STANDARD = "standard",
@@ -148,6 +149,9 @@ export class User extends BaseEntity {
 
     @OneToMany(() => PushToken, (pushToken) => pushToken.user, {lazy: true})
     pushTokens = new Collection<PushToken>(this);
+
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
 
     constructor(user: User) {
         super();

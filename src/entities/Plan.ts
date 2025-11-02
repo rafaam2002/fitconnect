@@ -1,7 +1,8 @@
-import {Entity, PrimaryKey, Property, OneToMany, Collection, Index, Unique, Enum} from '@mikro-orm/core';
+import {Entity, PrimaryKey, Property, OneToMany, Collection, Index, Unique, Enum, ManyToOne} from '@mikro-orm/core';
 import { v4 } from 'uuid';
 import {Subscription} from "./Subscription";
 import {BaseEntity} from "./BaseEntity";
+import {Company} from "./Company";
 
 export enum PlanInterval {
     DAY = 'day',
@@ -63,6 +64,9 @@ export class Plan extends BaseEntity  {
     // Relaciones
     @OneToMany(() => Subscription, subscription => subscription.plan)
     subscriptions = new Collection<Subscription>(this);
+
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
 
     get formattedAmount(): string {
         return (this.amount / 100).toFixed(2);

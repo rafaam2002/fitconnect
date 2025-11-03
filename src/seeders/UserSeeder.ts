@@ -114,10 +114,12 @@ export class UserSeeder extends Seeder {
             })
             .make(1);
         }
-        new MemberShipFactory(em).each((membership) => {
-          membership.company = faker.helpers.arrayElement(createdCompanies);
-          membership.user = user;
-        });
+        new MemberShipFactory(em)
+          .each((membership) => {
+            membership.company = faker.helpers.arrayElement(createdCompanies);
+            membership.user = user;
+          })
+          .make(1);
       })
       .make(50, {
         schedules: faker.helpers.arrayElements(schedules, { min: 5, max: 10 }),

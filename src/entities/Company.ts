@@ -26,7 +26,7 @@ export class Company extends BaseEntity {
   @OneToOne(
     () => ScheduleOptions,
     (scheduleOptions) => scheduleOptions.company,
-    { nullable: true }
+    { nullable: true, owner: true }
   )
   scheduleOptions?: ScheduleOptions;
 }

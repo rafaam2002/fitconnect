@@ -27,5 +27,5 @@ export class ScheduleOptions extends BaseEntity {
   fullOpenHours: number; // 0 means always full
 
   @OneToOne(() => Company, (company) => company.scheduleOptions)
-  company?: Company;
+  company: Company;
 }

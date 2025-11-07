@@ -1,11 +1,13 @@
 import jwt from "jsonwebtoken";
 import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
+import { Poll } from "../entities/Poll";
+import { UserType } from "../types";
 
 export const authenticateUser = async (
   em: EntityManager,
   authorization?: string
-): Promise<User | null> => {
+): Promise<UserType | null> => {
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
 
@@ -13,8 +15,16 @@ export const authenticateUser = async (
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
         id: string;
       };
-      const currentUser = await em.findOne(User, { id: decodedToken.id });
-      return currentUser || null;
+
+      const probe = await em.find(Poll, {});
+      console.log("Users found during auth:", probe);
+      const currentUser = await em.findOne(User, { id: decodedToken.id }, { populate: ["memberships"] });
+      const myUser = {
+        ...currentUser,
+        role: currentUser?.memberships[0]?.role || null,
+      };
+      
+      return myUser || null;
     } catch (error) {
       console.error(
         `Authentication Error (${new Date().toISOString()}):`,

@@ -1,8 +1,8 @@
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
 import { PromotionFactory } from "../factories/PromotionFactory";
-import {User,} from "../entities/User";
-import { UserRoleEnum } from "../types/enums";
+import { User } from "../entities/User";
+import { UserRole } from "../types/enums";
 
 export class PromotionSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

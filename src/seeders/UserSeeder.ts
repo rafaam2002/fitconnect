@@ -11,7 +11,7 @@ import { ScheduleOptions } from "../entities/ScheduleOptions";
 import { stripe } from "../utils/const";
 import { Stripe } from "stripe";
 import { CompanyFactory } from "../factories/CompanyFactory";
-import { UserRoleEnum } from "../types/enums";
+import { UserRole } from "../types/enums";
 import { MemberShip } from "../entities/MemberShip";
 import { Company } from "../entities/Company";
 import { MemberShipFactory } from "../factories/MemebershipFactory";
@@ -98,7 +98,7 @@ export class UserSeeder extends Seeder {
       const membership = em.create(MemberShip, {
         user: createdAdmins[index],
         company: company,
-        role: UserRoleEnum.BOSS,
+        role: UserRole.BOSS,
       });
       return membership;
     });

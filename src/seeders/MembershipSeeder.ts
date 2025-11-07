@@ -11,14 +11,13 @@ import { ScheduleOptions } from "../entities/ScheduleOptions";
 import { stripe } from "../utils/const";
 import { Stripe } from "stripe";
 import { CompanyFactory } from "../factories/CompanyFactory";
-import { UserRoleEnum } from "../types/enums";
+import { UserRole } from "../types/enums";
 import { MemberShip } from "../entities/MemberShip";
 import { Company } from "../entities/Company";
 import { MemberShipFactory } from "../factories/MemebershipFactory";
 
 export class MembershipSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-
     // const companies = new CompanyFactory(em).make(3, {
     //   scheduleOptions: em.create(ScheduleOptions, {
     //     maxActiveReservations: 3,
@@ -27,13 +26,8 @@ export class MembershipSeeder extends Seeder {
     //     maxAdvanceBookingDays: 3,
     //   }),
     // });
-
     // await em.persistAndFlush(companies);
     // const createdCompanies = await em.find(Company, {});
-
-
-
-
     // new MemberShipFactory(em)
     //   .make(50);
   }

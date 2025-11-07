@@ -180,11 +180,11 @@ const startServer = async () => {
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        const em = createRetryingEntityManager(orm);
+        const em = orm.em.fork()//createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
         //sacar query por consola para debug
-        // console.log("Query: ", query);
+        //  console.log("Query: ", query);
 
         // Operations that don't require an authenticated user
         const publicOperations = [

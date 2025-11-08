@@ -1,3 +1,5 @@
+import { Company } from "../entities/Company";
+import { MemberShip } from "../entities/MemberShip";
 import { UserRole } from "./enums";
 
 export type UserType = {
@@ -13,6 +15,7 @@ export type UserType = {
   stripeCustomerId?: string;
   name?: string;
   isVerified: boolean;
+  activeMembership?: MemberShip;
 };
 
 export type UserFilter = {

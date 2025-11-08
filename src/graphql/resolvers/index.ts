@@ -10,39 +10,21 @@ import {pushTokenResolvers} from "./token.resolver";
 import {pollResolvers} from "./poll.resolver";
 import {customerResolvers} from "./customer.resolver";
 import {transactionResolvers} from "./transaction.resolver";
+import { merge } from 'lodash';
 
-const resolvers = {
-    Query: {
-        ...transactionResolvers.Query,
-        ...subscriptionResolvers.Query,
-        ...s3Resolvers.Query,
-        ...pushTokenResolvers.Query,
-        ...productResolvers.Query,
-        ...pollResolvers.Query,
-        ...authResolvers.Query,
-        ...planResolvers.Query,
-        ...customerResolvers.Query,
-        ...paymentMethodResolvers.Query,
-        ...userResolvers.Query,
-        ...articleResolvers.Query,
-    },
-    Mutation: {
-        ...transactionResolvers.Mutation,
-        ...subscriptionResolvers.Mutation,
-        ...s3Resolvers.Mutation,
-        ...pushTokenResolvers.Mutation,
-        ...productResolvers.Mutation,
-        ...pollResolvers.Mutation,
-        ...authResolvers.Mutation,
-        ...planResolvers.Mutation,
-        ...customerResolvers.Mutation,
-        ...paymentMethodResolvers.Mutation,
-        ...userResolvers.Mutation,
-        ...articleResolvers.Mutation,
-    },
-    Subscription: {
-        ...userResolvers.Subscription,
-    }
-}
+const resolvers = merge(
+    transactionResolvers,
+    subscriptionResolvers,
+    s3Resolvers,
+    pushTokenResolvers,
+    productResolvers,
+    pollResolvers,
+    authResolvers,
+    planResolvers,
+    customerResolvers,
+    paymentMethodResolvers,
+    userResolvers,
+    articleResolvers
+);
 
 export default resolvers;

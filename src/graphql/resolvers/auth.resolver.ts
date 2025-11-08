@@ -25,7 +25,6 @@ export const transporter = nodemailer.createTransport({
 const login = async (_, args: any, { em }) => {
   const { emailOrNickname, password } = args;
 
-
   const user: User = await em.findOne(
     User,
     {
@@ -45,22 +44,24 @@ const login = async (_, args: any, { em }) => {
       token: null,
     };
   }
-  const myUser = {
-    ...user,
-    role: user?.memberships[0]?.role || null,
-  };
+
+
+  //membresia mapeada por ahora
+  // user.activeMembership = user.memberships.getItems().find((membership) => {
+  //   return membership.company.isActive;
+  // }
 
   const userForToken = {
-    id: myUser.id,
-    email: myUser.email,
-    name: myUser.name,
-    surname: myUser.surname,
-    isBlocked: myUser.isBlocked,
-    isActive: myUser.isActive,
-    role: myUser.role,
-    nickname: myUser.nickname,
-    phoneNumber: myUser.phoneNumber,
-    pictureUrl: myUser.pictureUrl,
+    id: user.id,
+    // email: user.email,
+    // name: user.name,
+    // surname: user.surname,
+    // isBlocked: user.isBlocked,
+    // isActive: user.isActive,
+    // role: user.role,
+    // nickname: user.nickname,
+    // phoneNumber: user.phoneNumber,
+    // pictureUrl: user.pictureUrl,
   };
   const token = jwt.sign(userForToken, process.env.JWT_SECRET, {
     expiresIn: "30m",
@@ -72,6 +73,7 @@ const login = async (_, args: any, { em }) => {
     refreshTokenString,
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
   );
+
   await em.persistAndFlush(refreshToken);
 
   if (token) {
@@ -79,7 +81,7 @@ const login = async (_, args: any, { em }) => {
       success: true,
       code: "200",
       message: "Login successful",
-      user: myUser,
+      user: user,
       tokens: {
         token,
         refreshToken: refreshTokenString,

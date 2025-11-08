@@ -62,6 +62,8 @@ import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { withFilter } from "graphql-subscriptions";
 
+import { IResolvers } from "@graphql-tools/utils";
+
 dotenv.config();
 
 const region = process.env.AWS_REGION || "eu-north-1";
@@ -140,8 +142,14 @@ export const getUsers = async (
   }
 
   const users = Object.keys(where).length
-    ? await userRepo.find(where, pagination)
-    : await userRepo.findAll(pagination);
+    ? await userRepo.find(where, {
+        ...pagination,
+        populate: ["memberships.company"],
+      })
+    : await userRepo.findAll({
+        ...pagination,
+        populate: ["memberships.company"],
+      });
 
   const usersNotMe = users.filter((user) => user.id !== currentUser.id);
   return CustomResponse(200, "Users found", true, { users: usersNotMe });
@@ -163,7 +171,7 @@ export const me = async (_: any, args: any, context: ContextProps) => {
   const me: User | null = await userRepo.findOne(
     { id: currentUser.id },
     {
-      populate: ["pictureUrl"],
+      populate: ["pictureUrl", "memberships.company", "activeMembership.company"],
     }
   );
   if (me) {
@@ -2172,7 +2180,7 @@ export const fixedMessages = {
   ),
 };
 
-export const userResolvers = {
+export const userResolvers: IResolvers = {
   Query: {
     me,
     findUser,
@@ -2219,5 +2227,28 @@ export const userResolvers = {
   Subscription: {
     fixedMessages,
     newMessage,
+  },
+  User: {
+    userRole: (parent: User, _: any, context: ContextProps): UserRole | null => {
+      const { currentUser } = context;
+
+      // Si el usuario que consulta no tiene una membresía activa, no hay contexto de compañía.
+      if (!currentUser?.activeMembership) {
+        // Si el usuario que se está resolviendo es el mismo que consulta, devuelve el rol de su propia membresía activa.
+        if (parent.id === currentUser.id) {
+          return parent.activeMembership?.role || null;
+        }
+        return null;
+      }
+
+      const requestingUserCompanyId = currentUser.activeMembership.company.id;
+
+      // Busca la membresía del usuario 'parent' que coincide con la compañía del usuario que consulta.
+      const membershipInContext = parent.memberships
+        .getItems()
+        .find((m) => m.company.id === requestingUserCompanyId);
+
+      return membershipInContext ? membershipInContext.role : null;
+    },
   },
 };

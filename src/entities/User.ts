@@ -5,12 +5,13 @@ import {
   Enum,
   Index,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   OneToOne,
   Property,
   t,
 } from "@mikro-orm/core";
-import { UserProviderType } from "../types/enums";
+import { UserProviderType, UserRole } from "../types/enums";
 import { BaseEntity } from "./BaseEntity";
 import { Schedule } from "./Schedule";
 import { Message } from "./Message";
@@ -73,6 +74,9 @@ export class User extends BaseEntity {
 
   @OneToMany(() => MemberShip, (memberShip) => memberShip.user)
   memberships = new Collection<MemberShip>(this);
+
+  @ManyToOne(() => MemberShip, { nullable: true, eager: true })
+  activeMembership?: MemberShip;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,

@@ -4,6 +4,7 @@ import {
     Entity,
     EntityManager,
     EntityRepositoryType,
+    Filter,
     ManyToOne,
     OneToMany,
     Property,
@@ -13,55 +14,60 @@ import {User} from "./User";
 import {Schedule} from "./Schedule";
 import {CustomScheduleProgrammedRepository} from "../customRepositories/scheduleProgrammedRepository";
 import {ScheduleType} from "../types/enums";
-import {Company} from "./Company";
+import { Company } from "./Company";
 
-@Entity({repository: () => CustomScheduleProgrammedRepository})
+@Filter({
+  name: "company",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
+@Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
-    [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
-    @Property()
-    daysOfWeek: number[];
+  [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
+  @Property()
+  daysOfWeek: number[];
 
-    @Property({type: "time"})
-    startHour: string;
+  @Property({ type: "time" })
+  startHour: string;
 
-    @Property({type: "time"})
-    endHour: string; // in minutes
+  @Property({ type: "time" })
+  endHour: string; // in minutes
 
-    @Property()
-    maxUsers: number;
+  @Property()
+  maxUsers: number;
 
-    @ManyToOne(() => User, {nullable: true})
-    admin?: User;
+  @ManyToOne(() => User, { nullable: true })
+  admin?: User;
 
-    @Property()
-    title: string;
+  @Property()
+  title: string;
 
-    @Property()
-    description: string;
+  @Property()
+  description: string;
 
-    @Property({default: ScheduleType.STANDARD})
-    type: ScheduleType = ScheduleType.STANDARD;
+  @Property({ default: ScheduleType.STANDARD })
+  type: ScheduleType = ScheduleType.STANDARD;
 
-    @Property({nullable: true})
-    age: number;
+  @Property({ nullable: true })
+  age: number;
 
-    @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
-        cascade: [Cascade.REMOVE],
-    })
-    schedules = new Collection<Schedule>(this);
+  @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
+    cascade: [Cascade.REMOVE],
+  })
+  schedules = new Collection<Schedule>(this);
 
-    @ManyToOne(() => Company, {nullable: true})
-    company: Company;
+  @ManyToOne(() => Company)
+  company: Company;
 
-    constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
-        super();
-        this.daysOfWeek = scheduleProgrammed.daysOfWeek;
-        this.startHour = scheduleProgrammed.startHour;
-        this.endHour = scheduleProgrammed.endHour;
-        this.maxUsers = scheduleProgrammed.maxUsers;
-        this.admin = scheduleProgrammed.admin;
-        this.title = scheduleProgrammed.title;
-        this.description = scheduleProgrammed.description;
-        this.age = scheduleProgrammed.age;
-    }
+  constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
+    super();
+    this.daysOfWeek = scheduleProgrammed.daysOfWeek;
+    this.startHour = scheduleProgrammed.startHour;
+    this.endHour = scheduleProgrammed.endHour;
+    this.maxUsers = scheduleProgrammed.maxUsers;
+    this.admin = scheduleProgrammed.admin;
+    this.title = scheduleProgrammed.title;
+    this.description = scheduleProgrammed.description;
+    this.age = scheduleProgrammed.age;
+  }
 }

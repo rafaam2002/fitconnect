@@ -1,6 +1,7 @@
 import {
   Collection,
   Entity,
+  Filter,
   ManyToMany,
   ManyToOne,
   Property,
@@ -8,8 +9,14 @@ import {
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
+import { Company } from "./Company";
 
 @Entity()
+@Filter({
+  name: "company",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 export class UserWeight extends BaseEntity {
   @Property()
   weight!: number;
@@ -19,7 +26,9 @@ export class UserWeight extends BaseEntity {
 
   @ManyToOne(() => User, { nullable: true })
   user!: User;
-  
+
+  @ManyToOne(() => Company)
+  company!: Company;
 
   constructor(userWeight: UserWeight) {
     super();

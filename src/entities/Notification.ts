@@ -19,6 +19,6 @@ export class Notification extends BaseEntity {
     @ManyToOne( () => User)
     user!: User;
 
-    @ManyToOne(() => Company, {nullable: true})
+    @ManyToOne(() => Company)
     company: Company;
 }

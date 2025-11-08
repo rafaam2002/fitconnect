@@ -21,7 +21,7 @@ export class Product extends BaseEntity {
     })
     pictures = new Collection<PictureUrl>(this);
 
-    @ManyToOne(() => Company, {nullable: true})
+    @ManyToOne(() => Company)
     company: Company;
 
     constructor(product: Product) {

@@ -144,11 +144,11 @@ export const getUsers = async (
   const users = Object.keys(where).length
     ? await userRepo.find(where, {
         ...pagination,
-        populate: ["memberships.company"],
+        populate: ["memberships"],
       })
     : await userRepo.findAll({
         ...pagination,
-        populate: ["memberships.company"],
+        populate: ["memberships"],
       });
 
   const usersNotMe = users.filter((user) => user.id !== currentUser.id);
@@ -171,7 +171,7 @@ export const me = async (_: any, args: any, context: ContextProps) => {
   const me: User | null = await userRepo.findOne(
     { id: currentUser.id },
     {
-      populate: ["pictureUrl", "memberships.company", "activeMembership.company"],
+      populate: ["pictureUrl", "memberships", "activeMembership.company"],
     }
   );
   if (me) {

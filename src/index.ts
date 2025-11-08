@@ -209,6 +209,11 @@ const startServer = async () => {
         }
 
         const currentUser = await authenticateUser(em, authorization);
+
+        if (currentUser && currentUser.activeMembership) {
+          em.setFilterParams('company', { companyId: currentUser.activeMembership.company.id });
+        }
+        
         return { em, currentUser };
       },
     })
@@ -231,6 +236,11 @@ const startServer = async () => {
           createRetryingEntityManager(orm);
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
+
+        if (currentUser && currentUser.activeMembership) {
+          em.setFilterParams('company', { companyId: currentUser.activeMembership.company.id });
+        }
+
         // Retornar el contexto con el currentUser
         return { em, currentUser };
       },

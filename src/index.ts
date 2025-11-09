@@ -180,7 +180,7 @@ const startServer = async () => {
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        const em = orm.em.fork()//createRetryingEntityManager(orm);
+        const em = orm.em.fork(); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
         //sacar query por consola para debug
@@ -210,10 +210,17 @@ const startServer = async () => {
 
         const currentUser = await authenticateUser(em, authorization);
 
+        //IMPORTANTE!!: por defecto solo se usaran usuarios de la misma compania
+        //y su membresia correspondiente a esa compania
         if (currentUser && currentUser.activeMembership) {
-          em.setFilterParams('company', { companyId: currentUser.activeMembership.company.id });
+          em.setFilterParams("company", {
+            companyId: currentUser.activeMembership.company.id,
+          });
+          em.setFilterParams("companyContext", {
+            companyId: currentUser.activeMembership.company.id,
+          });
         }
-        
+
         return { em, currentUser };
       },
     })
@@ -238,7 +245,9 @@ const startServer = async () => {
         const currentUser = await authenticateUser(em, authorization);
 
         if (currentUser && currentUser.activeMembership) {
-          em.setFilterParams('company', { companyId: currentUser.activeMembership.company.id });
+          em.setFilterParams("company", {
+            companyId: currentUser.activeMembership.company.id,
+          });
         }
 
         // Retornar el contexto con el currentUser

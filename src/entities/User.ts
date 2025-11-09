@@ -77,7 +77,7 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   provider: UserProviderType = UserProviderType.LOCAL;
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.user)
+  @OneToMany(() => MemberShip, (memberShip) => memberShip.user, { eager: true })
   memberships = new Collection<MemberShip>(this);
 
   @ManyToOne(() => MemberShip, { nullable: true, eager: true })

@@ -86,9 +86,10 @@ input CreatePollInput {
 
 input CreateMessageInput {
     text: String!,
-    receiverId: ID!,
+    receiverId: ID,
     isFixed: Boolean,
-    fixedDuration: Boolean
+    fixedDuration: Boolean,
+    isForumMessage: Boolean
 }
 
 input UserInput{

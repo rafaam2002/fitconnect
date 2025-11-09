@@ -13,7 +13,7 @@ type Query {
     sendEmailVerification: DefaultResponse!
     
     # ----------------- Message -----------------
-    getConversation(otherUserId: ID, page: Int, limit: Int): MessageResponse!
+    getConversation(otherUserId: ID, page: Int, limit: Int, isForumMessage: Boolean): MessageResponse!
     getNotifications: NotificationResponse!
 
     # ----------------- Schedule -----------------

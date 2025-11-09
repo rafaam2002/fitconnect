@@ -474,7 +474,7 @@ export const getConversation = async (
   const { em, currentUser } = context;
   const { otherUserId, page = 0, limit = 50, isForumMessage = false } = args;
 
-  if (!currentUser ) {
+  if (!currentUser) {
     throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
@@ -1415,6 +1415,7 @@ export const createMessage = async (
       isFixed: !!isFixed,
       fixedDuration,
       isForumMessage,
+      company: currentUser.currentCompany.id,
     });
     await em.persistAndFlush(newMessage);
 
@@ -2170,9 +2171,9 @@ export const newMessage = {
     (payload, variables, context) => {
       const { currentUser } = context;
       const result =
-        payload.newMessage.receiver.id === currentUser.id ||
+        payload.newMessage.receiver?.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.isForumMessage;
+        payload.newMessage.receiver?.isForumMessage;
 
       return result;
     }

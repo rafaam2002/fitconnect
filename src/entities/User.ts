@@ -166,6 +166,10 @@ export class User extends BaseEntity {
     return this.activeMembership ? this.activeMembership.role : null;
   }
 
+  get currentCompany(): Pick<Company, "id"> | null {
+    return this.activeMembership ? this.activeMembership.company : null;
+  }
+
   /* @BeforeCreate()
      @BeforeUpdate()
      validateEmail() {

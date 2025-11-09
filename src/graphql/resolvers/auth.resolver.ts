@@ -99,9 +99,6 @@ const login = async (_, args: any, { em }) => {
   }
 };
 
-const probe = async (_, args: any, { em }) => {
-  return "probe auth resolver";
-};
 
 const loginWithId = async (_, args: any, { em }) => {
   const { id } = args;
@@ -286,7 +283,6 @@ export const authResolvers = {
   Query: {
     login,
     loginWithId,
-    probe
   },
   Mutation: {
     forgotPassword,

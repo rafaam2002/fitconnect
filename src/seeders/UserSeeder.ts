@@ -95,15 +95,19 @@ export class UserSeeder extends Seeder {
 
       new UserFactory(em)
         .each((user) => {
-          if (cont < 2) {
-            cont++;
-            new PollFactory(em, user)
-              .each(async (poll) => {
-                poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
-                poll.company = faker.helpers.arrayElement(createdCompanies);
-              })
-              .make(1);
-          }
+          createdCompanies.forEach((company) => {
+            if (cont < 2) {
+              cont++;
+              new PollFactory(em, user)
+                .each(async (poll) => {
+                  poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
+                  poll.company = faker.helpers.arrayElement(createdCompanies);
+                })
+                .make(1);
+            } else {
+              cont = 0;
+            }
+          });
           new MemberShipFactory(em)
             .each((membership) => {
               membership.company = faker.helpers.arrayElement(createdCompanies);

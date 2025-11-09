@@ -2,7 +2,6 @@ import type { EntityManager } from "@mikro-orm/core";
 import { User } from "../entities/User";
 import { Message } from "../entities/Message";
 import { Seeder } from "@mikro-orm/seeder";
-import { UserRole } from "../types/enums";
 
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -15,23 +14,13 @@ export class MessageSeeder extends Seeder {
     );
 
     adminUsers.forEach(async (admin) => {
-      const forumUser = em.create(User, {
-        name: "forum",
-        surname: "forum",
-        password: "forum",
-        email: admin.memberships.getItems()[0].company.id,
-        phoneNumber: "123456789",
-        nickname: admin.memberships.getItems()[0].company.id,
-        isActive: false,
-        isBlocked: false,
-        //role: UserRoleEnum.BOSS,
-      });
       const forumMessage = em.create(Message, {
         text: "Welcome to the forum!",
         sender: admin,
         isFixed: false,
-        receiver: forumUser,
+        receiver: null,
         company: admin?.memberships.getItems()[0].company, // no mapear posteriormente
+        isForumMessage: true,
       });
       await em.persistAndFlush(forumMessage);
     });

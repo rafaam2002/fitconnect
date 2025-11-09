@@ -472,9 +472,9 @@ export const getConversation = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { otherUserId, page = 0, limit = 50 } = args;
+  const { otherUserId, page = 0, limit = 50, isForumMessage = false } = args;
 
-  if (!currentUser) {
+  if (!currentUser ) {
     throw new GraphQLError("Please login, token_expired", {
       extensions: {
         code: "UNAUTHENTICATED",
@@ -485,7 +485,7 @@ export const getConversation = async (
   const messageRepo = em.getRepository(Message);
 
   let forumFields = [];
-  if (otherUserId === process.env.DB_FORUM_ID || !otherUserId) {
+  if (isForumMessage) {
     //forum
     forumFields = ["isFixed", "fixedEndDate", "fixedAdmin"]; //this fields are only available in forum
   }
@@ -505,7 +505,8 @@ export const getConversation = async (
     ...forumFields,
   ]; //just mandatory fields to optimize query
 
-  if (!otherUserId) {
+  //buscar 1 mensaje de cada conversacion
+  if (!otherUserId && !isForumMessage) {
     // Si no se especifica otro usuario, se buscan todas
     //  las conversaciones del currentUser:
     const rawUserIds: { otheruser: string }[] = await em
@@ -524,7 +525,7 @@ export const getConversation = async (
       );
 
     let otherUserIds = rawUserIds.map((row) => row.otheruser);
-    otherUserIds = otherUserIds.filter((id) => id !== process.env.DB_FORUM_ID); // Excluir el foro si está presente
+    // otherUserIds = otherUserIds.filter((id) => id !== process.env.DB_FORUM_ID); // Excluir el foro si está presente
 
     // Para cada otro usuario, se busca la conversación con el currentUser:
     const conversationPromises = otherUserIds.map((otherId) => {
@@ -533,6 +534,7 @@ export const getConversation = async (
           $or: [
             { sender: currentUser.id, receiver: otherId },
             { sender: otherId, receiver: currentUser.id },
+            { isForumMessage: true },
           ],
         },
         {
@@ -548,20 +550,20 @@ export const getConversation = async (
       conversationPromises
     );
 
-    const forumMessages = await messageRepo.find(
-      {
-        receiver: process.env.DB_FORUM_ID,
-      },
-      {
-        orderBy: { created_at: "DESC" },
-        limit: limit,
-        offset: page * limit,
-        populate: ["sender", "receiver"],
-        fields: fields,
-      }
-    );
+    // const forumMessages = await messageRepo.find(
+    //   {
+    //     receiver: process.env.DB_FORUM_ID,
+    //   },
+    //   {
+    //     orderBy: { created_at: "DESC" },
+    //     limit: limit,
+    //     offset: page * limit,
+    //     populate: ["sender", "receiver"],
+    //     fields: fields,
+    //   }
+    // );
 
-    conversationsGrouped.push(forumMessages);
+    // conversationsGrouped.push(forumMessages);
 
     // Ordenar las conversaciones por la fecha del mensaje más reciente (de forma comprimida)
     conversationsGrouped.sort((a, b) => {
@@ -576,17 +578,16 @@ export const getConversation = async (
       conversations: conversationsGrouped,
     });
   } else {
-    const filter =
-      otherUserId !== process.env.DB_FORUM_ID
-        ? {
-            $or: [
-              { sender: currentUser.id, receiver: otherUserId },
-              { sender: otherUserId, receiver: currentUser.id },
-            ],
-          }
-        : {
-            receiver: process.env.DB_FORUM_ID,
-          };
+    const filter = !isForumMessage
+      ? {
+          $or: [
+            { sender: currentUser.id, receiver: otherUserId },
+            { sender: otherUserId, receiver: currentUser.id },
+          ],
+        }
+      : {
+          isForumMessage: true,
+        };
     const messages = await messageRepo.find(filter, {
       orderBy: { created_at: "DESC" },
       limit: limit,
@@ -778,7 +779,7 @@ export const getSchedulesResumeRange = async (
   const startOfDay = new Date(startDate);
   const endOfDay = new Date(endDate);
 
-  const schedules: Schedule[]  = await scheduleRepo.find(
+  const schedules: Schedule[] = await scheduleRepo.find(
     {
       startDate: { $gte: startOfDay, $lte: endOfDay },
     },
@@ -1374,7 +1375,13 @@ export const createMessage = async (
 ) => {
   const { message } = args;
   const { em, currentUser } = context;
-  const { text, receiverId, isFixed, fixedDuration = null } = message;
+  const {
+    text,
+    receiverId,
+    isFixed,
+    fixedDuration = null,
+    isForumMessage = false,
+  } = message;
 
   if (!currentUser) {
     throw new GraphQLError("Please login, token_expired", {
@@ -1388,7 +1395,7 @@ export const createMessage = async (
   if (isFixed && currentUser.currentRole === UserRole.STANDARD)
     return CustomResponse(403, "You are not authorized to perform this action");
 
-  if (isFixed && receiverId != process.env.DB_FORUM_ID)
+  if (isFixed && !message.isForumMessage)
     return CustomResponse(
       403,
       "You can only fix messages in the forum",
@@ -1397,21 +1404,20 @@ export const createMessage = async (
     );
 
   try {
-    const receiver = await em.findOne(
-      User,
-      { id: receiverId },
-      { populate: ["pushTokens"] }
-    );
+    const receiver = receiverId
+      ? await em.findOne(User, { id: receiverId }, { populate: ["pushTokens"] })
+      : null;
     const newMessage = em.create(Message, {
       text,
       receiver,
       sender: em.getReference(User, currentUser.id),
       isFixed: !!isFixed,
       fixedDuration,
+      isForumMessage,
     });
     await em.persistAndFlush(newMessage);
 
-    if (receiverId === process.env.DB_FORUM_ID) {
+    if (isForumMessage) {
       const users = await em.find(
         User,
         {
@@ -2165,7 +2171,7 @@ export const newMessage = {
       const result =
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === process.env.DB_FORUM_ID;
+        payload.newMessage.receiver.isForumMessage;
 
       return result;
     }
@@ -2181,7 +2187,7 @@ export const fixedMessages = {
       return (
         payload.newMessage.receiver.id === currentUser.id ||
         payload.newMessage.sender.id === currentUser.id ||
-        payload.newMessage.receiver.id === process.env.DB_FORUM_ID
+        payload.newMessage.receiver.isForumMessage
       );
     }
   ),
@@ -2260,9 +2266,9 @@ export const userResolvers: IResolvers = {
       const requestingUserCompanyId = currentUser.activeMembership.company.id;
 
       // Busca la membresía del usuario 'parent' que coincide con la compañía del usuario que consulta.
-      const membershipInContext = parent.memberships
-        .getItems()
-        .find((m) => m.company.id === requestingUserCompanyId);
+      const membershipInContext = parent.memberships[0]; // con el filtro de membresias, solo traera la de la compañia en contexto
+      // .getItems()
+      // .find((m) => m.company.id === requestingUserCompanyId);
 
       return membershipInContext ? membershipInContext.role : null;
     },

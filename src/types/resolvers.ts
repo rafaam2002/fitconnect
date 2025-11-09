@@ -24,6 +24,7 @@ export type MessageProps = {
     receiverId: string;
     isFixed: boolean;
     fixedDuration: number;
+    isForumMessage?: boolean;
   };
 };
 
@@ -121,6 +122,7 @@ export type GetConversationProps = {
   otherUserId?: string;
   page?: number;
   limit?: number;
+  isForumMessage?: boolean;
 };
 
 export type GetScheduleRangeProps = {

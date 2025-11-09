@@ -36,8 +36,11 @@ export class Message extends BaseEntity {
   sender: User;
 
   // Relación ManyToOne con User (receiver)
-  @ManyToOne(() => User)
-  receiver: User;
+  @ManyToOne(() => User, { nullable: true })
+  receiver?: User | null;
+  
+  @Property()
+   isForumMessage: boolean = false;
 
   @ManyToOne(() => Company)
   company: Company;
@@ -49,6 +52,8 @@ export class Message extends BaseEntity {
     this.fixedEndDate = message.fixedEndDate;
     this.sender = message.sender;
     this.receiver = message.receiver;
+    this.company = message.company;
+    this.isForumMessage = message.isForumMessage;
   }
 
   @BeforeCreate()

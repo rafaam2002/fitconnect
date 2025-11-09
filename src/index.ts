@@ -180,7 +180,7 @@ const startServer = async () => {
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        const em = orm.em.fork(); //createRetryingEntityManager(orm);
+        const em = createRetryingEntityManager(orm); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
         // em.setFilterParams("company", {
@@ -255,6 +255,9 @@ const startServer = async () => {
 
         if (currentUser && currentUser.activeMembership) {
           em.setFilterParams("company", {
+            companyId: currentUser.activeMembership.company.id,
+          });
+          em.setFilterParams("companyContext", {
             companyId: currentUser.activeMembership.company.id,
           });
         }

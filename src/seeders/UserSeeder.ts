@@ -92,22 +92,22 @@ export class UserSeeder extends Seeder {
         return membership;
       });
       await em.persistAndFlush(adminMemberships);
+      let PollsCreated = false;
 
       new UserFactory(em)
         .each((user) => {
-          createdCompanies.forEach((company) => {
-            if (cont < 2) {
+          if (!PollsCreated) {
+            createdCompanies.forEach((company) => {
               cont++;
               new PollFactory(em, user)
                 .each(async (poll) => {
                   poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
-                  poll.company = faker.helpers.arrayElement(createdCompanies);
+                  poll.company = company;
                 })
-                .make(1);
-            } else {
-              cont = 0;
-            }
-          });
+                .make(3);
+            });
+            PollsCreated = true;
+          }
           new MemberShipFactory(em)
             .each((membership) => {
               membership.company = faker.helpers.arrayElement(createdCompanies);

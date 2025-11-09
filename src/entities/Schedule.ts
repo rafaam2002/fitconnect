@@ -1,9 +1,18 @@
-import {BeforeCreate, BeforeUpdate, Collection, Entity, Filter, ManyToMany, ManyToOne, Property,} from "@mikro-orm/core";
-import {BaseEntity} from "./BaseEntity";
-import {User} from "./User";
-import {ScheduleProgrammed} from "./ScheduleProgrammed";
-import {ScheduleState, ScheduleType} from "../types/enums";
-import {Company} from "./Company";
+import {
+  BeforeCreate,
+  BeforeUpdate,
+  Collection,
+  Entity,
+  Filter,
+  ManyToMany,
+  ManyToOne,
+  Property,
+} from "@mikro-orm/core";
+import { BaseEntity } from "./BaseEntity";
+import { User } from "./User";
+import { ScheduleProgrammed } from "./ScheduleProgrammed";
+import { ScheduleState, ScheduleType } from "../types/enums";
+import { Company } from "./Company";
 
 @Entity()
 @Filter({

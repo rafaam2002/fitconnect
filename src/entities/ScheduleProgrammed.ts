@@ -1,19 +1,19 @@
 import {
-    Cascade,
-    Collection,
-    Entity,
-    EntityManager,
-    EntityRepositoryType,
-    Filter,
-    ManyToOne,
-    OneToMany,
-    Property,
+  Cascade,
+  Collection,
+  Entity,
+  EntityManager,
+  EntityRepositoryType,
+  Filter,
+  ManyToOne,
+  OneToMany,
+  Property,
 } from "@mikro-orm/core";
-import {BaseEntity} from "./BaseEntity";
-import {User} from "./User";
-import {Schedule} from "./Schedule";
-import {CustomScheduleProgrammedRepository} from "../customRepositories/scheduleProgrammedRepository";
-import {ScheduleType} from "../types/enums";
+import { BaseEntity } from "./BaseEntity";
+import { User } from "./User";
+import { Schedule } from "./Schedule";
+import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
+import { ScheduleType } from "../types/enums";
 import { Company } from "./Company";
 
 @Filter({

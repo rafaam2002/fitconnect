@@ -1,10 +1,18 @@
-import {Collection, Entity, EntityRepositoryType, Filter, ManyToOne, OneToMany, Property,} from "@mikro-orm/core";
-import {BaseEntity} from "./BaseEntity";
-import {User} from "./User";
-import {CustomPollRepository} from "../customRepositories/pollRepository";
-import {PollVote} from "./PollVote";
-import {NewPollSchema} from "../validation/schemas";
-import {Company} from "./Company";
+import {
+  Collection,
+  Entity,
+  EntityRepositoryType,
+  Filter,
+  ManyToOne,
+  OneToMany,
+  Property,
+} from "@mikro-orm/core";
+import { BaseEntity } from "./BaseEntity";
+import { User } from "./User";
+import { CustomPollRepository } from "../customRepositories/pollRepository";
+import { PollVote } from "./PollVote";
+import { NewPollSchema } from "../validation/schemas";
+import { Company } from "./Company";
 
 @Entity({ repository: () => CustomPollRepository })
 @Filter({

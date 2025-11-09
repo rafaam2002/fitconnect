@@ -7,7 +7,6 @@ import { UserRole } from "../types/enums";
 @Filter({
   name: 'companyContext',
   cond: args => ({ company: args.companyId }),
-  default: true,
 })
 @Entity()
 @Unique({ properties: ["user", "company"] }) // Ensure a user can have only one membership per user-company pair

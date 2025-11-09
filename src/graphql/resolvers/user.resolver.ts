@@ -2229,15 +2229,16 @@ export const userResolvers: IResolvers = {
     newMessage,
   },
   User: {
-    userRole: (
-      parent: User,
-      _: any,
-      context: ContextProps
-    ): UserRole | null => {
+    contextRole: (parent: User, _: any, context: ContextProps): UserRole | null => {
       const { currentUser } = context;
 
+      // Si no hay usuario autenticado (ej. en login), devolver el rol de la membresía activa del parent
+      if (!currentUser) {
+        return parent.activeMembership?.role || null;
+      }
+
       // Si el usuario que consulta no tiene una membresía activa, no hay contexto de compañía.
-      if (!currentUser?.activeMembership) {
+      if (!currentUser.activeMembership) {
         // Si el usuario que se está resolviendo es el mismo que consulta, devuelve el rol de su propia membresía activa.
         if (parent.id === currentUser.id) {
           return parent.activeMembership?.role || null;

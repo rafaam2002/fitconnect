@@ -40,7 +40,7 @@ export enum UserStatus {
 @Filter({
   name: "company",
   cond: (args) => ({ memberships: { company: args.companyId } }),
-  default: true,
+  default: false,
 })
 export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })

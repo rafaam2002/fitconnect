@@ -183,6 +183,9 @@ const startServer = async () => {
         const em = orm.em.fork(); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
+        // em.setFilterParams("company", {
+        //   companyId: null,
+        // });
         //sacar query por consola para debug
         //  console.log("Query: ", query);
 
@@ -205,7 +208,12 @@ const startServer = async () => {
         );
 
         if (isPublicOperation) {
-          return { em, currentUser: null };
+          try {
+            return { em, currentUser: null };
+          } catch (error) {
+            console.error("Error in public operation context:", error);
+            return { em, currentUser: null };
+          }
         }
 
         const currentUser = await authenticateUser(em, authorization);

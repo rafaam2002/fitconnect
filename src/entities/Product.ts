@@ -1,7 +1,16 @@
-import {Cascade, Collection, Entity, Filter, ManyToOne, OneToMany, Property, t,} from "@mikro-orm/core";
-import {BaseEntity} from "./BaseEntity";
-import {PictureUrl} from "./PictureUrl";
-import {Company} from "./Company";
+import {
+  Cascade,
+  Collection,
+  Entity,
+  Filter,
+  ManyToOne,
+  OneToMany,
+  Property,
+  t,
+} from "@mikro-orm/core";
+import { BaseEntity } from "./BaseEntity";
+import { PictureUrl } from "./PictureUrl";
+import { Company } from "./Company";
 
 @Entity()
 @Filter({

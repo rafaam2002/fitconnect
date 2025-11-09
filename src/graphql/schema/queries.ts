@@ -1,5 +1,9 @@
 export const graphqlQueries = `
 type Query {
+
+    # ----------------- Debug -----------------
+    probe: String!
+
     # ----------------- Login ----------------
     login(emailOrNickname: String!, password: String!): LoginResponse!
     loginWithId(id: ID!): LoginResponse!

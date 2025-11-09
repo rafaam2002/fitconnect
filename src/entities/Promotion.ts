@@ -28,7 +28,7 @@ export class Promotion extends BaseEntity {
   @Property()
   description!: string;
 
-  @ManyToOne(() => Company)
+  @ManyToOne(() => Company, { nullable: true })
   company: Company;
 
   @ManyToMany(() => User, (user) => user.promotions)

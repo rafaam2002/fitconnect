@@ -8,8 +8,6 @@ import { Promotion } from "../entities/Promotion";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { PollFactory } from "../factories/PollFactory";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
-import { stripe } from "../utils/const";
-import { Stripe } from "stripe";
 import { CompanyFactory } from "../factories/CompanyFactory";
 import { UserRole } from "../types/enums";
 import { MemberShip } from "../entities/MemberShip";
@@ -18,22 +16,13 @@ import { MemberShipFactory } from "../factories/MemebershipFactory";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    const schedules = await em.find(Schedule, {});
-    const promotions = await em.find(Promotion, {});
+    // Explicitly disable filters for all 'find' operations in this seeder.
+    // This is the most direct way to prevent "No arguments provided for filter"
+    // errors when the seeding context doesn't have filter parameters.
+    const schedules = await em.find(Schedule, {}, { filters: false });
+    const promotions = await em.find(Promotion, {}, { filters: false });
 
     let cont = 0;
-
-    // const myUser = em.create(User, {
-    //   name: "Rafa",
-    //   surname: "Mesa",
-    //   password: "rafa",
-    //   email: "rafa@mail.com",
-    //   phoneNumber: "123456789",
-    //   nickname: "rafa",
-    //   isActive: true,
-    //   isBlocked: false,
-    //   // role: UserRoleEnum.BOSS,
-    // });
 
     const admins = [
       em.create(User, {
@@ -70,15 +59,6 @@ export class UserSeeder extends Seeder {
 
     await em.persistAndFlush(admins);
 
-    // const schedulesOptions = em.create(ScheduleOptions, {
-    //   maxActiveReservations: 3,
-    //   sameDayBookingAllowed: true,
-    //   fullOpenHours: 2, // 0 means always full
-    //   maxAdvanceBookingDays: 3,
-    // });
-
-    // await em.persistAndFlush(schedulesOptions);
-
     const companies = new CompanyFactory(em).make(3, {
       scheduleOptions: em.create(ScheduleOptions, {
         maxActiveReservations: 3,
@@ -90,9 +70,13 @@ export class UserSeeder extends Seeder {
 
     await em.persistAndFlush(companies);
     const createdCompanies = await em.find(Company, {});
-    const createdAdmins = await em.find(User, {
-      nickname: { $in: ["rafa", "juan", "isaac"] },
-    });
+    const createdAdmins = await em.find(
+      User,
+      {
+        nickname: { $in: ["rafa", "juan", "isaac"] },
+      },
+      { filters: false }
+    );
 
     const adminMemberships = createdCompanies.map((company, index) => {
       const membership = em.create(MemberShip, {
@@ -111,18 +95,23 @@ export class UserSeeder extends Seeder {
           new PollFactory(em, user)
             .each(async (poll) => {
               poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
+              poll.company = faker.helpers.arrayElement(createdCompanies);
             })
             .make(1);
         }
         new MemberShipFactory(em)
           .each((membership) => {
-            membership.company = faker.helpers.arrayElement(createdCompanies);
+            membership.company =
+              faker.helpers.arrayElement(createdCompanies);
             membership.user = user;
           })
           .make(1);
       })
       .make(50, {
-        schedules: faker.helpers.arrayElements(schedules, { min: 5, max: 10 }),
+        schedules: faker.helpers.arrayElements(schedules, {
+          min: 5,
+          max: 10,
+        }),
         promotions: faker.helpers.arrayElements(promotions, {
           min: 5,
           max: 10,

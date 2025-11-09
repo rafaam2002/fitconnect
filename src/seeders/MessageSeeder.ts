@@ -7,7 +7,12 @@ import { UserRole } from "../types/enums";
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const userRepo = em.getRepository(User);
-    const myUser = await userRepo.findOne({ nickname: "rafa" });
+    const myUser = await userRepo.findOne(
+      { nickname: "rafa" },
+      {
+        filters: false,
+      }
+    );
 
     const forumUser = em.create(User, {
       name: "forum",
@@ -26,6 +31,7 @@ export class MessageSeeder extends Seeder {
       sender: myUser,
       isFixed: false,
       receiver: forumUser,
+      company: myUser?.memberships.getItems()[0].company, // no mapear posteriormente
     });
     await em.persistAndFlush(forumMessage);
   }

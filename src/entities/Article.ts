@@ -2,11 +2,6 @@ import { Entity, Filter, ManyToOne, PrimaryKey, Property, t } from "@mikro-orm/c
 import { Company } from "./Company";
 
 @Entity()
-@Filter({
-  name: "company",
-  cond: (args) => ({ company: args.companyId }),
-  default: true,
-})
 export class Article {
   @PrimaryKey({ type: t.uuid })
   id: string;

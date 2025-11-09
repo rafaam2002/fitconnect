@@ -502,6 +502,7 @@ export const getConversation = async (
     "receiver.role",
     "text",
     "created_at",
+    "isForumMessage",
     ...forumFields,
   ]; //just mandatory fields to optimize query
 
@@ -810,12 +811,12 @@ export const getSchedulesResumeRange = async (
     };
   });
 
-  // console.log(
-  //   "all Param company?",
-  //   sortSchedules.filter(
-  //     (s) => s.company.id !== "8a89c80d-32c8-407c-a947-8286b61aa6ec"
-  //   ).length === 0
-  // );
+  console.log(
+    "all Param company?",
+    sortSchedules.filter(
+      (s) => s.company.id !== "30da0af2-1832-442a-afa4-10b0bfa08b83"
+    ).length === 0
+  );
 
   return CustomResponse(200, "Schedules found", true, {
     schedulesResume,

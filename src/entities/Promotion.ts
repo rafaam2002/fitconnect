@@ -12,7 +12,7 @@ import { Company } from "./Company";
 
 @Entity()
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
   default: true,
 })

@@ -6,6 +6,7 @@ import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
 import { sendPushNotification } from "./notifications";
+import { filter } from "lodash";
 
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
@@ -176,7 +177,8 @@ export const sendScheduleReminders = async (em: EntityManager) => {
         },
         state: ScheduleState.AVAILABLE,
       },
-      { populate: ["users", "users.pushTokens"] }
+      { populate: ["users", "users.pushTokens"] , filters: false },
+
     );
 
     if (upcomingSchedules.length > 0) {

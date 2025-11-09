@@ -4,7 +4,7 @@ import { User } from "./User";
 import { Company } from "./Company";
 
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
   default: true,
 })

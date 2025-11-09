@@ -221,10 +221,6 @@ const startServer = async () => {
         if (currentUser && currentUser.activeMembership) {
           //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
           //y su membresia correspondiente a esa compania
-
-          em.setFilterParams("company", {
-            companyId: currentUser.activeMembership.company.id,
-          });
           em.setFilterParams("companyContext", {
             companyId: currentUser.activeMembership.company.id,
           });

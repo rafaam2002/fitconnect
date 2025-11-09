@@ -1,25 +1,36 @@
-import {Entity, PrimaryKey, Property, OneToMany, Collection, Index, Unique, Enum, ManyToOne, Filter} from '@mikro-orm/core';
-import { v4 } from 'uuid';
-import {Subscription} from "./Subscription";
-import {BaseEntity} from "./BaseEntity";
-import {Company} from "./Company";
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  OneToMany,
+  Collection,
+  Index,
+  Unique,
+  Enum,
+  ManyToOne,
+  Filter,
+} from "@mikro-orm/core";
+import { v4 } from "uuid";
+import { Subscription } from "./Subscription";
+import { BaseEntity } from "./BaseEntity";
+import { Company } from "./Company";
 
 export enum PlanInterval {
-    DAY = 'day',
-    WEEK = 'week',
-    MONTH = 'month',
-    YEAR = 'year'
+  DAY = "day",
+  WEEK = "week",
+  MONTH = "month",
+  YEAR = "year",
 }
 
 export enum PlanStatus {
-    ACTIVE = 'active',
-    INACTIVE = 'inactive',
-    ARCHIVED = 'archived'
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  ARCHIVED = "archived",
 }
 
 @Entity()
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
   default: true,
 })

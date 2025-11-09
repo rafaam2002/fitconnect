@@ -17,7 +17,7 @@ import { ScheduleType } from "../types/enums";
 import { Company } from "./Company";
 
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
   default: true,
 })

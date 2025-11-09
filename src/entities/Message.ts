@@ -12,7 +12,7 @@ import { Company } from "./Company";
 
 @Entity()
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
   default: true,
 })
@@ -38,9 +38,9 @@ export class Message extends BaseEntity {
   // Relación ManyToOne con User (receiver)
   @ManyToOne(() => User, { nullable: true })
   receiver?: User | null;
-  
+
   @Property()
-   isForumMessage: boolean = false;
+  isForumMessage: boolean = false;
 
   @ManyToOne(() => Company)
   company: Company;

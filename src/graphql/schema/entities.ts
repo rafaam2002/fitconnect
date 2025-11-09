@@ -128,7 +128,8 @@ type Message {
     fixedEndDate: String
     fixedAdmin: UserResumeResponse
     sender: UserResumeResponse!
-    receiver: UserResumeResponse!
+    receiver: UserResumeResponse
+    isForumMessage: Boolean!
 }
 
 type Conversation {

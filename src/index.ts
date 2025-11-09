@@ -210,9 +210,10 @@ const startServer = async () => {
 
         const currentUser = await authenticateUser(em, authorization);
 
-        //IMPORTANTE!!: por defecto solo se usaran usuarios de la misma compania
-        //y su membresia correspondiente a esa compania
         if (currentUser && currentUser.activeMembership) {
+          //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
+          //y su membresia correspondiente a esa compania
+
           em.setFilterParams("company", {
             companyId: currentUser.activeMembership.company.id,
           });

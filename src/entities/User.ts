@@ -162,6 +162,10 @@ export class User extends BaseEntity {
     return `${this.name} ${this.surname}`;
   }
 
+  get currentRole(): UserRole | null {
+    return this.activeMembership ? this.activeMembership.role : null;
+  }
+
   /* @BeforeCreate()
      @BeforeUpdate()
      validateEmail() {

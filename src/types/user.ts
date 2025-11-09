@@ -7,7 +7,7 @@ export type UserType = {
   email: string;
   created_at: Date;
   updated_at: Date;
-  role: UserRole;
+  currentRole: UserRole;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;

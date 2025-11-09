@@ -15,16 +15,10 @@ export const authenticateUser = async (
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
         id: string;
       };
+      const currentUser = await em.findOne(User, { id: decodedToken.id });
 
-      const probe = await em.find(Poll, {});
-      console.log("Users found during auth:", probe);
-      const currentUser = await em.findOne(User, { id: decodedToken.id }, { populate: ["memberships"] });
-      const myUser = {
-        ...currentUser,
-        role: currentUser?.memberships[0]?.role || null,
-      };
       
-      return myUser || null;
+      return currentUser || null;
     } catch (error) {
       console.error(
         `Authentication Error (${new Date().toISOString()}):`,

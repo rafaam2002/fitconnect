@@ -16,7 +16,6 @@ import { UserProviderType, UserRole } from "../types/enums";
 import { BaseEntity } from "./BaseEntity";
 import { Schedule } from "./Schedule";
 import { Message } from "./Message";
-import { Notification } from "./Notification";
 import { Poll } from "./Poll";
 import { Promotion } from "./Promotion";
 import { PollVote } from "./PollVote";
@@ -40,7 +39,7 @@ export enum UserStatus {
 @Entity()
 @Filter({
   name: "company",
-  cond: (args) => ({ company: args.companyId }),
+  cond: (args) => ({ memberships: { company: args.companyId } }),
   default: true,
 })
 export class User extends BaseEntity {
@@ -107,12 +106,6 @@ export class User extends BaseEntity {
   // Relación OneToMany con Message (receiver)
   @OneToMany(() => Message, (message) => message.receiver, { lazy: true })
   messagesReceived = new Collection<Message>(this);
-
-  // Relación OneToMany con Notification
-  @OneToMany(() => Notification, (notification) => notification.user, {
-    lazy: true,
-  })
-  notifications = new Collection<Notification>(this);
 
   @OneToMany(() => Poll, (poll) => poll.admin, { lazy: true })
   adminPolls = new Collection<Poll>(this);

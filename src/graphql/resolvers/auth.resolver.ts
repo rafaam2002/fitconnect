@@ -30,7 +30,7 @@ const login = async (_, args: any, { em }) => {
     {
       $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
     },
-    { populate: ["password", "memberships"] }
+    { populate: ["password", "memberships"], filters: false }
   );
 
   const passwordCorrect =
@@ -45,11 +45,12 @@ const login = async (_, args: any, { em }) => {
     };
   }
 
-
   //membresia mapeada por ahora
   // user.activeMembership = user.memberships.getItems().find((membership) => {
   //   return membership.company.isActive;
-  // }
+  // });
+
+  user.activeMembership = user.memberships[0];
 
   const userForToken = {
     id: user.id,

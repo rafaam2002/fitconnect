@@ -6,7 +6,6 @@ import {MessageSeeder} from "./MessageSeeder";
 import {PollVoteSeeder} from "./PollVoteSeeder";
 import {PromotionSeeder} from "./PromotionSeeder";
 import {ScheduleSeeder} from "./ScheduleSeeder";
-import {NotificationSeeder} from "./NotificationSeeder";
 import {ProductSeeder} from "./ProductSeeder";
 import {CompanySeeder} from "./CompanySeeder";
 
@@ -21,7 +20,6 @@ export class DatabaseSeeder extends Seeder {
             MessageSeeder,
             PollVoteSeeder,
             // PlanSeeder,
-            NotificationSeeder,
             ProductSeeder,
         ]);
     }

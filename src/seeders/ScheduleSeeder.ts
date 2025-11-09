@@ -71,13 +71,13 @@ export class ScheduleSeeder extends Seeder {
               faker.helpers.arrayElements(
                 usersInCompany,
                 faker.number.int({
-                  min: 2,
+                  min: usersInCompany.length < 4 ? 1 : 4,
                   max: Math.min(usersInCompany.length, 15),
                 })
               )
             );
           })
-          .make(20);
+          .make(200);
       }
     } catch (error) {
       console.error("Error in ScheduleSeeder:", error);

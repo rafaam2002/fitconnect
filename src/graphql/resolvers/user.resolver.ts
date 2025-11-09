@@ -778,7 +778,7 @@ export const getSchedulesResumeRange = async (
   const startOfDay = new Date(startDate);
   const endOfDay = new Date(endDate);
 
-  const schedules = await scheduleRepo.find(
+  const schedules: Schedule[]  = await scheduleRepo.find(
     {
       startDate: { $gte: startOfDay, $lte: endOfDay },
     },
@@ -808,6 +808,13 @@ export const getSchedulesResumeRange = async (
       ocupancy: schedule.users.length,
     };
   });
+
+  // console.log(
+  //   "all Param company?",
+  //   sortSchedules.filter(
+  //     (s) => s.company.id !== "8a89c80d-32c8-407c-a947-8286b61aa6ec"
+  //   ).length === 0
+  // );
 
   return CustomResponse(200, "Schedules found", true, {
     schedulesResume,
@@ -2229,7 +2236,11 @@ export const userResolvers: IResolvers = {
     newMessage,
   },
   User: {
-    contextRole: (parent: User, _: any, context: ContextProps): UserRole | null => {
+    contextRole: (
+      parent: User,
+      _: any,
+      context: ContextProps
+    ): UserRole | null => {
       const { currentUser } = context;
 
       // Si no hay usuario autenticado (ej. en login), devolver el rol de la membresía activa del parent

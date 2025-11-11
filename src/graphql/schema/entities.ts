@@ -39,6 +39,21 @@ type Product {
     pictures: [PictureUrl]
 }
 
+type Company {
+    id: ID!
+    name: String!
+    address: String
+    logoUrl: String
+    schedulesOptions: ScheduleOptions
+}
+
+type MemberShip {
+    id: ID!
+    user: UserResumeResponse!
+    company: Company!
+    role: UserRole!
+}
+
 type User {
     id: ID!
     name: String
@@ -53,6 +68,7 @@ type User {
     userWeights: [UserWeight]
     phoneNumber: String
     isVerified: Boolean
+    memberships: [MemberShip]
 }
 
 type Schedule {

@@ -811,12 +811,12 @@ export const getSchedulesResumeRange = async (
     };
   });
 
-  console.log(
-    "all Param company?",
-    sortSchedules.filter(
-      (s) => s.company.id !== "30da0af2-1832-442a-afa4-10b0bfa08b83"
-    ).length === 0
-  );
+  // console.log(
+  //   "all Param company?",
+  //   sortSchedules.filter(
+  //     (s) => s.company.id !== "30da0af2-1832-442a-afa4-10b0bfa08b83"
+  //   ).length === 0
+  // );
 
   return CustomResponse(200, "Schedules found", true, {
     schedulesResume,

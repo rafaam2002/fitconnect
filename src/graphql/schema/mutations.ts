@@ -1,7 +1,7 @@
 export const graphqlMutations = `   
 type Mutation {
     #------------------User--------------------
-    createUser( user: CreateUserInput!): LoginResponse!
+    createUser( user: CreateUserInput!, company: CreateCompanyInput): LoginResponse!
     updateUser ( user: UpdateUserInput!, userId: String!): UserResponse!
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!

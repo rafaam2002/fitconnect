@@ -63,6 +63,8 @@ import dotenv from "dotenv";
 import { withFilter } from "graphql-subscriptions";
 
 import { IResolvers } from "@graphql-tools/utils";
+import { Company } from "../../entities/Company";
+import { MemberShip } from "../../entities/MemberShip";
 
 dotenv.config();
 
@@ -1145,12 +1147,19 @@ export const getUserWeights = async (
 
 // ===== MUTATIONS RESOLVERS =====
 export const createUser = async (_, args: UserProps, context: ContextProps) => {
-  const { user } = args;
+  const { user, company } = args;
   const { em } = context;
   const userRepo = em.getRepository(User);
 
   if (!user.email || !user.password || !user.nickname) {
     return CustomResponse(400, "Please provide all required fields");
+  }
+
+  if (user.role === UserRole.BOSS && !company?.name) {
+    return CustomResponse(
+      400,
+      "Admin users must provide a Company name",
+    );
   }
 
   const existingUser = await userRepo.findOne({
@@ -1161,9 +1170,18 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
     return CustomResponse(400, "User already exists");
   }
 
-  const newUser = em.create(User, {
-    ...user,
-  });
+  const newUser: User = em.create(User, user);
+
+  if (user.role === UserRole.BOSS) {
+    const newCompany = em.create(Company, company);
+    const membership = em.create(MemberShip, {
+      role: UserRole.BOSS,
+      user: newUser,
+      company: newCompany,
+    });
+    newUser.memberships.add(membership);
+    newUser.activeMembership = membership;
+  }
   try {
     const emailVerificationTk = jwt.sign(
       { id: user.email },
@@ -1197,6 +1215,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
 
     return CustomResponse(200, "User created successfully", true, {
       user: newUser,
+      memberships: newUser.memberships || [],
       tokens: {
         token,
       },

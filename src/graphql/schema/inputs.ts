@@ -29,10 +29,17 @@ input UpdateUserInput {
     role: UserRole,
 }
 
+input CreateCompanyInput {
+name : String!,
+address: String,
+logoUrl: String,
+}
+
 input CreateUserInput {
     email: String!,
     nickname: String!,
-    password: String!
+    password: String!,
+    role: UserRole!,
 }
 
 input CreatePollVoteInput {

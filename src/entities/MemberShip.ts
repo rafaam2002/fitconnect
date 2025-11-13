@@ -19,4 +19,11 @@ export class MemberShip extends BaseEntity {
 
   @Enum(() => UserRole)
   role!: UserRole;
+
+  constructor(user: User, company: Company, role: UserRole) {
+    super();
+    this.user = user;
+    this.company = company;
+    this.role = role;
+  }
 }

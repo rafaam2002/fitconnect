@@ -52,7 +52,7 @@ const login = async (_, args: any, { em }) => {
 
   user.activeMembership = user.memberships[0];
 
-  const memberships = user.memberships;
+  const memberships = user.memberships || [];
 
   const idForToken = {
     id: user.id,
@@ -247,7 +247,11 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   const { email, name, picture } = googleData;
 
   // Buscar usuario
-  let user = await em.findOne(User, { email });
+  let user = await em.findOne(
+    User,
+    { email },
+    { populate: ["memberships.company"], filters: false }
+  );
 
   // Si no existe, lo creamos
   if (!user) {
@@ -259,6 +263,8 @@ async function loginWithGoogle(_: any, args: any, { em }) {
     });
     await em.persistAndFlush(user);
   }
+
+  user.activeMembership = user.memberships[0];
 
   // Generamos JWT
   const token = jwt.sign(
@@ -274,6 +280,8 @@ async function loginWithGoogle(_: any, args: any, { em }) {
     refreshTokenString,
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
   );
+
+  await em.persistAndFlush(refreshToken);
 
   return CustomResponse(200, "User logged in successfully", true, {
     tokens: { token, refreshToken: refreshTokenString },

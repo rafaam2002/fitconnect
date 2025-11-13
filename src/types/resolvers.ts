@@ -4,8 +4,17 @@ import { UserType } from "./user";
 import { ScheduleState, ScheduleType, UserRole } from "./enums";
 
 export type UserProps = {
-  user: User;
+  user: User & {
+    role: UserRole;
+  };
   userId?: string;
+  company?: CompanyProps;
+};
+
+export type CompanyProps = {
+  name?: string;
+  address?: string;
+  logoUrl?: string;
 };
 
 export type UserPictureProps = {

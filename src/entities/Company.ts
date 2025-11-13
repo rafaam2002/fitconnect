@@ -29,4 +29,11 @@ export class Company extends BaseEntity {
     { nullable: true, owner: true }
   )
   scheduleOptions?: ScheduleOptions;
+
+  constructor(name: string, logoUrl?: string, address?: string) {
+    super();
+    this.name = name;
+    this.logoUrl = logoUrl;
+    this.address = address;
+  }
 }

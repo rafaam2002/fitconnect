@@ -77,21 +77,21 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   provider: UserProviderType = UserProviderType.LOCAL;
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.user, { eager: true })
+  @OneToMany(() => MemberShip, (memberShip) => memberShip.user,{eager: true} )
   memberships = new Collection<MemberShip>(this);
 
-  @ManyToOne(() => MemberShip, { nullable: true, eager: true })
+  @ManyToOne(() => MemberShip, { nullable: true})
   activeMembership?: MemberShip;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
-    eager: true,
+
   })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, {
     owner: true,
-    eager: true,
+
   })
   promotions = new Collection<Promotion>(this);
 

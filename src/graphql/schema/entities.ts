@@ -68,7 +68,7 @@ type User {
     userWeights: [UserWeight]
     phoneNumber: String
     isVerified: Boolean
-    memberships: [MemberShip]
+    activeMembership: MemberShip
 }
 
 type Schedule {

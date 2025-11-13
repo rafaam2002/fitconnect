@@ -52,7 +52,9 @@ const login = async (_, args: any, { em }) => {
 
   user.activeMembership = user.memberships[0];
 
-  const userForToken = {
+  const memberships = user.memberships;
+
+  const idForToken = {
     id: user.id,
     // email: user.email,
     // name: user.name,
@@ -64,7 +66,7 @@ const login = async (_, args: any, { em }) => {
     // phoneNumber: user.phoneNumber,
     // pictureUrl: user.pictureUrl,
   };
-  const token = jwt.sign(userForToken, process.env.JWT_SECRET, {
+  const token = jwt.sign(idForToken, process.env.JWT_SECRET, {
     expiresIn: "30m",
   });
 
@@ -82,7 +84,8 @@ const login = async (_, args: any, { em }) => {
       success: true,
       code: "200",
       message: "Login successful",
-      user: user,
+      user,
+      memberships,
       tokens: {
         token,
         refreshToken: refreshTokenString,
@@ -98,7 +101,6 @@ const login = async (_, args: any, { em }) => {
     };
   }
 };
-
 
 const loginWithId = async (_, args: any, { em }) => {
   const { id } = args;

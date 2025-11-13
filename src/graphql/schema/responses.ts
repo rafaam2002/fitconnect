@@ -108,7 +108,8 @@ type LoginResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
-    user: User
+    user: User!
+    memberships: [MemberShip]!
     tokens: Tokens
 }
 

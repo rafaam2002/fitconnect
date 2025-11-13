@@ -10,6 +10,7 @@ import crypto from "crypto";
 
 // ===== QUERY RESOLVERS =====
 export const refreshToken = async (_: any, args: any, { em }) => {
+  debugger;
     const { refreshToken } = args;
 
     if (!refreshToken) {

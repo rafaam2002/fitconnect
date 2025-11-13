@@ -36,13 +36,7 @@ const login = async (_, args: any, { em }) => {
   const passwordCorrect =
     user === null ? false : await bcrypt.compare(password, user.password);
   if (!(user && passwordCorrect)) {
-    return {
-      success: false,
-      code: "400",
-      message: "Invalid email or password",
-      user: null,
-      token: null,
-    };
+    return CustomResponse(400, "Invalid email/nickname or password");
   }
 
   //membresia mapeada por ahora

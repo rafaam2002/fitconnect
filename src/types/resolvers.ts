@@ -98,6 +98,10 @@ export type DeletePollProps = {
   pollId: string;
 };
 
+export type GetCompanyProps = {
+  companyId?: string;
+};
+
 export type FixMessageProps = {
   messageId: string;
   fixedEndDate: string;

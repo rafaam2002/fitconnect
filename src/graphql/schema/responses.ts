@@ -108,9 +108,17 @@ type LoginResponse implements BasicResponse{
     code: String!
     success: Boolean!
     message: String!
-    user: User
+    user: User!
     memberships: [MemberShip]!
     tokens: Tokens
+}
+
+type CompanyResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    company: Company
+    companies: [Company]
 }
 
 type NotificationResponse implements BasicResponse{

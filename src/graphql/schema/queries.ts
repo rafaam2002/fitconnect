@@ -1,7 +1,7 @@
 export const graphqlQueries = `
 type Query {
     # ----------------- Login ----------------
-    login(emailOrNickname: String!, password: String!): LoginResponse
+    login(emailOrNickname: String!, password: String!): LoginResponse!
     loginWithId(id: ID!): LoginResponse!
 
     # ----------------- User -----------------
@@ -78,6 +78,9 @@ type Query {
     getSuccessfulTransactions(userId: ID!, limit: Int): TransactionResponse!
     getFailedTransactions(userId: ID!, limit: Int): TransactionResponse!
     getUserTransactionsSummary(userId: ID!): TransactionResponse!
+
+    #--------------Company---------
+    getCompanies(companyId: ID): CompanyResponse!
     
 }
 `;

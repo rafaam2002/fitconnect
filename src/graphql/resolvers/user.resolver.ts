@@ -1189,7 +1189,19 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       isForumMessage: true,
       company: newCompany,
     });
-    await em.persistAndFlush(firstForumMessage);
+    const scheduleOptions = em.create(ScheduleOptions, {
+      company: newCompany,
+      maxActiveReservations: 1,
+      maxAdvanceBookingDays: 1,
+      sameDayBookingAllowed: false,
+      fullOpenHours: 0,
+    });
+    await em.persistAndFlush([
+      newCompany,
+      membership,
+      scheduleOptions,
+      firstForumMessage,
+    ]);
   }
   try {
     const emailVerificationTk = jwt.sign(

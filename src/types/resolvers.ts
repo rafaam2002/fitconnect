@@ -103,6 +103,22 @@ export type GetCompanyProps = {
   companyId?: string;
 };
 
+export type UpdateCompanyProps = {
+  companyId: string;
+  companyData: {
+    name?: string;
+    address?: string;
+    phoneNumber?: string;
+    email?: string;
+  };
+  scheduleOptions: {
+    maxActiveReservations?: number;
+    maxAdvanceBookingDays?: number;
+    sameDayBookingAllowed?: boolean;
+    fullOpenHours?: number;
+  };
+};
+
 export type FixMessageProps = {
   messageId: string;
   fixedEndDate: string;

@@ -1,6 +1,11 @@
 import { GraphQLError } from "graphql";
-import { ContextProps, GetCompanyProps } from "../../types/resolvers";
+import {
+  ContextProps,
+  GetCompanyProps,
+  UpdateCompanyProps,
+} from "../../types/resolvers";
 import { CustomResponse } from "./errors";
+import { Company } from "../../entities/Company";
 
 export const getCompanies = async (
   _: any,
@@ -17,7 +22,13 @@ export const getCompanies = async (
   }
 
   if (companyId) {
-    const company = await em.findOne("Company", { id: companyId });
+    const company: Company = await em.findOne(
+      Company,
+      { id: companyId },
+      {
+        populate: ["scheduleOptions"],
+      }
+    );
     if (!company) {
       return CustomResponse(404, "Company not found");
     }
@@ -25,16 +36,59 @@ export const getCompanies = async (
       company,
     });
   } else {
-    const companies = await em.find("Company", {});
+    const companies: Company[] = await em.find(
+      Company,
+      {},
+      {
+        populate: ["scheduleOptions"],
+      }
+    );
 
     return CustomResponse(200, "Companies fetched successfully", true, {
       companies,
     });
   }
 };
+
+export const updateCompany = async (
+  _: any,
+  { companyId, companyData, scheduleOptions }: UpdateCompanyProps,
+  { em, currentUser }: ContextProps
+) => {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  const company: Company = await em.findOne(
+    Company,
+    { id: companyId },
+    {
+      populate: ["scheduleOptions"],
+    }
+  );
+  if (!company) {
+    return CustomResponse(404, "Company not found");
+  }
+
+  Object.assign(company, companyData);
+  Object.assign(company.scheduleOptions, scheduleOptions);
+  await em.persistAndFlush(company);
+
+  return CustomResponse(200, "Company updated successfully", true, {
+    company,
+  });
+};
+
 export const companyResolvers = {
   Query: {
     getCompanies,
   },
-  Mutation: {},
+  Mutation: {
+    updateCompany,
+  },
 };

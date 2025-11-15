@@ -36,6 +36,26 @@ email: String!,
 address: String!,
 }
 
+input CompanyDataInput {
+    name: String,
+    address: String,
+    phoneNumber: String,
+    email: String,
+}
+input ScheduleOptionsInput {
+maxActiveReservations: Int,
+maxAdvanceBookingDays: Int,
+sameDayBookingAllowed: Boolean,
+fullOpenHours: Int,
+}
+
+
+input UpdateCompanyInput {
+id: ID!,
+companyData : CompanyDataInput!
+companyOptions: ScheduleOptionsInput!
+}
+
 input CreateUserInput {
     email: String!,
     nickname: String!,

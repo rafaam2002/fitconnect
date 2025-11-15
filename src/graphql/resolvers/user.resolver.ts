@@ -857,10 +857,12 @@ export const getScheduleOptions = async (
     });
   }
   const scheduleOptionRepo = em.getRepository(ScheduleOptions);
-  const scheduleOptions = await scheduleOptionRepo.findAll();
+  const scheduleOptions: ScheduleOptions = await scheduleOptionRepo.findOne({
+    company: currentUser.currentCompany.id,
+  });
 
   return CustomResponse(200, "Schedule options found", true, {
-    scheduleOptions: scheduleOptions[0],
+    scheduleOptions,
   });
 };
 

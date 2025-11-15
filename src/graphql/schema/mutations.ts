@@ -83,6 +83,9 @@ type Mutation {
     refundTransaction(input: RefundTransactionInput!): TransactionResponse!
     retryFailedTransaction(transactionId: ID!): TransactionResponse!
     markTransactionAsReconciled(transactionId: ID!): TransactionResponse!
+
+    #----------------Company-------------------
+    updateCompany(companyId: String!, companyData: UpdateCompanyInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
 }
 
 `;

@@ -23,7 +23,7 @@ export class Message extends BaseEntity {
 
   // @Field(() => Boolean)
   @Property()
-  isFixed: boolean;
+  isFixed: boolean = false;
 
   //  @Field(() => Number, { nullable: true })
   @Property({ nullable: true })
@@ -48,7 +48,7 @@ export class Message extends BaseEntity {
   constructor(message: Message) {
     super();
     this.text = message.text;
-    this.isFixed = message.isFixed;
+    this.isFixed = message.isFixed ?? false;
     this.fixedEndDate = message.fixedEndDate;
     this.sender = message.sender;
     this.receiver = message.receiver;

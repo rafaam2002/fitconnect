@@ -1,5 +1,6 @@
 import { User } from "../../entities/User";
 import { sendPushNotification } from "../../utils/notifications";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { Message } from "../../entities/Message";
 import { ScheduleState, ScheduleType, UserRole } from "../../types/enums";
@@ -65,6 +66,7 @@ import { withFilter } from "graphql-subscriptions";
 import { IResolvers } from "@graphql-tools/utils";
 import { Company } from "../../entities/Company";
 import { MemberShip } from "../../entities/MemberShip";
+import { RefreshToken } from "../../entities/RefreshToken";
 
 dotenv.config();
 
@@ -1156,10 +1158,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
   }
 
   if (user.role === UserRole.BOSS && !company?.name) {
-    return CustomResponse(
-      400,
-      "Admin users must provide a Company name",
-    );
+    return CustomResponse(400, "Admin users must provide a Company name");
   }
 
   const existingUser = await userRepo.findOne({
@@ -1186,8 +1185,9 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       receiver: null,
       text: `Welcome to the forum`,
       isForumMessage: true,
+      company: newCompany,
     });
-    em.persist(firstForumMessage);
+    await em.persistAndFlush(firstForumMessage);
   }
   try {
     const emailVerificationTk = jwt.sign(
@@ -1198,12 +1198,6 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       }
     );
 
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: "rafaam.2002@gmail.com",
-      subject: "Confirma tu cuenta",
-      html: emailHtml(emailVerificationTk),
-    });
     await em.persistAndFlush(newUser);
     const stripeData = {
       customer: {
@@ -1220,11 +1214,28 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       expiresIn: "1d",
     });
 
+    const refreshTokenString = crypto.randomBytes(64).toString("hex");
+    const refreshToken = new RefreshToken(
+      newUser,
+      refreshTokenString,
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+    );
+
+    await em.persistAndFlush(refreshToken);
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: "rafaam.2002@gmail.com",
+      subject: "Confirma tu cuenta",
+      html: emailHtml(emailVerificationTk),
+    });
+
     return CustomResponse(200, "User created successfully", true, {
       user: newUser,
       memberships: newUser.memberships || [],
       tokens: {
         token,
+        refreshToken: refreshTokenString,
       },
     });
   } catch (error) {

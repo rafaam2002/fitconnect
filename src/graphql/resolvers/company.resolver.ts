@@ -2,11 +2,16 @@ import { GraphQLError } from "graphql";
 import {
   ContextProps,
   GetCompanyProps,
+  UpdateCompanyPictureProps,
   UpdateCompanyProps,
 } from "../../types/resolvers";
 import { CustomResponse } from "./errors";
 import { Company } from "../../entities/Company";
 import { ScheduleOptions } from "../../entities/ScheduleOptions";
+import {
+  createPictureUrl,
+  getPresignedUrl,
+} from "../../utils/createPresignedUrls";
 
 export const getCompanies = async (
   _: any,
@@ -100,4 +105,61 @@ export const companyResolvers = {
   Mutation: {
     updateCompany,
   },
+};
+
+export const updateCompanyPicture = async (
+  _: any,
+  args: UpdateCompanyPictureProps,
+  context: ContextProps
+) => {
+  const { companyId, picture } = args;
+  const { em, currentUser } = context;
+
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  if (currentUser.currentCompany.id !== companyId) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const companyRepo = em.getRepository(Company);
+  const updateCompany: Company = await companyRepo.findOne({ id: companyId });
+
+  if (!updateCompany) {
+    return CustomResponse(404, "Company not found");
+  }
+
+  if (!updateCompany.logo) {
+    const pictureUrl = await createPictureUrl(
+      em,
+      {
+        id: companyId,
+        name: picture,
+        type: "companyLogo",
+      },
+      await getPresignedUrl(picture)
+    );
+    updateCompany.logo = pictureUrl;
+  } else {
+    //updateUser.pictureUrl.name = picture;
+    updateCompany.logo.url = await getPresignedUrl(picture);
+  }
+  try {
+    await em.persistAndFlush(updateCompany);
+
+    return CustomResponse(200, "Company updated successfully", true, {
+      company: updateCompany,
+    });
+  } catch (error) {
+    console.error(error);
+    return CustomResponse(500, "Error updating company", false, {
+      company: null,
+    });
+  }
 };

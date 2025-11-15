@@ -47,6 +47,7 @@ export class PictureUrl {
     this.name = picture.name;
     this.url = picture.url;
     this.user = picture.user;
+    this.companyLogo = picture.companyLogo;
     // this.productPicture = picture.productPicture;
   }
 }

@@ -5,7 +5,7 @@ import { PictureUrl } from "../entities/PictureUrl";
 import { User } from "../entities/User";
 import { Product } from "../entities/Product";
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-
+import { Company } from "../entities/Company";
 
 dotenv.config();
 
@@ -45,8 +45,8 @@ export const updatePictureUrls = async (em: EntityManager) => {
   const products = await productPictureRepo.findAll({
     where: {
       pictures: {
-        $ne: null
-      }
+        $ne: null,
+      },
     },
   });
   products.forEach(async (product) => {
@@ -68,20 +68,31 @@ export const getPresignedUrl = async (key: string) => {
 
 export const createPictureUrl = (
   em: EntityManager,
-  item: { id: string; name: string; type: "user" | "product" },
+  item: { id: string; name: string; type: "user" | "product" | "companyLogo" },
   url: string
 ): PictureUrl => {
   const owner = {
     user: null,
     product: null,
+    companyLogo: null,
   };
-  if (item.type === "user") {
-    const user = em.getReference(User, item.id);
-    owner.user = user;
-  } else {
-    const productPicture = em.getReference(Product, item.id);
-    owner.product = productPicture;
+  switch (item.type) {
+    case "user":
+      const user = em.getReference(User, item.id);
+      owner.user = user;
+      break;
+    case "product":
+      const productPicture = em.getReference(Product, item.id);
+      owner.product = productPicture;
+      break;
+    case "companyLogo":
+      const company = em.getReference(Company, item.id);
+      owner.companyLogo = company;
+      break;
+    default:
+      throw new Error("Invalid item type");
   }
+
   const pictureUrl = em.create(PictureUrl, {
     name: item.name,
     url,

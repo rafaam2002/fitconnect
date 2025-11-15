@@ -47,7 +47,7 @@ type Company {
     address: String!
     logo: PictureUrl
     pictures: [PictureUrl]
-    schedulesOptions: ScheduleOptions
+    scheduleOptions: ScheduleOptions
 }
 
 type MemberShip {

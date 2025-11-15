@@ -1404,7 +1404,7 @@ export const updateUserPicture = async (
     updateUser.pictureUrl.url = await getPresignedUrl(picture);
   }
   try {
-    em.persistAndFlush(updateUser);
+    await em.persistAndFlush(updateUser);
 
     return CustomResponse(200, "User updated successfully", true, {
       user: updateUser,

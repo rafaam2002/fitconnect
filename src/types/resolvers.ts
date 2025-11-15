@@ -23,6 +23,11 @@ export type UserPictureProps = {
   picture: string;
 };
 
+export type UpdateCompanyPictureProps = {
+  companyId: string;
+  picture: string;
+};
+
 export type ContextProps = {
   em: EntityManager | any;
   currentUser: UserType;

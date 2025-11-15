@@ -49,13 +49,6 @@ sameDayBookingAllowed: Boolean,
 fullOpenHours: Int,
 }
 
-
-input UpdateCompanyInput {
-id: ID!,
-companyData : CompanyDataInput!
-companyOptions: ScheduleOptionsInput!
-}
-
 input CreateUserInput {
     email: String!,
     nickname: String!,

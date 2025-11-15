@@ -6,6 +6,7 @@ import {
 } from "../../types/resolvers";
 import { CustomResponse } from "./errors";
 import { Company } from "../../entities/Company";
+import { ScheduleOptions } from "../../entities/ScheduleOptions";
 
 export const getCompanies = async (
   _: any,
@@ -76,7 +77,15 @@ export const updateCompany = async (
   }
 
   Object.assign(company, companyData);
-  Object.assign(company.scheduleOptions, scheduleOptions);
+  if (company.scheduleOptions)
+    Object.assign(company.scheduleOptions, scheduleOptions);
+  else {
+    const newScheduleOptions = em.create(ScheduleOptions, {
+      ...scheduleOptions,
+      company: company,
+    });
+    company.scheduleOptions = newScheduleOptions;
+  }
   await em.persistAndFlush(company);
 
   return CustomResponse(200, "Company updated successfully", true, {

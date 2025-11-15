@@ -31,8 +31,9 @@ input UpdateUserInput {
 
 input CreateCompanyInput {
 name : String!,
-address: String,
-logoUrl: String,
+phoneNumber: String!,
+email: String!,
+address: String!,
 }
 
 input CreateUserInput {

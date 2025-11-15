@@ -1181,6 +1181,13 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
     });
     newUser.memberships.add(membership);
     newUser.activeMembership = membership;
+    const firstForumMessage = em.create(Message, {
+      sender: newUser,
+      receiver: null,
+      text: `Welcome to the forum`,
+      isForumMessage: true,
+    });
+    em.persist(firstForumMessage);
   }
   try {
     const emailVerificationTk = jwt.sign(

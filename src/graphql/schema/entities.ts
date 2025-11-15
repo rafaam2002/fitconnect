@@ -42,8 +42,11 @@ type Product {
 type Company {
     id: ID!
     name: String!
-    address: String
-    logoUrl: String
+    phoneNumber: String!
+    email: String!
+    address: String!
+    logo: PictureUrl
+    pictures: [PictureUrl]
     schedulesOptions: ScheduleOptions
 }
 

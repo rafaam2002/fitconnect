@@ -30,7 +30,16 @@ const login = async (_, args: any, { em }) => {
     {
       $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
     },
-    { populate: ["password", "memberships.company"], filters: false }
+    {
+      populate: [
+        "password",
+        "memberships.company",
+        "schedules.id",
+        "schedules.startDate",
+        "memberships.company.logo",
+      ],
+      filters: false,
+    }
   );
 
   const passwordCorrect =

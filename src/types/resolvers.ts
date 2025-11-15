@@ -12,9 +12,10 @@ export type UserProps = {
 };
 
 export type CompanyProps = {
-  name?: string;
-  address?: string;
-  logoUrl?: string;
+  name: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
 };
 
 export type UserPictureProps = {

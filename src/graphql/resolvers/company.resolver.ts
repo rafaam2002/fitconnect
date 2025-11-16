@@ -98,16 +98,7 @@ export const updateCompany = async (
   });
 };
 
-export const companyResolvers = {
-  Query: {
-    getCompanies,
-  },
-  Mutation: {
-    updateCompany,
-  },
-};
-
-export const updateCompanyPicture = async (
+export const updateCompanyLogo = async (
   _: any,
   args: UpdateCompanyPictureProps,
   context: ContextProps
@@ -163,3 +154,16 @@ export const updateCompanyPicture = async (
     });
   }
 };
+
+export const companyResolvers = {
+  Query: {
+    getCompanies,
+  },
+  Mutation: {
+    updateCompany,
+    updateCompanyLogo,
+  },
+  
+};
+
+

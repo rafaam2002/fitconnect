@@ -28,6 +28,7 @@ export class Company extends BaseEntity {
   @OneToOne(() => PictureUrl, (picture) => picture.companyLogo, {
     nullable: true,
     owner: true,
+    eager: true,
   })
   logo?: PictureUrl;
 
@@ -36,7 +37,9 @@ export class Company extends BaseEntity {
   })
   pictures = new Collection<PictureUrl>(this);
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.company)
+  @OneToMany(() => MemberShip, (memberShip) => memberShip.company, {
+    cascade: [Cascade.REMOVE],
+  })
   memberships = new Collection<MemberShip>(this);
 
   @OneToOne(

@@ -85,7 +85,8 @@ type Mutation {
     markTransactionAsReconciled(transactionId: ID!): TransactionResponse!
 
     #----------------Company-------------------
-    updateCompany(companyId: String!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
+    updateCompany(companyId: ID!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
+    updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
 }
 
 `;

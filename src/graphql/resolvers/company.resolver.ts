@@ -15,7 +15,7 @@ import {
 
 export const getCompanies = async (
   _: any,
-  { companyId }: GetCompanyProps,
+  { companyId, page, query }: GetCompanyProps,
   { em, currentUser }: ContextProps
 ) => {
   if (!currentUser) {
@@ -42,16 +42,32 @@ export const getCompanies = async (
       company,
     });
   } else {
-    const companies: Company[] = await em.find(
-      Company,
-      {},
-      {
-        populate: ["scheduleOptions"],
-      }
-    );
+    const pageNumber = page || 1;
+    const limit = 10;
+    const offset = (pageNumber - 1) * limit;
+
+    let where = {};
+    if (query) {
+      where = {
+        $or: [
+          { name: { $ilike: `%${query}%` } },
+        ],
+      };
+    }
+
+    const [companies, totalItems] = await em.findAndCount(Company, where, {
+      limit,
+      offset,
+      populate: ["scheduleOptions"],
+    });
+
+    const totalPages = Math.ceil(totalItems / limit);
 
     return CustomResponse(200, "Companies fetched successfully", true, {
       companies,
+      totalItems,
+      totalPages,
+      currentPage: pageNumber,
     });
   }
 };
@@ -163,7 +179,4 @@ export const companyResolvers = {
     updateCompany,
     updateCompanyLogo,
   },
-  
 };
-
-

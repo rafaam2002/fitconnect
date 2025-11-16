@@ -106,6 +106,8 @@ export type DeletePollProps = {
 
 export type GetCompanyProps = {
   companyId?: string;
+  page?: number;
+  query?: string;
 };
 
 export type UpdateCompanyProps = {

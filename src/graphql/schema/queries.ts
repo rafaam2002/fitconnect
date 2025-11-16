@@ -80,7 +80,7 @@ type Query {
     getUserTransactionsSummary(userId: ID!): TransactionResponse!
 
     #--------------Company---------
-    getCompanies(companyId: ID): CompanyResponse!
+    getCompanies(companyId: ID, page: Int, query: String): CompanyResponse!
     
 }
 `;

@@ -87,7 +87,7 @@ type Mutation {
     #----------------Company-------------------
     updateCompany(companyId: ID!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
     updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
+    createCompany(company: CreateCompanyInput!): CompanyResponse!
 }
 
 `;
-

@@ -245,5 +245,6 @@ export const companyResolvers = {
   Mutation: {
     updateCompany,
     updateCompanyLogo,
+    createCompany
   },
 };

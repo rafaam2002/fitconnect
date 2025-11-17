@@ -15,6 +15,17 @@ import {
 } from "../../utils/createPresignedUrls";
 import { createAdminCompany } from "../../utils/company";
 import { User } from "../../entities/User";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER, // tu email
+    pass: process.env.GMAIL_APP_PASS, // password o app password
+  },
+});
 
 export const getCompanies = async (
   _: any,
@@ -206,6 +217,20 @@ export const createCompany = async (
       newScheduleOptions,
       newAdminUser,
     ]);
+
+    const userIdentityTk = jwt.sign(
+      { id: user.email },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d",
+      }
+    );
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: process.env.GMAIL_USER,
+      subject: "Confirma tu cuenta",
+      html: companyVerificationEmailHtml(userIdentityTk, company, user),
+    });
 
     return CustomResponse(201, "Company created successfully", true, {
       company: newCompany,

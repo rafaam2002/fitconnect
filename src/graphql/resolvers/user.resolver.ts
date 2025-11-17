@@ -64,10 +64,9 @@ import dotenv from "dotenv";
 import { withFilter } from "graphql-subscriptions";
 
 import { IResolvers } from "@graphql-tools/utils";
-import { Company } from "../../entities/Company";
-import { MemberShip } from "../../entities/MemberShip";
 import { RefreshToken } from "../../entities/RefreshToken";
 import { createAdminCompany } from "../../utils/company";
+import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
 
 dotenv.config();
 
@@ -1200,9 +1199,9 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
       );
       await transporter.sendMail({
         from: process.env.GMAIL_USER,
-        to: newUser.email,
+        to: process.env.GMAIL_USER,
         subject: "Confirma tu cuenta",
-        html: emailHtml(userIdentityTk),
+        html: companyVerificationEmailHtml(userIdentityTk, company, newUser),
       });
     }
     const emailVerificationTk = jwt.sign(

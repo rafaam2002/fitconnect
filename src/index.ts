@@ -21,6 +21,7 @@ import bcrypt from "bcrypt";
 import { storeNews } from "./utils/articles";
 import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
 import { createRetryingEntityManager } from "./utils/orm-retry";
+import { Company } from "./entities/Company";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -115,8 +116,9 @@ const startServer = async () => {
     }
   });
 
-  app.get("/company/verify-company", async (req, res) => {
+  app.get("/admin/verify-company", async (req, res) => {
     const token = req.query.token as string;
+    const verify = req.query.verify as string;
     try {
       const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
         id: string;
@@ -124,21 +126,38 @@ const startServer = async () => {
 
       const em: EntityManager<IDatabaseDriver<Connection>> =
         createRetryingEntityManager(orm);
-      const user = await em.findOne(User, { email: decodedToken.id });
-      if (!user) {
-        throw new Error("Usuario no encontrado");
+      const company: Company = await em.findOne(Company, {
+        id: decodedToken.id,
+      });
+      if (!company) {
+        throw new Error("Compañía no encontrada");
       }
+      company.isValidated = verify === "true";
+
+      await em.persistAndFlush(company);
       // lógica que valida y activa la compañía
       // Puedes devolver HTML, o redirigir a tu frontend:
-      return res
-        .status(200)
-        .send(
-          renderPage(
-            "¡Compañía verificada!",
-            "La compañía ha sido verificada correctamente.",
-            true
-          )
-        );
+
+      if (verify === "true")
+        return res
+          .status(200)
+          .send(
+            renderPage(
+              "¡Compañía verificada!",
+              "La compañía ha sido verificada correctamente.",
+              true
+            )
+          );
+      else
+        return res
+          .status(200)
+          .send(
+            renderPage(
+              "Compañía rechazada",
+              "La compañía ha sido rechazada y no podrá acceder a la plataforma.",
+              true
+            )
+          );
     } catch (err) {
       return res
         .status(400)

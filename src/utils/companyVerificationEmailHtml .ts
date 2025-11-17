@@ -131,10 +131,10 @@ export const companyVerificationEmailHtml = (
       <p style="text-align: center;">
         <a href="${
           process.env.API_URL
-        }/admin/approve-company?token=${companyTk}" class="button approve-button">Aprobar compañía</a>
+        }/admin/verify-company?token=${companyTk}&verify=true" class="button approve-button">Aprobar compañía</a>
         <a href="${
           process.env.API_URL
-        }/admin/reject-company?token=${companyTk}" class="button reject-button">Rechazar compañía</a>
+        }/admin/verify-company?token=${companyTk}&verify=false" class="button reject-button">Rechazar compañía</a>
       </p>
 
       <p>

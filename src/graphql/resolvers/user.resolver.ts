@@ -1190,8 +1190,8 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
         newScheduleOptions,
       ]);
       newUser = newAdminUser;
-      const userIdentityTk = jwt.sign(
-        { id: user.email },
+      const companyTk = jwt.sign(
+        { id: newCompany.id },
         process.env.JWT_SECRET,
         {
           expiresIn: "30d",
@@ -1201,7 +1201,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
         from: process.env.GMAIL_USER,
         to: process.env.GMAIL_USER,
         subject: "Confirma tu cuenta",
-        html: companyVerificationEmailHtml(userIdentityTk, company, newUser),
+        html: companyVerificationEmailHtml(companyTk, company, newUser),
       });
     }
     const emailVerificationTk = jwt.sign(

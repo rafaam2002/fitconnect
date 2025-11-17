@@ -115,6 +115,43 @@ const startServer = async () => {
     }
   });
 
+  app.get("/company/verify-company", async (req, res) => {
+    const token = req.query.token as string;
+    try {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+        id: string;
+      };
+
+      const em: EntityManager<IDatabaseDriver<Connection>> =
+        createRetryingEntityManager(orm);
+      const user = await em.findOne(User, { email: decodedToken.id });
+      if (!user) {
+        throw new Error("Usuario no encontrado");
+      }
+      // lógica que valida y activa la compañía
+      // Puedes devolver HTML, o redirigir a tu frontend:
+      return res
+        .status(200)
+        .send(
+          renderPage(
+            "¡Compañía verificada!",
+            "La compañía ha sido verificada correctamente.",
+            true
+          )
+        );
+    } catch (err) {
+      return res
+        .status(400)
+        .send(
+          renderPage(
+            "Verificación fallida",
+            `Token inválido o caducado. ${err.message}`,
+            false
+          )
+        );
+    }
+  });
+
   app.get("/auth/reset-password", async (req, res) => {
     const token = req.query.token as string;
     try {

@@ -218,18 +218,14 @@ export const createCompany = async (
       newAdminUser,
     ]);
 
-    const userIdentityTk = jwt.sign(
-      { id: user.email },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "30d",
-      }
-    );
+    const companyTk = jwt.sign({ id: newCompany.id }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
+    });
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: process.env.GMAIL_USER,
       subject: "Confirma tu cuenta",
-      html: companyVerificationEmailHtml(userIdentityTk, company, user),
+      html: companyVerificationEmailHtml(companyTk, company, user),
     });
 
     return CustomResponse(201, "Company created successfully", true, {

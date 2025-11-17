@@ -4,7 +4,7 @@ import { UserType } from "../types";
 dotenv.config();
 
 export const companyVerificationEmailHtml = (
-  userIdentityTk: string,
+  companyTk: string,
   company: CompanyProps,
   user: UserType
 ) => {
@@ -131,10 +131,10 @@ export const companyVerificationEmailHtml = (
       <p style="text-align: center;">
         <a href="${
           process.env.API_URL
-        }/admin/approve-company?token=${userIdentityTk}" class="button approve-button">Aprobar compañía</a>
+        }/admin/approve-company?token=${companyTk}" class="button approve-button">Aprobar compañía</a>
         <a href="${
           process.env.API_URL
-        }/admin/reject-company?token=${userIdentityTk}" class="button reject-button">Rechazar compañía</a>
+        }/admin/reject-company?token=${companyTk}" class="button reject-button">Rechazar compañía</a>
       </p>
 
       <p>

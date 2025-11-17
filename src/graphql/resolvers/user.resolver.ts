@@ -1183,7 +1183,7 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
         newMembership,
         newScheduleOptions,
       } = createAdminCompany(em, newUser, company);
-      
+
       await em.persistAndFlush([
         newCompany,
         newFirstForumMessage,
@@ -1191,6 +1191,19 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
         newScheduleOptions,
       ]);
       newUser = newAdminUser;
+      const userIdentityTk = jwt.sign(
+        { id: user.email },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "30d",
+        }
+      );
+      await transporter.sendMail({
+        from: process.env.GMAIL_USER,
+        to: newUser.email,
+        subject: "Confirma tu cuenta",
+        html: emailHtml(userIdentityTk),
+      });
     }
     const emailVerificationTk = jwt.sign(
       { id: user.email },

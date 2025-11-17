@@ -3,6 +3,7 @@ import {
   Cascade,
   Collection,
   Entity,
+  Filter,
   OneToMany,
   OneToOne,
   Property,
@@ -12,6 +13,10 @@ import { ScheduleOptions } from "./ScheduleOptions";
 import { PictureUrl } from "./PictureUrl";
 
 @Entity()
+@Filter({
+  name: "validatedCompanies",
+  cond: (args) => ({ isValidated: true }),
+})
 export class Company extends BaseEntity {
   @Property({ length: 100 })
   name!: string;
@@ -24,6 +29,9 @@ export class Company extends BaseEntity {
 
   @Property()
   address: string;
+
+  @Property()
+  isValidated: boolean = false;
 
   @OneToOne(() => PictureUrl, (picture) => picture.companyLogo, {
     nullable: true,

@@ -1,5 +1,6 @@
 import { GraphQLError } from "graphql";
 import {
+  CompanyProps,
   ContextProps,
   GetCompanyProps,
   UpdateCompanyPictureProps,
@@ -12,6 +13,8 @@ import {
   createPictureUrl,
   getPresignedUrl,
 } from "../../utils/createPresignedUrls";
+import { createAdminCompany } from "../../utils/company";
+import { User } from "../../entities/User";
 
 export const getCompanies = async (
   _: any,
@@ -49,9 +52,7 @@ export const getCompanies = async (
     let where = {};
     if (query) {
       where = {
-        $or: [
-          { name: { $ilike: `%${query}%` } },
-        ],
+        $or: [{ name: { $ilike: `%${query}%` } }],
       };
     }
 
@@ -168,6 +169,51 @@ export const updateCompanyLogo = async (
     return CustomResponse(500, "Error updating company", false, {
       company: null,
     });
+  }
+};
+
+export const createCompany = async (
+  _: any,
+  company: CompanyProps,
+  { em, currentUser }: ContextProps
+) => {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+  const user = await em.findOne(
+    User,
+    { id: currentUser.id },
+    { populate: ["memberships"] }
+  );
+  try {
+    const {
+      newCompany,
+      newUser: newAdminUser,
+      newFirstForumMessage,
+      newMembership,
+      newScheduleOptions,
+    } = createAdminCompany(em, user, company);
+
+    await em.persistAndFlush([
+      newCompany,
+      newFirstForumMessage,
+      newMembership,
+      newScheduleOptions,
+      newAdminUser,
+    ]);
+
+    return CustomResponse(201, "Company created successfully", true, {
+      company: newCompany,
+      user: newAdminUser,
+    });
+  } catch (error) {
+    console.error(error);
+    return CustomResponse(500, "Error creating company" + error.message);
   }
 };
 

@@ -67,6 +67,7 @@ import { IResolvers } from "@graphql-tools/utils";
 import { Company } from "../../entities/Company";
 import { MemberShip } from "../../entities/MemberShip";
 import { RefreshToken } from "../../entities/RefreshToken";
+import { createAdminCompany } from "../../utils/company";
 
 dotenv.config();
 
@@ -1171,39 +1172,26 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
     return CustomResponse(400, "User already exists");
   }
 
-  const newUser: User = em.create(User, user);
+  let newUser: User = em.create(User, user);
 
-  if (user.role === UserRole.BOSS) {
-    const newCompany = em.create(Company, company);
-    const membership = em.create(MemberShip, {
-      role: UserRole.BOSS,
-      user: newUser,
-      company: newCompany,
-    });
-    newUser.memberships.add(membership);
-    newUser.activeMembership = membership;
-    const firstForumMessage = em.create(Message, {
-      sender: newUser,
-      receiver: null,
-      text: `Welcome to the forum`,
-      isForumMessage: true,
-      company: newCompany,
-    });
-    const scheduleOptions = em.create(ScheduleOptions, {
-      company: newCompany,
-      maxActiveReservations: 1,
-      maxAdvanceBookingDays: 1,
-      sameDayBookingAllowed: false,
-      fullOpenHours: 0,
-    });
-    await em.persistAndFlush([
-      newCompany,
-      membership,
-      scheduleOptions,
-      firstForumMessage,
-    ]);
-  }
   try {
+    if (user.role === UserRole.BOSS) {
+      const {
+        newCompany,
+        newUser: newAdminUser,
+        newFirstForumMessage,
+        newMembership,
+        newScheduleOptions,
+      } = createAdminCompany(em, newUser, company);
+      
+      await em.persistAndFlush([
+        newCompany,
+        newFirstForumMessage,
+        newMembership,
+        newScheduleOptions,
+      ]);
+      newUser = newAdminUser;
+    }
     const emailVerificationTk = jwt.sign(
       { id: user.email },
       process.env.JWT_SECRET,

@@ -45,9 +45,12 @@ export class ScheduleSeeder extends Seeder {
           User,
           {
             companies: company,
+            roles: { role: UserRoleEnum.STANDARD },
           },
           { limit: 20, filters: false }
         );
+
+
 
         if (usersInCompany.length === 0) {
           console.log(

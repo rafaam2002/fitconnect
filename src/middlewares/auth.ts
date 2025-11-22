@@ -17,7 +17,7 @@ export const authenticateUser = async (
       };
       const currentUser = await em.findOne(User, { id: decodedToken.id }, {
         filters: false, 
-        populate: false
+        populate: ["companies"]
       });
 
       

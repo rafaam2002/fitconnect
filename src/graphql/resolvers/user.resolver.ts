@@ -460,27 +460,30 @@ export const getPolls = async (
     return CustomResponse(200, "Polls found", true, { polls });
   }
 
-  const polls = await pollRepo.find(
-    {
-      endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
-    },
-    {
-      populate: [
-        "admin",
-        {
-          field: "pollVotes",
-          populate: [
-            {
-              field: "user",
-              fields: ["id", "profilePicture"],
-            },
-          ],
-        },
-      ],
-    }
-  );
-
-  return CustomResponse(200, "Polls found", true, { polls });
+  try {
+    const polls = await pollRepo.find(
+      {
+        endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
+      },
+      {
+        populate: [
+          "admin",
+          {
+            field: "pollVotes",
+            populate: [
+              {
+                field: "user",
+                fields: ["id", "profilePicture"],
+              },
+            ],
+          },
+        ],
+      }
+    );
+    return CustomResponse(200, "Polls found", true, { polls });
+  } catch (error) {
+    return CustomResponse(500, `Error fetching polls, ${error}`);
+  }
 };
 
 export const getConversation = async (

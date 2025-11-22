@@ -6,12 +6,12 @@ import { Promotion } from "../entities/Promotion";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
 import { User } from "../entities/User";
+import { UserRole } from "../entities/UserRole";
 import { CompanyFactory } from "../factories/CompanyFactory";
 import { PollFactory } from "../factories/PollFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { UserFactory } from "../factories/UserFactory";
 import { UserRoleEnum } from "../types/enums";
-import { UserRole } from "../entities/UserRole";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -111,6 +111,7 @@ export class UserSeeder extends Seeder {
 
       new UserFactory(em)
         .each((user) => {
+          const company = faker.helpers.arrayElement(createdCompanies);
           if (!PollsCreated) {
             createdCompanies.forEach((company) => {
               cont++;
@@ -123,6 +124,14 @@ export class UserSeeder extends Seeder {
             });
             PollsCreated = true;
           }
+          user.companies.set([company]);
+
+          user.roles.set([
+            em.create(UserRole, {
+              role: UserRoleEnum.STANDARD,
+              company,
+            }),
+          ]);
         })
         .make(50, {
           schedules: faker.helpers.arrayElements(schedules, {

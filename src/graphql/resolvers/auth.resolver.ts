@@ -70,6 +70,7 @@ const login = async (_, args: any, { em }) => {
       code: "200",
       message: "Login successful",
       user,
+      companies: user.companies.getItems(),
       tokens: {
         token,
         refreshToken: refreshTokenString,
@@ -231,7 +232,7 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   const { email, name, picture } = googleData;
 
   // Buscar usuario
-  let user:User = await em.findOne(
+  let user: User = await em.findOne(
     User,
     { email },
     { populate: ["companies"], filters: false }
@@ -247,7 +248,6 @@ async function loginWithGoogle(_: any, args: any, { em }) {
     });
     await em.persistAndFlush(user);
   }
-
 
   // Generamos JWT
   const token = jwt.sign(
@@ -269,6 +269,7 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   return CustomResponse(200, "User logged in successfully", true, {
     tokens: { token, refreshToken: refreshTokenString },
     user,
+    companies: user.companies.getItems(),
   });
 }
 

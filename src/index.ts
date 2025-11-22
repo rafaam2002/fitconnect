@@ -1,27 +1,27 @@
 import { ApolloServer } from "@apollo/server";
-import { makeExecutableSchema } from "@graphql-tools/schema";
-import { typeDefs } from "./graphql/schema/schema";
-import resolvers from "./graphql/resolvers";
-import { initORM } from "./utils/microOrmClient";
-import express from "express";
-import cors from "cors";
 import { expressMiddleware } from "@apollo/server/express4";
-import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-import dotenv from "dotenv";
-import { authenticateUser } from "./middlewares/auth";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { WebSocketServer } from "ws";
-import { createServer } from "http";
-import { useServer } from "graphql-ws/use/ws";
-import { User } from "./entities/User";
-import jwt from "jsonwebtoken";
-import { renderPage } from "./utils/emailHtml";
-import { cronFunctions } from "./utils/cron";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import bcrypt from "bcrypt";
-import { storeNews } from "./utils/articles";
-import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
-import { createRetryingEntityManager } from "./utils/orm-retry";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import { useServer } from "graphql-ws/use/ws";
+import { createServer } from "http";
+import jwt from "jsonwebtoken";
+import { WebSocketServer } from "ws";
 import { Company } from "./entities/Company";
+import { User } from "./entities/User";
+import resolvers from "./graphql/resolvers";
+import { typeDefs } from "./graphql/schema/schema";
+import { authenticateUser } from "./middlewares/auth";
+import { storeNews } from "./utils/articles";
+import { cronFunctions } from "./utils/cron";
+import { renderPage } from "./utils/emailHtml";
+import { initORM } from "./utils/microOrmClient";
+import { createRetryingEntityManager } from "./utils/orm-retry";
+import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -274,11 +274,11 @@ const startServer = async () => {
 
         const currentUser = await authenticateUser(em, authorization);
 
-        if (currentUser && currentUser.activeMembership) {
+        if (currentUser && currentUser.contextCompanyId) {
           //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
           //y su membresia correspondiente a esa compania
           em.setFilterParams("companyContext", {
-            companyId: currentUser.activeMembership.company.id,
+            companyId: currentUser.contextCompanyId,
           });
         }
 
@@ -305,12 +305,12 @@ const startServer = async () => {
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
 
-        if (currentUser && currentUser.activeMembership) {
+        if (currentUser && currentUser.contextCompanyId) {
           em.setFilterParams("company", {
-            companyId: currentUser.activeMembership.company.id,
+            companyId: currentUser.contextCompanyId,
           });
           em.setFilterParams("companyContext", {
-            companyId: currentUser.activeMembership.company.id,
+            companyId: currentUser.contextCompanyId,
           });
         }
 

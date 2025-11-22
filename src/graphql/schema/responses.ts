@@ -109,7 +109,7 @@ type LoginResponse implements BasicResponse{
     success: Boolean!
     message: String!
     user: User
-    memberships: [MemberShip]
+    companies: [Company]
     tokens: Tokens
 }
 
@@ -182,7 +182,7 @@ type UserResumeResponse {
     id: ID!
     nickname: String!
     pictureUrl: PictureUrl
-    contextRole: UserRole
+    contextRole: UserRoleEnum
 }
 
 type AdminStatsResponse {

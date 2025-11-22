@@ -33,10 +33,9 @@ const login = async (_, args: any, { em }) => {
     {
       populate: [
         "password",
-        "memberships.company",
         "schedules.id",
         "schedules.startDate",
-        "memberships.company.logo",
+        "companies",
       ],
       filters: false,
     }
@@ -48,27 +47,10 @@ const login = async (_, args: any, { em }) => {
     return CustomResponse(400, "Invalid email/nickname or password");
   }
 
-  //membresia mapeada por ahora
-  // user.activeMembership = user.memberships.getItems().find((membership) => {
-  //   return membership.company.isActive;
-  // });
-
-  user.activeMembership = user.memberships[0];
-
-  const memberships = user.memberships || [];
-
   const idForToken = {
     id: user.id,
-    // email: user.email,
-    // name: user.name,
-    // surname: user.surname,
-    // isBlocked: user.isBlocked,
-    // isActive: user.isActive,
-    // role: user.role,
-    // nickname: user.nickname,
-    // phoneNumber: user.phoneNumber,
-    // pictureUrl: user.pictureUrl,
   };
+
   const token = jwt.sign(idForToken, process.env.JWT_SECRET, {
     expiresIn: "30m",
   });
@@ -88,7 +70,7 @@ const login = async (_, args: any, { em }) => {
       code: "200",
       message: "Login successful",
       user,
-      memberships,
+      companies: user.companies.getItems(),
       tokens: {
         token,
         refreshToken: refreshTokenString,
@@ -250,10 +232,10 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   const { email, name, picture } = googleData;
 
   // Buscar usuario
-  let user = await em.findOne(
+  let user: User = await em.findOne(
     User,
     { email },
-    { populate: ["memberships.company"], filters: false }
+    { populate: ["companies"], filters: false }
   );
 
   // Si no existe, lo creamos
@@ -266,8 +248,6 @@ async function loginWithGoogle(_: any, args: any, { em }) {
     });
     await em.persistAndFlush(user);
   }
-
-  user.activeMembership = user.memberships[0];
 
   // Generamos JWT
   const token = jwt.sign(
@@ -289,6 +269,7 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   return CustomResponse(200, "User logged in successfully", true, {
     tokens: { token, refreshToken: refreshTokenString },
     user,
+    companies: user.companies.getItems(),
   });
 }
 

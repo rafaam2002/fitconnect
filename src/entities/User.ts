@@ -2,33 +2,31 @@ import {
   BeforeCreate,
   Collection,
   Entity,
-  Enum,
   Filter,
   Index,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   OneToOne,
   Property,
   t,
 } from "@mikro-orm/core";
-import { UserProviderType, UserRole } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Schedule } from "./Schedule";
-import { Message } from "./Message";
-import { Poll } from "./Poll";
-import { Promotion } from "./Promotion";
-import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
+import { UserProviderType, UserRoleEnum } from "../types/enums";
+import { BaseEntity } from "./BaseEntity";
+import { Company } from "./Company";
+import { Message } from "./Message";
+import { PictureUrl } from "./PictureUrl";
+import { Poll } from "./Poll";
+import { PollVote } from "./PollVote";
+import { Promotion } from "./Promotion";
+import { PushToken } from "./PushToken";
+import { RefreshToken } from "./RefreshToken";
+import { Schedule } from "./Schedule";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
-import { UserWeight } from "./UserWeight";
-import { PictureUrl } from "./PictureUrl";
-import { RefreshToken } from "./RefreshToken";
 import { Transaction } from "./Transaction";
-import { PushToken } from "./PushToken";
-import { MemberShip } from "./MemberShip";
-import { Company } from "./Company";
+import { UserRole } from "./UserRole";
+import { UserWeight } from "./UserWeight";
 
 export enum UserStatus {
   ACTIVE = "active",
@@ -38,8 +36,8 @@ export enum UserStatus {
 
 @Entity()
 @Filter({
-  name: "company",
-  cond: (args) => ({ memberships: { company: args.companyId } }),
+  name: "companyContext",
+  cond: (args) => ({ companies: { id: args.companyId } }),
   default: false,
 })
 export class User extends BaseEntity {
@@ -59,9 +57,6 @@ export class User extends BaseEntity {
   @Property({ nullable: true })
   phoneNumber?: string | null;
 
-  // @Property({ nullable: true })
-  // profilePicture?: string;
-
   @Property({ type: t.string, unique: true })
   nickname: string;
 
@@ -77,21 +72,21 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   provider: UserProviderType = UserProviderType.LOCAL;
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.user,{eager: true} )
-  memberships = new Collection<MemberShip>(this);
+  @ManyToMany(() => Company, (company: Company) => company.users, {
+    owner: true,
+  })
+  companies = new Collection<Company>(this);
 
-  @ManyToOne(() => MemberShip, { nullable: true})
-  activeMembership?: MemberShip;
+  @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
+  roles = new Collection<UserRole>(this);
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
-
   })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, {
     owner: true,
-
   })
   promotions = new Collection<Promotion>(this);
 
@@ -162,14 +157,19 @@ export class User extends BaseEntity {
     return `${this.name} ${this.surname}`;
   }
 
-  get currentRole(): UserRole | null {
-    return this.activeMembership ? this.activeMembership.role : null;
+  get contextRole(): UserRoleEnum | null {
+    if (!this.roles.isInitialized()) {
+      return null;
+    }
+    return this.roles.length > 0 ? this.roles[0].role : null;
   }
 
-  get currentCompany(): Pick<Company, "id"> | null {
-    return this.activeMembership ? this.activeMembership.company : null;
+  get contextCompanyId(): string | null {
+    if (!this.companies.isInitialized()) {
+      return null;
+    }
+    return this.companies.length > 0 ? this.companies[0].id : null;
   }
-
   /* @BeforeCreate()
      @BeforeUpdate()
      validateEmail() {

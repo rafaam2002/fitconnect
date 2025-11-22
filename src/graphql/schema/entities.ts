@@ -1,4 +1,3 @@
-
 export const graphqlEntities = `
 scalar JSON
 
@@ -49,14 +48,6 @@ type Company {
     pictures: [PictureUrl]
     scheduleOptions: ScheduleOptions
 }
-
-type MemberShip {
-    id: ID!
-    user: UserResumeResponse!
-    company: Company!
-    role: UserRole!
-}
-
 type User {
     id: ID!
     name: String
@@ -66,12 +57,13 @@ type User {
     nickname: String!
     isActive: Boolean
     isBlocked: Boolean
-    contextRole: UserRole
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String
     isVerified: Boolean
-    activeMembership: MemberShip
+    companies: [Company]
+    contextRole: UserRoleEnum
+    contextCompanyId: ID
 }
 
 type Schedule {

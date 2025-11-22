@@ -1,27 +1,19 @@
 import { EntityManager } from "@mikro-orm/postgresql";
-import { User } from "../entities/User";
 import { Company } from "../entities/Company";
-import { UserRole } from "../types/enums";
-import { CompanyProps } from "../types/resolvers";
-import { MemberShip } from "../entities/MemberShip";
 import { Message } from "../entities/Message";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
+import { User } from "../entities/User";
+import { UserRoleEnum } from "../types/enums";
+import { CompanyProps } from "../types/resolvers";
 
-export const createAdminCompany =  (
+export const createAdminCompany = (
   em: EntityManager,
   user: User,
   company: CompanyProps
 ) => {
   const newCompany = em.create(Company, company);
 
-  const membership = em.create(MemberShip, {
-    role: UserRole.BOSS,
-    user: user,
-    company: newCompany,
-  });
-
-  user.memberships.add(membership);
-  user.activeMembership = membership;
+  user.companies.add(newCompany);
   const firstForumMessage = em.create(Message, {
     sender: user,
     receiver: null,
@@ -38,7 +30,6 @@ export const createAdminCompany =  (
   });
   return {
     newCompany,
-    newMembership: membership,
     newScheduleOptions: scheduleOptions,
     newFirstForumMessage: firstForumMessage,
     newUser: user,

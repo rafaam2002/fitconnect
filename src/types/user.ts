@@ -1,14 +1,12 @@
-import { Company } from "../entities/Company";
-import { MemberShip } from "../entities/MemberShip";
-import { UserRole } from "./enums";
+import { UserRoleEnum } from "./enums";
 
 export type UserType = {
   id: string;
   email: string;
   created_at: Date;
   updated_at: Date;
-  currentRole: UserRole;
-  currentCompany: Pick<Company, "id"> | null;
+  contextRole?: UserRoleEnum;
+  contextCompanyId?: string | null;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;
@@ -16,7 +14,6 @@ export type UserType = {
   stripeCustomerId?: string;
   name?: string;
   isVerified: boolean;
-  activeMembership?: MemberShip;
 };
 
 export type UserFilter = {
@@ -25,6 +22,6 @@ export type UserFilter = {
   email: string;
   phoneNumber: string;
   nickname: string;
-  role: UserRole;
+  role: UserRoleEnum;
   isActive: boolean;
 };

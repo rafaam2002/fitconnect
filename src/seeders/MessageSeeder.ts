@@ -6,10 +6,11 @@ import { Seeder } from "@mikro-orm/seeder";
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const userRepo = em.getRepository(User);
-    const adminUsers = await userRepo.find(
+    const adminUsers: User[] = await userRepo.find(
       { nickname: { $in: ["rafa", "juan", "isaac"] } },
       {
         filters: false,
+        populate: ["companies"],
       }
     );
 
@@ -19,7 +20,7 @@ export class MessageSeeder extends Seeder {
         sender: admin,
         isFixed: false,
         receiver: null,
-        company: admin?.memberships.getItems()[0].company, // no mapear posteriormente
+        company: admin?.companies.getItems()[0].id, // no mapear posteriormente
         isForumMessage: true,
       });
       await em.persistAndFlush(forumMessage);

@@ -38,7 +38,7 @@ export enum UserStatus {
 
 @Entity()
 @Filter({
-  name: "company",
+  name: "companyContext",
   cond: (args) => ({ memberships: { company: args.companyId } }),
   default: false,
 })

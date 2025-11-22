@@ -199,21 +199,19 @@ export const createCompany = async (
   const user = await em.findOne(
     User,
     { id: currentUser.id },
-    { populate: ["memberships"] }
+    { populate: ["companies"] }
   );
   try {
     const {
       newCompany,
       newUser: newAdminUser,
       newFirstForumMessage,
-      newMembership,
       newScheduleOptions,
     } = createAdminCompany(em, user, company);
 
     await em.persistAndFlush([
       newCompany,
       newFirstForumMessage,
-      newMembership,
       newScheduleOptions,
       newAdminUser,
     ]);

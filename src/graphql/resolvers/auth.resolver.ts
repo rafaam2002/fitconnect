@@ -231,10 +231,10 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   const { email, name, picture } = googleData;
 
   // Buscar usuario
-  let user = await em.findOne(
+  let user:User = await em.findOne(
     User,
     { email },
-    { populate: ["memberships.company"], filters: false }
+    { populate: ["companies"], filters: false }
   );
 
   // Si no existe, lo creamos
@@ -248,7 +248,6 @@ async function loginWithGoogle(_: any, args: any, { em }) {
     await em.persistAndFlush(user);
   }
 
-  user.activeMembership = user.memberships[0];
 
   // Generamos JWT
   const token = jwt.sign(

@@ -1179,14 +1179,12 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
         newCompany,
         newUser: newAdminUser,
         newFirstForumMessage,
-        newMembership,
         newScheduleOptions,
       } = createAdminCompany(em, newUser, company);
 
       await em.persistAndFlush([
         newCompany,
         newFirstForumMessage,
-        newMembership,
         newScheduleOptions,
       ]);
       newUser = newAdminUser;

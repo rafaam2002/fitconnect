@@ -1,6 +1,5 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Company } from "../entities/Company";
-import { MemberShip } from "../entities/MemberShip";
 import { Message } from "../entities/Message";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
 import { User } from "../entities/User";
@@ -14,14 +13,7 @@ export const createAdminCompany = (
 ) => {
   const newCompany = em.create(Company, company);
 
-  const membership = em.create(MemberShip, {
-    role: UserRoleEnum.BOSS,
-    user: user,
-    company: newCompany,
-  });
-
-  user.memberships.add(membership);
-  user.activeMembership = membership;
+  user.companies.add(newCompany);
   const firstForumMessage = em.create(Message, {
     sender: user,
     receiver: null,
@@ -38,7 +30,6 @@ export const createAdminCompany = (
   });
   return {
     newCompany,
-    newMembership: membership,
     newScheduleOptions: scheduleOptions,
     newFirstForumMessage: firstForumMessage,
     newUser: user,

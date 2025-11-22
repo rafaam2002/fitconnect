@@ -5,7 +5,6 @@ import {
   Filter,
   Index,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   OneToOne,
   Property,
@@ -162,7 +161,7 @@ export class User extends BaseEntity {
     return this.roles.length > 0 ? this.roles[0].role : null;
   }
 
-  get activeCompany(): string | null {
+  get activeCompanyId(): string | null {
     return this.companies.length > 0 ? this.companies[0].id : null;
   }
   /* @BeforeCreate()

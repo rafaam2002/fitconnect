@@ -1,5 +1,3 @@
-import { Company } from "../entities/Company";
-import { UserRole } from "../entities/UserRole";
 import { UserRoleEnum } from "./enums";
 
 export type UserType = {
@@ -8,7 +6,7 @@ export type UserType = {
   created_at: Date;
   updated_at: Date;
   activeRole?: UserRoleEnum;
-  activeCompany?: string | null;
+  activeCompanyId?: string | null;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;

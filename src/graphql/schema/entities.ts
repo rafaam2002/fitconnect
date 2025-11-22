@@ -1,4 +1,3 @@
-
 export const graphqlEntities = `
 scalar JSON
 
@@ -64,7 +63,7 @@ type User {
     isVerified: Boolean
     companies: [Company]
     activeRole: UserRoleEnum
-    activeCompany: ID
+    activeCompanyId: ID
 }
 
 type Schedule {

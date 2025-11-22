@@ -77,6 +77,14 @@ export class User extends BaseEntity {
   })
   companies = new Collection<Company>(this);
 
+  @Property({ type: t.string, nullable: true })
+  activeCompanyId?: string | null;
+
+  // @ManyToMany(() => Plan, (plan: Plan) =>plans.users, {
+  //   owner: true,
+  // })
+  //plans  = new Collection<Plan>(this);
+
   @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
   roles = new Collection<UserRole>(this);
 
@@ -158,6 +166,13 @@ export class User extends BaseEntity {
   }
 
   get contextRole(): UserRoleEnum | null {
+    if (!this.roles.isInitialized()) {
+      return null;
+    }
+    return this.roles.length > 0 ? this.roles[0].role : null;
+  }
+
+  get contextPlan(): UserRoleEnum | null {
     if (!this.roles.isInitialized()) {
       return null;
     }

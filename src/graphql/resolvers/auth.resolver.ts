@@ -64,6 +64,9 @@ const login = async (_, args: any, { em }) => {
 
   await em.persistAndFlush(refreshToken);
 
+  //user.activeCompanyId = activeCompanyIdParam
+  //await em.persistAndFlush(user);
+
   if (token) {
     return {
       success: true,

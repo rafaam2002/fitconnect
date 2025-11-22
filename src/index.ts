@@ -239,9 +239,7 @@ const startServer = async () => {
         const em = createRetryingEntityManager(orm); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
         const query = req.body?.query || "";
-        // em.setFilterParams("company", {
-        //   companyId: null,
-        // });
+        
         //sacar query por consola para debug
         //  console.log("Query: ", query);
 
@@ -276,7 +274,6 @@ const startServer = async () => {
 
         if (currentUser && currentUser.contextCompanyId) {
           //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
-          //y su membresia correspondiente a esa compania
           em.setFilterParams("companyContext", {
             companyId: currentUser.contextCompanyId,
           });

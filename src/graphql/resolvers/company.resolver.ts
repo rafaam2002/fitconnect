@@ -47,6 +47,7 @@ export const getCompanies = async (
       { id: companyId },
       {
         populate: ["scheduleOptions"],
+        filters: false,
       }
     );
     if (!company) {
@@ -71,6 +72,7 @@ export const getCompanies = async (
       limit,
       offset,
       populate: ["scheduleOptions"],
+      filters: false,
     });
 
     const totalPages = Math.ceil(totalItems / limit);

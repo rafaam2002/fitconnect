@@ -25,6 +25,10 @@ export const transporter = nodemailer.createTransport({
 const login = async (_, args: any, { em }) => {
   const { emailOrNickname, password } = args;
 
+  //  em.setFilterParams("companyContext", {
+  //    companyId: comapanyIdParam,
+  //  });
+
   const user: User = await em.findOne(
     User,
     {
@@ -37,7 +41,6 @@ const login = async (_, args: any, { em }) => {
         "schedules.startDate",
         "companies",
       ],
-      filters: false,
     }
   );
 
@@ -288,3 +291,4 @@ export const authResolvers = {
     sendChangePasswordEmail,
   },
 };
+

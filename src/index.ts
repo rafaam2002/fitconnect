@@ -271,6 +271,7 @@ const startServer = async () => {
         }
 
         const currentUser = await authenticateUser(em, authorization);
+        //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
 
         if (currentUser && currentUser.contextCompanyId) {
           //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania

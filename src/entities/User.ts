@@ -2,7 +2,6 @@ import {
   BeforeCreate,
   Collection,
   Entity,
-  Enum,
   Filter,
   Index,
   ManyToMany,
@@ -12,23 +11,23 @@ import {
   Property,
   t,
 } from "@mikro-orm/core";
-import { UserProviderType, UserRole } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Schedule } from "./Schedule";
-import { Message } from "./Message";
-import { Poll } from "./Poll";
-import { Promotion } from "./Promotion";
-import { PollVote } from "./PollVote";
 import bcrypt from "bcrypt";
+import { UserProviderType, UserRoleEnum } from "../types/enums";
+import { BaseEntity } from "./BaseEntity";
+import { Company } from "./Company";
+import { MemberShip } from "./MemberShip";
+import { Message } from "./Message";
+import { PictureUrl } from "./PictureUrl";
+import { Poll } from "./Poll";
+import { PollVote } from "./PollVote";
+import { Promotion } from "./Promotion";
+import { PushToken } from "./PushToken";
+import { RefreshToken } from "./RefreshToken";
+import { Schedule } from "./Schedule";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
-import { UserWeight } from "./UserWeight";
-import { PictureUrl } from "./PictureUrl";
-import { RefreshToken } from "./RefreshToken";
 import { Transaction } from "./Transaction";
-import { PushToken } from "./PushToken";
-import { MemberShip } from "./MemberShip";
-import { Company } from "./Company";
+import { UserWeight } from "./UserWeight";
 
 export enum UserStatus {
   ACTIVE = "active",
@@ -77,21 +76,19 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   provider: UserProviderType = UserProviderType.LOCAL;
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.user,{eager: true} )
+  @OneToMany(() => MemberShip, (memberShip) => memberShip.user, { eager: true })
   memberships = new Collection<MemberShip>(this);
 
-  @ManyToOne(() => MemberShip, { nullable: true})
+  @ManyToOne(() => MemberShip, { nullable: true })
   activeMembership?: MemberShip;
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
-
   })
   schedules = new Collection<Schedule>(this);
 
   @ManyToMany(() => Promotion, (promotion) => promotion.users, {
     owner: true,
-
   })
   promotions = new Collection<Promotion>(this);
 
@@ -162,7 +159,7 @@ export class User extends BaseEntity {
     return `${this.name} ${this.surname}`;
   }
 
-  get currentRole(): UserRole | null {
+  get currentRole(): UserRoleEnum | null {
     return this.activeMembership ? this.activeMembership.role : null;
   }
 

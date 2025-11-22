@@ -1,18 +1,18 @@
+import { faker } from "@faker-js/faker";
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
-import { UserFactory } from "../factories/UserFactory";
-import { Schedule } from "../entities/Schedule";
-import { faker } from "@faker-js/faker";
-import { User } from "../entities/User";
-import { Promotion } from "../entities/Promotion";
-import { PollVoteFactory } from "../factories/PollVoteFactory";
-import { PollFactory } from "../factories/PollFactory";
-import { ScheduleOptions } from "../entities/ScheduleOptions";
-import { CompanyFactory } from "../factories/CompanyFactory";
-import { UserRole } from "../types/enums";
-import { MemberShip } from "../entities/MemberShip";
 import { Company } from "../entities/Company";
+import { MemberShip } from "../entities/MemberShip";
+import { Promotion } from "../entities/Promotion";
+import { Schedule } from "../entities/Schedule";
+import { ScheduleOptions } from "../entities/ScheduleOptions";
+import { User } from "../entities/User";
+import { CompanyFactory } from "../factories/CompanyFactory";
 import { MemberShipFactory } from "../factories/MemebershipFactory";
+import { PollFactory } from "../factories/PollFactory";
+import { PollVoteFactory } from "../factories/PollVoteFactory";
+import { UserFactory } from "../factories/UserFactory";
+import { UserRoleEnum } from "../types/enums";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -87,7 +87,7 @@ export class UserSeeder extends Seeder {
         const membership = em.create(MemberShip, {
           user: createdAdmins[index],
           company: company,
-          role: UserRole.BOSS,
+          role: UserRoleEnum.BOSS,
         });
         return membership;
       });

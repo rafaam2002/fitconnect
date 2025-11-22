@@ -1,8 +1,5 @@
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
-import { PromotionFactory } from "../factories/PromotionFactory";
-import { User } from "../entities/User";
-import { UserRole } from "../types/enums";
 
 export class PromotionSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -12,7 +9,6 @@ export class PromotionSeeder extends Seeder {
     // }, {
     //   filters: false,
     // });
-
     // new PromotionFactory(em, users).make(10);
   }
 }

@@ -1,12 +1,10 @@
+import { faker } from "@faker-js/faker";
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
-import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { Company } from "../entities/Company";
-import { User } from "../entities/User";
-import { UserRole } from "../types/enums";
-import { faker } from "@faker-js/faker";
 import { MemberShip } from "../entities/MemberShip";
-import { filter } from "lodash";
+import { ScheduleFactory } from "../factories/ScheduleFactory";
+import { UserRoleEnum } from "../types/enums";
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -28,7 +26,7 @@ export class ScheduleSeeder extends Seeder {
           MemberShip,
           {
             company: company,
-            role: { $in: [UserRole.BOSS, UserRole.COACH] },
+            role: { $in: [UserRoleEnum.BOSS, UserRoleEnum.COACH] },
           },
           { populate: ["user"], filters: false }
         );
@@ -46,7 +44,7 @@ export class ScheduleSeeder extends Seeder {
           MemberShip,
           {
             company: company,
-            role: UserRole.STANDARD,
+            role: UserRoleEnum.STANDARD,
           },
           { populate: ["user"], limit: 20, filters: false }
         );

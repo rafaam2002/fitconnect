@@ -1,3 +1,9 @@
+import { GraphQLError } from "graphql";
+import moment from "moment";
+import { Poll } from "../../entities/Poll";
+import { PollVote } from "../../entities/PollVote";
+import { User } from "../../entities/User";
+import { UserRoleEnum } from "../../types/enums";
 import {
   ContextProps,
   DeletePollProps,
@@ -5,14 +11,8 @@ import {
   PollProps,
   VoteProps,
 } from "../../types/resolvers";
-import { GraphQLError } from "graphql";
-import { CustomResponse } from "./errors";
-import { User } from "../../entities/User";
 import { sendPushNotification } from "../../utils/notifications";
-import { Poll } from "../../entities/Poll";
-import { PollVote } from "../../entities/PollVote";
-import moment from "moment";
-import { UserRole } from "../../types/enums";
+import { CustomResponse } from "./errors";
 
 export const createPoll = async (
   _: any,
@@ -34,8 +34,8 @@ export const createPoll = async (
   }
 
   if (
-    currentUser.currentRole !== UserRole.COACH &&
-    currentUser.currentRole !== UserRole.BOSS
+    currentUser.currentRole !== UserRoleEnum.COACH &&
+    currentUser.currentRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }

@@ -1,12 +1,11 @@
 import { EntityManager } from "@mikro-orm/core";
+import moment, { Moment } from "moment";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { ScheduleState, ScheduleType, UserRole } from "../types/enums";
 import { User } from "../entities/User";
 import { UserType } from "../types";
-import moment, { Moment } from "moment";
+import { ScheduleState, ScheduleType, UserRoleEnum } from "../types/enums";
 import { sendPushNotification } from "./notifications";
-import { filter } from "lodash";
 
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
@@ -46,7 +45,7 @@ export const createScheduleProgrammed = async (
       message: "Please login",
     };
   }
-  if (currentUser.currentRole === UserRole.STANDARD) {
+  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
     return {
       success: false,
       code: "401",
@@ -177,8 +176,7 @@ export const sendScheduleReminders = async (em: EntityManager) => {
         },
         state: ScheduleState.AVAILABLE,
       },
-      { populate: ["users", "users.pushTokens"] , filters: false },
-
+      { populate: ["users", "users.pushTokens"], filters: false }
     );
 
     if (upcomingSchedules.length > 0) {

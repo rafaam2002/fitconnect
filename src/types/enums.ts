@@ -78,7 +78,7 @@ export enum ScheduleType {
   COMPETITION = "competition",
 }
 
-export enum UserRole {
+export enum UserRoleEnum {
   STANDARD = "standard",
   BOSS = "boss",
   PREMIUM = "premium",

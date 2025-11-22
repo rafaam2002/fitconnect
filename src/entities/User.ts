@@ -26,8 +26,8 @@ import { Schedule } from "./Schedule";
 import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { Transaction } from "./Transaction";
-import { UserWeight } from "./UserWeight";
 import { UserRole } from "./UserRole";
+import { UserWeight } from "./UserWeight";
 
 export enum UserStatus {
   ACTIVE = "active",
@@ -77,12 +77,6 @@ export class User extends BaseEntity {
     owner: true,
   })
   companies = new Collection<Company>(this);
-
-  @ManyToOne(() => Company, { nullable: true })
-  activeCompany?: Company;
-  
-  @ManyToOne(() => UserRole, { nullable: true })
-  activeRole?: UserRole;
 
   @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
   userRoles = new Collection<UserRole>(this);
@@ -164,10 +158,13 @@ export class User extends BaseEntity {
     return `${this.name} ${this.surname}`;
   }
 
-  get currentRole(): UserRoleEnum | null {
+  get activeRole(): UserRoleEnum | null {
     return this.userRoles.length > 0 ? this.userRoles[0].role : null;
   }
 
+  get activeCompany(): string | null {
+    return this.companies.length > 0 ? this.companies[0].id : null;
+  }
   /* @BeforeCreate()
      @BeforeUpdate()
      validateEmail() {

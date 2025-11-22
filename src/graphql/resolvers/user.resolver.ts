@@ -358,7 +358,7 @@ export const getAdminSchedules = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const user = await userRepo.findOne(
@@ -411,7 +411,7 @@ export const getAdminPolls = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -881,7 +881,7 @@ export const getAdminStats = async (
       },
     });
   }
-  if (currentUser.currentRole !== UserRoleEnum.BOSS) {
+  if (currentUser.activeRole !== UserRoleEnum.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const userRepo = em.getRepository(User);
@@ -930,7 +930,7 @@ export const getSchedulesStats = async (
         http: { status: 401 },
       },
     });
-  } else if (currentUser.currentRole !== UserRoleEnum.BOSS) {
+  } else if (currentUser.activeRole !== UserRoleEnum.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -1043,7 +1043,7 @@ export const getMonthlySchedules = async (
         http: { status: 401 },
       },
     });
-  } else if (currentUser.currentRole !== UserRoleEnum.BOSS) {
+  } else if (currentUser.activeRole !== UserRoleEnum.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
   const startOfMonth = moment().month(month).startOf("month").toDate();
@@ -1130,7 +1130,7 @@ export const getUserWeights = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -1292,7 +1292,7 @@ export const updateUser = async (_, args: UserProps, context: ContextProps) => {
 
   if (
     currentUser.id !== userId &&
-    currentUser.currentRole !== UserRoleEnum.BOSS
+    currentUser.activeRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -1382,7 +1382,7 @@ export const updateUserPicture = async (
 
   if (
     currentUser.id !== userId &&
-    currentUser.currentRole !== UserRoleEnum.BOSS
+    currentUser.activeRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -1463,7 +1463,7 @@ export const createMessage = async (
     });
   }
 
-  if (isFixed && currentUser.currentRole === UserRoleEnum.STANDARD)
+  if (isFixed && currentUser.activeRole === UserRoleEnum.STANDARD)
     return CustomResponse(403, "You are not authorized to perform this action");
 
   if (isFixed && !message.isForumMessage)
@@ -1569,7 +1569,7 @@ export const createSchedule = async (
       },
     });
   }
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -1658,9 +1658,9 @@ export const addUserToSchedule = async (
   const isHourDisabled = moment().isAfter(Number(schedule.startDate));
   const isFull = schedule.users.length >= schedule.maxUsers;
   const isBooked = user.schedules.getItems().some((s) => s.id === schedule.id);
-  const isUserBoss = currentUser.currentRole === UserRoleEnum.BOSS;
+  const isUserBoss = currentUser.activeRole === UserRoleEnum.BOSS;
   const isUserCoachOfEvent =
-    currentUser.currentRole === UserRoleEnum.COACH &&
+    currentUser.activeRole === UserRoleEnum.COACH &&
     schedule.admin.id === currentUser.id;
   const maxBookings =
     user!.schedules!.length >= scheduleOptions.maxActiveReservations;
@@ -1740,9 +1740,9 @@ export const removeUserFromSchedule = async (
   if (userId) {
     if (
       userId === currentUser.id ||
-      (currentUser.currentRole === UserRoleEnum.COACH &&
+      (currentUser.activeRole === UserRoleEnum.COACH &&
         userId === schedule.admin.id) ||
-      currentUser.currentRole === UserRoleEnum.BOSS
+      currentUser.activeRole === UserRoleEnum.BOSS
     ) {
       id = userId;
     } else {
@@ -1832,7 +1832,7 @@ export const fixMessage = async (
       },
     });
   }
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -1844,7 +1844,7 @@ export const fixMessage = async (
   }
 
   if (
-    currentUser.currentRole !== UserRoleEnum.BOSS &&
+    currentUser.activeRole !== UserRoleEnum.BOSS &&
     message.sender.id !== currentUser.id
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -1877,7 +1877,7 @@ export const unfixMessage = async (
       },
     });
   }
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -1888,7 +1888,7 @@ export const unfixMessage = async (
     return CustomResponse(404, "Message not found");
   }
   if (
-    currentUser.currentRole === UserRoleEnum.COACH &&
+    currentUser.activeRole === UserRoleEnum.COACH &&
     message.fixedAdmin.id !== currentUser.id
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
@@ -1932,7 +1932,7 @@ export const changeScheduleStatus = async (
 
   if (
     schedule.admin.id !== currentUser.id &&
-    currentUser.currentRole !== UserRoleEnum.BOSS
+    currentUser.activeRole !== UserRoleEnum.BOSS
   )
     return CustomResponse(403, "You are not authorized to perform this action");
 
@@ -1983,7 +1983,7 @@ export const createTrainingTask = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -2060,7 +2060,7 @@ export const removeTrainingTask = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -2093,7 +2093,7 @@ export const addUserWeight = async (
     });
   }
 
-  if (currentUser.currentRole === UserRoleEnum.STANDARD) {
+  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -2141,7 +2141,7 @@ export const removeUserWeight = async (
   }
   if (
     userWeight.user.id !== currentUser.id &&
-    currentUser.currentRole !== UserRoleEnum.BOSS
+    currentUser.activeRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -2177,7 +2177,7 @@ export const removeSchedule = async (
 
   if (
     schedule.admin.id !== currentUser.id &&
-    currentUser.currentRole !== UserRoleEnum.BOSS
+    currentUser.activeRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
@@ -2203,7 +2203,7 @@ export const updateScheduleOptions = async (
     });
   }
 
-  if (currentUser.currentRole !== UserRoleEnum.BOSS) {
+  if (currentUser.activeRole !== UserRoleEnum.BOSS) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 

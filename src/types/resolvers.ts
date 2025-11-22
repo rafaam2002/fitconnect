@@ -1,15 +1,30 @@
 import { EntityManager } from "@mikro-orm/postgresql";
-import {User, UserRole} from "../entities/User";
+import { User } from "../entities/User";
 import { UserType } from "./user";
-import { ScheduleState, ScheduleType } from "./enums";
+import { ScheduleState, ScheduleType, UserRole } from "./enums";
 
 export type UserProps = {
-  user: User;
+  user: User & {
+    role: UserRole;
+  };
   userId?: string;
+  company?: CompanyProps;
+};
+
+export type CompanyProps = {
+  name: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
 };
 
 export type UserPictureProps = {
   userId: string;
+  picture: string;
+};
+
+export type UpdateCompanyPictureProps = {
+  companyId: string;
   picture: string;
 };
 
@@ -24,6 +39,7 @@ export type MessageProps = {
     receiverId: string;
     isFixed: boolean;
     fixedDuration: number;
+    isForumMessage?: boolean;
   };
 };
 
@@ -88,6 +104,28 @@ export type DeletePollProps = {
   pollId: string;
 };
 
+export type GetCompanyProps = {
+  companyId?: string;
+  page?: number;
+  query?: string;
+};
+
+export type UpdateCompanyProps = {
+  companyId: string;
+  companyData: {
+    name?: string;
+    address?: string;
+    phoneNumber?: string;
+    email?: string;
+  };
+  scheduleOptions: {
+    maxActiveReservations?: number;
+    maxAdvanceBookingDays?: number;
+    sameDayBookingAllowed?: boolean;
+    fullOpenHours?: number;
+  };
+};
+
 export type FixMessageProps = {
   messageId: string;
   fixedEndDate: string;
@@ -121,6 +159,7 @@ export type GetConversationProps = {
   otherUserId?: string;
   page?: number;
   limit?: number;
+  isForumMessage?: boolean;
 };
 
 export type GetScheduleRangeProps = {
@@ -191,21 +230,21 @@ export type CreateProduct = {
 export type UpdateProductImage = {
   imageName: string;
   imageUrl: string;
-  productId: string;  
-}
+  productId: string;
+};
 
 export type NotificationProps = {
   notification: {
     body: string;
     title: string;
     forAll: boolean;
-  }
-}
+  };
+};
 
 export type DeletePollsProps = {
-    ids: string[];
-}
+  ids: string[];
+};
 
 export type RemoveProductProps = {
-    ids: string[];
-}
+  ids: string[];
+};

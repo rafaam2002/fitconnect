@@ -29,10 +29,31 @@ input UpdateUserInput {
     role: UserRole,
 }
 
+input CreateCompanyInput {
+name : String!,
+phoneNumber: String!,
+email: String!,
+address: String!,
+}
+
+input CompanyDataInput {
+    name: String,
+    address: String,
+    phoneNumber: String,
+    email: String,
+}
+input ScheduleOptionsInput {
+maxActiveReservations: Int,
+maxAdvanceBookingDays: Int,
+sameDayBookingAllowed: Boolean,
+fullOpenHours: Int,
+}
+
 input CreateUserInput {
     email: String!,
     nickname: String!,
-    password: String!
+    password: String!,
+    role: UserRole!,
 }
 
 input CreatePollVoteInput {
@@ -86,9 +107,10 @@ input CreatePollInput {
 
 input CreateMessageInput {
     text: String!,
-    receiverId: ID!,
+    receiverId: ID,
     isFixed: Boolean,
-    fixedDuration: Boolean
+    fixedDuration: Boolean,
+    isForumMessage: Boolean
 }
 
 input UserInput{

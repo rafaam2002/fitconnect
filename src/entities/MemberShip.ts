@@ -1,0 +1,29 @@
+import { Entity, Enum, ManyToOne, Unique, Filter } from "@mikro-orm/core";
+import { BaseEntity } from "./BaseEntity";
+import { User } from "./User";
+import { Company } from "./Company";
+import { UserRole } from "../types/enums";
+
+@Filter({
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
+})
+@Entity()
+@Unique({ properties: ["user", "company"] }) // Ensure a user can have only one membership per user-company pair
+export class MemberShip extends BaseEntity {
+  @ManyToOne(() => User)
+  user!: User;
+
+  @ManyToOne(() => Company)
+  company!: Company;
+
+  @Enum(() => UserRole)
+  role!: UserRole;
+
+  constructor(user: User, company: Company, role: UserRole) {
+    super();
+    this.user = user;
+    this.company = company;
+    this.role = role;
+  }
+}

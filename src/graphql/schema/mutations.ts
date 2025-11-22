@@ -1,7 +1,7 @@
 export const graphqlMutations = `   
 type Mutation {
     #------------------User--------------------
-    createUser( user: CreateUserInput!): LoginResponse!
+    createUser( user: CreateUserInput!, company: CreateCompanyInput): LoginResponse
     updateUser ( user: UpdateUserInput!, userId: String!): UserResponse!
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
@@ -83,7 +83,11 @@ type Mutation {
     refundTransaction(input: RefundTransactionInput!): TransactionResponse!
     retryFailedTransaction(transactionId: ID!): TransactionResponse!
     markTransactionAsReconciled(transactionId: ID!): TransactionResponse!
+
+    #----------------Company-------------------
+    updateCompany(companyId: ID!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
+    updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
+    createCompany(company: CreateCompanyInput!): CompanyResponse!
 }
 
 `;
-

@@ -1,11 +1,12 @@
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { ScheduleState, ScheduleType } from "../types/enums";
-import {User, UserRole} from "../entities/User";
+import { ScheduleState, ScheduleType, UserRole } from "../types/enums";
+import { User } from "../entities/User";
 import { UserType } from "../types";
 import moment, { Moment } from "moment";
 import { sendPushNotification } from "./notifications";
+import { filter } from "lodash";
 
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
@@ -45,7 +46,7 @@ export const createScheduleProgrammed = async (
       message: "Please login",
     };
   }
-  if (currentUser.role === UserRole.STANDARD) {
+  if (currentUser.currentRole === UserRole.STANDARD) {
     return {
       success: false,
       code: "401",
@@ -54,17 +55,20 @@ export const createScheduleProgrammed = async (
   }
 
   try {
-    const newScheduleProgrammed = em.create<ScheduleProgrammed>(ScheduleProgrammed, {
-      daysOfWeek,
-      startHour,
-      endHour,
-      maxUsers,
-      admin,
-      title,
-      age,
-      type,
-      description,
-    });
+    const newScheduleProgrammed = em.create<ScheduleProgrammed>(
+      ScheduleProgrammed,
+      {
+        daysOfWeek,
+        startHour,
+        endHour,
+        maxUsers,
+        admin,
+        title,
+        age,
+        type,
+        description,
+      }
+    );
 
     await em.persistAndFlush(newScheduleProgrammed);
 
@@ -156,7 +160,6 @@ export const createScheduleInXWeeks = async (
   }
 };
 
-
 export const sendScheduleReminders = async (em: EntityManager) => {
   console.log("🚀 Checking for upcoming schedules to send reminders...");
 
@@ -174,16 +177,17 @@ export const sendScheduleReminders = async (em: EntityManager) => {
         },
         state: ScheduleState.AVAILABLE,
       },
-      { populate: ["users", "users.pushTokens"] }
+      { populate: ["users", "users.pushTokens"] , filters: false },
+
     );
 
     if (upcomingSchedules.length > 0) {
       console.log(`Found ${upcomingSchedules.length} upcoming schedules.`);
       for (const schedule of upcomingSchedules) {
         const title = "¡Tu clase está a punto de empezar!";
-        const body = `Tu clase de "${
-          schedule.title
-        }" empieza a las ${moment(schedule.startDate).format("HH:mm")}.`;
+        const body = `Tu clase de "${schedule.title}" empieza a las ${moment(
+          schedule.startDate
+        ).format("HH:mm")}.`;
         const data = {
           type: "schedule_reminder",
           scheduleId: schedule.id,

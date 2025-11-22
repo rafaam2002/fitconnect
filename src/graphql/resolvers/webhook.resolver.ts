@@ -192,7 +192,7 @@ export const retryWebhookEvent = async (parent: any, args: any, context: Context
             api_version: '2023-10-16',
             created: Math.floor(eventLog.created_at.getTime() / 1000),
             livemode: false,
-            object: 'event',
+            object: 'event' as const,
             pending_webhooks: 0,
             request: { id: null, idempotency_key: null }
         };

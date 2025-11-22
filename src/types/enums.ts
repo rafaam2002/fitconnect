@@ -5,11 +5,11 @@ export enum Durations {
   ONE_MONTH = "1 mes",
 }
 
-export enum UserProviderType  {
-  GOOGLE = 'google',
-  APPLE = 'apple',
-  FACEBOOK = 'facebook',
-  LOCAL = 'local',
+export enum UserProviderType {
+  GOOGLE = "google",
+  APPLE = "apple",
+  FACEBOOK = "facebook",
+  LOCAL = "local",
 }
 
 export enum NotificationType {
@@ -65,9 +65,9 @@ export enum TransactionStatus {
 }
 
 export enum PaymentMethodStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  EXPIRED = 'expired'
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  EXPIRED = "expired",
 }
 
 export enum ScheduleType {
@@ -76,4 +76,11 @@ export enum ScheduleType {
   FREE = "free",
   CONDITIONING = "conditioning",
   COMPETITION = "competition",
+}
+
+export enum UserRole {
+  STANDARD = "standard",
+  BOSS = "boss",
+  PREMIUM = "premium",
+  COACH = "coach",
 }

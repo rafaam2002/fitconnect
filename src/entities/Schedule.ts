@@ -3,6 +3,7 @@ import {
   BeforeUpdate,
   Collection,
   Entity,
+  Filter,
   ManyToMany,
   ManyToOne,
   Property,
@@ -11,8 +12,14 @@ import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { ScheduleProgrammed } from "./ScheduleProgrammed";
 import { ScheduleState, ScheduleType } from "../types/enums";
+import { Company } from "./Company";
 
 @Entity()
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 export class Schedule extends BaseEntity {
   @Property()
   title: string;
@@ -32,6 +39,9 @@ export class Schedule extends BaseEntity {
   @Property()
   maxUsers: number;
 
+  @ManyToOne(() => Company)
+  company: Company;
+
   @Property({ default: ScheduleType.STANDARD })
   type: ScheduleType = ScheduleType.STANDARD;
 
@@ -47,14 +57,6 @@ export class Schedule extends BaseEntity {
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;
 
-  @BeforeCreate()
-  @BeforeUpdate()
-  validate() {
-    if (this.startDate >= this.endDate) {
-      throw new Error("startDate must be before endDate.");
-    }
-  }
-
   constructor(schedule: Schedule) {
     super();
     this.startDate = schedule.startDate;
@@ -65,5 +67,13 @@ export class Schedule extends BaseEntity {
     this.title = schedule.title;
     this.description = schedule.description;
     this.age = schedule.age;
+  }
+
+  @BeforeCreate()
+  @BeforeUpdate()
+  validate() {
+    if (this.startDate >= this.endDate) {
+      throw new Error("startDate must be before endDate.");
+    }
   }
 }

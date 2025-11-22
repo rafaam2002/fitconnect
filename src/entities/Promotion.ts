@@ -1,15 +1,21 @@
 import {
   Collection,
   Entity,
+  Filter,
   ManyToMany,
   ManyToOne,
-  OneToMany,
   Property,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
+import { Company } from "./Company";
 
 @Entity()
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 export class Promotion extends BaseEntity {
   @Property()
   title!: string;
@@ -28,6 +34,9 @@ export class Promotion extends BaseEntity {
 
   @Property()
   description!: string;
+
+  @ManyToOne(() => Company, { nullable: true })
+  company: Company;
 
   @ManyToMany(() => User, (user) => user.promotions)
   users = new Collection<User>(this);

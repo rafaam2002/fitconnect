@@ -39,6 +39,24 @@ type Product {
     pictures: [PictureUrl]
 }
 
+type Company {
+    id: ID!
+    name: String!
+    phoneNumber: String!
+    email: String!
+    address: String!
+    logo: PictureUrl
+    pictures: [PictureUrl]
+    scheduleOptions: ScheduleOptions
+}
+
+type MemberShip {
+    id: ID!
+    user: UserResumeResponse!
+    company: Company!
+    role: UserRole!
+}
+
 type User {
     id: ID!
     name: String
@@ -48,11 +66,12 @@ type User {
     nickname: String!
     isActive: Boolean
     isBlocked: Boolean
-    role: UserRole!
+    contextRole: UserRole
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String
     isVerified: Boolean
+    activeMembership: MemberShip
 }
 
 type Schedule {
@@ -128,7 +147,8 @@ type Message {
     fixedEndDate: String
     fixedAdmin: UserResumeResponse
     sender: UserResumeResponse!
-    receiver: UserResumeResponse!
+    receiver: UserResumeResponse
+    isForumMessage: Boolean!
 }
 
 type Conversation {

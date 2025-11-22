@@ -13,6 +13,7 @@ import {
 
 import { User } from "./User";
 import { Product } from "./Product";
+import { Company } from "./Company";
 
 @Entity()
 export class PictureUrl {
@@ -32,10 +33,21 @@ export class PictureUrl {
   })
   product?: Product;
 
+  @OneToOne(() => Company, (company) => company.logo, {
+    nullable: true,
+  })
+  companyLogo?: Company;
+
+  @ManyToOne(() => Company, {
+    nullable: true,
+  })
+  company?: Company;
+
   constructor(picture: PictureUrl) {
     this.name = picture.name;
     this.url = picture.url;
     this.user = picture.user;
+    this.companyLogo = picture.companyLogo;
     // this.productPicture = picture.productPicture;
   }
 }

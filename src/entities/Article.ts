@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, t } from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
+import { Entity, Filter, ManyToOne, PrimaryKey, Property, t } from "@mikro-orm/core";
+import { Company } from "./Company";
 
 @Entity()
 export class Article {
@@ -20,6 +20,9 @@ export class Article {
 
   @Property({ type: t.string })
   image: string;
+
+  @ManyToOne(() => Company, { nullable: true })
+  company: Company;
 
   constructor(article: Article) {
     this.id = article.id;

@@ -1,15 +1,18 @@
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
 import { PromotionFactory } from "../factories/PromotionFactory";
-import {User, UserRole} from "../entities/User";
+import { User } from "../entities/User";
+import { UserRole } from "../types/enums";
 
 export class PromotionSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    const userRepo = em.getRepository(User);
-    const users = await userRepo.find({
-      role: { $in: [UserRole.BOSS, UserRole.COACH] },
-    });
+    // const userRepo = em.getRepository(User);
+    // const users = await userRepo.find({
+    //   //role: { $in: [UserRoleEnum.BOSS, UserRoleEnum.COACH] },
+    // }, {
+    //   filters: false,
+    // });
 
-    new PromotionFactory(em, users).make(10);
+    // new PromotionFactory(em, users).make(10);
   }
 }

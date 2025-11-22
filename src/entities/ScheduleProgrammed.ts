@@ -1,18 +1,26 @@
 import {
+  Cascade,
   Collection,
   Entity,
+  EntityManager,
   EntityRepositoryType,
+  Filter,
   ManyToOne,
   OneToMany,
   Property,
-  EntityManager,
-  Cascade,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
 import { Schedule } from "./Schedule";
 import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
 import { ScheduleType } from "../types/enums";
+import { Company } from "./Company";
+
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
   [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
@@ -47,6 +55,9 @@ export class ScheduleProgrammed extends BaseEntity {
     cascade: [Cascade.REMOVE],
   })
   schedules = new Collection<Schedule>(this);
+
+  @ManyToOne(() => Company)
+  company: Company;
 
   constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
     super();

@@ -1,6 +1,7 @@
-import { Entity, Property } from "@mikro-orm/core";
+import { Entity, OneToOne, Property } from "@mikro-orm/core";
 
 import { BaseEntity } from "./BaseEntity";
+import { Company } from "./Company";
 
 @Entity()
 export class ScheduleOptions extends BaseEntity {
@@ -24,4 +25,7 @@ export class ScheduleOptions extends BaseEntity {
 
   @Property({ default: 0 })
   fullOpenHours: number; // 0 means always full
+
+  @OneToOne(() => Company, (company) => company.scheduleOptions)
+  company: Company;
 }

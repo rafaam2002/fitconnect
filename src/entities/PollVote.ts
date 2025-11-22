@@ -1,20 +1,17 @@
 import {
-  Entity,
-  EntityRepositoryType,
-  ManyToOne,
-  PrimaryKey,
-  Property,
-  EntityManager,
   BeforeCreate,
   BeforeUpdate,
-  Unique,
-  t,
+  Entity,
+  EntityManager,
+  EntityRepositoryType,
+  Filter,
+  ManyToOne,
+  Property,
 } from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
 import { Poll } from "./Poll";
 import { User } from "./User";
 import { CustomPollRepository } from "../customRepositories/pollRepository";
-import { randomUUID } from "crypto";
+import { Company } from "./Company";
 
 @Entity({ repository: () => CustomPollRepository })
 export class PollVote {
@@ -29,6 +26,12 @@ export class PollVote {
   @Property()
   optionSelected!: number;
 
+  constructor(pollVote: PollVote, em: EntityManager) {
+    this.poll = pollVote.poll;
+    this.user = pollVote.user;
+    this.optionSelected = pollVote.optionSelected;
+  }
+
   @BeforeCreate()
   @BeforeUpdate()
   validate() {
@@ -38,11 +41,5 @@ export class PollVote {
     ) {
       throw new Error("The selected option is not valid");
     }
-  }
-
-  constructor(pollVote: PollVote, em: EntityManager) {
-    this.poll = pollVote.poll;
-    this.user = pollVote.user;
-    this.optionSelected = pollVote.optionSelected;
   }
 }

@@ -3,7 +3,6 @@ import {Message} from "./entities/Message";
 import {User} from "./entities/User";
 import {ScheduleOptions} from "./entities/ScheduleOptions";
 import {Schedule} from "./entities/Schedule";
-import {Notification} from "./entities/Notification";
 import {SeedManager} from "@mikro-orm/seeder/SeedManager";
 import {Product} from "./entities/Product";
 import {Article} from "./entities/Article";
@@ -23,6 +22,7 @@ import {TrainingTask} from "./entities/TraningITask";
 import {Transaction} from "./entities/Transaction";
 import {UserWeight} from "./entities/UserWeight";
 import {WebhookEventLog} from "./entities/WebhookEventLog";
+import { MemberShip } from "./entities/MemberShip";
 
 dotenv.config();
 
@@ -31,7 +31,6 @@ export default {
         Article,
         Invoice,
         Message,
-        Notification,
         PaymentMethod,
         Plan,
         Poll,
@@ -49,7 +48,8 @@ export default {
         Transaction,
         User,
         UserWeight,
-        WebhookEventLog
+        WebhookEventLog,
+        MemberShip
     ],
     clientUrl: process.env.DATABASE_URL,
     // dbName: process.env.DB_NAME || "fitconnect_db",

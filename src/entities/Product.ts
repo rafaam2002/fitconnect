@@ -2,14 +2,22 @@ import {
   Cascade,
   Collection,
   Entity,
+  Filter,
+  ManyToOne,
   OneToMany,
   Property,
   t,
 } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { PictureUrl } from "./PictureUrl";
+import { Company } from "./Company";
 
 @Entity()
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 export class Product extends BaseEntity {
   @Property({ type: t.string })
   name: string;
@@ -22,9 +30,12 @@ export class Product extends BaseEntity {
 
   @OneToMany(() => PictureUrl, (picture) => picture.product, {
     cascade: [Cascade.REMOVE],
-    eager: true,  
+    eager: true,
   })
   pictures = new Collection<PictureUrl>(this);
+
+  @ManyToOne(() => Company)
+  company: Company;
 
   constructor(product: Product) {
     super();

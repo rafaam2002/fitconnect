@@ -1,14 +1,13 @@
-import {
-  Collection,
-  Entity,
-  ManyToMany,
-  ManyToOne,
-  Property,
-  t,
-} from "@mikro-orm/core";
+import { Entity, Filter, ManyToOne, Property, t } from "@mikro-orm/core";
 import { BaseEntity } from "./BaseEntity";
 import { User } from "./User";
+import { Company } from "./Company";
 
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 @Entity()
 export class TrainingTask extends BaseEntity {
   @Property({ type: t.string })
@@ -22,7 +21,10 @@ export class TrainingTask extends BaseEntity {
 
   @Property({ nullable: true })
   date: string;
-   
+
+  @ManyToOne(() => Company)
+  company: Company;
+
   constructor(task: TrainingTask) {
     super();
     this.content = task.content;

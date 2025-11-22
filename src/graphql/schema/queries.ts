@@ -13,7 +13,7 @@ type Query {
     sendEmailVerification: DefaultResponse!
     
     # ----------------- Message -----------------
-    getConversation(otherUserId: ID, page: Int, limit: Int): MessageResponse!
+    getConversation(otherUserId: ID, page: Int, limit: Int, isForumMessage: Boolean): MessageResponse!
     getNotifications: NotificationResponse!
 
     # ----------------- Schedule -----------------
@@ -78,6 +78,9 @@ type Query {
     getSuccessfulTransactions(userId: ID!, limit: Int): TransactionResponse!
     getFailedTransactions(userId: ID!, limit: Int): TransactionResponse!
     getUserTransactionsSummary(userId: ID!): TransactionResponse!
+
+    #--------------Company---------
+    getCompanies(companyId: ID, page: Int, query: String): CompanyResponse!
     
 }
 `;

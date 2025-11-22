@@ -2,7 +2,7 @@ import {
   Collection,
   Entity,
   EntityRepositoryType,
-  ManyToMany,
+  Filter,
   ManyToOne,
   OneToMany,
   Property,
@@ -12,8 +12,14 @@ import { User } from "./User";
 import { CustomPollRepository } from "../customRepositories/pollRepository";
 import { PollVote } from "./PollVote";
 import { NewPollSchema } from "../validation/schemas";
+import { Company } from "./Company";
 
 @Entity({ repository: () => CustomPollRepository })
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ company: args.companyId }),
+  default: true,
+})
 export class Poll extends BaseEntity {
   [EntityRepositoryType]?: CustomPollRepository;
 
@@ -26,13 +32,16 @@ export class Poll extends BaseEntity {
   @Property()
   options: string[];
 
-  @ManyToOne(() => User, { nullable: true }) // arreglar
+  @ManyToOne(() => User) // arreglar
   admin: User;
 
   @OneToMany(() => PollVote, (pollVote) => pollVote.poll, { eager: true })
   pollVotes = new Collection<PollVote>(this);
 
-  constructor(poll: Poll) {    
+  @ManyToOne(() => Company)
+  company: Company;
+
+  constructor(poll: Poll) {
     NewPollSchema.parse(poll);
     super();
     this.endDate = poll.endDate;

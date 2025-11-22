@@ -15,15 +15,14 @@ export const cronFunctions = async (
       console.log("🚀 Iniciando tareas programadas...");
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
-        await storeNews(em, 3, [1, 2, 3, 4]);
-
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
 
-        scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
-
-        updatePictureUrls(em);
-
-        await setNotActiveUsers(em);
+        await Promise.all([
+          storeNews(em, 3, [1, 2, 3, 4]),
+          // scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed(), //se ejecuta en domingo
+          updatePictureUrls(em),
+          setNotActiveUsers(em),
+        ]);
       } catch (error) {
         console.error("Error al ejecutar la tarea programada:", error);
       }
@@ -43,7 +42,7 @@ export const cronFunctions = async (
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
         const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
-        scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+        await scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
       } catch (error) {
         console.error(
           "Error al ejecutar la tarea programada (Creacion horarios programados):",

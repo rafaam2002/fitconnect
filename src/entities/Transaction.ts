@@ -4,6 +4,7 @@ import {Subscription} from "./Subscription";
 import {PaymentMethod} from "./PaymentMethod";
 import {User} from "./User";
 import {Invoice} from "./Invoice";
+import {Company} from "./Company";
 
 export enum TransactionType {
     CHARGE = 'charge',
@@ -39,6 +40,9 @@ export class Transaction extends BaseEntity {
 
     @ManyToOne(() => Subscription, {nullable: true})
     subscription?: Subscription;
+
+    @ManyToOne(() => Company, {nullable: true})
+    company: Company;
 
     @ManyToOne(() => Invoice, {nullable: true})
     @Index()

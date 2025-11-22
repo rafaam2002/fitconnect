@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction, RequestHandler } from 'express';
+import express, { Router, Request, Response, NextFunction, RequestHandler } from 'express';
 import { WebhookService } from '../services/WebhookService.js';
 import rateLimit from 'express-rate-limit';
 
@@ -108,7 +108,7 @@ const handleStripeWebhook: RequestHandler = async (req: Request, res: Response) 
 };
 
 // Configuración del router
-export const stripeWebhookRouter = express.Router();
+export const stripeWebhookRouter: Router = express.Router();
 
 // Logging middleware para debugging
 stripeWebhookRouter.use((req, res, next) => {

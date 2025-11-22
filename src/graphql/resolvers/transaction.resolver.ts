@@ -123,7 +123,7 @@ export const retryFailedTransaction = async(parent: any, args: any, context: Con
         const transactionService = new TransactionService(context.em);
         const originalTransaction = await transactionService.getTransaction(args.transactionId);
 
-        if (!originalTransaction || originalTransaction.status !== 'FAILED') {
+        if (!originalTransaction || originalTransaction.status !== TransactionStatus.FAILED) {
             return CustomResponse(400, 'Transaction not found or not in failed state', false, {transaction: null})
         }
 

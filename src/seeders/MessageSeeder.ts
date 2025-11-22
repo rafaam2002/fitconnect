@@ -1,31 +1,28 @@
 import type { EntityManager } from "@mikro-orm/core";
-import {User, UserRole} from "../entities/User";
+import { User } from "../entities/User";
 import { Message } from "../entities/Message";
 import { Seeder } from "@mikro-orm/seeder";
 
 export class MessageSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const userRepo = em.getRepository(User);
-    const myUser = await userRepo.findOne({ nickname: "rafa" });
+    const adminUsers = await userRepo.find(
+      { nickname: { $in: ["rafa", "juan", "isaac"] } },
+      {
+        filters: false,
+      }
+    );
 
-    const forumUser = em.create(User, {
-      name: "forum",
-      surname: "forum",
-      password: "forum",
-      email: "forum",
-      phoneNumber: "123456789",
-      nickname: "forum",
-      isActive: false,
-      isBlocked: false,
-      role: UserRole.BOSS,
+    adminUsers.forEach(async (admin) => {
+      const forumMessage = em.create(Message, {
+        text: "Welcome to the forum!",
+        sender: admin,
+        isFixed: false,
+        receiver: null,
+        company: admin?.memberships.getItems()[0].company, // no mapear posteriormente
+        isForumMessage: true,
+      });
+      await em.persistAndFlush(forumMessage);
     });
-
-    const forumMessage = em.create(Message, {
-      text: "Welcome to the forum!",
-      sender: myUser,
-      isFixed: false,
-      receiver: forumUser,
-    });
-    await em.persistAndFlush(forumMessage);
   }
 }

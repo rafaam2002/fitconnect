@@ -1,4 +1,9 @@
 import { GraphQLError } from "graphql";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import { Company } from "../../entities/Company";
+import { ScheduleOptions } from "../../entities/ScheduleOptions";
+import { User } from "../../entities/User";
 import {
   CompanyProps,
   ContextProps,
@@ -6,18 +11,13 @@ import {
   UpdateCompanyPictureProps,
   UpdateCompanyProps,
 } from "../../types/resolvers";
-import { CustomResponse } from "./errors";
-import { Company } from "../../entities/Company";
-import { ScheduleOptions } from "../../entities/ScheduleOptions";
+import { createAdminCompany } from "../../utils/company";
+import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
 import {
   createPictureUrl,
   getPresignedUrl,
 } from "../../utils/createPresignedUrls";
-import { createAdminCompany } from "../../utils/company";
-import { User } from "../../entities/User";
-import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
-import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
+import { CustomResponse } from "./errors";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -143,7 +143,7 @@ export const updateCompanyLogo = async (
     });
   }
 
-  if (currentUser.currentCompany.id !== companyId) {
+  if (currentUser.activeCompany.id !== companyId) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
@@ -245,6 +245,6 @@ export const companyResolvers = {
   Mutation: {
     updateCompany,
     updateCompanyLogo,
-    createCompany
+    createCompany,
   },
 };

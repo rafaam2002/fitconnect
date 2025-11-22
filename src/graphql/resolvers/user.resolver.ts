@@ -858,7 +858,7 @@ export const getScheduleOptions = async (
   }
   const scheduleOptionRepo = em.getRepository(ScheduleOptions);
   const scheduleOptions: ScheduleOptions = await scheduleOptionRepo.findOne({
-    company: currentUser.currentCompany.id,
+    company: currentUser.activeCompany.id,
   });
 
   return CustomResponse(200, "Schedule options found", true, {
@@ -1485,7 +1485,7 @@ export const createMessage = async (
       isFixed: !!isFixed,
       fixedDuration,
       isForumMessage,
-      company: currentUser.currentCompany.id,
+      company: currentUser.activeCompany.id,
     });
     await em.persistAndFlush(newMessage);
 

@@ -80,6 +80,9 @@ export class User extends BaseEntity {
 
   @ManyToOne(() => Company, { nullable: true })
   activeCompany?: Company;
+  
+  @ManyToOne(() => UserRole, { nullable: true })
+  activeRole?: UserRole;
 
   @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
   userRoles = new Collection<UserRole>(this);

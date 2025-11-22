@@ -1,4 +1,5 @@
 import { Company } from "../entities/Company";
+import { UserRole } from "../entities/UserRole";
 import { UserRoleEnum } from "./enums";
 
 export type UserType = {
@@ -6,8 +7,8 @@ export type UserType = {
   email: string;
   created_at: Date;
   updated_at: Date;
-  activeRole: UserRoleEnum;
-  activeCompany: Pick<Company, "id"> | null;
+  activeRole?: UserRole;
+  activeCompany?: Pick<Company, "id"> | null;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;

@@ -22,7 +22,6 @@ import {TrainingTask} from "./entities/TraningITask";
 import {Transaction} from "./entities/Transaction";
 import {UserWeight} from "./entities/UserWeight";
 import {WebhookEventLog} from "./entities/WebhookEventLog";
-import { MemberShip } from "./entities/MemberShip";
 
 dotenv.config();
 
@@ -49,7 +48,6 @@ export default {
         User,
         UserWeight,
         WebhookEventLog,
-        MemberShip
     ],
     clientUrl: process.env.DATABASE_URL,
     // dbName: process.env.DB_NAME || "fitconnect_db",

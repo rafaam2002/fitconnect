@@ -858,7 +858,7 @@ export const getScheduleOptions = async (
   }
   const scheduleOptionRepo = em.getRepository(ScheduleOptions);
   const scheduleOptions: ScheduleOptions = await scheduleOptionRepo.findOne({
-    company: currentUser.activeCompany.id,
+    company: currentUser.activeCompany,
   });
 
   return CustomResponse(200, "Schedule options found", true, {
@@ -1246,7 +1246,6 @@ export const createUser = async (_, args: UserProps, context: ContextProps) => {
 
     return CustomResponse(200, "User created successfully", true, {
       user: newUser,
-      memberships: newUser.memberships || [],
       tokens: {
         token,
         refreshToken: refreshTokenString,
@@ -1485,7 +1484,7 @@ export const createMessage = async (
       isFixed: !!isFixed,
       fixedDuration,
       isForumMessage,
-      company: currentUser.activeCompany.id,
+      company: currentUser.activeCompany,
     });
     await em.persistAndFlush(newMessage);
 
@@ -2313,36 +2312,37 @@ export const userResolvers: IResolvers = {
     fixedMessages,
     newMessage,
   },
-  User: {
-    contextRole: (
-      parent: User,
-      _: any,
-      context: ContextProps
-    ): UserRoleEnum | null => {
-      const { currentUser } = context;
+  //Creo que esto ya no no es necesario
+  // User: {
+  //   contextRole: (
+  //     parent: User,
+  //     _: any,
+  //     context: ContextProps
+  //   ): UserRoleEnum | null => {
+  //     const { currentUser } = context;
 
-      // Si no hay usuario autenticado (ej. en login), devolver el rol de la membresía activa del parent
-      if (!currentUser) {
-        return parent.activeMembership?.role || null;
-      }
+  //     // Si no hay usuario autenticado (ej. en login), devolver el rol de la membresía activa del parent
+  //     if (!currentUser) {
+  //       return parent.activeMembership?.role || null;
+  //     }
 
-      // Si el usuario que consulta no tiene una membresía activa, no hay contexto de compañía.
-      if (!currentUser.activeMembership) {
-        // Si el usuario que se está resolviendo es el mismo que consulta, devuelve el rol de su propia membresía activa.
-        if (parent.id === currentUser.id) {
-          return parent.activeMembership?.role || null;
-        }
-        return null;
-      }
+  //     // Si el usuario que consulta no tiene una membresía activa, no hay contexto de compañía.
+  //     if (!currentUser.activeMembership) {
+  //       // Si el usuario que se está resolviendo es el mismo que consulta, devuelve el rol de su propia membresía activa.
+  //       if (parent.id === currentUser.id) {
+  //         return parent.activeMembership?.role || null;
+  //       }
+  //       return null;
+  //     }
 
-      const requestingUserCompanyId = currentUser.activeMembership.company.id;
+  //     const requestingUserCompanyId = currentUser.activeMembership.company.id;
 
-      // Busca la membresía del usuario 'parent' que coincide con la compañía del usuario que consulta.
-      const membershipInContext = parent.memberships[0]; // con el filtro de membresias, solo traera la de la compañia en contexto
-      // .getItems()
-      // .find((m) => m.company.id === requestingUserCompanyId);
+  //     // Busca la membresía del usuario 'parent' que coincide con la compañía del usuario que consulta.
+  //     const membershipInContext = parent.memberships[0]; // con el filtro de membresias, solo traera la de la compañia en contexto
+  //     // .getItems()
+  //     // .find((m) => m.company.id === requestingUserCompanyId);
 
-      return membershipInContext ? membershipInContext.role : null;
-    },
-  },
+  //     return membershipInContext ? membershipInContext.role : null;
+  //   },
+  // },
 };

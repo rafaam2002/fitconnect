@@ -33,10 +33,9 @@ const login = async (_, args: any, { em }) => {
     {
       populate: [
         "password",
-        "memberships.company",
         "schedules.id",
         "schedules.startDate",
-        "memberships.company.logo",
+        "companies",
       ],
       filters: false,
     }
@@ -48,27 +47,10 @@ const login = async (_, args: any, { em }) => {
     return CustomResponse(400, "Invalid email/nickname or password");
   }
 
-  //membresia mapeada por ahora
-  // user.activeMembership = user.memberships.getItems().find((membership) => {
-  //   return membership.company.isActive;
-  // });
-
-  user.activeMembership = user.memberships[0];
-
-  const memberships = user.memberships || [];
-
   const idForToken = {
     id: user.id,
-    // email: user.email,
-    // name: user.name,
-    // surname: user.surname,
-    // isBlocked: user.isBlocked,
-    // isActive: user.isActive,
-    // role: user.role,
-    // nickname: user.nickname,
-    // phoneNumber: user.phoneNumber,
-    // pictureUrl: user.pictureUrl,
   };
+
   const token = jwt.sign(idForToken, process.env.JWT_SECRET, {
     expiresIn: "30m",
   });
@@ -88,7 +70,6 @@ const login = async (_, args: any, { em }) => {
       code: "200",
       message: "Login successful",
       user,
-      memberships,
       tokens: {
         token,
         refreshToken: refreshTokenString,

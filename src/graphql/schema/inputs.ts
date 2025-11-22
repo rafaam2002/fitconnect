@@ -26,7 +26,7 @@ input UpdateUserInput {
     phoneNumber: String,
     nickname: String!,
     isBlocked: Boolean,
-    role: UserRole,
+    role: UserRoleEnum,
 }
 
 input CreateCompanyInput {
@@ -53,7 +53,7 @@ input CreateUserInput {
     email: String!,
     nickname: String!,
     password: String!,
-    role: UserRole!,
+    role: UserRoleEnum!,
 }
 
 input CreatePollVoteInput {

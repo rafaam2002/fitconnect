@@ -6,8 +6,8 @@ export type UserType = {
   email: string;
   created_at: Date;
   updated_at: Date;
-  currentRole: UserRoleEnum;
-  currentCompany: Pick<Company, "id"> | null;
+  activeRole: UserRoleEnum;
+  activeCompany: Pick<Company, "id"> | null;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;

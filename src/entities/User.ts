@@ -58,9 +58,6 @@ export class User extends BaseEntity {
   @Property({ nullable: true })
   phoneNumber?: string | null;
 
-  // @Property({ nullable: true })
-  // profilePicture?: string;
-
   @Property({ type: t.string, unique: true })
   nickname: string;
 
@@ -80,6 +77,9 @@ export class User extends BaseEntity {
     owner: true,
   })
   companies = new Collection<Company>(this);
+
+  @ManyToOne(() => Company, { nullable: true })
+  activeCompany?: Company;
 
   @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
   userRoles = new Collection<UserRole>(this);

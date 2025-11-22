@@ -4,13 +4,14 @@ import {
   Collection,
   Entity,
   Filter,
+  ManyToMany,
   OneToMany,
   OneToOne,
   Property,
 } from "@mikro-orm/core";
-import { MemberShip } from "./MemberShip";
 import { ScheduleOptions } from "./ScheduleOptions";
 import { PictureUrl } from "./PictureUrl";
+import { User } from "./User";
 
 @Entity()
 @Filter({
@@ -33,6 +34,9 @@ export class Company extends BaseEntity {
   @Property()
   isValidated: boolean = false;
 
+  @ManyToMany(() => User, (user: User) => user.companies)
+  users = new Collection<User>(this);
+
   @OneToOne(() => PictureUrl, (picture) => picture.companyLogo, {
     nullable: true,
     owner: true,
@@ -44,11 +48,6 @@ export class Company extends BaseEntity {
     cascade: [Cascade.REMOVE],
   })
   pictures = new Collection<PictureUrl>(this);
-
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.company, {
-    cascade: [Cascade.REMOVE],
-  })
-  memberships = new Collection<MemberShip>(this);
 
   @OneToOne(
     () => ScheduleOptions,

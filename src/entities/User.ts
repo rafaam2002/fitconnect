@@ -15,7 +15,6 @@ import bcrypt from "bcrypt";
 import { UserProviderType, UserRoleEnum } from "../types/enums";
 import { BaseEntity } from "./BaseEntity";
 import { Company } from "./Company";
-import { MemberShip } from "./MemberShip";
 import { Message } from "./Message";
 import { PictureUrl } from "./PictureUrl";
 import { Poll } from "./Poll";
@@ -28,6 +27,7 @@ import { Subscription } from "./Subscription";
 import { TrainingTask } from "./TraningITask";
 import { Transaction } from "./Transaction";
 import { UserWeight } from "./UserWeight";
+import { UserRole } from "./UserRole";
 
 export enum UserStatus {
   ACTIVE = "active",
@@ -38,7 +38,7 @@ export enum UserStatus {
 @Entity()
 @Filter({
   name: "companyContext",
-  cond: (args) => ({ memberships: { company: args.companyId } }),
+  cond: (args) => ({ companies: { id: args.companyId } }),
   default: false,
 })
 export class User extends BaseEntity {
@@ -76,11 +76,13 @@ export class User extends BaseEntity {
   @Property({ type: t.string })
   provider: UserProviderType = UserProviderType.LOCAL;
 
-  @OneToMany(() => MemberShip, (memberShip) => memberShip.user, { eager: true })
-  memberships = new Collection<MemberShip>(this);
+  @ManyToMany(() => Company, (company: Company) => company.users, {
+    owner: true,
+  })
+  companies = new Collection<Company>(this);
 
-  @ManyToOne(() => MemberShip, { nullable: true })
-  activeMembership?: MemberShip;
+  @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
+  userRoles = new Collection<UserRole>(this);
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
@@ -160,11 +162,7 @@ export class User extends BaseEntity {
   }
 
   get currentRole(): UserRoleEnum | null {
-    return this.activeMembership ? this.activeMembership.role : null;
-  }
-
-  get currentCompany(): Pick<Company, "id"> | null {
-    return this.activeMembership ? this.activeMembership.company : null;
+    return this.userRoles.length > 0 ? this.userRoles[0].role : null;
   }
 
   /* @BeforeCreate()

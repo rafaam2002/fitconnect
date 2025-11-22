@@ -10,11 +10,11 @@ import { User } from "./User";
 })
 @Entity()
 @Unique({ properties: ["user", "company"] }) // Ensure a user can have only one membership per user-company pair
-export class MemberShip extends BaseEntity {
+export class UserRole extends BaseEntity {
   @ManyToOne(() => User)
   user!: User;
 
-  @ManyToOne(() => Company)
+  @ManyToOne(() => Company, { deleteRule: "cascade" })
   company!: Company;
 
   @Enum(() => UserRoleEnum)

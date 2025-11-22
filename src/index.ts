@@ -274,11 +274,11 @@ const startServer = async () => {
 
         const currentUser = await authenticateUser(em, authorization);
 
-        if (currentUser && currentUser.activeCompanyId) {
+        if (currentUser && currentUser.contextCompanyId) {
           //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
           //y su membresia correspondiente a esa compania
           em.setFilterParams("companyContext", {
-            companyId: currentUser.activeCompanyId,
+            companyId: currentUser.contextCompanyId,
           });
         }
 
@@ -305,12 +305,12 @@ const startServer = async () => {
         // Autenticar al usuario según el token recibido
         const currentUser = await authenticateUser(em, authorization);
 
-        if (currentUser && currentUser.activeCompanyId) {
+        if (currentUser && currentUser.contextCompanyId) {
           em.setFilterParams("company", {
-            companyId: currentUser.activeCompanyId,
+            companyId: currentUser.contextCompanyId,
           });
           em.setFilterParams("companyContext", {
-            companyId: currentUser.activeCompanyId,
+            companyId: currentUser.contextCompanyId,
           });
         }
 

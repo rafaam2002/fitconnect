@@ -34,8 +34,8 @@ export const createPoll = async (
   }
 
   if (
-    currentUser.activeRole !== UserRoleEnum.COACH &&
-    currentUser.activeRole !== UserRoleEnum.BOSS
+    currentUser.contextRole !== UserRoleEnum.COACH &&
+    currentUser.contextRole !== UserRoleEnum.BOSS
   ) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }

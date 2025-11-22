@@ -45,7 +45,7 @@ export const createScheduleProgrammed = async (
       message: "Please login",
     };
   }
-  if (currentUser.activeRole === UserRoleEnum.STANDARD) {
+  if (currentUser.contextRole === UserRoleEnum.STANDARD) {
     return {
       success: false,
       code: "401",

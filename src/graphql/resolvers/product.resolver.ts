@@ -50,7 +50,7 @@ export const createProduct = async (
       },
     });
 
-  if (currentUser.activeRole !== UserRoleEnum.BOSS)
+  if (currentUser.contextRole !== UserRoleEnum.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   if (!name || !description || !price)
@@ -107,7 +107,7 @@ export const updateProductPicture = async (
       },
     });
 
-  if (currentUser.activeRole !== UserRoleEnum.BOSS)
+  if (currentUser.contextRole !== UserRoleEnum.BOSS)
     return CustomResponse(403, "You are not allowed to create a product");
 
   const productRepo = em.getRepository(Product);

@@ -62,8 +62,8 @@ type User {
     phoneNumber: String
     isVerified: Boolean
     companies: [Company]
-    activeRole: UserRoleEnum
-    activeCompanyId: ID
+    contextRole: UserRoleEnum
+    contextCompanyId: ID
 }
 
 type Schedule {

@@ -2,9 +2,10 @@ import { faker } from "@faker-js/faker";
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
 import { Company } from "../entities/Company";
-import { MemberShip } from "../entities/MemberShip";
 import { ScheduleFactory } from "../factories/ScheduleFactory";
 import { UserRoleEnum } from "../types/enums";
+import { UserRole } from "../entities/UserRole";
+import { User } from "../entities/User";
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -22,33 +23,31 @@ export class ScheduleSeeder extends Seeder {
       // For each company, create a set of schedules with users from that company
       for (const company of companies) {
         // Find the admin for this company
-        const adminMembership = await em.findOne(
-          MemberShip,
+        const adminRole = await em.findOne(
+          UserRole,
           {
             company: company,
-            role: { $in: [UserRoleEnum.BOSS, UserRoleEnum.COACH] },
+            role: { $in: [UserRoleEnum.BOSS] },
           },
           { populate: ["user"], filters: false }
         );
 
-        if (!adminMembership) {
+        if (!adminRole) {
           console.log(
             `No admin found for company ${company.name}. Skipping schedule creation.`
           );
           continue;
         }
-        const admin = adminMembership.user;
+        const admin = adminRole.user;
 
         // Find a sample of standard users for this company
-        const memberShips = await em.find(
-          MemberShip,
+        const usersInCompany = await em.find(
+          User,
           {
-            company: company,
-            role: UserRoleEnum.STANDARD,
+            companies: company,
           },
-          { populate: ["user"], limit: 20, filters: false }
+          { limit: 20, filters: false }
         );
-        const usersInCompany = memberShips.map((m) => m.user);
 
         if (usersInCompany.length === 0) {
           console.log(

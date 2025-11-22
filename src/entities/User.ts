@@ -79,7 +79,7 @@ export class User extends BaseEntity {
   companies = new Collection<Company>(this);
 
   @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
-  userRoles = new Collection<UserRole>(this);
+  roles = new Collection<UserRole>(this);
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
@@ -159,7 +159,7 @@ export class User extends BaseEntity {
   }
 
   get activeRole(): UserRoleEnum | null {
-    return this.userRoles.length > 0 ? this.userRoles[0].role : null;
+    return this.roles.length > 0 ? this.roles[0].role : null;
   }
 
   get activeCompany(): string | null {

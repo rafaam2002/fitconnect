@@ -2,17 +2,16 @@ import { faker } from "@faker-js/faker";
 import type { EntityManager } from "@mikro-orm/core";
 import { Seeder } from "@mikro-orm/seeder";
 import { Company } from "../entities/Company";
-import { MemberShip } from "../entities/MemberShip";
 import { Promotion } from "../entities/Promotion";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleOptions } from "../entities/ScheduleOptions";
 import { User } from "../entities/User";
 import { CompanyFactory } from "../factories/CompanyFactory";
-import { MemberShipFactory } from "../factories/MemebershipFactory";
 import { PollFactory } from "../factories/PollFactory";
 import { PollVoteFactory } from "../factories/PollVoteFactory";
 import { UserFactory } from "../factories/UserFactory";
 import { UserRoleEnum } from "../types/enums";
+import { UserRole } from "../entities/UserRole";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -24,10 +23,24 @@ export class UserSeeder extends Seeder {
     // em.getFilterParams.dis
 
     try {
+      let cont = 0;
+
       const schedules = await em.find(Schedule, {}, { filters: false });
       const promotions = await em.find(Promotion, {}, { filters: false });
-
-      let cont = 0;
+      const companies = new CompanyFactory(em).make(3, {
+        scheduleOptions: em.create(ScheduleOptions, {
+          maxActiveReservations: 3,
+          sameDayBookingAllowed: true,
+          fullOpenHours: 2, // 0 means always full
+          maxAdvanceBookingDays: 3,
+        }),
+      });
+      await em.persistAndFlush(companies);
+      const createdCompanies: Company[] = await em.find(
+        Company,
+        {},
+        { filters: false }
+      );
 
       const admins = [
         em.create(User, {
@@ -39,6 +52,13 @@ export class UserSeeder extends Seeder {
           nickname: "rafa",
           isActive: true,
           isBlocked: false,
+          companies: [createdCompanies[0]],
+          roles: [
+            em.create(UserRole, {
+              role: UserRoleEnum.BOSS,
+              company: createdCompanies[0],
+            }),
+          ],
         }),
         em.create(User, {
           name: "Juan",
@@ -49,6 +69,13 @@ export class UserSeeder extends Seeder {
           nickname: "juan",
           isActive: true,
           isBlocked: false,
+          companies: [createdCompanies[1]],
+          roles: [
+            em.create(UserRole, {
+              role: UserRoleEnum.BOSS,
+              company: createdCompanies[1],
+            }),
+          ],
         }),
         em.create(User, {
           name: "Isaac",
@@ -59,22 +86,18 @@ export class UserSeeder extends Seeder {
           nickname: "isaac",
           isActive: true,
           isBlocked: false,
+          companies: [createdCompanies[2]],
+          roles: [
+            em.create(UserRole, {
+              role: UserRoleEnum.BOSS,
+              company: createdCompanies[2],
+            }),
+          ],
         }),
       ];
 
       await em.persistAndFlush(admins);
 
-      const companies = new CompanyFactory(em).make(3, {
-        scheduleOptions: em.create(ScheduleOptions, {
-          maxActiveReservations: 3,
-          sameDayBookingAllowed: true,
-          fullOpenHours: 2, // 0 means always full
-          maxAdvanceBookingDays: 3,
-        }),
-      });
-
-      await em.persistAndFlush(companies);
-      const createdCompanies = await em.find(Company, {});
       const createdAdmins = await em.find(
         User,
         {
@@ -83,15 +106,7 @@ export class UserSeeder extends Seeder {
         { filters: false }
       );
 
-      const adminMemberships = createdCompanies.map((company, index) => {
-        const membership = em.create(MemberShip, {
-          user: createdAdmins[index],
-          company: company,
-          role: UserRoleEnum.BOSS,
-        });
-        return membership;
-      });
-      await em.persistAndFlush(adminMemberships);
+      await em.persistAndFlush(createdAdmins);
       let PollsCreated = false;
 
       new UserFactory(em)
@@ -108,12 +123,6 @@ export class UserSeeder extends Seeder {
             });
             PollsCreated = true;
           }
-          new MemberShipFactory(em)
-            .each((membership) => {
-              membership.company = faker.helpers.arrayElement(createdCompanies);
-              membership.user = user;
-            })
-            .make(1);
         })
         .make(50, {
           schedules: faker.helpers.arrayElements(schedules, {

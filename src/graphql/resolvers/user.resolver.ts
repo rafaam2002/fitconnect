@@ -177,6 +177,8 @@ export const me = async (_: any, args: any, context: ContextProps) => {
     }
   );
   if (me) {
+    me.activeCompanyId = me.contextCompanyId;
+    await em.persistAndFlush(me);
     return CustomResponse(200, "User found", true, {
       user: me,
       companies: me.companies.getItems(),

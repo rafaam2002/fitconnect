@@ -72,25 +72,28 @@ const login = async (_, args: any, { em }) => {
     //await em.persistAndFlush(user);
 
     if (token) {
-      return {
-        success: true,
-        code: "200",
-        message: "Login successful",
-        user,
-        companies: user.companies.getItems(),
-        tokens: {
-          token,
-          refreshToken: refreshTokenString,
-        },
-      };
+      if (user.companies.getItems().length === 0) {
+        user.activeCompanyId = user.contextCompanyId;
+        await em.persistAndFlush(user);
+        return CustomResponse(200, "Login successful", true, {
+          user,
+          companies: user.companies.getItems(),
+          tokens: {
+            token,
+            refreshToken: refreshTokenString,
+          },
+        });
+      } else {
+        return CustomResponse(200, "User needs to select company", true, {
+          user,
+          tokens: {
+            token,
+            refreshToken: refreshTokenString,
+          },
+        });
+      }
     } else {
-      return {
-        success: false,
-        code: "400",
-        message: "Login failed",
-        user: null,
-        token: null,
-      };
+      return CustomResponse(400, "Login failed");
     }
   } catch (error) {
     console.log(error);

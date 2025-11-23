@@ -22,6 +22,7 @@ import { renderPage } from "./utils/emailHtml";
 import { initORM } from "./utils/microOrmClient";
 import { createRetryingEntityManager } from "./utils/orm-retry";
 import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
+import { middleware } from "./middlewares";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -238,9 +239,9 @@ const startServer = async () => {
       context: async ({ req }) => {
         const em = createRetryingEntityManager(orm); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
-        //const companyId = req.headers["x-company-id"] as string;
+        const companyId = req.headers["x-company-id"] as string;
         const query = req.body?.query || "";
-        
+
         //sacar query por consola para debug
         //  console.log("Query: ", query);
 
@@ -270,18 +271,7 @@ const startServer = async () => {
             return { em, currentUser: null };
           }
         }
-
-        const currentUser = await authenticateUser(em, authorization);
-        //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
-
-        if (currentUser && currentUser.contextCompanyId) {
-            //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
-            em.setFilterParams("companyContext", {
-            companyId: currentUser.contextCompanyId,
-            });
-          }
-
-        return { em, currentUser };
+        return await middleware(em, authorization, companyId)
       },
     })
   );
@@ -298,23 +288,14 @@ const startServer = async () => {
         // Extraer el token de los connectionParams
         const authorization =
           (ctx.connectionParams?.Authorization as string) || "";
+        
+        const companyId = ctx.connectionParams?.companyId as string;
+
         // Crear un nuevo fork del EntityManager
         const em: EntityManager<IDatabaseDriver<Connection>> =
           createRetryingEntityManager(orm);
-        // Autenticar al usuario según el token recibido
-        const currentUser = await authenticateUser(em, authorization);
-
-        if (currentUser && currentUser.contextCompanyId) {
-            em.setFilterParams("company", {
-            companyId: currentUser.contextCompanyId,
-            });
-            em.setFilterParams("companyContext", {
-            companyId: currentUser.contextCompanyId,
-            });
-          }
-
-        // Retornar el contexto con el currentUser
-        return { em, currentUser };
+        
+        return await middleware(em, authorization, companyId);
       },
     },
     wsServer

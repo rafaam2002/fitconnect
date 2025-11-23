@@ -238,6 +238,7 @@ const startServer = async () => {
       context: async ({ req }) => {
         const em = createRetryingEntityManager(orm); //createRetryingEntityManager(orm);
         const authorization = req.headers.authorization || "";
+        //const companyId = req.headers["x-company-id"] as string;
         const query = req.body?.query || "";
         
         //sacar query por consola para debug
@@ -274,11 +275,11 @@ const startServer = async () => {
         //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
 
         if (currentUser && currentUser.contextCompanyId) {
-          //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
-          em.setFilterParams("companyContext", {
+            //IMPORTANTE!!: si usuario logeado, por defecto solo se usaran usuarios de la misma compania
+            em.setFilterParams("companyContext", {
             companyId: currentUser.contextCompanyId,
-          });
-        }
+            });
+          }
 
         return { em, currentUser };
       },
@@ -304,13 +305,13 @@ const startServer = async () => {
         const currentUser = await authenticateUser(em, authorization);
 
         if (currentUser && currentUser.contextCompanyId) {
-          em.setFilterParams("company", {
+            em.setFilterParams("company", {
             companyId: currentUser.contextCompanyId,
-          });
-          em.setFilterParams("companyContext", {
+            });
+            em.setFilterParams("companyContext", {
             companyId: currentUser.contextCompanyId,
-          });
-        }
+            });
+          }
 
         // Retornar el contexto con el currentUser
         return { em, currentUser };

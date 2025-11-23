@@ -25,9 +25,6 @@ export const transporter = nodemailer.createTransport({
 const login = async (_, args: any, { em }) => {
   const { emailOrNickname, password } = args;
 
-  //  em.setFilterParams("companyContext", {
-  //    companyId: comapanyIdParam,
-  //  });
   try {
     const user: User = await em.findOne(
       User,
@@ -76,8 +73,9 @@ const login = async (_, args: any, { em }) => {
       if (user.companies.length === 1) {
         user.activeCompanyId = user.companies[0].id;
         await em.persistAndFlush(user);
-      } else if (user.companies.length > 1)
+      } else if (user.companies.length > 1) {
         responseMessage = "User needs to select company";
+      }
 
       return CustomResponse(200, responseMessage, true, {
         user,

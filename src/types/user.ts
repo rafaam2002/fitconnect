@@ -7,6 +7,7 @@ export type UserType = {
   updated_at: Date;
   contextRole?: UserRoleEnum;
   contextCompanyId?: string | null;
+  activeCompanyId?: string | null;
   isActive: boolean;
   isBlocked: boolean;
   phoneNumber?: string;

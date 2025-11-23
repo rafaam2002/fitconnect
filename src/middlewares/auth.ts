@@ -1,7 +1,6 @@
+import { EntityManager } from "@mikro-orm/core";
 import jwt from "jsonwebtoken";
 import { User } from "../entities/User";
-import { EntityManager } from "@mikro-orm/core";
-import { Poll } from "../entities/Poll";
 import { UserType } from "../types";
 
 export const authenticateUser = async (

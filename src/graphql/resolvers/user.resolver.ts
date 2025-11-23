@@ -173,11 +173,16 @@ export const me = async (_: any, args: any, context: ContextProps) => {
   const me: User | null = await userRepo.findOne(
     { id: currentUser.id },
     {
-      populate: ["pictureUrl"],
+      populate: ["schedules.id", "schedules.startDate", "companies"],
     }
   );
   if (me) {
-    return CustomResponse(200, "User found", true, { user: me });
+    me.activeCompanyId = me.contextCompanyId;
+    await em.persistAndFlush(me);
+    return CustomResponse(200, "User found", true, {
+      user: me,
+      companies: me.companies.getItems(),
+    });
   } else {
     return CustomResponse(404, "User not logged");
   }

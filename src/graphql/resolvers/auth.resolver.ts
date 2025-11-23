@@ -73,9 +73,8 @@ const login = async (_, args: any, { em }) => {
 
     let responseMessage = "Login successful";
     if (token) {
-
       if (user.companies.length === 1) {
-        user.activeCompanyId = user.contextCompanyId;
+        user.activeCompanyId = user.companies[0].id;
         await em.persistAndFlush(user);
       } else if (user.companies.length > 1)
         responseMessage = "User needs to select company";

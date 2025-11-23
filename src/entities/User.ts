@@ -180,12 +180,6 @@ export class User extends BaseEntity {
     return this.roles.length > 0 ? this.roles[0].role : null;
   }
 
-  get contextCompanyId(): string | null {
-    if (!this.companies.isInitialized()) {
-      return null;
-    }
-    return this.companies.length > 0 ? this.companies[0].id : null;
-  }
   /* @BeforeCreate()
      @BeforeUpdate()
      validateEmail() {

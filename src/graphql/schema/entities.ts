@@ -63,7 +63,7 @@ type User {
     isVerified: Boolean
     companies: [Company]
     contextRole: UserRoleEnum
-    contextCompanyId: ID
+    activeCompanyId: ID
 }
 
 type Schedule {

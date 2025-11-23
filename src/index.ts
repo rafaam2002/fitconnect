@@ -15,14 +15,13 @@ import { Company } from "./entities/Company";
 import { User } from "./entities/User";
 import resolvers from "./graphql/resolvers";
 import { typeDefs } from "./graphql/schema/schema";
-import { authenticateUser } from "./middlewares/auth";
+import { middleware } from "./middlewares";
 import { storeNews } from "./utils/articles";
 import { cronFunctions } from "./utils/cron";
 import { renderPage } from "./utils/emailHtml";
 import { initORM } from "./utils/microOrmClient";
 import { createRetryingEntityManager } from "./utils/orm-retry";
 import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
-import { middleware } from "./middlewares";
 
 // const {
 //   ApolloServerPluginLandingPageLocalDefault,
@@ -233,7 +232,10 @@ const startServer = async () => {
   await apolloServer.start();
   app.use(
     "/",
-    cors<cors.CorsRequest>(),
+    cors<cors.CorsRequest>({
+      origin: "*",
+      allowedHeaders: ["x-company-id", "content-type", "authorization"],
+    }),
     express.json(),
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
@@ -271,7 +273,7 @@ const startServer = async () => {
             return { em, currentUser: null };
           }
         }
-        return await middleware(em, authorization, companyId)
+        return await middleware(em, authorization, companyId);
       },
     })
   );
@@ -289,7 +291,8 @@ const startServer = async () => {
         const authorization =
           (ctx.connectionParams?.Authorization as string) || "";
 
-        const companyId = (ctx.connectionParams?.["x-company-id"] as string) || "";
+        const companyId =
+          (ctx.connectionParams?.["x-company-id"] as string) || "";
 
         // Crear un nuevo fork del EntityManager
         const em: EntityManager<IDatabaseDriver<Connection>> =

@@ -28,68 +28,73 @@ const login = async (_, args: any, { em }) => {
   //  em.setFilterParams("companyContext", {
   //    companyId: comapanyIdParam,
   //  });
-
-  const user: User = await em.findOne(
-    User,
-    {
-      $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
-    },
-    {
-      populate: [
-        "password",
-        "schedules.id",
-        "schedules.startDate",
-        "companies",
-      ],
-    }
-  );
-
-  const passwordCorrect =
-    user === null ? false : await bcrypt.compare(password, user.password);
-  if (!(user && passwordCorrect)) {
-    return CustomResponse(400, "Invalid email/nickname or password");
-  }
-
-  const idForToken = {
-    id: user.id,
-  };
-
-  const token = jwt.sign(idForToken, process.env.JWT_SECRET, {
-    expiresIn: "30m",
-  });
-
-  const refreshTokenString = crypto.randomBytes(64).toString("hex");
-  const refreshToken = new RefreshToken(
-    user,
-    refreshTokenString,
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-  );
-
-  await em.persistAndFlush(refreshToken);
-
-  //user.activeCompanyId = activeCompanyIdParam
-  //await em.persistAndFlush(user);
-
-  if (token) {
-    return {
-      success: true,
-      code: "200",
-      message: "Login successful",
-      user,
-      companies: user.companies.getItems(),
-      tokens: {
-        token,
-        refreshToken: refreshTokenString,
+  try {
+    const user: User = await em.findOne(
+      User,
+      {
+        $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
       },
+      {
+        populate: [
+          "password",
+          "schedules.id",
+          "schedules.startDate",
+          "companies",
+        ],
+        filters: false,
+      }
+    );
+
+    const passwordCorrect =
+      user === null ? false : await bcrypt.compare(password, user.password);
+    if (!(user && passwordCorrect)) {
+      return CustomResponse(400, "Invalid email/nickname or password");
+    }
+
+    const idForToken = {
+      id: user.id,
     };
-  } else {
-    return {
-      success: false,
-      code: "400",
-      message: "Login failed",
-      user: null,
-      token: null,
-    };
+
+    const token = jwt.sign(idForToken, process.env.JWT_SECRET, {
+      expiresIn: "30m",
+    });
+
+    const refreshTokenString = crypto.randomBytes(64).toString("hex");
+    const refreshToken = new RefreshToken(
+      user,
+      refreshTokenString,
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+    );
+
+    await em.persistAndFlush(refreshToken);
+
+    //user.activeCompanyId = activeCompanyIdParam
+    //await em.persistAndFlush(user);
+
+    if (token) {
+      return {
+        success: true,
+        code: "200",
+        message: "Login successful",
+        user,
+        companies: user.companies.getItems(),
+        tokens: {
+          token,
+          refreshToken: refreshTokenString,
+        },
+      };
+    } else {
+      return {
+        success: false,
+        code: "400",
+        message: "Login failed",
+        user: null,
+        token: null,
+      };
+    }
+  } catch (error) {
+    console.log(error);
+    return CustomResponse(400, "Login failed");
   }
 };
 
@@ -291,4 +296,3 @@ export const authResolvers = {
     sendChangePasswordEmail,
   },
 };
-

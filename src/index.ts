@@ -288,13 +288,13 @@ const startServer = async () => {
         // Extraer el token de los connectionParams
         const authorization =
           (ctx.connectionParams?.Authorization as string) || "";
-        
-        const companyId = ctx.connectionParams?.companyId as string;
+
+        const companyId = (ctx.connectionParams?.["x-company-id"] as string) || "";
 
         // Crear un nuevo fork del EntityManager
         const em: EntityManager<IDatabaseDriver<Connection>> =
           createRetryingEntityManager(orm);
-        
+
         return await middleware(em, authorization, companyId);
       },
     },

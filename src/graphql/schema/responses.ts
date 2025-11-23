@@ -113,6 +113,14 @@ type LoginResponse implements BasicResponse{
     tokens: Tokens
 }
 
+type MeResponse implements BasicResponse{
+    code: String!
+    success: Boolean!
+    message: String!
+    user: User
+    companies: [Company]
+}
+
 type CompanyResponse implements BasicResponse{
     code: String!
     success: Boolean!

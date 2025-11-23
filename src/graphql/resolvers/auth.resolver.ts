@@ -73,7 +73,7 @@ const login = async (_, args: any, { em }) => {
 
     let responseMessage = "Login successful";
     if (token) {
-      
+
       if (user.companies.length === 1) {
         user.activeCompanyId = user.contextCompanyId;
         await em.persistAndFlush(user);

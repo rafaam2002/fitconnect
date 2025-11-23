@@ -81,13 +81,13 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   activeCompanyId?: string | null;
 
+  @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
+  roles = new Collection<UserRole>(this);
+
   // @ManyToMany(() => Plan, (plan: Plan) =>plans.users, {
   //   owner: true,
   // })
   //plans  = new Collection<Plan>(this);
-
-  @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
-  roles = new Collection<UserRole>(this);
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.users, {
     owner: true,
@@ -173,12 +173,12 @@ export class User extends BaseEntity {
     return this.roles.length > 0 ? this.roles[0].role : null;
   }
 
-  get contextPlan(): UserRoleEnum | null {
-    if (!this.roles.isInitialized()) {
-      return null;
-    }
-    return this.roles.length > 0 ? this.roles[0].role : null;
-  }
+  // get contextPlan(): Plan | null {
+  //   if (!this.plans.isInitialized()) {
+  //     return null;
+  //   }
+  //   return this.plans.length > 0 ? this.plans[0] : null;
+  // }
 
   /* @BeforeCreate()
      @BeforeUpdate()

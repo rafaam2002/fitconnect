@@ -145,7 +145,7 @@ export const updateCompanyLogo = async (
     });
   }
 
-  if (currentUser.contextCompanyId !== companyId) {
+  if (currentUser.activeCompanyId !== companyId) {
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 

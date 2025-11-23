@@ -71,27 +71,23 @@ const login = async (_, args: any, { em }) => {
     //user.activeCompanyId = activeCompanyIdParam
     //await em.persistAndFlush(user);
 
+    let responseMessage = "Login successful";
     if (token) {
-      if (user.companies.getItems().length === 0) {
+      
+      if (user.companies.length === 1) {
         user.activeCompanyId = user.contextCompanyId;
         await em.persistAndFlush(user);
-        return CustomResponse(200, "Login successful", true, {
-          user,
-          companies: user.companies.getItems(),
-          tokens: {
-            token,
-            refreshToken: refreshTokenString,
-          },
-        });
-      } else {
-        return CustomResponse(200, "User needs to select company", true, {
-          user,
-          tokens: {
-            token,
-            refreshToken: refreshTokenString,
-          },
-        });
-      }
+      } else if (user.companies.length > 1)
+        responseMessage = "User needs to select company";
+
+      return CustomResponse(200, responseMessage, true, {
+        user,
+        companies: user.companies,
+        tokens: {
+          token,
+          refreshToken: refreshTokenString,
+        },
+      });
     } else {
       return CustomResponse(400, "Login failed");
     }

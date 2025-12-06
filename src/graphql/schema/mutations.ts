@@ -88,6 +88,8 @@ type Mutation {
     updateCompany(companyId: ID!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
     updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
     createCompany(company: CreateCompanyInput!): CompanyResponse!
+    requestJoinCompany(companyId: ID!): DefaultResponse!
+    admitUserToCompany(companyId: ID!, userId: ID!): DefaultResponse!
 }
 
 `;

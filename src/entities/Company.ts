@@ -1,4 +1,3 @@
-import { BaseEntity } from "./BaseEntity";
 import {
   Cascade,
   Collection,
@@ -9,8 +8,9 @@ import {
   OneToOne,
   Property,
 } from "@mikro-orm/core";
-import { ScheduleOptions } from "./ScheduleOptions";
+import { BaseEntity } from "./BaseEntity";
 import { PictureUrl } from "./PictureUrl";
+import { ScheduleOptions } from "./ScheduleOptions";
 import { User } from "./User";
 
 @Entity()
@@ -36,6 +36,9 @@ export class Company extends BaseEntity {
 
   @ManyToMany(() => User, (user: User) => user.companies)
   users = new Collection<User>(this);
+
+  @ManyToMany(() => User, (user: User) => user.pendingCompanies)
+  pendingUsers = new Collection<User>(this);
 
   @OneToOne(() => PictureUrl, (picture) => picture.companyLogo, {
     nullable: true,

@@ -77,6 +77,11 @@ export class User extends BaseEntity {
   })
   companies = new Collection<Company>(this);
 
+  @ManyToMany(() => Company, (company: Company) => company.pendingUsers, {
+    owner: true,
+  })
+  pendingCompanies = new Collection<Company>(this);
+
   //solo se usa para la autenticacion
   @Property({ type: t.string, nullable: true })
   activeCompanyId?: string | null;

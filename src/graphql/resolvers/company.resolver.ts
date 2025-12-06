@@ -4,6 +4,8 @@ import nodemailer from "nodemailer";
 import { Company } from "../../entities/Company";
 import { ScheduleOptions } from "../../entities/ScheduleOptions";
 import { User } from "../../entities/User";
+import { UserRole } from "../../entities/UserRole";
+import { UserRoleEnum } from "../../types/enums";
 import {
   CompanyProps,
   ContextProps,
@@ -235,6 +237,102 @@ export const createCompany = async (
   }
 };
 
+export const requestJoinCompany = async (
+  _: any,
+  { companyId }: { companyId: string },
+  { em, currentUser }: ContextProps
+) => {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  const company = await em.findOne(Company, { id: companyId });
+  if (!company) {
+    return CustomResponse(404, "Company not found");
+  }
+
+  const user = await em.findOne(User, { id: currentUser.id });
+  if (!user) {
+    return CustomResponse(404, "User not found");
+  }
+
+  // Check if user is already in the company or pending
+  const isMember = await user.companies.contains(company);
+  const isPending = await user.pendingCompanies.contains(company);
+
+  if (isMember) {
+    return CustomResponse(400, "User is already a member of this company");
+  }
+
+  if (isPending) {
+    return CustomResponse(400, "User request is already pending");
+  }
+
+  user.pendingCompanies.add(company);
+  await em.persistAndFlush(user);
+
+  return CustomResponse(200, "Request sent successfully", true);
+};
+
+export const admitUserToCompany = async (
+  _: any,
+  { companyId, userId }: { companyId: string; userId: string },
+  { em, currentUser }: ContextProps
+) => {
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  const company = await em.findOne(Company, { id: companyId });
+  if (!company) {
+    return CustomResponse(404, "Company not found");
+  }
+
+  // Verify current user is BOSS of the company
+  const currentUserRole = await em.findOne(UserRole, {
+    user: currentUser.id,
+    company: company.id,
+    role: UserRoleEnum.BOSS,
+  });
+
+  if (!currentUserRole) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const userToAdmit = await em.findOne(User, { id: userId });
+  if (!userToAdmit) {
+    return CustomResponse(404, "User to admit not found");
+  }
+
+  // Check if user is in pending list
+  const isPending = await userToAdmit.pendingCompanies.contains(company);
+  if (!isPending) {
+    return CustomResponse(400, "User is not in the pending list");
+  }
+
+  // Move user from pending to members
+  userToAdmit.pendingCompanies.remove(company);
+  userToAdmit.companies.add(company);
+
+  // Create UserRole for the new member (default to STANDARD)
+  const newUserRole = new UserRole(userToAdmit, company, UserRoleEnum.STANDARD);
+  em.persist(newUserRole);
+
+  await em.persistAndFlush(userToAdmit);
+
+  return CustomResponse(200, "User admitted successfully", true);
+};
+
 export const companyResolvers = {
   Query: {
     getCompanies,
@@ -243,5 +341,7 @@ export const companyResolvers = {
     updateCompany,
     updateCompanyLogo,
     createCompany,
+    requestJoinCompany,
+    admitUserToCompany,
   },
 };

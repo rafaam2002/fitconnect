@@ -2,6 +2,7 @@ export const graphqlEntities = `
 scalar JSON
 
 type PictureUrl {
+    id: ID!
     name: String!
     url: String!
 }

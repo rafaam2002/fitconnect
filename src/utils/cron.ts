@@ -1,10 +1,10 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-import { storeNews } from "./articles";
-import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import cron from "node-cron";
-import { updatePictureUrls } from "./createPresignedUrls";
-import { setNotActiveUsers } from "./users";
+import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
+import { storeNews } from "./articles";
+import { updatePictureUrls } from "./presigned-urls";
 import { sendScheduleReminders } from "./schedules";
+import { setNotActiveUsers } from "./users";
 
 export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>

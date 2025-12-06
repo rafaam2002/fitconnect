@@ -42,11 +42,12 @@ import {
   UserPictureProps,
   UserProps,
 } from "../../types/resolvers";
+import { sendPushNotification } from "../../utils/notifications";
 import {
   createPictureUrl,
+  deleteBucketPicture,
   getPresignedUrl,
-} from "../../utils/createPresignedUrls";
-import { sendPushNotification } from "../../utils/notifications";
+} from "../../utils/presigned-urls";
 import {
   createDateWithTime,
   createScheduleProgrammed,
@@ -1411,9 +1412,18 @@ export const updateUserPicture = async (
     );
     updateUser.pictureUrl = pictureUrl;
   } else {
-    //updateUser.pictureUrl.name = picture;
+    updateUser.pictureUrl.name = picture;
     updateUser.pictureUrl.url = await getPresignedUrl(picture);
   }
+
+  if (args.oldPicture) {
+    try {
+      await deleteBucketPicture(args.oldPicture);
+    } catch (error) {
+      console.error("Error deleting old picture", error);
+    }
+  }
+
   try {
     await em.persistAndFlush(updateUser);
 

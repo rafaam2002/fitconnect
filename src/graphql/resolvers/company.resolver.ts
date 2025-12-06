@@ -13,10 +13,7 @@ import {
 } from "../../types/resolvers";
 import { createAdminCompany } from "../../utils/company";
 import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from "../../utils/createPresignedUrls";
+import { createPictureUrl, getPresignedUrl } from "../../utils/presigned-urls";
 import { CustomResponse } from "./errors";
 
 const transporter = nodemailer.createTransport({

@@ -1,31 +1,11 @@
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import dotenv from "dotenv";
-import { PictureUrl } from "../entities/PictureUrl";
-import { User } from "../entities/User";
-import { Product } from "../entities/Product";
-import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
+import { EntityManager } from "@mikro-orm/core";
 import { Company } from "../entities/Company";
+import { PictureUrl } from "../entities/PictureUrl";
+import { Product } from "../entities/Product";
+import { User } from "../entities/User";
+import { getPresignedUrl } from "./s3Client";
 
-dotenv.config();
-
-const region = process.env.AWS_REGION || "eu-north-1";
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "";
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-
-type Item = {
-  id: string;
-  name: string;
-  type: "user" | "product";
-};
-
-export const s3 = new S3Client({
-  region,
-  credentials: {
-    accessKeyId,
-    secretAccessKey,
-  },
-});
+export * from "./s3Client";
 
 export const updatePictureUrls = async (em: EntityManager) => {
   const userRepo = em.getRepository(User);
@@ -55,15 +35,6 @@ export const updatePictureUrls = async (em: EntityManager) => {
       em.persistAndFlush(picture);
     });
   });
-};
-
-export const getPresignedUrl = async (key: string) => {
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key,
-  });
-  const url = await getSignedUrl(s3, command, { expiresIn: 7 * 24 * 3600 }); // 30 days
-  return url;
 };
 
 export const createPictureUrl = (

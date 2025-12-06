@@ -21,6 +21,7 @@ export type CompanyProps = {
 export type UserPictureProps = {
   userId: string;
   picture: string;
+  oldPicture?: string;
 };
 
 export type UpdateCompanyPictureProps = {

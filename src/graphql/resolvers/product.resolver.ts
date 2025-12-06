@@ -8,11 +8,8 @@ import {
   RemoveProductProps,
   UpdateProductImage,
 } from "../../types/resolvers";
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from "../../utils/createPresignedUrls";
 import { sendPushNotification } from "../../utils/notifications";
+import { createPictureUrl, getPresignedUrl } from "../../utils/presigned-urls";
 import { CustomResponse } from "./errors";
 
 // ===== QUERY RESOLVERS =====

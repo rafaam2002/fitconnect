@@ -43,11 +43,7 @@ import {
   UserProps,
 } from "../../types/resolvers";
 import { sendPushNotification } from "../../utils/notifications";
-import {
-  createPictureUrl,
-  deleteBucketPicture,
-  getPresignedUrl,
-} from "../../utils/presigned-urls";
+import { createPictureUrl, getPresignedUrl } from "../../utils/presigned-urls";
 import {
   createDateWithTime,
   createScheduleProgrammed,
@@ -1414,14 +1410,6 @@ export const updateUserPicture = async (
   } else {
     updateUser.pictureUrl.name = picture;
     updateUser.pictureUrl.url = await getPresignedUrl(picture);
-  }
-
-  if (args.oldPicture) {
-    try {
-      await deleteBucketPicture(args.oldPicture);
-    } catch (error) {
-      console.error("Error deleting old picture", error);
-    }
   }
 
   try {

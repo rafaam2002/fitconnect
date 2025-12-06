@@ -1,9 +1,10 @@
-import aws from "aws-sdk";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import crypto from "crypto";
 import dotenv from "dotenv";
+import { GraphQLError } from "graphql";
 import { ContextProps } from "../../types/resolvers";
 import { CustomResponse } from "./errors";
-import crypto from "crypto";
-import { GraphQLError } from "graphql";
 
 dotenv.config();
 
@@ -14,12 +15,12 @@ const region = process.env.AWS_REGION || "eu-north-1";
 const accessKeyId = process.env.AWS_ACCESS_KEY || "";
 const secretAccessKey = process.env.AWS_SECRET_KEY || "";
 
-export const s3 = new aws.S3({
-  apiVersion: "2006-03-01",
+export const s3 = new S3Client({
   region,
-  accessKeyId,
-  secretAccessKey,
-  signatureVersion: "v4",
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
 });
 
 // ===== QUERY RESOLVERS =====
@@ -41,15 +42,14 @@ export const getPresignedUrl = async (
     });
 
   const Key = key || `${crypto.randomUUID()}.jpeg`;
-  const params = {
+  const command = new PutObjectCommand({
     Bucket: bucketName,
     Key,
-    Expires: 60 * 2, // URL expiration time in seconds
-    ContentType: "image/jpeg", // Specify the content type
-  };
+    ContentType: "image/jpeg",
+  });
 
   try {
-    const url = await s3.getSignedUrl("putObject", params);
+    const url = await getSignedUrl(s3, command, { expiresIn: 60 * 2 });
     return CustomResponse(200, "Presigned URL generated successfully", true, {
       presignedUrl: url,
       key: Key,
@@ -61,10 +61,8 @@ export const getPresignedUrl = async (
 };
 
 export const s3Resolvers = {
-    Query: {
-        getPresignedUrl,
-    },
-    Mutation: {
-
-    }
-}
+  Query: {
+    getPresignedUrl,
+  },
+  Mutation: {},
+};

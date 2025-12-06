@@ -903,12 +903,17 @@ export const getAdminStats = async (
     ),
   ]);
 
+  const pendingUsers = await em.count(User, {
+    pendingCompanies: { id: currentUser.activeCompanyId },
+  });
+
   const stats = {
     users: {
       totalUsers: result[0].totalusers,
       blockedUsers: result[0].blockedusers,
       notActiveUsers: result[0].notactiveusers,
       newUsers: result[0].newusers,
+      pendingUsers,
     },
     schedules: 0,
     polls: 0,

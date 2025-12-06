@@ -215,6 +215,7 @@ type UserStats {
     notActiveUsers: Int!
     blockedUsers: Int!
     newUsers: Int!
+    pendingUsers: Int!
 }
 
 type AdminStats {

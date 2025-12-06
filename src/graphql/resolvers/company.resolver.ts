@@ -257,7 +257,9 @@ export const requestJoinCompany = async (
     return CustomResponse(404, "Company not found");
   }
 
-  const user = await em.findOne(User, { id: currentUser.id });
+  const user = await em.findOne(User, { id: currentUser.id }, {
+    populate: ["companies", "pendingCompanies"]
+  });
   if (!user) {
     return CustomResponse(404, "User not found");
   }

@@ -1,5 +1,6 @@
 import { MikroORM } from "@mikro-orm/core";
 import { Company } from "../entities/Company";
+import { PushToken } from "../entities/PushToken";
 import { User } from "../entities/User";
 import { UserRole } from "../entities/UserRole";
 import {
@@ -47,6 +48,12 @@ async function verify() {
     // Assign Boss Role
     const bossRole = new UserRole(bossUser, company, UserRoleEnum.BOSS);
     await em.persistAndFlush(bossRole);
+
+    // Create Push Token for Boss
+    const pushToken = new PushToken();
+    pushToken.token = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]";
+    pushToken.user = bossUser;
+    await em.persistAndFlush(pushToken);
 
     console.log("Test data created.");
     console.log(`Company ID: ${company.id}`);

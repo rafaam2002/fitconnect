@@ -15,6 +15,7 @@ import {
 } from "../../types/resolvers";
 import { createAdminCompany } from "../../utils/company";
 import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
+import { sendPushNotification } from "../../utils/notifications";
 import { createPictureUrl, getPresignedUrl } from "../../utils/presigned-urls";
 import { CustomResponse } from "./errors";
 
@@ -275,6 +276,34 @@ export const requestJoinCompany = async (
 
   user.pendingCompanies.add(company);
   await em.persistAndFlush(user);
+
+  // Send notification to BOSS users
+  try {
+    const bossRoles = await em.find(
+      UserRole,
+      {
+        company: company.id,
+        role: UserRoleEnum.BOSS,
+      },
+      { populate: ["user.pushTokens"] }
+    );
+
+    for (const role of bossRoles) {
+      const boss = role.user;
+      if (boss && boss.pushTokens) {
+        for (const tokenEntity of boss.pushTokens) {
+          await sendPushNotification(
+            tokenEntity.token,
+            "Nueva solicitud de unión",
+            `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
+            { type: "join_request", userId: user.id, companyId: company.id }
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error sending push notifications:", error);
+  }
 
   return CustomResponse(200, "Request sent successfully", true);
 };

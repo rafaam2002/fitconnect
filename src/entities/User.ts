@@ -37,7 +37,12 @@ export enum UserStatus {
 @Entity()
 @Filter({
   name: "companyContext",
-  cond: (args) => ({ companies: { id: args.companyId } }),
+  cond: (args) => ({
+    $or: [
+      { companies: { id: args.companyId } },
+      { pendingCompanies: { id: args.companyId } },
+    ],
+  }),
   default: true,
 })
 export class User extends BaseEntity {

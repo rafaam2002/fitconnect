@@ -910,9 +910,12 @@ export const getAdminStats = async (
     ),
   ]);
 
-  const pendingUsers = await em.count(User, {
-    pendingCompanies: { id: currentUser.activeCompanyId },
-  });
+  const pendingUsers = await em.count(
+    User,
+    {
+      pendingCompanies: { id: currentUser.activeCompanyId },
+    },
+  );
 
   const stats = {
     users: {

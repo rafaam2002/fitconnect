@@ -16,6 +16,7 @@ export class CompanyFactory extends Factory<Company> {
       address: faker.location.streetAddress(true),
       phoneNumber: faker.phone.number(),
       email: faker.internet.email(),
+      isValidated: true,
     };
   }
 }

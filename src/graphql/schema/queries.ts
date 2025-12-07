@@ -7,6 +7,7 @@ type Query {
     # ----------------- User -----------------
     getUsers(query: String, page: Int, roleFilter: [UserRoleEnum], stateFilter: String): UserResponse!
     me: MeResponse,
+    firstMe: MeResponse,
     findUser(id: ID!): UserResponse!
     #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)
     #each page will have 50 messages, default = 0 (first page)

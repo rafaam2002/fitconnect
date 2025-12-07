@@ -5,12 +5,17 @@ import { authenticateUser } from "./auth";
 export const middleware = async (
   em: EntityManager,
   authorization?: string,
-  companyId?: string
+  companyId?: string,
+  isFirstMe?: boolean
 ) => {
   const currentUser = await authenticateUser(em, authorization);
   //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
 
-  if (currentUser?.activeCompanyId) {
+  if (isFirstMe) {
+    em.setFilterParams("companyContext", {
+      companyId,
+    });
+  } else if (currentUser?.activeCompanyId) {
     if (currentUser.activeCompanyId !== companyId) {
       throw new GraphQLError(
         "User is logged in two companies at the same time",

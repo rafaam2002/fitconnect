@@ -259,6 +259,7 @@ const startServer = async () => {
           "sendChangePasswordEmail",
           "verifyEmail",
         ];
+        const isFirstMe = query.toLowerCase().includes("firstme");
 
         // If the query string contains a public operation, skip token authentication
         const isPublicOperation = publicOperations.some((op) =>
@@ -273,7 +274,7 @@ const startServer = async () => {
             return { em, currentUser: null };
           }
         }
-        return await middleware(em, authorization, companyId);
+        return await middleware(em, authorization, companyId, isFirstMe);
       },
     })
   );

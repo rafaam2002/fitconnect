@@ -181,6 +181,35 @@ export const me = async (_: any, args: any, context: ContextProps) => {
     }
   );
   if (me) {
+    return CustomResponse(200, "User found", true, {
+      user: me,
+      companies: me.companies.getItems(),
+    });
+  } else {
+    return CustomResponse(404, "User not logged");
+  }
+};
+
+export const firstMe = async (_: any, args: any, context: ContextProps) => {
+  const { em, currentUser } = context;
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+  //falta conseguir el usuario actual
+  const me: User | null = await userRepo.findOne(
+    { id: currentUser.id },
+    {
+      populate: ["schedules.id", "schedules.startDate", "companies"],
+    }
+  );
+  if (me) {
     me.activeCompanyId = me.companies[0].id;
     await em.persistAndFlush(me);
     return CustomResponse(200, "User found", true, {
@@ -2290,6 +2319,7 @@ export const fixedMessages = {
 export const userResolvers: IResolvers = {
   Query: {
     me,
+    firstMe,
     findUser,
     // getPromotions,
     getSchedules,
@@ -2335,37 +2365,4 @@ export const userResolvers: IResolvers = {
     fixedMessages,
     newMessage,
   },
-  //Creo que esto ya no no es necesario
-  // User: {
-  //   contextRole: (
-  //     parent: User,
-  //     _: any,
-  //     context: ContextProps
-  //   ): UserRoleEnum | null => {
-  //     const { currentUser } = context;
-
-  //     // Si no hay usuario autenticado (ej. en login), devolver el rol de la membresía activa del parent
-  //     if (!currentUser) {
-  //       return parent.activeMembership?.role || null;
-  //     }
-
-  //     // Si el usuario que consulta no tiene una membresía activa, no hay contexto de compañía.
-  //     if (!currentUser.activeMembership) {
-  //       // Si el usuario que se está resolviendo es el mismo que consulta, devuelve el rol de su propia membresía activa.
-  //       if (parent.id === currentUser.id) {
-  //         return parent.activeMembership?.role || null;
-  //       }
-  //       return null;
-  //     }
-
-  //     const requestingUserCompanyId = currentUser.activeMembership.company.id;
-
-  //     // Busca la membresía del usuario 'parent' que coincide con la compañía del usuario que consulta.
-  //     const membershipInContext = parent.memberships[0]; // con el filtro de membresias, solo traera la de la compañia en contexto
-  //     // .getItems()
-  //     // .find((m) => m.company.id === requestingUserCompanyId);
-
-  //     return membershipInContext ? membershipInContext.role : null;
-  //   },
-  // },
 };

@@ -16,7 +16,13 @@ import { User } from "./User";
 @Entity()
 @Filter({
   name: "validatedCompanies",
-  cond: (args) => ({ isValidated: true }),
+  cond: () => ({ isValidated: true }),
+  default: true,
+})
+@Filter({
+  name: "companyContext",
+  cond: (args) => ({ id: args.companyId }),
+  default: true,
 })
 export class Company extends BaseEntity {
   @Property({ length: 100 })

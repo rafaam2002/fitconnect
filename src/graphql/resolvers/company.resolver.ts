@@ -348,7 +348,7 @@ export const admitUserToCompany = async (
   const userToAdmit = await em.findOne(
     User,
     { id: userId },
-    { populate: ["pushTokens"] }
+    { populate: ["pushTokens","pendingCompanies"] }
   );
   if (!userToAdmit) {
     return CustomResponse(404, "User to admit not found");

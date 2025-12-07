@@ -8,7 +8,7 @@ export const storeNews = async (
   pages: number[]
 ) => {
   const articleRepo = em.getRepository(Article);
-  const existingArticles = await articleRepo.findAll();
+  const existingArticles = await articleRepo.findAll({ filters: false });
   if (existingArticles.length === 0) {
     try {
       // Realizar todas las peticiones en paralelo

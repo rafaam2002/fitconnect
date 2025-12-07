@@ -16,6 +16,7 @@ export const updatePictureUrls = async (em: EntityManager) => {
         $ne: null,
       },
     },
+    filters: false,
   });
   users.forEach(async (user) => {
     user.pictureUrl.url = await getPresignedUrl(user.pictureUrl.name);

@@ -1,14 +1,14 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-import { User } from "../entities/User";
+import { OAuth2Client } from "google-auth-library";
 import moment from "moment";
-import { OAuth2Client } from 'google-auth-library';
+import { User } from "../entities/User";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const setNotActiveUsers = async (
   em: EntityManager<IDatabaseDriver<Connection>>
 ) => {
   const userRepo = em.getRepository(User);
-  const users = await userRepo.findAll();
+  const users = await userRepo.findAll({ filters: false });
 
   const deadline = moment().subtract(1, "month");
 
@@ -34,7 +34,6 @@ export const generateTempPassword = (length: number = 6): string => {
   return result;
 };
 
-
 export async function verifyGoogleToken(idToken: string) {
   try {
     const ticket = await client.verifyIdToken({
@@ -51,7 +50,7 @@ export async function verifyGoogleToken(idToken: string) {
       picture: payload.picture,
     };
   } catch (error) {
-     console.error('Google token verification failed:', error);
+    console.error("Google token verification failed:", error);
     return null;
   }
 }

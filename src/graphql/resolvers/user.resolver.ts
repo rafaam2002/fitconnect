@@ -190,7 +190,15 @@ export const me = async (_: any, args: any, context: ContextProps) => {
   }
 };
 
-export const firstMe = async (_: any, args: any, context: ContextProps) => {
+export const setCompanyMe = async (
+  _: any,
+  {
+    companyId,
+  }: {
+    companyId: string;
+  },
+  context: ContextProps
+) => {
   const { em, currentUser } = context;
   const userRepo = em.getRepository(User);
 
@@ -210,7 +218,7 @@ export const firstMe = async (_: any, args: any, context: ContextProps) => {
     }
   );
   if (me) {
-    me.activeCompanyId = me.companies[0].id;
+    me.activeCompanyId = companyId;
     await em.persistAndFlush(me);
     return CustomResponse(200, "User found", true, {
       user: me,
@@ -225,9 +233,12 @@ export const findUser = async (_, args: IdProps, context: ContextProps) => {
   const { em } = context;
   const { id } = args;
   const userRepo = em.getRepository(User);
-  const user = await userRepo.findOne({ id }, {
-    populate: ["pendingCompanies"]
-  });
+  const user = await userRepo.findOne(
+    { id },
+    {
+      populate: ["pendingCompanies"],
+    }
+  );
 
   if (!user) {
     return CustomResponse(404, "User not found");
@@ -2319,7 +2330,6 @@ export const fixedMessages = {
 export const userResolvers: IResolvers = {
   Query: {
     me,
-    firstMe,
     findUser,
     // getPromotions,
     getSchedules,
@@ -2342,6 +2352,7 @@ export const userResolvers: IResolvers = {
     getPolls,
   },
   Mutation: {
+    setCompanyMe,
     createUser,
     updateUser,
     updateUserPicture,

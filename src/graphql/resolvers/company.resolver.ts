@@ -252,7 +252,9 @@ export const requestJoinCompany = async (
     });
   }
 
-  const company = await em.findOne(Company, { id: companyId });
+  const company = await em.findOne(Company, { id: companyId }, {
+    filters: false,
+  });
   if (!company) {
     return CustomResponse(404, "Company not found");
   }

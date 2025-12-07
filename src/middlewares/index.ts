@@ -6,12 +6,12 @@ export const middleware = async (
   em: EntityManager,
   authorization?: string,
   companyId?: string,
-  isFirstMe?: boolean
+  isSetCompanyMe?: boolean
 ) => {
   const currentUser = await authenticateUser(em, authorization);
   //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
 
-  if (isFirstMe) {
+  if (isSetCompanyMe) {
     em.setFilterParams("companyContext", {
       companyId,
     });

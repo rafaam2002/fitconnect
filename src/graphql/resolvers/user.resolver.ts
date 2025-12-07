@@ -96,7 +96,7 @@ export const getUsers = async (
   context: ContextProps
 ) => {
   const { em, currentUser } = context;
-  const { textFilter, roleFilter, page, stateFilter } = args;
+  const { query, roleFilter, page, stateFilter } = args;
   if (!currentUser) {
     throw new GraphQLError("Please login, token_expired", {
       extensions: {
@@ -115,17 +115,17 @@ export const getUsers = async (
 
   let where: any = {};
 
-  if (textFilter) {
+  if (query) {
     where.$or = [
-      { nickname: { $ilike: `${textFilter}%` } },
-      { name: { $ilike: `${textFilter}%` } },
-      { surname: { $ilike: `${textFilter}%` } },
-      { email: { $ilike: `${textFilter}%` } },
+      { nickname: { $ilike: `${query}%` } },
+      { name: { $ilike: `${query}%` } },
+      { surname: { $ilike: `${query}%` } },
+      { email: { $ilike: `${query}%` } },
     ];
   }
 
   if (roleFilter) {
-    where.role = roleFilter;
+    where.roles = { role: { $in: roleFilter } };
   }
 
   if (stateFilter) {
@@ -139,16 +139,23 @@ export const getUsers = async (
       ? (where.created_at = {
           $gte: new Date(Date.now() - 31 * 60 * 60 * 1000), // last 24 hours
         })
+      : stateFilter === "pending"
+      ? (where.pendingCompanies = { id: currentUser.activeCompanyId })
       : null;
   }
 
-  const users = Object.keys(where).length
-    ? await userRepo.find(where, {
-        ...pagination,
-      })
-    : await userRepo.findAll({
-        ...pagination,
-      });
+  let users: User[] = [];
+  try {
+    users = Object.keys(where).length
+      ? await userRepo.find(where, {
+          ...pagination,
+        })
+      : await userRepo.findAll({
+          ...pagination,
+        });
+  } catch (error) {
+    console.error(error);
+  }
 
   const usersNotMe = users.filter((user) => user.id !== currentUser.id);
   return CustomResponse(200, "Users found", true, { users: usersNotMe });

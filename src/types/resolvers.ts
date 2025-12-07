@@ -141,9 +141,15 @@ export type ChangeScheduleStatusProp = {
 };
 
 export type UserListProps = {
-  textFilter: string;
+  query: string;
   roleFilter?: UserRoleEnum[] | null;
-  stateFilter?: "notActive" | "blocked" | "notVerified" | "new" | null;
+  stateFilter?:
+    | "notActive"
+    | "blocked"
+    | "notVerified"
+    | "new"
+    | "pending"
+    | null;
   page: number;
 };
 

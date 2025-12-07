@@ -65,6 +65,7 @@ type User {
     companies: [Company]
     contextRole: UserRoleEnum
     activeCompanyId: ID
+    isPending: Boolean
 }
 
 type Schedule {

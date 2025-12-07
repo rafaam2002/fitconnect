@@ -257,10 +257,14 @@ export const requestJoinCompany = async (
     return CustomResponse(404, "Company not found");
   }
 
-  const user = await em.findOne(User, { id: currentUser.id }, {
-    populate: ["companies", "pendingCompanies"],
-    filters: false,
-  });
+  const user = await em.findOne(
+    User,
+    { id: currentUser.id },
+    {
+      populate: ["companies", "pendingCompanies"],
+      filters: false,
+    }
+  );
   if (!user) {
     return CustomResponse(404, "User not found");
   }
@@ -341,7 +345,11 @@ export const admitUserToCompany = async (
     return CustomResponse(403, "You are not authorized to perform this action");
   }
 
-  const userToAdmit = await em.findOne(User, { id: userId });
+  const userToAdmit = await em.findOne(
+    User,
+    { id: userId },
+    { populate: ["pushTokens"] }
+  );
   if (!userToAdmit) {
     return CustomResponse(404, "User to admit not found");
   }
@@ -361,6 +369,22 @@ export const admitUserToCompany = async (
   em.persist(newUserRole);
 
   await em.persistAndFlush(userToAdmit);
+
+  // Send notification to the admitted user
+  try {
+    if (userToAdmit.pushTokens) {
+      for (const tokenEntity of userToAdmit.pushTokens) {
+        await sendPushNotification(
+          tokenEntity.token,
+          "Solicitud aceptada",
+          `Has sido aceptado en ${company.name}`,
+          { type: "company_admission", companyId: company.id }
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error sending push notifications:", error);
+  }
 
   return CustomResponse(200, "User admitted successfully", true);
 };

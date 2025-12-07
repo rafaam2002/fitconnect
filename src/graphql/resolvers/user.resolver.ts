@@ -196,13 +196,20 @@ export const findUser = async (_, args: IdProps, context: ContextProps) => {
   const { em } = context;
   const { id } = args;
   const userRepo = em.getRepository(User);
-  const user = await userRepo.findOne({ id });
+  const user = await userRepo.findOne({ id }, {
+    populate: ["pendingCompanies"]
+  });
 
   if (!user) {
     return CustomResponse(404, "User not found");
   }
 
-  return CustomResponse(200, "User found", true, { user });
+  return CustomResponse(200, "User found", true, {
+    user: {
+      ...user,
+      isPending: user.pendingCompanies.length > 0,
+    },
+  });
 };
 
 export const getPromotions = async (
@@ -910,12 +917,9 @@ export const getAdminStats = async (
     ),
   ]);
 
-  const pendingUsers = await em.count(
-    User,
-    {
-      pendingCompanies: { id: currentUser.activeCompanyId },
-    },
-  );
+  const pendingUsers = await em.count(User, {
+    pendingCompanies: { id: currentUser.activeCompanyId },
+  });
 
   const stats = {
     users: {

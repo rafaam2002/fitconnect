@@ -7,6 +7,7 @@ import { User } from "./User";
 @Filter({
   name: "companyContext",
   cond: (args) => ({ company: args.companyId }),
+  default: true,
 })
 @Entity()
 @Unique({ properties: ["user", "company"] }) 

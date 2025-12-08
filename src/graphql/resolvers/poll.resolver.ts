@@ -8,6 +8,8 @@ import {
   ContextProps,
   DeletePollProps,
   DeletePollsProps,
+  GetPollProps,
+  IdProps,
   PollProps,
   VoteProps,
 } from "../../types/resolvers";
@@ -231,8 +233,103 @@ export const removePolls = async (
   }
 };
 
+export const getAdminPolls = async (
+  _: any,
+  args: IdProps,
+  context: ContextProps
+) => {
+  const { em, currentUser } = context;
+  const userRepo = em.getRepository(User);
+
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+    return CustomResponse(403, "You are not authorized to perform this action");
+  }
+
+  const user = await userRepo.findOne(
+    { id: currentUser.id },
+    { populate: ["adminPolls"] }
+  );
+  return user.adminPolls;
+};
+
+export const getPolls = async (
+  _: any,
+  args: GetPollProps,
+  context: ContextProps
+) => {
+  const { em, currentUser } = context;
+  const { pollId, filter } = args;
+
+  if (!currentUser) {
+    throw new GraphQLError("Please login, token_expired", {
+      extensions: {
+        code: "UNAUTHENTICATED",
+        http: { status: 401 },
+      },
+    });
+  }
+
+  const pollRepo = em.getRepository(Poll);
+
+  if (pollId) {
+    const poll = await pollRepo.findOne({ id: pollId });
+    if (!poll) {
+      return CustomResponse(404, "Poll not found");
+    }
+    return CustomResponse(200, "Poll found", true, { poll });
+  }
+
+  if (filter) {
+    const polls = await pollRepo.find(
+      {
+        endDate: { $gte: filter.since },
+      },
+      { populate: ["admin"] }
+    );
+
+    return CustomResponse(200, "Polls found", true, { polls });
+  }
+
+  try {
+    const polls = await pollRepo.find(
+      {
+        endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
+      },
+      {
+        populate: [
+          "admin",
+          {
+            field: "pollVotes",
+            populate: [
+              {
+                field: "user",
+                fields: ["id", "profilePicture"],
+              },
+            ],
+          },
+        ],
+      }
+    );
+    return CustomResponse(200, "Polls found", true, { polls });
+  } catch (error) {
+    return CustomResponse(500, `Error fetching polls, ${error}`);
+  }
+};
+
 export const pollResolvers = {
-  Query: {},
+  Query: {
+    getPolls,
+    getAdminPolls,
+  },
   Mutation: {
     createPoll,
     createOrChangePollVote,

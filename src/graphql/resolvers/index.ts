@@ -12,6 +12,7 @@ import { customerResolvers } from "./customer.resolver";
 import { transactionResolvers } from "./transaction.resolver";
 import { merge } from "lodash";
 import { companyResolvers } from "./company.resolver";
+import { scheduleResolvers } from "./schedule.resolver";
 
 const resolvers = merge(
   transactionResolvers,
@@ -26,7 +27,8 @@ const resolvers = merge(
   paymentMethodResolvers,
   userResolvers,
   articleResolvers,
-  companyResolvers
+  companyResolvers,
+  scheduleResolvers
 );
 
 export default resolvers;

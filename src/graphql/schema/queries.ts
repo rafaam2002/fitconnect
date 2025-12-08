@@ -29,6 +29,7 @@ type Query {
 
     #----------------- Poll --------------
     getPolls(pollId: ID, filter: PollFilter): PollResponse!
+    getAdminPolls(id: ID): PollResponse!
 
     #----------------- Plan --------------
     listPlans(onlyActive: Boolean): PlanResponse!

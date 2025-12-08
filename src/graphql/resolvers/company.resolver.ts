@@ -68,6 +68,21 @@ export const getCompanies = async (
       };
     }
 
+    const userWithPending = await em.findOne(
+      User,
+      {
+        id: currentUser.id,
+      },
+      {
+        populate: ["pendingCompanies"],
+        filters: false,
+      }
+    );
+
+    const pendingCompanies = userWithPending
+      ? userWithPending.pendingCompanies.getItems()
+      : [];
+
     const [companies, totalItems] = await em.findAndCount(Company, where, {
       limit,
       offset,
@@ -75,10 +90,19 @@ export const getCompanies = async (
       filters: false,
     });
 
+    const companiesWithAmIPending = companies.map((company) => {
+      return {
+        ...company,
+        amIPending: pendingCompanies.some(
+          (pendingCompany) => pendingCompany.id === company.id
+        ),
+      };
+    });
+
     const totalPages = Math.ceil(totalItems / limit);
 
     return CustomResponse(200, "Companies fetched successfully", true, {
-      companies,
+      companies: companiesWithAmIPending,
       totalItems,
       totalPages,
       currentPage: pageNumber,
@@ -252,9 +276,13 @@ export const requestJoinCompany = async (
     });
   }
 
-  const company = await em.findOne(Company, { id: companyId }, {
-    filters: false,
-  });
+  const company = await em.findOne(
+    Company,
+    { id: companyId },
+    {
+      filters: false,
+    }
+  );
   if (!company) {
     return CustomResponse(404, "Company not found");
   }
@@ -350,7 +378,7 @@ export const admitUserToCompany = async (
   const userToAdmit = await em.findOne(
     User,
     { id: userId },
-    { populate: ["pushTokens","pendingCompanies"] }
+    { populate: ["pushTokens", "pendingCompanies"] }
   );
   if (!userToAdmit) {
     return CustomResponse(404, "User to admit not found");

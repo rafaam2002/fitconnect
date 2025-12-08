@@ -48,6 +48,7 @@ type Company {
     logo: PictureUrl
     pictures: [PictureUrl]
     scheduleOptions: ScheduleOptions
+    amIPending: Boolean
 }
 type User {
     id: ID!

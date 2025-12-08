@@ -210,19 +210,26 @@ export const setCompanyMe = async (
       },
     });
   }
-  //falta conseguir el usuario actual
   const me: User | null = await userRepo.findOne(
     { id: currentUser.id },
     {
-      populate: ["schedules.id", "schedules.startDate", "companies"],
+      populate: ["schedules.id", "schedules.startDate"],
     }
   );
+
+  const userForCompanies: User | null = await userRepo.findOne(
+    { id: currentUser.id },
+    {
+      filters: false,
+    }
+  );
+
   if (me) {
     me.activeCompanyId = companyId;
     await em.persistAndFlush(me);
     return CustomResponse(200, "User found", true, {
       user: me,
-      companies: me.companies.getItems(),
+      companies: userForCompanies.companies.getItems(),
     });
   } else {
     return CustomResponse(404, "User not logged");

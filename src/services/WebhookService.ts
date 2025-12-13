@@ -8,6 +8,7 @@ import {PaymentMethodService} from "./PaymentMethod";
 import {WebhookEventLog, WebhookEventStatus} from "../entities/WebhookEventLog";
 import {InvoiceService} from "./InvoiceService";
 import {PaymentMethod} from "../entities/PaymentMethod";
+import {PlanService} from "./PlanService";
 
 export class WebhookService extends BaseService {
     private customerService: CustomerService;
@@ -15,9 +16,11 @@ export class WebhookService extends BaseService {
     private subscriptionService: SubscriptionService;
     private transactionService: TransactionService;
     private invoiceService: InvoiceService;
+    private planService: PlanService;
 
     constructor(em: EntityManager) {
         super(em);
+        this.planService = new PlanService(em);
         this.customerService = new CustomerService(em);
         this.paymentMethodService = new PaymentMethodService(em);
         this.subscriptionService = new SubscriptionService(em);
@@ -199,6 +202,24 @@ export class WebhookService extends BaseService {
             case 'payment_method.detached':
                 await this.handlePaymentMethodDetached(event.data.object as Stripe.PaymentMethod);
                 break;
+            // Product events (NUEVOS)
+            case 'product.updated':
+                await this.handlePlanManaged(event.data.object as Stripe.Product);
+                break;
+
+            case 'product.deleted':
+                await this.handlePlanDeleted(event.data.object as Stripe.Product);
+                break;
+
+            // Price events
+            case 'price.created':
+            case 'price.updated':
+                await this.handlePriceManaged(event.data.object as Stripe.Price);
+                break;
+
+            case 'price.deleted':
+                await this.handlePriceDeleted(event.data.object as Stripe.Price);
+                break;
             default:
                 console.log(`Unhandled webhook event type: ${event.type}`);
         }
@@ -264,6 +285,22 @@ export class WebhookService extends BaseService {
         if (invoice.subscription) {
             await this.subscriptionService.syncSubscriptionFromStripe(invoice.subscription as string);
         }
+    }
+
+    private async handlePlanManaged(product: Stripe.Product): Promise<void> {
+        await this.planService.syncPlanFromProduct(product.id);
+    }
+
+    private async handlePlanDeleted(product: Stripe.Product): Promise<void> {
+        await this.planService.archivePlanFromProduct(product.id);
+    }
+
+    private async handlePriceManaged(price: Stripe.Price): Promise<void> {
+        await this.planService.syncPlanFromStripe(price.id);
+    }
+
+    private async handlePriceDeleted(price: Stripe.Price): Promise<void> {
+        await this.planService.archivePlanFromPrice(price.id);
     }
 
 }

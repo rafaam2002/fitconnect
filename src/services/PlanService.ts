@@ -1,6 +1,8 @@
-import {EntityManager, FilterQuery, QueryOrder} from '@mikro-orm/core';
+import { EntityManager, FilterQuery, QueryOrder } from '@mikro-orm/core';
 import { Plan, PlanInterval, PlanStatus } from '../entities/Plan';
 import { BaseService } from './BaseService.js';
+import { PermissionService } from './PermissionService.js';
+import Stripe from 'stripe';
 
 interface CreatePlanInput {
     name: string;
@@ -25,8 +27,11 @@ interface UpdatePlanInput {
 }
 
 export class PlanService extends BaseService {
+    private permissionService: PermissionService;
+
     constructor(em: EntityManager) {
         super(em);
+        this.permissionService = new PermissionService(em);
     }
 
     async createPlan(input: CreatePlanInput): Promise<Plan> {
@@ -53,9 +58,10 @@ export class PlanService extends BaseService {
                 idempotencyKey: this.generateIdempotencyKey('plan', input.name, input.amount.toString())
             });
 
-            const {name,currency, description, amount, interval, intervalCount, trialPeriodDays, features, metadata} = input;
+            const { name, currency, description, amount, interval, intervalCount, trialPeriodDays, features, metadata } = input;
+
             // Crear en base de datos
-            const plan: Plan = this.em.create<Plan>(Plan, {
+            const plan = this.em.create<Plan>(Plan, {
                 stripePriceId: stripePrice.id,
                 stripeProductId: stripeProduct.id,
                 name,
@@ -72,6 +78,11 @@ export class PlanService extends BaseService {
             this.em.persist(plan);
             await this.em.flush();
 
+            // Sincronizar permisos si existen en metadata
+            if (metadata?.permissions) {
+                await this.permissionService.syncPermissionsFromMetadata(plan.id, metadata);
+            }
+
             return plan;
         } catch (error) {
             this.handleStripeError(error);
@@ -86,14 +97,13 @@ export class PlanService extends BaseService {
         }
 
         try {
-            // Actualizar producto en Stripe (solo metadatos y descripción)
+            // Actualizar producto en Stripe
             if (input.name || input.description || input.metadata) {
                 await this.stripe.products.update(plan.stripeProductId!, {
                     name: input.name,
                     description: input.description,
                     metadata: input.metadata,
-                    active: input.status ===  PlanStatus.ACTIVE,
-
+                    active: input.status === PlanStatus.ACTIVE,
                 });
 
                 await this.stripe.prices.update(plan.stripePriceId, {
@@ -106,10 +116,15 @@ export class PlanService extends BaseService {
             if (input.description) plan.description = input.description;
             if (input.features) plan.features = input.features;
             if (input.metadata) plan.metadata = { ...plan.metadata, ...input.metadata };
-            if (input.isActive !== undefined) plan.isActive = input.status ===  PlanStatus.ACTIVE;
-            if(input.status) plan.status = input.status
+            if (input.isActive !== undefined) plan.isActive = input.status === PlanStatus.ACTIVE;
+            if (input.status) plan.status = input.status;
 
             await this.em.flush();
+
+            // Sincronizar permisos si cambiaron
+            if (input.metadata?.permissions) {
+                await this.permissionService.syncPermissionsFromMetadata(plan.id, input.metadata);
+            }
 
             return plan;
         } catch (error) {
@@ -123,6 +138,10 @@ export class PlanService extends BaseService {
 
     async getPlanByStripeId(stripePriceId: string): Promise<Plan | null> {
         return await this.em.findOne(Plan, { stripePriceId });
+    }
+
+    async getPlanByStripeProductId(stripeProductId: string): Promise<Plan | null> {
+        return await this.em.findOne(Plan, { stripeProductId });
     }
 
     async listPlans(onlyActive: boolean = true): Promise<Plan[]> {
@@ -149,7 +168,7 @@ export class PlanService extends BaseService {
             });
             await this.stripe.products.update(plan.stripeProductId, {
                 active: false,
-            })
+            });
 
             // Actualizar en base de datos
             plan.isActive = false;
@@ -168,7 +187,7 @@ export class PlanService extends BaseService {
             const stripePrice = await this.stripe.prices.retrieve(stripePriceId);
             const stripeProduct = await this.stripe.products.retrieve(stripePrice.product as string);
 
-            let plan: Plan = await this.em.findOne(Plan, { stripePriceId });
+            let plan = await this.em.findOne(Plan, { stripePriceId });
 
             if (!plan) {
                 // Crear nuevo plan
@@ -198,9 +217,108 @@ export class PlanService extends BaseService {
             this.em.persist(plan);
             await this.em.flush();
 
+            // Sincronizar permisos desde metadata
+            if (stripeProduct.metadata?.permissions) {
+                await this.permissionService.syncPermissionsFromMetadata(plan.id, stripeProduct.metadata);
+            }
+
             return plan;
         } catch (error) {
             this.handleStripeError(error);
+        }
+    }
+
+    // ============= MÉTODOS PARA WEBHOOKS =============
+
+    /**
+     * Sincronizar plan cuando el producto de Stripe cambia
+     */
+    async syncPlanFromProduct(stripeProductId: string): Promise<Plan | null> {
+        try {
+            console.log(`Syncing plan from product: ${stripeProductId}`);
+
+            const product = await this.stripe.products.retrieve(stripeProductId);
+
+            // Buscar plan existente por productId
+            let plan = await this.getPlanByStripeProductId(stripeProductId);
+
+            if (!plan) {
+                // El plan podría no existir aún si el precio no se ha creado
+                console.log(`No plan found for product ${stripeProductId}, waiting for price event`);
+                return null;
+            }
+
+            // Actualizar información del producto
+            plan.name = product.name;
+            plan.description = product.description || undefined;
+            plan.metadata = product.metadata;
+            plan.isActive = product.active;
+
+            this.em.persist(plan);
+            await this.em.flush();
+
+            // Sincronizar permisos desde metadata
+            if (product.metadata?.permissions) {
+                await this.permissionService.syncPermissionsFromMetadata(plan.id, product.metadata);
+                console.log(`Synced permissions for plan ${plan.id} from product metadata`);
+            }
+
+            console.log(`Successfully synced plan ${plan.id} from product ${stripeProductId}`);
+            return plan;
+
+        } catch (error: any) {
+            console.error(`Error syncing plan from product ${stripeProductId}:`, error.message);
+            this.handleStripeError(error);
+        }
+    }
+
+    /**
+     * Archivar plan cuando el producto es eliminado
+     */
+    async archivePlanFromProduct(stripeProductId: string): Promise<void> {
+        try {
+            const plan = await this.getPlanByStripeProductId(stripeProductId);
+
+            if (!plan) {
+                console.log(`No plan found for deleted product ${stripeProductId}`);
+                return;
+            }
+
+            plan.isActive = false;
+            plan.status = PlanStatus.ARCHIVED;
+
+            this.em.persist(plan);
+            await this.em.flush();
+
+            console.log(`Archived plan ${plan.id} due to product deletion ${stripeProductId}`);
+        } catch (error: any) {
+            console.error(`Error archiving plan from product ${stripeProductId}:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Archivar plan cuando el precio es eliminado
+     */
+    async archivePlanFromPrice(stripePriceId: string): Promise<void> {
+        try {
+            const plan = await this.getPlanByStripeId(stripePriceId);
+
+            if (!plan) {
+                console.log(`No plan found for deleted price ${stripePriceId}`);
+                return;
+            }
+
+            plan.isActive = false;
+            plan.status = PlanStatus.ARCHIVED;
+
+            this.em.persist(plan);
+            await this.em.flush();
+
+            console.log(`Archived plan ${plan.id} due to price deletion ${stripePriceId}`);
+        } catch (error: any) {
+            console.error(`Error archiving plan from price ${stripePriceId}:`, error.message);
+            throw error;
         }
     }
 }

@@ -191,6 +191,7 @@ input CreatePlanInput {
     trialPeriodDays: Int
     features: [String]
     status: PlanStatus
+    metadata: JSON
 }
 
 input CardInput {

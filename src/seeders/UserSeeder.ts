@@ -43,7 +43,7 @@ export class UserSeeder extends Seeder {
       );
 
       const admins = [
-        em.create(User, {
+        em.create<User>(User, {
           name: "Rafa",
           surname: "Mesa",
           password: "rafa",
@@ -60,7 +60,7 @@ export class UserSeeder extends Seeder {
             }),
           ],
         }),
-        em.create(User, {
+        em.create<User>(User, {
           name: "Juan",
           surname: "Miguel",
           password: "juan",
@@ -77,7 +77,7 @@ export class UserSeeder extends Seeder {
             }),
           ],
         }),
-        em.create(User, {
+        em.create<User>(User, {
           name: "Isaac",
           surname: "Pinga",
           password: "isaac",
@@ -127,7 +127,7 @@ export class UserSeeder extends Seeder {
           user.companies.set([company]);
 
           user.roles.set([
-            em.create(UserRole, {
+            em.create<UserRole>(UserRole, {
               role: UserRoleEnum.STANDARD,
               company,
             }),

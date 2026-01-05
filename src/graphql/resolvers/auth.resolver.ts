@@ -11,7 +11,6 @@ import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql";
 import { RefreshToken } from "../../entities/RefreshToken";
 import crypto from "crypto";
-import { Poll } from "../../entities/Poll";
 
 export const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -236,7 +235,7 @@ async function loginWithGoogle(_: any, args: any, { em }) {
   const googleData = await verifyGoogleToken(id_token);
   if (!googleData) return CustomResponse(401, "No Google user found");
 
-  const { email, name, picture } = googleData;
+  const { email, name } = googleData;
 
   // Buscar usuario
   let user: User = await em.findOne(

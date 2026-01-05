@@ -7,7 +7,6 @@ import {PollVoteSeeder} from "./PollVoteSeeder";
 import {PromotionSeeder} from "./PromotionSeeder";
 import {ScheduleSeeder} from "./ScheduleSeeder";
 import {ProductSeeder} from "./ProductSeeder";
-import {CompanySeeder} from "./CompanySeeder";
 import {PermissionSeeder} from "./PermissionSeeder";
 
 export class DatabaseSeeder extends Seeder {

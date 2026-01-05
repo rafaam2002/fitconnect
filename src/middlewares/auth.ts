@@ -11,7 +11,7 @@ export const authenticateUser = async (
     const token = authorization.substring(7);
 
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+      const decodedToken =  jwt.verify(token, process.env.JWT_SECRET) as {
         id: string;
         companyId?: string;
       };
@@ -23,7 +23,7 @@ export const authenticateUser = async (
       
       return currentUser || null;
     } catch (error) {
-      console.error(
+        console.error(
         `Authentication Error (${new Date().toISOString()}):`,
         error
       );

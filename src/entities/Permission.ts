@@ -12,14 +12,13 @@ import { PlanPermission } from "./PlanPermission";
 export enum PermissionModule {
     USERS = "users",
     SCHEDULES = "schedules",
-    CLASSES = "classes",
     PAYMENTS = "payments",
-    REPORTS = "reports",
     SETTINGS = "settings",
     PROMOTIONS = "promotions",
     MESSAGES = "messages",
     POLLS = "polls",
     TRAINING = "training",
+    PLANS = "plans",
 }
 
 export enum PermissionAction {

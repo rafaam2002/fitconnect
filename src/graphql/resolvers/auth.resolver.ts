@@ -68,7 +68,7 @@ const login = async (_, args: any, { em }) => {
     //user.activeCompanyId = activeCompanyIdParam
     //await em.persistAndFlush(user);
 
-    let responseMessage = "Login successful";
+    let responseMessage =   "Login successful";
     if (token) {
       if (user.companies.length === 1) {
         user.activeCompanyId = user.companies[0].id;

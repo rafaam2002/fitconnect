@@ -4,6 +4,7 @@ import {PlanPermission} from "../entities/PlanPermission";
 import {Plan} from "../entities/Plan";
 import {Subscription, SubscriptionStatus} from "../entities/Subscription";
 import {BaseService} from "./BaseService";
+import {CompanyPermissionsContext, LoginPermissionsContext} from "../types/permissions";
 
 interface CreatePermissionInput {
     module: PermissionModule;
@@ -178,6 +179,7 @@ export class PermissionService extends BaseService {
                     "plan.planPermissions",
                     "plan.planPermissions.permission",
                 ],
+                filters: false
             }
         );
     }
@@ -316,38 +318,6 @@ export class PermissionService extends BaseService {
         return this.userHasPermissionInCompany(userId, permissionName, companyId);
     }
 
-    /**
-     * Obtener todos los permisos de un usuario
-     * @deprecated Usar getUserPermissionsInCompany o getUserActiveSubscriptions para mayor claridad
-     */
-    async getUserPermissions(
-        userId: string,
-        companyId?: string
-    ): Promise<Permission[]> {
-        if (companyId) {
-            return this.getUserPermissionsInCompany(userId, companyId);
-        }
-
-        // Si no hay companyId, devolver permisos de todas las empresas
-        const subscriptions = await this.getUserActiveSubscriptions(userId);
-        const permissionsMap = new Map<string, Permission>();
-
-        for (const subscription of subscriptions) {
-            const plan = subscription.plan;
-            await plan.planPermissions.init();
-
-            const planPermissions = plan.planPermissions
-                .getItems()
-                .filter((pp) => pp.isActive && pp.permission.isActive)
-                .map((pp) => pp.permission);
-
-            planPermissions.forEach((permission) => {
-                permissionsMap.set(permission.id, permission);
-            });
-        }
-
-        return Array.from(permissionsMap.values());
-    }
 
     // ============= MÉTODOS DE ADMINISTRACIÓN =============
 
@@ -458,5 +428,109 @@ export class PermissionService extends BaseService {
         await this.em.flush();
 
         console.log(`Permission ${permission.name} activated`);
+    }
+
+    /**
+     * Obtener información completa de permisos para el login
+     * Este es el método principal que usarás en la autenticación
+     */
+    async getLoginPermissionsContext(
+        userId: string,
+        companyId: string
+    ): Promise<LoginPermissionsContext> {
+        const subscription = await this.getUserActiveSubscriptionInCompany(userId, companyId);
+
+        if (!subscription) {
+            return {
+                hasActiveSubscription: false,
+                plan: null,
+                permissions: [],
+                permissionNames: [],
+                subscriptionStatus: null,
+                trialEndsAt: null,
+                renewsAt: null
+            };
+        }
+
+        const plan = subscription.plan;
+        await plan.planPermissions.init();
+
+        const permissions = plan.planPermissions
+            .getItems()
+            .filter(pp => pp.isActive && pp.permission.isActive)
+            .map(pp => pp.permission);
+
+        const permissionNames = permissions.map(p => p.name);
+
+        return {
+            hasActiveSubscription: true,
+            plan: {
+                id: plan.id,
+                name: plan.name,
+                stripePriceId: plan.stripePriceId,
+                amount: plan.amount,
+                currency: plan.currency,
+                interval: plan.interval
+            },
+            permissions,
+            permissionNames,
+            subscriptionStatus: subscription.status,
+            subscriptionId: subscription.id,
+            trialEndsAt: subscription.trialEnd,
+            renewsAt: subscription.currentPeriodEnd,
+            isInTrial: subscription.isInTrial
+        };
+    }
+
+    /**
+     * Versión simplificada que solo devuelve los nombres de permisos
+     * Útil para incluir en el JWT token
+     */
+    async getLoginPermissionNames(
+        userId: string,
+        companyId: string
+    ): Promise<string[]> {
+        const context = await this.getLoginPermissionsContext(userId, companyId);
+        return context.permissionNames;
+    }
+
+    /**
+     * Obtener todas las empresas con sus permisos para un usuario
+     * Útil cuando el usuario puede cambiar de empresa en la UI
+     */
+    async getUserCompaniesWithPermissions(
+        userId: string
+    ): Promise<CompanyPermissionsContext[]> {
+        const subscriptions = await this.getUserActiveSubscriptions(userId);
+
+        const companiesContext: CompanyPermissionsContext[] = [];
+
+        for (const subscription of subscriptions) {
+            const plan = subscription.plan;
+            await plan.planPermissions.init();
+
+            const permissions = plan.planPermissions
+                .getItems()
+                .filter(pp => pp.isActive && pp.permission.isActive)
+                .map(pp => pp.permission);
+
+            companiesContext.push({
+                companyId: subscription.company.id,
+                companyName: subscription.company.name,
+                plan: {
+                    id: plan.id,
+                    name: plan.name,
+                    amount: plan.amount,
+                    currency: plan.currency
+                },
+                permissions: permissions.map(p => p.name),
+                subscriptionStatus: subscription.status,
+                isInTrial: subscription.isInTrial,
+                trialEndsAt: subscription.trialEnd,
+                renewsAt: subscription.currentPeriodEnd
+            });
+        }
+
+        return companiesContext;
     }
 }

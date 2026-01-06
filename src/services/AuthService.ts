@@ -66,6 +66,11 @@ export interface AuthResponse {
     };
 }
 
+interface TokenPair {
+    token: string;
+    refreshToken: string;
+}
+
 // ============= EMAIL TRANSPORTER =============
 
 const transporter = nodemailer.createTransport({
@@ -93,39 +98,27 @@ export class AuthService extends BaseService {
         const {emailOrNickname, password} = input;
 
         try {
-            const user = await this.em.findOne(
-                User,
-                {
-                    $or: [
-                        {email: emailOrNickname},
-                        {nickname: emailOrNickname}
-                    ],
-                },
-                {
-                    populate: ['password', 'companies', "schedules.id", "schedules.startDate"],
-                    filters: false,
-                } as const
-            );
+            const user = await this.findUserByEmailOrNickname(emailOrNickname, [
+                'password',
+                'companies',
+                'schedules.id',
+                'schedules.startDate'
+            ]);
 
             if (!user) {
-                return CustomResponse(400, 'Invalid email/nickname or password', false)
+                return CustomResponse(400, 'Invalid email/nickname or password', false);
             }
 
             const isMatch = await user.checkPassword(password);
-
             if (!isMatch) {
-                return CustomResponse(400, 'Invalid email/nickname or password', false)
+                return CustomResponse(400, 'Invalid email/nickname or password', false);
             }
 
             const companies = user.companies.getItems();
 
             // Si el usuario no tiene empresas
             if (companies.length === 0) {
-                return {
-                    success: false,
-                    code: '400',
-                    message: 'User has no associated companies',
-                };
+                return CustomResponse(400, 'User has no associated companies', false);
             }
 
             // Si tiene solo una empresa, hacer login completo automáticamente
@@ -138,15 +131,7 @@ export class AuthService extends BaseService {
             }
 
             // Si tiene múltiples empresas, devolver lista para que seleccione
-            const token = this.generateAccessToken({id: user.id});
-            const refreshTokenString = crypto.randomBytes(64).toString('hex');
-            const refreshToken = this.em.create(RefreshToken, {
-                user,
-                token: refreshTokenString,
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            });
-
-            await this.em.persistAndFlush(refreshToken);
+            const tokens = await this.createTokensPair(user);
 
             return {
                 success: true,
@@ -155,20 +140,13 @@ export class AuthService extends BaseService {
                 data: {
                     user,
                     companies,
-                    tokens: {
-                        token,
-                        refreshToken: refreshTokenString,
-                    },
+                    tokens,
                 },
             };
 
         } catch (error) {
             console.error('Login error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Login failed',
-            };
+            return CustomResponse(500, 'Login failed', false);
         }
     }
 
@@ -179,122 +157,36 @@ export class AuthService extends BaseService {
         const {emailOrNickname, password, companyId} = input;
 
         try {
-            const user = await this.em.findOne(
-                User,
-                {
-                    $or: [
-                        {email: emailOrNickname},
-                        {nickname: emailOrNickname}
-                    ],
-                },
-                {
-                    populate: ['password', 'companies'],
-                    filters: false,
-                } as const
-            );
+            const user = await this.findUserByEmailOrNickname(emailOrNickname, [
+                'password',
+                'companies'
+            ]);
 
             if (!user) {
-                return CustomResponse(400, 'Invalid email/nickname or password', false)
+                return CustomResponse(400, 'Invalid email/nickname or password', false);
             }
 
-            const passwordCorrect = await user.checkPassword(password);
-
-            if (!passwordCorrect) {
-                return {
-                    success: false,
-                    code: '400',
-                    message: 'Invalid email/nickname or password',
-                };
+            const isMatch = await user.checkPassword(password);
+            if (!isMatch) {
+                return CustomResponse(400, 'Invalid email/nickname or password', false);
             }
 
-            // Verificar que el usuario pertenece a la empresa
-            const belongsToCompany = user.companies.getItems().some(c => c.id === companyId);
-            if (!belongsToCompany) {
-                return {
-                    success: false,
-                    code: '403',
-                    message: 'User does not belong to this company',
-                };
-            }
-
-            const company = await this.em.findOne(Company, {id: companyId}, {filters: false});
+            // Validar acceso a la empresa
+            const company = await this.validateCompanyAccess(user, companyId);
             if (!company) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'Company not found',
-                };
+                return CustomResponse(403, 'User does not belong to this company', false);
             }
 
-            // Obtener permisos del usuario en esta empresa
-            const permissionsContext = await this.permissionService.getLoginPermissionsContext(
-                user.id,
-                companyId
-            );
-
-            // Generar tokens con permisos incluidos
-            const tokenPayload = {
-                id: user.id,
-                userId: user.id,
-                email: user.email,
-                companyId: companyId,
-                permissions: permissionsContext.permissionNames,
-                subscriptionStatus: permissionsContext.subscriptionStatus
-            };
-
-            const token = this.generateAccessToken(tokenPayload);
-            const refreshTokenString = crypto.randomBytes(64).toString('hex');
-            const refreshToken = this.em.create(RefreshToken, {
+            // Construir respuesta con permisos y tokens
+            return await this.buildAuthResponseWithPermissions(
                 user,
-                token: refreshTokenString,
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            });
-
-            await this.em.persistAndFlush(refreshToken);
-
-            // Actualizar empresa activa del usuario
-            user.activeCompanyId = companyId;
-            await this.em.flush();
-
-            Object.assign(user, {
-                subscription: {
-                    hasActive: permissionsContext.hasActiveSubscription,
-                    planName: permissionsContext.plan?.name || null,
-                    status: permissionsContext.subscriptionStatus,
-                    isInTrial: permissionsContext.isInTrial || false,
-                    trialEndsAt: permissionsContext.trialEndsAt || null,
-                },
-                permissions: permissionsContext.permissionNames,
-            })
-            return {
-                success: true,
-                code: '200',
-                message: 'Login successful',
-                data: {
-                    user,
-                    company,
-                    tokens: {
-                        token,
-                        refreshToken: refreshTokenString,
-                    },
-                    subscription: {
-                        hasActive: permissionsContext.hasActiveSubscription,
-                        planName: permissionsContext.plan?.name || null,
-                        status: permissionsContext.subscriptionStatus,
-                        isInTrial: permissionsContext.isInTrial || false,
-                        trialEndsAt: permissionsContext.trialEndsAt || null,
-                    },
-                    permissions: permissionsContext.permissionNames,
-                },
-            };
+                company,
+                'Login successful'
+            );
 
         } catch (error) {
             console.error('Login with company error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Login failed',
-            };
+            return CustomResponse(500, 'Login failed', false);
         }
     }
 
@@ -310,88 +202,25 @@ export class AuthService extends BaseService {
             });
 
             if (!user) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'User not found',
-                };
+                return CustomResponse(404, 'User not found', false);
             }
 
-            const belongsToCompany = user.companies.getItems().some(c => c.id === companyId);
-            if (!belongsToCompany) {
-                return {
-                    success: false,
-                    code: '403',
-                    message: 'User does not belong to this company',
-                };
-            }
-
-            const company = await this.em.findOne(Company, {id: companyId});
+            // Validar acceso a la empresa
+            const company = await this.validateCompanyAccess(user, companyId);
             if (!company) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'Company not found',
-                };
+                return CustomResponse(403, 'User does not belong to this company', false);
             }
 
-            // Obtener permisos
-            const permissionsContext = await this.permissionService.getLoginPermissionsContext(
-                userId,
-                companyId
-            );
-
-            const tokenPayload = {
-                id: user.id,
-                userId: user.id,
-                email: user.email,
-                companyId: companyId,
-                permissions: permissionsContext.permissionNames,
-                subscriptionStatus: permissionsContext.subscriptionStatus
-            };
-
-            const token = this.generateAccessToken(tokenPayload);
-            const refreshTokenString = crypto.randomBytes(64).toString('hex');
-            const refreshToken = this.em.create(RefreshToken, {
+            // Construir respuesta con permisos y tokens
+            return await this.buildAuthResponseWithPermissions(
                 user,
-                token: refreshTokenString,
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            });
-
-            await this.em.persistAndFlush(refreshToken);
-
-            user.activeCompanyId = companyId;
-            await this.em.flush();
-
-            return {
-                success: true,
-                code: '200',
-                message: 'Company selected successfully',
-                data: {
-                    user,
-                    company,
-                    tokens: {
-                        token,
-                        refreshToken: refreshTokenString,
-                    },
-                    subscription: {
-                        hasActive: permissionsContext.hasActiveSubscription,
-                        planName: permissionsContext.plan?.name || null,
-                        status: permissionsContext.subscriptionStatus,
-                        isInTrial: permissionsContext.isInTrial || false,
-                        trialEndsAt: permissionsContext.trialEndsAt || null,
-                    },
-                    permissions: permissionsContext.permissionNames,
-                },
-            };
+                company,
+                'Company selected successfully'
+            );
 
         } catch (error) {
             console.error('Select company error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Failed to select company',
-            };
+            return CustomResponse(500, 'Failed to select company', false);
         }
     }
 
@@ -405,60 +234,19 @@ export class AuthService extends BaseService {
             const googleData = await verifyGoogleToken(id_token);
 
             if (!googleData) {
-                return {
-                    success: false,
-                    code: '401',
-                    message: 'Invalid Google token',
-                };
+                return CustomResponse(401, 'Invalid Google token', false);
             }
 
             const {email, name} = googleData;
 
-            let user = await this.em.findOne(
-                User,
-                {email},
-                {populate: ['companies'], filters: false}
-            );
+            // Buscar o crear usuario
+            let user = await this.findOrCreateGoogleUser(email!, name);
 
-            // Si no existe, crear usuario
-            if (!user) {
-                const newUser = this.em.create(User, {
-                    email,
-                    name,
-                    nickname: email!.split('@')[0] as string,
-                    provider: UserProviderType.GOOGLE,
-                    isActive: true,
-                    isBlocked: false,
-                    isVerified: true,
-                    fullName: name && name || ""
-                });
-                await this.em.persistAndFlush(newUser);
-            }
-
-            user = await this.em.findOne(
-                User,
-                {email},
-                {populate: ['companies'], filters: false}
-            );
-
-            if (!user) {
-                throw new GraphQLError('User not found', {
-                    extensions: {code: 'NOT_FOUND'}
-                });
-            }
             const companies = user.companies.getItems();
 
             // Si no tiene empresas
             if (companies.length === 0) {
-                const token = this.generateAccessToken({id: user.id});
-                const refreshTokenString = crypto.randomBytes(64).toString('hex');
-                const refreshToken = this.em.create(RefreshToken, {
-                    user,
-                    token: refreshTokenString,
-                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                });
-
-                await this.em.persistAndFlush(refreshToken);
+                const tokens = await this.createTokensPair(user);
 
                 return {
                     success: true,
@@ -467,76 +255,22 @@ export class AuthService extends BaseService {
                     data: {
                         user,
                         companies: [],
-                        tokens: {
-                            token,
-                            refreshToken: refreshTokenString,
-                        },
+                        tokens,
                     },
                 };
             }
 
             // Si tiene una empresa, login completo
             if (companies.length === 1) {
-                const companyId = companies[0].id;
-                const permissionsContext = await this.permissionService.getLoginPermissionsContext(
-                    user.id,
-                    companyId
-                );
-
-                const tokenPayload = {
-                    id: user.id,
-                    userId: user.id,
-                    email: user.email,
-                    companyId: companyId,
-                    permissions: permissionsContext.permissionNames,
-                };
-
-                const token = this.generateAccessToken(tokenPayload);
-                const refreshTokenString = crypto.randomBytes(64).toString('hex');
-                const refreshToken = this.em.create(RefreshToken, {
+                return await this.buildAuthResponseWithPermissions(
                     user,
-                    token: refreshTokenString,
-                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                });
-
-                await this.em.persistAndFlush(refreshToken);
-
-                user.activeCompanyId = companyId;
-                await this.em.flush();
-
-                return {
-                    success: true,
-                    code: '200',
-                    message: 'Login successful',
-                    data: {
-                        user,
-                        company: companies[0],
-                        tokens: {
-                            token,
-                            refreshToken: refreshTokenString,
-                        },
-                        subscription: {
-                            hasActive: permissionsContext.hasActiveSubscription,
-                            planName: permissionsContext.plan?.name || null,
-                            status: permissionsContext.subscriptionStatus,
-                            isInTrial: permissionsContext.isInTrial || false,
-                            trialEndsAt: permissionsContext.trialEndsAt || null,
-                        },
-                        permissions: permissionsContext.permissionNames,
-                    },
-                };
+                    companies[0],
+                    'Login successful'
+                );
             }
 
             // Si tiene múltiples empresas
-            const token = this.generateAccessToken({id: user.id});
-            const refreshTokenString = crypto.randomBytes(64).toString('hex');
-            const refreshToken = this.em.create(RefreshToken, {
-                user,
-                token: refreshTokenString,
-                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            });
-
-            await this.em.persistAndFlush(refreshToken);
+            const tokens = await this.createTokensPair(user);
 
             return {
                 success: true,
@@ -545,20 +279,13 @@ export class AuthService extends BaseService {
                 data: {
                     user,
                     companies,
-                    tokens: {
-                        token,
-                        refreshToken: refreshTokenString,
-                    },
+                    tokens,
                 },
             };
 
         } catch (error) {
             console.error('Google login error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Google login failed',
-            };
+            return CustomResponse(500, 'Google login failed', false);
         }
     }
 
@@ -572,14 +299,9 @@ export class AuthService extends BaseService {
             });
 
             if (!user) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'User not found',
-                };
+                return CustomResponse(404, 'User not found', false);
             }
 
-            // Usar password por defecto
             return await this.login({
                 emailOrNickname: user.email!,
                 password: process.env.DEFAULT_PASSWORD || '123456'
@@ -587,11 +309,7 @@ export class AuthService extends BaseService {
 
         } catch (error) {
             console.error('Login with ID error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Login failed',
-            };
+            return CustomResponse(500, 'Login failed', false);
         }
     }
 
@@ -603,11 +321,7 @@ export class AuthService extends BaseService {
             const user = await this.em.findOne(User, {email});
 
             if (!user) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'No user found with that email',
-                };
+                return CustomResponse(404, 'No user found with that email', false);
             }
 
             const resetToken = jwt.sign(
@@ -618,22 +332,14 @@ export class AuthService extends BaseService {
 
             console.log(`Reset token for ${email}: ${resetToken}`);
 
-            // Aquí puedes enviar el email con el resetToken
+            // TODO: Enviar email con resetToken
             // await this.sendPasswordResetEmail(email, resetToken);
 
-            return {
-                success: true,
-                code: '200',
-                message: 'Password reset email sent',
-            };
+            return CustomResponse(200, 'Password reset email sent', true);
 
         } catch (error) {
             console.error('Forgot password error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Failed to process password reset',
-            };
+            return CustomResponse(500, 'Failed to process password reset', false);
         }
     }
 
@@ -661,11 +367,7 @@ export class AuthService extends BaseService {
             );
 
             if (!user) {
-                return {
-                    success: false,
-                    code: '404',
-                    message: 'User not found',
-                };
+                return CustomResponse(404, 'User not found', false);
             }
 
             const passwordCorrect = await bcrypt.compare(
@@ -674,38 +376,22 @@ export class AuthService extends BaseService {
             );
 
             if (!passwordCorrect) {
-                return {
-                    success: false,
-                    code: '400',
-                    message: 'Current password is incorrect',
-                };
+                return CustomResponse(400, 'Current password is incorrect', false);
             }
 
             user.password = await bcrypt.hash(newPassword, 10);
             await this.em.flush();
 
-            return {
-                success: true,
-                code: '200',
-                message: 'Password changed successfully',
-            };
+            return CustomResponse(200, 'Password changed successfully', true);
 
         } catch (error: any) {
             console.error('Update password error:', error);
 
             if (error.name === 'ZodError') {
-                return {
-                    success: false,
-                    code: '400',
-                    message: 'Validation error',
-                };
+                return CustomResponse(400, 'Validation error', false);
             }
 
-            return {
-                success: false,
-                code: '500',
-                message: 'Failed to update password',
-            };
+            return CustomResponse(500, 'Failed to update password', false);
         }
     }
 
@@ -735,19 +421,11 @@ export class AuthService extends BaseService {
                 html: changePasswordHtml(token, tmpPassword),
             });
 
-            return {
-                success: true,
-                code: '200',
-                message: 'Change password email sent',
-            };
+            return CustomResponse(200, 'Change password email sent', true);
 
         } catch (error) {
             console.error('Send change password email error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Failed to send email',
-            };
+            return CustomResponse(500, 'Failed to send email', false);
         }
     }
 
@@ -790,19 +468,11 @@ export class AuthService extends BaseService {
             });
 
             if (!refreshToken) {
-                return {
-                    success: false,
-                    code: '401',
-                    message: 'Invalid refresh token',
-                };
+                return CustomResponse(401, 'Invalid refresh token', false);
             }
 
             if (refreshToken.expiresAt < new Date()) {
-                return {
-                    success: false,
-                    code: '401',
-                    message: 'Refresh token expired',
-                };
+                return CustomResponse(401, 'Refresh token expired', false);
             }
 
             const user = refreshToken.user;
@@ -856,16 +526,191 @@ export class AuthService extends BaseService {
 
         } catch (error) {
             console.error('Refresh token error:', error);
-            return {
-                success: false,
-                code: '500',
-                message: 'Failed to refresh token',
-            };
+            return CustomResponse(500, 'Failed to refresh token', false);
         }
     }
 
-    // ============= HELPERS PRIVADOS =============
+    // ============= MÉTODOS PRIVADOS HELPER (ELIMINAN DUPLICACIÓN) =============
 
+    /**
+     * Buscar usuario por email o nickname
+     */
+    private async findUserByEmailOrNickname(
+        emailOrNickname: string,
+        populate: string[] = []
+    ): Promise<User | null> {
+        return await this.em.findOne(
+            User,
+            {
+                $or: [
+                    {email: emailOrNickname},
+                    {nickname: emailOrNickname}
+                ],
+            },
+            {
+                populate: populate as any,
+                filters: false,
+            } as const
+        );
+    }
+
+    /**
+     * Buscar o crear usuario de Google
+     */
+    private async findOrCreateGoogleUser(email: string, name?: string): Promise<User> {
+        let user = await this.em.findOne(
+            User,
+            {email},
+            {populate: ['companies'], filters: false}
+        );
+
+        if (!user) {
+            const newUser = this.em.create(User, {
+                email,
+                name,
+                nickname: email.split('@')[0],
+                provider: UserProviderType.GOOGLE,
+                isActive: true,
+                isBlocked: false,
+                isVerified: true,
+                fullName: name || ""
+            });
+            await this.em.persistAndFlush(newUser);
+
+            // Volver a buscar para tener las relaciones cargadas
+            user = await this.em.findOne(
+                User,
+                {email},
+                {populate: ['companies'], filters: false}
+            );
+
+            if (!user) {
+                throw new GraphQLError('Failed to create user', {
+                    extensions: {code: 'INTERNAL_SERVER_ERROR'}
+                });
+            }
+        }
+
+        return user;
+    }
+
+    /**
+     * Validar que el usuario tiene acceso a la empresa
+     */
+    private async validateCompanyAccess(user: User, companyId: string): Promise<Company | null> {
+        const belongsToCompany = user.companies.getItems().some(c => c.id === companyId);
+
+        if (!belongsToCompany) {
+            return null;
+        }
+
+        const company = await this.em.findOne(Company, {id: companyId}, {filters: false});
+
+        if (!company) {
+            return null;
+        }
+
+        return company;
+    }
+
+    /**
+     * Crear par de tokens (access + refresh)
+     */
+    private async createTokensPair(
+        user: User,
+        includePermissions: boolean = false,
+        companyId?: string,
+        permissionNames?: string[]
+    ): Promise<TokenPair> {
+        const tokenPayload: any = {
+            id: user.id,
+            userId: user.id,
+            email: user.email,
+        };
+
+        if (includePermissions && companyId && permissionNames) {
+            tokenPayload.companyId = companyId;
+            tokenPayload.permissions = permissionNames;
+        }
+
+        const token = this.generateAccessToken(tokenPayload);
+        const refreshTokenString = crypto.randomBytes(64).toString('hex');
+
+        const refreshToken = this.em.create(RefreshToken, {
+            user,
+            token: refreshTokenString,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días
+        });
+
+        await this.em.persistAndFlush(refreshToken);
+
+        return {
+            token,
+            refreshToken: refreshTokenString,
+        };
+    }
+
+    /**
+     * Construir respuesta de autenticación completa con permisos
+     */
+    private async buildAuthResponseWithPermissions(
+        user: User,
+        company: Company,
+        message: string
+    ): Promise<AuthResponse> {
+        // Obtener permisos del usuario en esta empresa
+        const permissionsContext = await this.permissionService.getLoginPermissionsContext(
+            user.id,
+            company.id
+        );
+
+        // Crear tokens con permisos incluidos
+        const tokens = await this.createTokensPair(
+            user,
+            true,
+            company.id,
+            permissionsContext.permissionNames
+        );
+
+        // Actualizar empresa activa
+        user.activeCompanyId = company.id;
+        await this.em.flush();
+
+        // Agregar permisos y subscription al objeto user para retrocompatibilidad
+        Object.assign(user, {
+            subscription: {
+                hasActive: permissionsContext.hasActiveSubscription,
+                planName: permissionsContext.plan?.name || null,
+                status: permissionsContext.subscriptionStatus,
+                isInTrial: permissionsContext.isInTrial || false,
+                trialEndsAt: permissionsContext.trialEndsAt || null,
+            },
+            permissions: permissionsContext.permissionNames,
+        });
+
+        return {
+            success: true,
+            code: '200',
+            message,
+            data: {
+                user,
+                company,
+                tokens,
+                subscription: {
+                    hasActive: permissionsContext.hasActiveSubscription,
+                    planName: permissionsContext.plan?.name || null,
+                    status: permissionsContext.subscriptionStatus,
+                    isInTrial: permissionsContext.isInTrial || false,
+                    trialEndsAt: permissionsContext.trialEndsAt || null,
+                },
+                permissions: permissionsContext.permissionNames,
+            },
+        };
+    }
+
+    /**
+     * Generar access token JWT
+     */
     private generateAccessToken(payload: any): string {
         return jwt.sign(payload, process.env.JWT_SECRET!, {
             expiresIn: '30m',

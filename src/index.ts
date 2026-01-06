@@ -274,7 +274,7 @@ const startServer = async () => {
             return { em, currentUser: null };
           }
         }
-        return await middleware(em, authorization, companyId, isSetCompanyMe);
+        return await middleware(em, authorization, companyId, true);
       },
     })
   );

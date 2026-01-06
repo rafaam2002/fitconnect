@@ -13,7 +13,6 @@ import { Permission } from "./Permission";
 export class PlanPermission extends BaseEntity {
     @ManyToOne(() => Plan, { eager: false })
     @Index()
-    @Unique()
     plan!: Plan;
 
     @ManyToOne(() => Permission, { eager: true })

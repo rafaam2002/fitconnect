@@ -67,7 +67,7 @@ export const createPoll = async (
       pollId: newPoll.id,
     };
 
-    users.forEach((user) => {
+    users.forEach((user: User) => {
       if (user.pushTokens && user.pushTokens.length > 0) {
         user.pushTokens.getItems().forEach((pushToken) => {
           sendPushNotification(
@@ -207,7 +207,7 @@ export const removePolls = async (
   }
 
   if (polls.length !== ids.length) {
-    const foundIds = polls.map((poll) => poll.id);
+    const foundIds = polls.map((poll: Poll) => poll.id);
     const notFoundIds = ids.filter((id) => !foundIds.includes(id));
     return CustomResponse(
       404,

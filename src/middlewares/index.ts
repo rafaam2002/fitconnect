@@ -11,7 +11,7 @@ export const middleware = async (
   const currentUser = await authenticateUser(em, authorization);
   //if(token.companyId !== currentUser.contextCompanyId) throw new Error("Token companyId does not match user's company context")
 
-  if (isSetCompanyMe) {
+   if (isSetCompanyMe) {
     em.setFilterParams("companyContext", {
       companyId,
     });

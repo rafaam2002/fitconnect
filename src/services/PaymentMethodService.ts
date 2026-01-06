@@ -1,6 +1,6 @@
-import {EntityManager, QueryOrder} from '@mikro-orm/core';
+import {EntityData, EntityManager, QueryOrder} from '@mikro-orm/core';
 import {StripeCustomer} from '../entities/StripeCustomer';
-import {PaymentMethod, PaymentMethodStatus} from '../entities/PaymentMethod';
+import {PaymentMethod, PaymentMethodStatus, PaymentMethodType} from '../entities/PaymentMethod';
 import {BaseService} from './BaseService.js';
 
 interface AttachPaymentMethodInput {
@@ -87,10 +87,10 @@ export class PaymentMethodService extends BaseService {
 
             // Crear en base de datos
             const paymentMethodData = this.extractPaymentMethodData(stripePaymentMethod);
-            const paymentMethod: PaymentMethod & any = this.em.create(PaymentMethod, {
+            const paymentMethod  = this.em.create<PaymentMethod>(PaymentMethod, {
                 ...paymentMethodData,
                 stripeCustomer,
-                isDefault: input.setAsDefault || false
+                isDefault: false
             });
 
             this.em.persist(paymentMethod);
@@ -332,9 +332,9 @@ export class PaymentMethodService extends BaseService {
                 throw new Error('Stripe customer not found in database');
             }
 
-            let paymentMethod: PaymentMethod | any = await this.em.findOne(PaymentMethod, {
+            let paymentMethod = await this.em.findOne(PaymentMethod, {
                 stripeCustomer,
-                fingerprint: stripePaymentMethod.card.fingerprint,
+                fingerprint: stripePaymentMethod!.card!.fingerprint,
                 status: PaymentMethodStatus.ACTIVE
             });
 
@@ -506,17 +506,19 @@ export class PaymentMethodService extends BaseService {
         });
     }
 
-    private extractPaymentMethodData(stripePaymentMethod: any): Partial<PaymentMethod> {
+    private extractPaymentMethodData(stripePaymentMethod: any): any {
+
         return {
-            stripePaymentMethodId: stripePaymentMethod.id,
-            type: stripePaymentMethod.type as any,
+            stripePaymentMethodId: stripePaymentMethod.id! ?? '',
+            type: stripePaymentMethod.type!,
             status: PaymentMethodStatus.ACTIVE,
-            brand: stripePaymentMethod.card?.brand,
-            last4: stripePaymentMethod.card?.last4,
-            expiryMonth: stripePaymentMethod.card?.exp_month,
-            expiryYear: stripePaymentMethod.card?.exp_year,
-            fingerprint: stripePaymentMethod.card?.fingerprint,
-            country: stripePaymentMethod.card?.country
+            brand: stripePaymentMethod.card?.brand!,
+            last4: stripePaymentMethod.card?.last4!,
+            expiryMonth: stripePaymentMethod.card?.exp_month!,
+            expiryYear: stripePaymentMethod.card?.exp_year!,
+            fingerprint: stripePaymentMethod.card?.fingerprint!,
+            country: stripePaymentMethod.card?.country!
+
         };
     }
 }

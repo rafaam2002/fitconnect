@@ -453,7 +453,7 @@ export class PermissionService extends BaseService {
         }
 
         const plan = subscription.plan;
-        await plan.planPermissions.init();
+        // await plan.planPermissions.init();
 
         const permissions = plan.planPermissions
             .getItems()

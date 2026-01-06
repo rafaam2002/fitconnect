@@ -4,7 +4,7 @@ import {CustomerService} from './CustomerService.js';
 import {SubscriptionService} from './SubscriptionService.js';
 import {TransactionService} from './TransactionService.js';
 import Stripe from 'stripe';
-import {PaymentMethodService} from "./PaymentMethod";
+import {PaymentMethodService} from "./PaymentMethodService";
 import {WebhookEventLog, WebhookEventStatus} from "../entities/WebhookEventLog";
 import {InvoiceService} from "./InvoiceService";
 import {PaymentMethod} from "../entities/PaymentMethod";

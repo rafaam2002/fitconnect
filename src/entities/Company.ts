@@ -67,12 +67,12 @@ export class Company extends BaseEntity {
 
   constructor(company: Partial<Company>) {
     super();
-    this.name = company.name;
-    this.address = company.address;
-    this.phoneNumber = company.phoneNumber;
-    this.email = company.email;
-    this.logo = company.logo;
-    this.pictures = company.pictures;
+    this.name = company.name || "";
+    this.address = company.address || "";
+    this.phoneNumber = company.phoneNumber || "";
+    this.email = company.email || "";
+    this.logo = company.logo || undefined;
+    this.pictures = company.pictures || new Collection<PictureUrl>(this);
     this.scheduleOptions = company.scheduleOptions;
   }
 }

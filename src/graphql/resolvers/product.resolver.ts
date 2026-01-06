@@ -71,7 +71,7 @@ export const createProduct = async (
       productId: product.id,
     };
 
-    users.forEach((user) => {
+    users.forEach((user: User) => {
       if (user.pushTokens && user.pushTokens.length > 0) {
         user.pushTokens.getItems().forEach((pushToken) => {
           sendPushNotification(
@@ -165,7 +165,7 @@ export const removeProduct = async (
   }
 
   if (products.length !== ids.length) {
-    const foundIds = products.map((product) => product.id);
+    const foundIds = products.map((product: Product) => product.id);
     const notFoundIds = ids.filter((id) => !foundIds.includes(id));
     return CustomResponse(
       404,

@@ -90,11 +90,11 @@ export const getCompanies = async (
       filters: false,
     });
 
-    const companiesWithAmIPending = companies.map((company) => {
+    const companiesWithAmIPending = companies.map((company: Company) => {
       return {
         ...company,
         amIPending: pendingCompanies.some(
-          (pendingCompany) => pendingCompany.id === company.id
+          (pendingCompany: Company) => pendingCompany.id === company.id
         ),
       };
     });
@@ -242,7 +242,7 @@ export const createCompany = async (
       newAdminUser,
     ]);
 
-    const companyTk = jwt.sign({ id: newCompany.id }, process.env.JWT_SECRET, {
+    const companyTk = jwt.sign({ id: newCompany.id }, process.env.JWT_SECRET || "", {
       expiresIn: "30d",
     });
     await transporter.sendMail({
@@ -256,7 +256,7 @@ export const createCompany = async (
       company: newCompany,
       user: newAdminUser,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return CustomResponse(500, "Error creating company" + error.message);
   }

@@ -2,7 +2,7 @@
 
 // ===== QUERY RESOLVERS =====
 
-import {PaymentMethodService} from "../../services/PaymentMethod";
+import {PaymentMethodService} from "../../services/PaymentMethodService";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
 import {PaymentMethod} from "../../entities/PaymentMethod";
@@ -17,7 +17,7 @@ export const getPaymentMethod = async (parent: any, args: any, context: any) => 
             populate: ['stripeCustomer', 'stripeCustomer.user']
         });
         return CustomResponse(200, 'Payment method is fetched successfully.', true, {paymentMethod});
-    } catch (err) {
+    } catch (err: any) {
         return new GraphQLError(err.message, {
             extensions: {
                 code: 'PAYMENT_METHOD_NOT_FOUND',
@@ -32,7 +32,7 @@ export const listPaymentMethods = async (parent: any, args: any, context: any) =
         const paymentMethods = await paymentMethodService.listPaymentMethods(args.stripeCustomerId);
 
         return CustomResponse(200, 'Payment methods is fetched successfully.', true, {paymentMethods});
-    } catch (err) {
+    } catch (err: any) {
         return new GraphQLError(err.message, {
             extensions: {
                 code: 'PAYMENTS_METHOD_NOT_FOUND',
@@ -70,7 +70,7 @@ export const getDefaultPaymentMethod = async (parent: any, args: any, context: a
         });
 
         return CustomResponse(200, 'Default Payment Method is fetched successfully.', true, {paymentMethod});
-    } catch (err) {
+    } catch (err: any) {
         return new GraphQLError(err.message, {
             extensions: {
                 code: 'CANNOT_FOUND_DEFAULT_PAYMENT_METHOD',

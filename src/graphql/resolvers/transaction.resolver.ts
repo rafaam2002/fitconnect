@@ -66,15 +66,15 @@ export const getUserTransactionsSummary = async(parent: any, args: any, context:
 
     const summary = {
         totalTransactions: allTransactions.length,
-        successfulTransactions: allTransactions.filter(t => t.status === TransactionStatus.SUCCEEDED).length,
-        failedTransactions: allTransactions.filter(t => t.status === TransactionStatus.FAILED).length,
+        successfulTransactions: allTransactions.filter((t: Transaction) => t.status === TransactionStatus.SUCCEEDED).length,
+        failedTransactions: allTransactions.filter((t: Transaction) => t.status === TransactionStatus.FAILED).length,
         totalAmount: allTransactions
-            .filter(t => t.status === TransactionStatus.SUCCEEDED)
-            .reduce((sum, t) => sum + t.amount, 0),
+            .filter((t: Transaction) => t.status === TransactionStatus.SUCCEEDED)
+            .reduce((sum: number, t: Transaction) => sum + t.amount, 0),
         totalRefunded: allTransactions
-            .reduce((sum, t) => sum + t.amountRefunded, 0),
+            .reduce((sum: number, t: Transaction) => sum + t.amountRefunded, 0),
         lastTransaction: allTransactions
-            .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0] || null
+            .sort((a: Transaction, b: Transaction) => b.created_at.getTime() - a.created_at.getTime())[0] || null
     };
 
     return CustomResponse(200, 'Summary has been loaded successfully.', true, {summary});
@@ -94,12 +94,6 @@ export const createCharge = async(parent: any, args: any, context: ContextProps)
                 code: 'ERROR_CREATE_CHARGE'
             }
         });
-        return {
-            success: false,
-            message: 'Failed to create charge',
-            transaction: null,
-            errors: [error.message]
-        };
     }
 }
 

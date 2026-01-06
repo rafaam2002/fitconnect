@@ -255,3 +255,20 @@ export type DeletePollsProps = {
 export type RemoveProductProps = {
   ids: string[];
 };
+
+export type LoginProps = {
+  emailOrNickname: string;
+  password: string
+}
+
+export type PasswordResetProps = {
+  email: string;
+}
+
+export type UpdatePasswordProps = {
+  password: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }
+}

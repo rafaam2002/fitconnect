@@ -21,7 +21,7 @@ export class PaymentMethod extends BaseEntity  {
     @Property({ length: 100 })
     @Index()
     @Unique()
-    stripePaymentMethodId!: string; // pm_xxxxx
+    stripePaymentMethodId!: string;
 
     @ManyToOne(() => StripeCustomer)
     @Index()

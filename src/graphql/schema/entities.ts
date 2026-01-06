@@ -67,6 +67,8 @@ type User {
     contextRole: UserRoleEnum
     activeCompanyId: ID
     isPending: Boolean
+    subscription: JSON
+    permissions: JSON
 }
 
 type Schedule {

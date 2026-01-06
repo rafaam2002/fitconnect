@@ -49,7 +49,7 @@ export class WebhookService extends BaseService {
 
         const em = this.em.fork()
         // Verificar si ya hemos procesado este evento
-        const existingLog: WebhookEventLog = await this.em.findOne(WebhookEventLog, {
+        const existingLog = await this.em.findOne(WebhookEventLog, {
             stripeEventId: event.id
         });
 

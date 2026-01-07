@@ -1,12 +1,12 @@
 import dotenv from "dotenv";
 import { CompanyProps } from "../types/resolvers";
-import { UserType } from "../types";
+import {CurrentUser} from "../types/common.type";
 dotenv.config();
 
 export const companyVerificationEmailHtml = (
   companyTk: string,
   company: CompanyProps,
-  user: UserType
+  user: CurrentUser
 ) => {
   return `
 <!DOCTYPE html>
@@ -222,7 +222,7 @@ export function renderPage(title: string, message: string, success: boolean) {
 `;
 }
 
-export const changePasswordHtml = (token: string, tmpPassword) =>
+export const changePasswordHtml = (token: string, tmpPassword: string) =>
   `
   <!DOCTYPE html>
   <html lang="es">

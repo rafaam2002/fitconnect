@@ -1,9 +1,9 @@
 import {EntityManager} from '@mikro-orm/core';
-import {BaseService} from './BaseService.js';
+import {BaseService} from './base.service';
 import {User} from '../entities/User';
 import {RefreshToken} from '../entities/RefreshToken';
 import {Company} from '../entities/Company';
-import {PermissionService} from './PermissionService';
+import {PermissionService} from './permission.service';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -14,6 +14,8 @@ import {generateTempPassword, verifyGoogleToken} from '../utils/users';
 import {changePasswordHtml} from '../utils/emailHtml';
 import {ChangePasswordSchema} from '../validation/schemas';
 import {CustomResponse} from "../graphql/resolvers/errors";
+import {EmailService, emailService} from "./email.service";
+import {EmailConfig} from "../types/common.type";
 
 // ============= INTERFACES =============
 
@@ -71,24 +73,16 @@ interface TokenPair {
     refreshToken: string;
 }
 
-// ============= EMAIL TRANSPORTER =============
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASS,
-    },
-});
-
 // ============= AUTH SERVICE =============
 
 export class AuthService extends BaseService {
     private permissionService: PermissionService;
+    private emailService: EmailService;
 
     constructor(em: EntityManager) {
         super(em);
         this.permissionService = new PermissionService(em);
+        this.emailService = this.emailService = EmailService.getInstance();
     }
 
     /**
@@ -414,12 +408,14 @@ export class AuthService extends BaseService {
                 {expiresIn: '30m'}
             );
 
-            await transporter.sendMail({
-                from: process.env.GMAIL_USER,
+            const config: EmailConfig = {
+                from: process.env.GMAIL_USER!,
                 to: email,
                 subject: 'Change your password',
                 html: changePasswordHtml(token, tmpPassword),
-            });
+            }
+
+            await this.emailService.sendEmail(config);
 
             return CustomResponse(200, 'Change password email sent', true);
 
@@ -616,7 +612,7 @@ export class AuthService extends BaseService {
     /**
      * Crear par de tokens (access + refresh)
      */
-    private async createTokensPair(
+    async createTokensPair(
         user: User,
         includePermissions: boolean = false,
         companyId?: string,

@@ -2,7 +2,7 @@
 
 // ===== QUERY RESOLVERS =====
 
-import {PaymentMethodService} from "../../services/PaymentMethodService";
+import {PaymentMethodService} from "../../services/payment.method.service";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
 import {PaymentMethod} from "../../entities/PaymentMethod";

@@ -3,9 +3,9 @@ import moment, { Moment } from "moment";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import { User } from "../entities/User";
-import { UserType } from "../types";
 import { ScheduleState, ScheduleType, UserRoleEnum } from "../types/enums";
 import { sendPushNotification } from "./notifications";
+import {CurrentUser} from "../types/common.type";
 
 export function createDateWithTime(time: string): Date {
   const [hours, minutes] = time.split(":").map(Number);
@@ -36,7 +36,7 @@ export const createScheduleProgrammed = async (
     age: number | null;
     type: ScheduleType;
   },
-  { em, currentUser }: { em: EntityManager; currentUser: UserType }
+  { em, currentUser }: { em: EntityManager; currentUser: CurrentUser }
 ) => {
   if (!currentUser) {
     return {
@@ -79,7 +79,7 @@ export const createScheduleProgrammed = async (
       message: "Schedule created succesfully",
       scheduleProgrammed: newScheduleProgrammed,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.log("Error creating schedule", error);
     return {
       success: false,

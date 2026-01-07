@@ -62,7 +62,7 @@ import { createCustomer, updateCustomer } from "./customer.resolver";
 
 import { IResolvers } from "@graphql-tools/utils";
 import { RefreshToken } from "../../entities/RefreshToken";
-import { createAdminCompany } from "../../utils/company";
+import { createAdminCompany } from "../../services/company.service";
 import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
 
 dotenv.config();

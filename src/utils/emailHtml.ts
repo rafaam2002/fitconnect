@@ -155,7 +155,7 @@ export function renderPage(title: string, message: string, success: boolean) {
 `;
 }
 
-export const changePasswordHtml = (token: string, tmpPassword) =>
+export const changePasswordHtml = (token: string, tmpPassword: string) =>
   `
   <!DOCTYPE html>
   <html lang="es">

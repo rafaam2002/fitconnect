@@ -1,6 +1,6 @@
 // ===== QUERY RESOLVERS =====
 
-import {SubscriptionService} from "../../services/SubscriptionService";
+import {SubscriptionService} from "../../services/subscription.service";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";
 

@@ -1,14 +1,14 @@
 import {EntityManager, QueryOrder} from '@mikro-orm/core';
-import {BaseService} from './BaseService.js';
-import {CustomerService} from './CustomerService.js';
-import {SubscriptionService} from './SubscriptionService.js';
-import {TransactionService} from './TransactionService.js';
+import {BaseService} from './base.service';
+import {CustomerService} from './customer.service';
+import {SubscriptionService} from './subscription.service';
+import {TransactionService} from './transaction.service';
 import Stripe from 'stripe';
-import {PaymentMethodService} from "./PaymentMethodService";
+import {PaymentMethodService} from "./payment.method.service";
 import {WebhookEventLog, WebhookEventStatus} from "../entities/WebhookEventLog";
-import {InvoiceService} from "./InvoiceService";
+import {InvoiceService} from "./invoice.service";
 import {PaymentMethod} from "../entities/PaymentMethod";
-import {PlanService} from "./PlanService";
+import {PlanService} from "./plan.service";
 
 export class WebhookService extends BaseService {
     private customerService: CustomerService;

@@ -1,7 +1,7 @@
 import {EntityManager, FilterQuery, QueryOrder} from "@mikro-orm/core";
 import {Plan, PlanInterval, PlanStatus} from "../entities/Plan";
-import {BaseService} from "./BaseService.js";
-import {PermissionService} from "./PermissionService.js";
+import {BaseService} from "./base.service";
+import {PermissionService} from "./permission.service";
 
 interface CreatePlanInput {
     name: string;

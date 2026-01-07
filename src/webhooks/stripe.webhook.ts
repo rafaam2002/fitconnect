@@ -1,5 +1,5 @@
 import express, { Router, Request, Response, NextFunction, RequestHandler } from 'express';
-import { WebhookService } from '../services/WebhookService.js';
+import { WebhookService } from '../services/webhook.service';
 import rateLimit from 'express-rate-limit';
 
 // Interfaz para el request con propiedades adicionales

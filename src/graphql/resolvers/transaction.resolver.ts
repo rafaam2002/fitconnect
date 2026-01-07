@@ -1,5 +1,5 @@
 // src/graphql/resolvers/transactionResolver.ts
-import { TransactionService } from '../../services/TransactionService.js';
+import { TransactionService } from '../../services/transaction.service';
 import {ContextProps} from "../../types/resolvers";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql";

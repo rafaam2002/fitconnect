@@ -1,4 +1,4 @@
-import { PlanService } from "../../services/PlanService";
+import { PlanService } from "../../services/plan.service";
 import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql";
 

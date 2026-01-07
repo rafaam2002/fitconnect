@@ -1,6 +1,6 @@
-// src/services/InvoiceService.ts
+// src/services/invoice.service.ts
 import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './BaseService';
+import { BaseService } from './base.service';
 import {Invoice, InvoiceStatus} from "../entities/Invoice";
 import {Subscription} from "../entities/Subscription";
 import {User} from "../entities/User";

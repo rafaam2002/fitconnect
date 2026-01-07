@@ -1,9 +1,9 @@
 import {EntityManager} from '@mikro-orm/core';
-import {BaseService} from './BaseService.js';
+import {BaseService} from './base.service';
 import {StripeCustomer} from "../entities/StripeCustomer";
 import {User} from "../entities/User";
 
-interface CreateCustomerInput {
+export interface CreateCustomerInput {
     userId: string;
     email?: string;
     name?: string;
@@ -56,7 +56,7 @@ export class CustomerService extends BaseService {
             const stripeCustomer = await this.stripe.customers.create({
                 email: input.email || user.email,
                 name: input.name || user.fullName,
-                phone: input.phone || user.phoneNumber,
+                phone: input.phone! || user.phoneNumber!,
                 metadata: {
                     userId: user.id,
                     ...input.metadata
@@ -193,7 +193,8 @@ export class CustomerService extends BaseService {
                 customer = this.em.create(StripeCustomer, {
                     stripeCustomerId,
                     user,
-                    isActive: true
+                    isActive: true,
+                    defaultCurrency: "EUR"
                 });
             }
 

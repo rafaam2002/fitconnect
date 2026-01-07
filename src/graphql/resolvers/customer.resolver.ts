@@ -1,4 +1,4 @@
-import {CustomerService} from "../../services/CustomerService";
+import {CustomerService} from "../../services/customer.service";
 import {CustomResponse} from "./errors";
 import {GraphQLError} from "graphql/index";
 

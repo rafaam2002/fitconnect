@@ -13,7 +13,7 @@ import {
   UpdateCompanyPictureProps,
   UpdateCompanyProps,
 } from "../../types/resolvers";
-import { createAdminCompany } from "../../utils/company";
+import { createAdminCompany } from "../../services/company.service";
 import { companyVerificationEmailHtml } from "../../utils/companyVerificationEmailHtml ";
 import { sendPushNotification } from "../../utils/notifications";
 import { createPictureUrl, getPresignedUrl } from "../../utils/presigned-urls";

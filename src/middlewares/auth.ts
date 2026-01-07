@@ -1,12 +1,12 @@
 import { EntityManager } from "@mikro-orm/core";
 import jwt from "jsonwebtoken";
 import { User } from "../entities/User";
-import { UserType } from "../types";
+import {CurrentUser} from "../types/common.type";
 
 export const authenticateUser = async (
   em: EntityManager,
   authorization?: string
-): Promise<UserType | null> => {
+): Promise<CurrentUser | null> => {
   if (authorization && authorization.toLowerCase().startsWith("bearer ")) {
     const token = authorization.substring(7);
 

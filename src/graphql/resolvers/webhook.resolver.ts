@@ -1,5 +1,5 @@
 // src/graphql/resolvers/webhook.resolver.ts
-import { WebhookService } from "../../services/WebhookService";
+import { WebhookService } from "../../services/webhook.service";
 import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql/index";
 import {ContextProps} from "../../types/resolvers";

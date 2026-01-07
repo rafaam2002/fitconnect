@@ -20,7 +20,9 @@ export const createAdminCompany = (
     text: `Welcome to the forum`,
     isForumMessage: true,
     company: newCompany,
+    isFixed: false
   });
+
   const scheduleOptions = em.create(ScheduleOptions, {
     company: newCompany,
     maxActiveReservations: 1,

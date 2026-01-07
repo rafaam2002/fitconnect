@@ -1,5 +1,5 @@
 import {EntityManager, QueryOrder} from '@mikro-orm/core';
-import {BaseService} from './BaseService.js';
+import {BaseService} from './base.service';
 import {Transaction, TransactionStatus, TransactionType} from "../entities/Transaction";
 import {User} from "../entities/User";
 import {PaymentMethod, PaymentMethodStatus} from "../entities/PaymentMethod";

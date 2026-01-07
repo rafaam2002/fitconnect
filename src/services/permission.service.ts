@@ -3,7 +3,7 @@ import {Permission, PermissionAction, PermissionModule,} from "../entities/Permi
 import {PlanPermission} from "../entities/PlanPermission";
 import {Plan} from "../entities/Plan";
 import {Subscription, SubscriptionStatus} from "../entities/Subscription";
-import {BaseService} from "./BaseService";
+import {BaseService} from "./base.service";
 import {CompanyPermissionsContext, LoginPermissionsContext} from "../types/permissions";
 
 interface CreatePermissionInput {

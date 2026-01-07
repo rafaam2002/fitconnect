@@ -1,13 +1,7 @@
-import { EntityManager } from "@mikro-orm/postgresql";
-import { UserType } from "../../types";
 import { Article } from "../../entities/Article";
 import { GraphQLError } from "graphql";
 import {CustomResponse} from "./errors";
-
-type ContextType = {
-  em: EntityManager;
-  currentUser: UserType;
-};
+import {ContextProps} from "../../types/resolvers";
 
 type PaginationProps = {
   limit: number;
@@ -18,7 +12,7 @@ type PaginationProps = {
 export const getArticles = async (
   _: any,
   { limit, offset }: PaginationProps,
-  { em, currentUser }: ContextType
+  { em, currentUser }: ContextProps
 ) => {
 
   if (!currentUser) {

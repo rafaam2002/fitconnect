@@ -1,7 +1,7 @@
 import { User } from "../../entities/User";
 import { CustomResponse } from "./errors";
 import { GraphQLError } from "graphql";
-import {AuthService} from "../../services/AuthService";
+import {AuthService} from "../../services/auth.service";
 import {ContextProps, LoginProps, PasswordResetProps, UpdatePasswordProps} from "../../types/resolvers";
 
 // ===== QUERY RESOLVERS =====

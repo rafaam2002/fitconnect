@@ -1,0 +1,111 @@
+import { EntityManager } from "@mikro-orm/core";
+import { UserWeight } from "../entities/UserWeight";
+import { User } from "../entities/User";
+import { UserRoleEnum } from "../types/enums";
+import {
+    createServiceResponse,
+    NotFoundError,
+    ForbiddenError,
+    UnauthorizedError,
+} from "../utils/errors.util";
+import {CurrentUser, ServiceResponse} from "../types/common.type";
+
+/**
+ * User Weight Service - Handles user weight tracking
+ */
+export class UserWeightService {
+    constructor(private readonly em: EntityManager) {}
+
+    public async getUserWeights(
+        userId: string,
+        dateRange?: [string, string],
+        currentUser?: CurrentUser
+    ): Promise<ServiceResponse> {
+        if (!currentUser) {
+            throw new UnauthorizedError();
+        }
+
+        if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+            throw new ForbiddenError();
+        }
+
+        const userRepo = this.em.getRepository(User);
+        const user = await userRepo.findOne(
+            { id: userId },
+            { populate: ["userWeights"] }
+        );
+
+        if (!user) {
+            throw new NotFoundError("User");
+        }
+
+        return createServiceResponse(200, "User weights found", true, {
+            userWeights: user.userWeights,
+        });
+    }
+
+    public async addUserWeight(
+        weight: number,
+        date: string,
+        userId: string,
+        currentUser: CurrentUser
+    ): Promise<ServiceResponse> {
+        if (!currentUser) {
+            throw new UnauthorizedError();
+        }
+
+        if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+            throw new ForbiddenError();
+        }
+
+        const userReference = this.em.getReference(User, userId);
+
+        const newWeight = this.em.create(UserWeight, {
+            weight,
+            date,
+            user: userReference,
+            company: currentUser.activeCompanyId!
+        });
+
+        try {
+            await this.em.persistAndFlush(newWeight);
+
+            return createServiceResponse(200, "Weight added successfully", true, {
+                weight: newWeight,
+            });
+        } catch (error) {
+            console.error("Error adding weight:", error);
+            throw new Error("Error adding weight");
+        }
+    }
+
+    public async removeUserWeight(
+        userWeightId: string,
+        currentUser: CurrentUser
+    ): Promise<ServiceResponse> {
+        if (!currentUser) {
+            throw new UnauthorizedError();
+        }
+
+        const userWeightRepo = this.em.getRepository(UserWeight);
+        const userWeight = await userWeightRepo.findOne(
+            { id: userWeightId },
+            { populate: ["user"] }
+        );
+
+        if (!userWeight) {
+            throw new NotFoundError("User weight");
+        }
+
+        if (
+            userWeight.user.id !== currentUser.id &&
+            currentUser.contextRole !== UserRoleEnum.BOSS
+        ) {
+            throw new ForbiddenError();
+        }
+
+        await this.em.removeAndFlush(userWeight);
+
+        return createServiceResponse(200, "User weight removed successfully", true);
+    }
+}

@@ -1,7 +1,7 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import cron from "node-cron";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { storeNews } from "./articles";
+import { storeNews } from "../helpers/articles";
 import { updatePictureUrls } from "./presigned-urls";
 import { sendScheduleReminders } from "./schedules";
 import { setNotActiveUsers } from "./users";

@@ -1,7 +1,7 @@
 import {EntityData, EntityManager, QueryOrder} from '@mikro-orm/core';
 import {StripeCustomer} from '../entities/StripeCustomer';
 import {PaymentMethod, PaymentMethodStatus, PaymentMethodType} from '../entities/PaymentMethod';
-import {BaseService} from './BaseService.js';
+import {BaseService} from './base.service';
 
 interface AttachPaymentMethodInput {
     paymentMethodId: string; // pm_xxxxx from Stripe

@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { User } from "../entities/User";
 import { ScheduleState, ScheduleType, UserRoleEnum } from "./enums";
-import { UserType } from "./user";
+import {CurrentUser} from "./common.type";
 
 export type UserProps = {
   user: User & {
@@ -16,6 +16,7 @@ export type CompanyProps = {
   address: string;
   phoneNumber: string;
   email: string;
+  isValidated: boolean;
 };
 
 export type UserPictureProps = {
@@ -31,7 +32,7 @@ export type UpdateCompanyPictureProps = {
 
 export type ContextProps = {
   em: EntityManager | any;
-  currentUser: UserType;
+  currentUser: CurrentUser;
 };
 
 export type MessageProps = {

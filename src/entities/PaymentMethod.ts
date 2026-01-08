@@ -60,8 +60,8 @@ export class PaymentMethod extends BaseEntity  {
     @Property({ type: 'boolean', default: false })
     isDefault: boolean = false;
 
-    @ManyToOne(() => Company, {nullable: true})
-    company: Company;
+    @Property({ type: 'json', nullable: true })
+    metadata?: Record<string, unknown>;
 
     get displayName(): string {
         if (this.type === PaymentMethodType.CARD && this.brand && this.last4) {

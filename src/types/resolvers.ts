@@ -205,7 +205,7 @@ export type GetTrainingTaskProps = {
 };
 
 export type removeTrainingTaskProps = {
-  taskId: string;
+  trainingTaskId: string;
 };
 
 export type GetUserWeightsProps = {

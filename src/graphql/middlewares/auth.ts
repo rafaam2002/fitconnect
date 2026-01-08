@@ -1,58 +1,6 @@
-import { GraphQLError } from "graphql";
-import jwt from "jsonwebtoken";
-import { EntityManager } from "@mikro-orm/core";
+
 import {ForbiddenError, UnauthorizedError} from "../../utils/errors.util";
 import {CurrentUser} from "../../types/common.type";
-import {User} from "../../entities/User";
-
-/**
- * Authentication Middleware
- * Validates JWT token and attaches user to context
- */
-export const authMiddleware = async (
-    token: string | undefined,
-    em: EntityManager
-): Promise<CurrentUser | null> => {
-    if (!token) {
-        return null;
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
-
-        const user = await em.findOne(User, { id: decoded.id }, {
-            populate: ["roles"],
-        });
-
-        if (!user) {
-            throw new UnauthorizedError("User not found");
-        }
-
-        return {
-            id: user.id,
-            email: user.email!,
-            nickname: user.nickname,
-            contextRole: 'user.role',
-            activeCompanyId: user.activeCompanyId!,
-        };
-    } catch (error) {
-        if (error instanceof jwt.TokenExpiredError) {
-            throw new GraphQLError("Token expired, please login again", {
-                extensions: {
-                    code: "UNAUTHENTICATED",
-                    http: { status: 401 },
-                },
-            });
-        }
-
-        throw new GraphQLError("Invalid token", {
-            extensions: {
-                code: "UNAUTHENTICATED",
-                http: { status: 401 },
-            },
-        });
-    }
-};
 
 /**
  * Require authentication decorator

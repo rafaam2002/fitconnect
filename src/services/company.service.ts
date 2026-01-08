@@ -392,7 +392,7 @@ export class CompanyService extends BaseService {
             }
 
             // Verificar que el usuario está en la lista de pendientes
-            const isPending = await userToAdmit.pendingCompanies.contains(company);
+            const isPending = userToAdmit.pendingCompanies.contains(company);
             if (!isPending) {
                 throw new BadRequestError('User is not in the pending list');
             }

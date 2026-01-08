@@ -11,13 +11,13 @@ import {
 } from "../utils/errors.util";
 import {updateUserSchema} from "../validation/schemas";
 import {createPictureUrl, getPresignedUrl} from "../utils/presigned-urls";
-import {createAdminCompany} from "./company.service";
 import {EmailService} from "./email.service";
 import {CurrentUser, ServiceResponse} from "../types/common.type";
 import {BaseService} from "./base.service";
 import {CustomerService} from "./customer.service";
 import {AuthService} from "./auth.service";
 import {SqlEntityManager} from "@mikro-orm/postgresql";
+import {CompanyService} from "./company.service";
 
 /**
  * User Service - Handles all user-related business logic
@@ -26,12 +26,14 @@ export class UserService extends BaseService {
     private emailService: EmailService;
     private customerService: CustomerService;
     private authService: AuthService;
+    private companyService: CompanyService;
 
     constructor(em: EntityManager) {
         super(em)
         this.emailService = EmailService.getInstance();
         this.customerService = new CustomerService(em);
         this.authService = new AuthService(em);
+        this.companyService = new CompanyService(em);
     }
 
     public async getUsers(
@@ -185,7 +187,7 @@ export class UserService extends BaseService {
         try {
             if (role === UserRoleEnum.BOSS) {
                 const {newCompany, newUser: adminUser, newFirstForumMessage, newScheduleOptions} =
-                    createAdminCompany(em, newUser, companyData);
+                    this.companyService.createAdminCompany(em, newUser, companyData);
 
                 await this.em.persistAndFlush([
                     newCompany,

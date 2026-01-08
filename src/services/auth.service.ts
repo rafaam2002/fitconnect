@@ -84,52 +84,49 @@ export class AuthService extends BaseService {
     async login(input: LoginInput): Promise<ServiceResponse> {
         const {emailOrNickname, password} = input;
 
-        try {
-            const user = await this.findUserByEmailOrNickname(emailOrNickname, [
-                'password',
-                'companies',
-                'schedules.id',
-                'schedules.startDate'
-            ]);
 
-            if (!user) {
-                throw new ValidationError('Invalid email/nickname or password');
-            }
+        const user = await this.findUserByEmailOrNickname(emailOrNickname, [
+            'password',
+            'companies',
+            'schedules.id',
+            'schedules.startDate'
+        ]);
 
-            const isMatch = await user.checkPassword(password);
-            if (!isMatch) {
-                throw new ValidationError('Invalid email/nickname or password');
-            }
-
-            const companies = user.companies.getItems();
-
-            // Si el usuario no tiene empresas
-            if (companies.length === 0) {
-                throw new ValidationError('User has no associated companies');
-            }
-
-            // Si tiene solo una empresa, hacer login completo automáticamente
-            if (companies.length === 1) {
-                const data = await this.loginWithCompany({
-                    emailOrNickname,
-                    password,
-                    companyId: companies[0].id
-                });
-
-            }
-
-            // Si tiene múltiples empresas, devolver lista para que seleccione
-            const tokens = await this.createTokensPair(user);
-            const data = {
-                user,
-                companies,
-                tokens,
-            }
-            return createServiceResponse(200, 'User needs to select company', true, data)
-
-        } catch (error) {
-            throw new InternalServerError('Login failed');
+        if (!user) {
+            throw new ValidationError('Invalid email/nickname or password');
         }
+
+        const isMatch = await user.checkPassword(password);
+        if (!isMatch) {
+            throw new ValidationError('Invalid email/nickname or password');
+        }
+
+        const companies = user.companies.getItems();
+
+        // Si el usuario no tiene empresas
+        if (companies.length === 0) {
+            throw new ValidationError('User has no associated companies');
+        }
+
+        // Si tiene solo una empresa, hacer login completo automáticamente
+        if (companies.length === 1) {
+            const data = await this.loginWithCompany({
+                emailOrNickname,
+                password,
+                companyId: companies[0].id
+            });
+
+        }
+
+        // Si tiene múltiples empresas, devolver lista para que seleccione
+        const tokens = await this.createTokensPair(user);
+        const data = {
+            user,
+            companies,
+            tokens,
+        }
+        return createServiceResponse(200, 'User needs to select company', true, data)
+
     }
 
     /**
@@ -138,38 +135,34 @@ export class AuthService extends BaseService {
     async loginWithCompany(input: LoginWithCompanyInput): Promise<ServiceResponse> {
         const {emailOrNickname, password, companyId} = input;
 
-        try {
-            const user = await this.findUserByEmailOrNickname(emailOrNickname, [
-                'password',
-                'companies'
-            ]);
+        const user = await this.findUserByEmailOrNickname(emailOrNickname, [
+            'password',
+            'companies'
+        ]);
 
-            if (!user) {
-                throw new BadRequestError('Invalid email/nickname or password');
-            }
-
-            const isMatch = await user.checkPassword(password);
-            if (!isMatch) {
-                throw new BadRequestError('Invalid email/nickname or password');
-            }
-
-            // Validar acceso a la empresa
-            const company = await this.validateCompanyAccess(user, companyId);
-            if (!company) {
-                throw new ForbiddenError('User does not belong to this company');
-            }
-
-            // Construir respuesta con permisos y tokens
-            return await this.buildAuthResponseWithPermissions(
-                user,
-                company,
-                'Login successful'
-            );
-
-        } catch (error) {
-            console.error('Login with company error:', error);
-            throw new InternalServerError('Login failed');
+        if (!user) {
+            throw new BadRequestError('Invalid email/nickname or password');
         }
+
+        const isMatch = await user.checkPassword(password);
+        if (!isMatch) {
+            throw new BadRequestError('Invalid email/nickname or password');
+        }
+
+        // Validar acceso a la empresa
+        const company = await this.validateCompanyAccess(user, companyId);
+        if (!company) {
+            throw new ForbiddenError('User does not belong to this company');
+        }
+
+        // Construir respuesta con permisos y tokens
+        return await this.buildAuthResponseWithPermissions(
+            user,
+            company,
+            'Login successful'
+        );
+
+
     }
 
     /**
@@ -177,32 +170,27 @@ export class AuthService extends BaseService {
      */
     async selectCompany(input: SelectCompanyInput): Promise<ServiceResponse> {
         const {userId, companyId} = input;
+        const user = await this.em.findOne(User, {id: userId}, {
+            populate: ['companies']
+        });
 
-        try {
-            const user = await this.em.findOne(User, {id: userId}, {
-                populate: ['companies']
-            });
-
-            if (!user) {
-                throw new NotFoundError('User not found');
-            }
-
-            // Validar acceso a la empresa
-            const company = await this.validateCompanyAccess(user, companyId);
-            if (!company) {
-                throw new ForbiddenError('User does not belong to this company');
-            }
-
-            // Construir respuesta con permisos y tokens
-            return await this.buildAuthResponseWithPermissions(
-                user,
-                company,
-                'Company selected successfully'
-            );
-
-        } catch (error) {
-            throw new InternalServerError('Failed to select company');
+        if (!user) {
+            throw new NotFoundError('User not found');
         }
+
+        // Validar acceso a la empresa
+        const company = await this.validateCompanyAccess(user, companyId);
+        if (!company) {
+            throw new ForbiddenError('User does not belong to this company');
+        }
+
+        // Construir respuesta con permisos y tokens
+        return await this.buildAuthResponseWithPermissions(
+            user,
+            company,
+            'Company selected successfully'
+        );
+
     }
 
     /**
@@ -211,107 +199,91 @@ export class AuthService extends BaseService {
     async loginWithGoogle(input: GoogleLoginInput): Promise<ServiceResponse> {
         const {id_token} = input;
 
-        try {
-            const googleData = await verifyGoogleToken(id_token);
+        const googleData = await verifyGoogleToken(id_token);
 
-            if (!googleData) {
-                throw new UnauthorizedError('Invalid Google token');
-            }
+        if (!googleData) {
+            throw new UnauthorizedError('Invalid Google token');
+        }
 
-            const {email, name} = googleData;
+        const {email, name} = googleData;
 
-            // Buscar o crear usuario
-            let user = await this.findOrCreateGoogleUser(email!, name);
+        // Buscar o crear usuario
+        let user = await this.findOrCreateGoogleUser(email!, name);
 
-            const companies = user.companies.getItems();
+        const companies = user.companies.getItems();
 
-            // Si no tiene empresas
-            if (companies.length === 0) {
-                const tokens = await this.createTokensPair(user);
-
-                return createServiceResponse(200, 'User logged in but has no companies', true, {
-                    user,
-                    companies: [],
-                    tokens,
-                })
-
-            }
-
-            // Si tiene una empresa, login completo
-            if (companies.length === 1) {
-                return await this.buildAuthResponseWithPermissions(
-                    user,
-                    companies[0],
-                    'Login successful'
-                );
-            }
-
-            // Si tiene múltiples empresas
+        // Si no tiene empresas
+        if (companies.length === 0) {
             const tokens = await this.createTokensPair(user);
 
-            return createServiceResponse(200, 'User needs to select company', true, {
+            return createServiceResponse(200, 'User logged in but has no companies', true, {
                 user,
-                companies,
+                companies: [],
                 tokens,
             })
 
-        } catch (error) {
-            console.error('Google login error:', error);
-            throw new InternalServerError('Google login failed');
         }
+
+        // Si tiene una empresa, login completo
+        if (companies.length === 1) {
+            return await this.buildAuthResponseWithPermissions(
+                user,
+                companies[0],
+                'Login successful'
+            );
+        }
+
+        // Si tiene múltiples empresas
+        const tokens = await this.createTokensPair(user);
+
+        return createServiceResponse(200, 'User needs to select company', true, {
+            user,
+            companies,
+            tokens,
+        })
     }
 
     /**
      * Login con ID (para testing/desarrollo)
      */
     async loginWithId(userId: string): Promise<ServiceResponse> {
-        try {
-            const user = await this.em.findOne(User, {id: userId}, {
-                populate: ['companies']
-            });
+        const user = await this.em.findOne(User, {id: userId}, {
+            populate: ['companies']
+        });
 
-            if (!user) {
-                throw new NotFoundError('User');
-            }
-
-            return await this.login({
-                emailOrNickname: user.email!,
-                password: process.env.DEFAULT_PASSWORD || '123456'
-            });
-
-        } catch (error) {
-            throw new InternalServerError('Login failed');
+        if (!user) {
+            throw new NotFoundError('User');
         }
+
+        return await this.login({
+            emailOrNickname: user.email!,
+            password: process.env.DEFAULT_PASSWORD || '123456'
+        });
     }
 
     /**
      * Olvidé mi contraseña
      */
     async forgotPassword(email: string): Promise<ServiceResponse> {
-        try {
-            const user = await this.em.findOne(User, {email});
+        const user = await this.em.findOne(User, {email});
 
-            if (!user) {
-                throw new NotFoundError('User');
-            }
-
-            const resetToken = jwt.sign(
-                {id: user.id},
-                process.env.JWT_SECRET!,
-                {expiresIn: '30m'}
-            );
-
-            console.log(`Reset token for ${email}: ${resetToken}`);
-
-            // TODO: Enviar email con resetToken
-            // await this.sendPasswordResetEmail(email, resetToken);
-
-            return createServiceResponse(200, 'Password reset email sent', true);
-
-        } catch (error) {
-            console.error('Forgot password error:', error);
-            throw new InternalServerError('Failed to process password reset');
+        if (!user) {
+            throw new NotFoundError('User');
         }
+
+        const resetToken = jwt.sign(
+            {id: user.id},
+            process.env.JWT_SECRET!,
+            {expiresIn: '30m'}
+        );
+
+        console.log(`Reset token for ${email}: ${resetToken}`);
+
+        // TODO: Enviar email con resetToken
+        // await this.sendPasswordResetEmail(email, resetToken);
+
+        return createServiceResponse(200, 'Password reset email sent', true);
+
     }
 
     /**
@@ -323,54 +295,44 @@ export class AuthService extends BaseService {
     ): Promise<ServiceResponse> {
         const {currentPassword, newPassword, confirmPassword} = input;
 
-        try {
-            // Validar con Zod
-            ChangePasswordSchema.parse({
-                currentPassword,
-                newPassword,
-                confirmPassword,
-            });
+        // Validar con Zod
+        ChangePasswordSchema.parse({
+            currentPassword,
+            newPassword,
+            confirmPassword,
+        });
 
-            const user = await this.em.findOne(
-                User,
-                {id: userId},
-                {populate: ['password']}
-            );
+        const user = await this.em.findOne(
+            User,
+            {id: userId},
+            {populate: ['password']}
+        );
 
-            if (!user) {
-                throw new NotFoundError('User');
-            }
-
-            const passwordCorrect = await bcrypt.compare(
-                currentPassword,
-                user.password || ''
-            );
-
-            if (!passwordCorrect) {
-                throw new ValidationError('Current password is incorrect');
-            }
-
-            user.password = await bcrypt.hash(newPassword, 10);
-            await this.em.flush();
-
-            return createServiceResponse(200, 'Password changed successfully', true);
-
-        } catch (error: any) {
-            console.error('Update password error:', error);
-
-            if (error.name === 'ZodError') {
-                throw new ValidationError('Validation error');
-            }
-
-            throw new InternalServerError('Failed to update password');
+        if (!user) {
+            throw new NotFoundError('User');
         }
+
+        const passwordCorrect = await bcrypt.compare(
+            currentPassword,
+            user.password || ''
+        );
+
+        if (!passwordCorrect) {
+            throw new ValidationError('Current password is incorrect');
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        await this.em.flush();
+
+        return createServiceResponse(200, 'Password changed successfully', true);
+
     }
 
     /**
      * Enviar email para cambio de contraseña
      */
     async sendChangePasswordEmail(email: string): Promise<ServiceResponse> {
-        try {
+
             const tmpPassword = generateTempPassword(6);
 
             const payload = {
@@ -396,9 +358,6 @@ export class AuthService extends BaseService {
 
             return createServiceResponse(200, 'Change password email sent', true);
 
-        } catch (error) {
-            throw new InternalServerError('Send change password email error');
-        }
     }
 
     /**

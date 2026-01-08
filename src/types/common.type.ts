@@ -3,7 +3,7 @@
  */
 
 export interface ServiceResponse<T = any> {
-  statusCode: number;
+  code: number;
   message: string;
   success: boolean;
   data?: T;

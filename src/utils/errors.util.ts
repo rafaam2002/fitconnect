@@ -116,6 +116,48 @@ export class InternalServerError extends AppError {
 }
 
 /**
+ * 502 - Bad Gateway Error (error en API externa)
+ * Usado cuando la API externa retorna un error o respuesta inválida
+ */
+export class ExternalAPIError extends AppError {
+    constructor(message: string = "External service returned an error", apiName?: string) {
+        const errorMessage = apiName
+            ? `${apiName} API error: ${message}`
+            : `External API error: ${message}`;
+        super(errorMessage, 502, "BAD_GATEWAY", false);
+        Object.setPrototypeOf(this, ExternalAPIError.prototype);
+    }
+}
+
+/**
+ * 503 - Service Unavailable Error (servicio externo no disponible)
+ * Usado cuando no se puede conectar a la API externa
+ */
+export class ServiceUnavailableError extends AppError {
+    constructor(message: string = "External service is currently unavailable", serviceName?: string) {
+        const errorMessage = serviceName
+            ? `${serviceName} is currently unavailable: ${message}`
+            : message;
+        super(errorMessage, 503, "SERVICE_UNAVAILABLE", false);
+        Object.setPrototypeOf(this, ServiceUnavailableError.prototype);
+    }
+}
+
+/**
+ * 504 - Gateway Timeout Error (timeout en API externa)
+ * Usado cuando la API externa no responde en el tiempo esperado
+ */
+export class GatewayTimeoutError extends AppError {
+    constructor(message: string = "External service timeout", timeoutMs?: number) {
+        const errorMessage = timeoutMs
+            ? `External service timeout after ${timeoutMs}ms: ${message}`
+            : message;
+        super(errorMessage, 504, "GATEWAY_TIMEOUT", false);
+        Object.setPrototypeOf(this, GatewayTimeoutError.prototype);
+    }
+}
+
+/**
  * Error handler wrapper for resolvers
  * Convierte errores desconocidos a ServiceResponse
  */
@@ -153,8 +195,58 @@ export const serviceResponseToError = (response: ServiceResponse): never => {
             throw new ConflictError(message);
         case 400:
             throw new BadRequestError(message);
+        case 502:
+            throw new ExternalAPIError(message);
+        case 503:
+            throw new ServiceUnavailableError(message);
+        case 504:
+            throw new GatewayTimeoutError(message);
         case 500:
         default:
             throw new InternalServerError(message);
     }
+};
+
+/**
+ * Helper para manejar errores de fetch/axios en APIs externas
+ * Convierte errores HTTP a los errores GraphQL apropiados
+ */
+export const handleExternalAPIError = (error: any, apiName?: string): never => {
+    // Error de red (ECONNREFUSED, ENOTFOUND, etc.)
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new ServiceUnavailableError(
+            error.message || "Cannot connect to external service",
+            apiName
+        );
+    }
+
+    // Timeout
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+        throw new GatewayTimeoutError(
+            error.message || "Request timeout",
+            error.timeout
+        );
+    }
+
+    // Si tiene response (axios/fetch error)
+    if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || error.message || "Unknown error";
+
+        // 4xx - Error del cliente (nuestra request está mal)
+        if (status >= 400 && status < 500) {
+            throw new ExternalAPIError(`Client error (${status}): ${message}`, apiName);
+        }
+
+        // 5xx - Error del servidor externo
+        if (status >= 500) {
+            throw new ServiceUnavailableError(`Server error (${status}): ${message}`, apiName);
+        }
+    }
+
+    // Error desconocido
+    throw new ExternalAPIError(
+        error.message || "Unknown external API error",
+        apiName
+    );
 };

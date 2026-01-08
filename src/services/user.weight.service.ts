@@ -9,12 +9,16 @@ import {
     UnauthorizedError,
 } from "../utils/errors.util";
 import {CurrentUser, ServiceResponse} from "../types/common.type";
+import {BaseService} from "./base.service";
 
 /**
  * User Weight Service - Handles user weight tracking
  */
-export class UserWeightService {
-    constructor(private readonly em: EntityManager) {}
+export class UserWeightService extends BaseService {
+
+    constructor(em: EntityManager) {
+        super(em)
+    }
 
     public async getUserWeights(
         userId: string,
@@ -29,8 +33,7 @@ export class UserWeightService {
             throw new ForbiddenError();
         }
 
-        const userRepo = this.em.getRepository(User);
-        const user = await userRepo.findOne(
+        const user = await this.em.findOne(User, 
             { id: userId },
             { populate: ["userWeights"] }
         );
@@ -58,20 +61,18 @@ export class UserWeightService {
             throw new ForbiddenError();
         }
 
-        const userReference = this.em.getReference(User, userId);
-
-        const newWeight = this.em.create(UserWeight, {
+        const userWeight = this.em.create(UserWeight, {
             weight,
             date,
-            user: userReference,
+            user: userId,
             company: currentUser.activeCompanyId!
         });
 
         try {
-            await this.em.persistAndFlush(newWeight);
+            await this.em.persistAndFlush(userWeight);
 
             return createServiceResponse(200, "Weight added successfully", true, {
-                weight: newWeight,
+                userWeight,
             });
         } catch (error) {
             console.error("Error adding weight:", error);
@@ -106,6 +107,8 @@ export class UserWeightService {
 
         await this.em.removeAndFlush(userWeight);
 
-        return createServiceResponse(200, "User weight removed successfully", true);
+        return createServiceResponse(200, "User weight removed successfully", true, {
+            userWeight
+        });
     }
 }

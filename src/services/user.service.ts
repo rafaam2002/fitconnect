@@ -5,6 +5,7 @@ import {
     BadRequestError,
     createServiceResponse,
     ForbiddenError,
+    InternalServerError,
     NotFoundError,
     UnauthorizedError,
 } from "../utils/errors.util";
@@ -16,7 +17,6 @@ import {CurrentUser, ServiceResponse} from "../types/common.type";
 import {BaseService} from "./base.service";
 import {CustomerService} from "./customer.service";
 import {AuthService} from "./auth.service";
-import jwt from "jsonwebtoken";
 import {SqlEntityManager} from "@mikro-orm/postgresql";
 
 /**
@@ -35,11 +35,11 @@ export class UserService extends BaseService {
     }
 
     public async getUsers(
+        currentUser: CurrentUser,
         query?: string,
         roleFilter?: string[],
         stateFilter?: string,
         page: number = 0,
-        currentUser?: CurrentUser
     ): Promise<ServiceResponse> {
         if (!currentUser) {
             throw new UnauthorizedError();
@@ -65,14 +65,13 @@ export class UserService extends BaseService {
                 users: filteredUsers,
             });
         } catch (error) {
-            console.error("Error fetching users:", error);
-            throw error;
+            throw new InternalServerError('Error fetching users')
         }
     }
 
     public async getMe(currentUser: CurrentUser): Promise<ServiceResponse> {
         if (!currentUser) {
-            throw new UnauthorizedError();
+            throw new UnauthorizedError('No esta autorizado para acceder al recurso');
         }
 
         const userRepo = this.em.getRepository(User);
@@ -170,10 +169,12 @@ export class UserService extends BaseService {
             throw new BadRequestError("Admin users must provide a Company name");
         }
 
-        const userRepo = this.em.getRepository(User);
-        const existingUser = await userRepo.findOne({
-            $or: [{email}, {nickname}],
-        });
+        const existingUser = await this.em.findOne(User,
+            {
+                $or: [{email}, {nickname}],
+            }, {
+                filters: false
+            });
 
         if (existingUser) {
             throw new BadRequestError("User already exists");
@@ -194,7 +195,7 @@ export class UserService extends BaseService {
 
                 newUser = adminUser;
 
-                const companyToken = this.generateCompanyVerificationToken(newCompany.id);
+                const companyToken = this.authService.generateCompanyVerificationToken(newCompany.id);
                 await this.emailService.sendCompanyVerificationEmail(
                     companyToken,
                     companyData,
@@ -218,7 +219,7 @@ export class UserService extends BaseService {
                 tokens = await this.authService.createTokensPair(newUser);
             }
 
-            const emailToken = this.generateEmailVerificationToken(email);
+            const emailToken = this.authService.generateEmailVerificationToken(email);
             await this.emailService.sendVerificationEmail(email, emailToken);
 
             return createServiceResponse(200, "User created successfully", true, {
@@ -229,7 +230,7 @@ export class UserService extends BaseService {
             if (error.code === "EAUTH") {
                 throw new Error(`Error sending verification email: ${error.message}`);
             }
-            throw new Error(`Error creating user: ${error.name}`);
+            throw new InternalServerError(`Error creating user: ${error.name}`);
         }
     }
 
@@ -249,8 +250,7 @@ export class UserService extends BaseService {
             throw new ForbiddenError();
         }
 
-        const userRepo = this.em.getRepository(User);
-        const user = await userRepo.findOne({id: userId});
+        const user = await this.em.findOne(User, {id: userId});
 
         if (!user) {
             throw new NotFoundError("User");
@@ -259,11 +259,11 @@ export class UserService extends BaseService {
         const oldEmail = user.email;
 
         Object.assign(user, {
-            name: fields.name,
-            email: fields.email,
-            surname: fields.surname,
-            nickname: fields.nickname,
-            phoneNumber: fields.phoneNumber || user.phoneNumber,
+            name: fields.name ?? user.name,
+            email: fields.email ?? user.email,
+            surname: fields.surname ?? user.surname,
+            nickname: fields.nickname ?? user.nickname,
+            phoneNumber: fields.phoneNumber ?? user.phoneNumber,
             isActive: fields.isActive ?? user.isActive,
             isBlocked: fields.isBlocked ?? user.isBlocked,
         });
@@ -275,13 +275,13 @@ export class UserService extends BaseService {
         }
 
         if (oldEmail !== fields.email) {
-            const existingEmail = await userRepo.findOne({email: fields.email});
+            const existingEmail = await this.em.findOne(User,{email: fields.email});
             if (existingEmail && existingEmail.id !== userId) {
                 throw new BadRequestError("Email already exists");
             }
         }
 
-        const existingNickname = await userRepo.find({nickname: fields.nickname});
+        const existingNickname = await this.em.find(User,{nickname: fields.nickname});
         if (existingNickname.length > 1) {
             throw new BadRequestError("Nickname already exists");
         }
@@ -365,7 +365,7 @@ export class UserService extends BaseService {
             throw new UnauthorizedError();
         }
 
-        const token = this.generateEmailVerificationToken(currentUser.email);
+        const token = this.authService.generateEmailVerificationToken(currentUser.email);
         await this.emailService.sendVerificationEmail(currentUser.email, token);
 
         return createServiceResponse(200, "Verification email sent", true);
@@ -433,7 +433,7 @@ export class UserService extends BaseService {
 
         if (roleFilter) {
             // @ts-ignore
-            where.roles  = {role: {$in: roleFilter}};
+            where.roles = {role: {$in: roleFilter}};
         }
 
         if (stateFilter) {
@@ -461,20 +461,5 @@ export class UserService extends BaseService {
         }
 
         return where;
-    }
-
-    private generateCompanyVerificationToken(companyId: string) {
-        return jwt.sign({id: companyId}, process.env.JWT_SECRET!, {
-                expiresIn: "30d",
-            }
-        );
-    }
-
-    private generateEmailVerificationToken(email: string) {
-        return jwt.sign({id: email}, process.env.JWT_SECRET!,
-            {
-                expiresIn: "30d",
-            }
-        )
     }
 }

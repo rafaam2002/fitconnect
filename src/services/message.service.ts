@@ -40,8 +40,6 @@ export class MessageService extends BaseService {
             throw new UnauthorizedError();
         }
 
-        const messageRepo = this.em.getRepository(Message);
-
         const forumFields = isForumMessage ? ["isFixed", "fixedEndDate", "fixedAdmin"] : [];
         const fields = [
             "id",
@@ -77,7 +75,6 @@ export class MessageService extends BaseService {
         text: string,
         receiverId?: string,
         isFixed: boolean = false,
-        fixedDuration?: number,
         isForumMessage: boolean = false,
         currentUser?: CurrentUser
     ): Promise<ServiceResponse> {
@@ -103,7 +100,6 @@ export class MessageService extends BaseService {
                 receiver,
                 sender: this.em.getReference(User, currentUser.id),
                 isFixed: isFixed,
-                fixedDuration,
                 isForumMessage,
                 company: currentUser.activeCompanyId!,
             });
@@ -122,9 +118,9 @@ export class MessageService extends BaseService {
             return createServiceResponse(200, "Message created successfully", true, {
                 sms: newMessage,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating message:", error);
-            throw new Error("Error creating message");
+            throw new Error(`Error creating message ${error.message}`);
         }
     }
 
@@ -163,7 +159,11 @@ export class MessageService extends BaseService {
 
         myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
 
-        return createServiceResponse(200, "Message fixed successfully", true);
+        return createServiceResponse(200, "Message fixed successfully", true, {
+            conversation: {
+                messages: [[message]]
+            }
+        });
     }
 
     public async unfixMessage(
@@ -178,14 +178,14 @@ export class MessageService extends BaseService {
             throw new ForbiddenError();
         }
 
-        const messageRepo = this.em.getRepository(Message);
-        const message = await messageRepo.findOne({ id: messageId });
+        const message = await this.em.findOne(Message,{ id: messageId });
 
         if (!message) {
             throw new NotFoundError("Message");
         }
 
         if (
+            message.fixedAdmin &&
             currentUser.contextRole === UserRoleEnum.COACH &&
             message.fixedAdmin.id !== currentUser.id
         ) {
@@ -199,13 +199,17 @@ export class MessageService extends BaseService {
 
         myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
 
-        return createServiceResponse(200, "Message unfixed successfully", true);
+        return createServiceResponse(200, "Message unfixed successfully", true, {
+            conversation: {
+                messages: [[message]]
+            }
+        });
     }
 
     private async getAllConversations(
         currentUser: CurrentUser,
         limit: number,
-        fields: string[]
+        fields: string[]| any[]
     ): Promise<ServiceResponse> {
         const messageRepo = this.em.getRepository(Message);
 
@@ -213,14 +217,14 @@ export class MessageService extends BaseService {
             .getConnection()
             .execute(
                 `
-        SELECT DISTINCT 
-          CASE 
-            WHEN sender_id = ? THEN receiver_id 
-            ELSE sender_id 
-          END AS otherUser
-        FROM message
-        WHERE sender_id = ? OR receiver_id = ? 
-     `,
+                    SELECT DISTINCT CASE
+                                        WHEN sender_id = ? THEN receiver_id
+                                        ELSE sender_id
+                                        END AS otherUser
+                    FROM message
+                    WHERE sender_id = ?
+                       OR receiver_id = ?
+                `,
                 [currentUser.id, currentUser.id, currentUser.id]
             );
 
@@ -264,10 +268,8 @@ export class MessageService extends BaseService {
         page: number,
         limit: number,
         isForumMessage: boolean,
-        fields: string[]
+        fields:  string[] | any[]
     ): Promise<ServiceResponse> {
-        const messageRepo = this.em.getRepository(Message);
-
         const filter = !isForumMessage
             ? {
                 $or: [
@@ -279,7 +281,7 @@ export class MessageService extends BaseService {
                 isForumMessage: true,
             };
 
-        const messages = await messageRepo.find(filter, {
+        const messages = await this.em.find(Message, filter, {
             orderBy: { created_at: "DESC" },
             limit,
             offset: page * limit,

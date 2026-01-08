@@ -73,8 +73,6 @@ export class TrainingTaskService {
             throw new ForbiddenError();
         }
 
-        const userReference = userId ? this.em.getReference(User, userId) : null;
-
         const newTrainingTask = this.em.create(TrainingTask, {
             content,
             user: userId!,

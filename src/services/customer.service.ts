@@ -34,7 +34,7 @@ export class CustomerService extends BaseService {
 
     async createCustomer(input: CreateCustomerInput): Promise<StripeCustomer> {
         // Buscar usuario
-        const user = await this.em.findOne(User, {id: input.userId});
+        const user = await this.em.findOne(User, {id: input.userId}, {filters: false});
         const metadata: Record<string, any> = {};
 
         if (!user) {
@@ -45,7 +45,7 @@ export class CustomerService extends BaseService {
         const existingCustomer = await this.em.findOne(StripeCustomer, {
             user,
             isActive: true
-        });
+        }, {filters: false});
 
         if (existingCustomer) {
             throw new Error('User already has an active Stripe customer');
@@ -93,7 +93,7 @@ export class CustomerService extends BaseService {
         const customer = await this.em.findOne(StripeCustomer, {
             stripeCustomerId: input.stripeCustomerId,
             isActive: true
-        });
+        }, {filters: false});
 
         if (!customer) {
             throw new Error('Stripe customer not found');

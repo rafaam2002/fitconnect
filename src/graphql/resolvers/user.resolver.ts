@@ -35,13 +35,13 @@ export const getUsers = async (
 
         const userService = new UserService(em);
         return await userService.getUsers(
+            currentUser,
             query,
             roleFilter ?? undefined,
             stateFilter ?? undefined,
             page,
-            currentUser
         );
-    } catch (error) {
+    } catch (error: any) {
         return handleError(error);
     }
 }
@@ -70,6 +70,7 @@ export const findUser = async (
         const {em} = context;
         const {id} = args;
         const userService = new UserService(em);
+
         return await userService.findUser(id);
     } catch (error) {
         return handleError(error);
@@ -105,6 +106,7 @@ export const getConversation = async (
         const {otherUserId, page = 0, limit = 50, isForumMessage = false} = args;
 
         const messageService = new MessageService(em);
+
         return await messageService.getConversation(
             otherUserId,
             page,
@@ -180,7 +182,6 @@ export const getUserWeights = async (
 }
 
 // ===== MUTATION RESOLVERS =====
-
 
 /**
  * Set active company for user
@@ -289,16 +290,15 @@ export const createMessage = async (
             text,
             receiverId,
             isFixed,
-            fixedDuration = null,
             isForumMessage = false,
         } = message;
 
         const messageService = new MessageService(em);
+
         return await messageService.createMessage(
             text,
             receiverId,
             isFixed,
-            fixedDuration ?? 0,
             isForumMessage,
             currentUser
         );
@@ -375,11 +375,11 @@ export const removeTrainingTask = async (
     context: ContextProps
 ) => {
     try {
-        const {taskId} = args;
+        const {trainingTaskId} = args;
         const {em, currentUser} = context;
 
         const trainingTaskService = new TrainingTaskService(em);
-        return await trainingTaskService.removeTrainingTask(taskId, currentUser!);
+        return await trainingTaskService.removeTrainingTask(trainingTaskId, currentUser!);
     } catch (error) {
         return handleError(error);
     }

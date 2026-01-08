@@ -74,13 +74,13 @@ export class Plan extends BaseEntity {
     subscriptions = new Collection<Subscription>(this);
 
     @ManyToOne(() => Company, {nullable: true})
-    company: Company;
+    company?: Company;
 
-    get formattedAmount(): string {
+    formattedAmount(): string {
         return (this.amount / 100).toFixed(2);
     }
 
-    get displayInterval(): string {
+    displayInterval(): string {
         const interval =
             this.intervalCount === 1
                 ? this.interval

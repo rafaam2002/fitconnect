@@ -2,6 +2,8 @@ import {EntityManager, FilterQuery, QueryOrder} from "@mikro-orm/core";
 import {Plan, PlanInterval, PlanStatus} from "../entities/Plan";
 import {BaseService} from "./base.service";
 import {PermissionService} from "./permission.service";
+import {ServiceResponse} from "../types/common.type";
+import {BadRequestError, createServiceResponse, NotFoundError} from "../utils/errors.util";
 
 interface CreatePlanInput {
     name: string;
@@ -34,10 +36,10 @@ export class PlanService extends BaseService {
         this.permissionService = new PermissionService(em);
     }
 
-    async createPlan(input: CreatePlanInput): Promise<Plan> {
+    async createPlan(input: CreatePlanInput): Promise<ServiceResponse> {
         try {
             // Crear producto en Stripe
-            const stripeProduct = await this.   stripe.products.create({
+            const stripeProduct = await this.stripe.products.create({
                 name: input.name,
                 description: input.description,
                 metadata: input.metadata || {},
@@ -91,7 +93,8 @@ export class PlanService extends BaseService {
                 trialPeriodDays,
                 features,
                 metadata,
-                company: companyId,
+                company: companyId!,
+                status: PlanStatus.ACTIVE,
             });
 
             this.em.persist(plan);
@@ -106,17 +109,17 @@ export class PlanService extends BaseService {
                 );
             }
 
-            return plan;
+            return createServiceResponse(200, 'Plan has been created', true, plan);
         } catch (error) {
             this.handleStripeError(error);
         }
     }
 
-    async updatePlan(input: UpdatePlanInput): Promise<Plan> {
+    async updatePlan(input: UpdatePlanInput): Promise<ServiceResponse> {
         const plan = await this.em.findOne(Plan, {id: input.id});
 
         if (!plan) {
-            throw new Error("Plan not found");
+            throw new NotFoundError("Plan not found");
         }
 
         try {
@@ -154,48 +157,84 @@ export class PlanService extends BaseService {
                 );
             }
 
-            return plan;
+            return createServiceResponse(200, 'Plan has been updated', true, plan);
         } catch (error) {
             this.handleStripeError(error);
         }
     }
 
-    async getPlan(planId: string): Promise<Plan | null> {
-        return await this.em.findOne(Plan, {id: planId});
+    async getPlan(planId: string): Promise<ServiceResponse> {
+        if (!planId) {
+            throw new BadRequestError("Plan Id is required");
+        }
+
+        const plan = await this.em.findOne(Plan, {id: planId})
+
+        if (!plan) {
+            throw new NotFoundError("Plan");
+        }
+
+        return createServiceResponse(200, 'Plan has been fetched', true, plan);
     }
 
-    async getPlanByStripeId(stripePriceId: string): Promise<Plan | null> {
-        return await this.em.findOne(Plan, {stripePriceId});
+    async getPlanByStripeId(stripePriceId: string): Promise<ServiceResponse> {
+        const plan = this.em.findOne(Plan, {stripePriceId});
+
+        if (!stripePriceId) {
+            throw new BadRequestError("Stripe price Id is required");
+        }
+
+        if (!plan) {
+            throw new NotFoundError("Plan");
+        }
+
+        return createServiceResponse(200, ' Stripe plan has been loaded', true, plan)
     }
 
     async getPlanByStripeProductId(
         stripeProductId: string
-    ): Promise<Plan | null> {
-        return await this.em.findOne(Plan, {stripeProductId});
+    ): Promise<ServiceResponse> {
+
+        if (!stripeProductId) {
+            throw new BadRequestError("Stripe product Id is required");
+        }
+
+        const plan = this.em.findOne(Plan, {stripeProductId})
+
+        if(!plan) {
+            throw new NotFoundError("Plan");
+        }
+
+        return createServiceResponse(200, ' Stripe plan has been loaded', true, plan);
     }
 
-    async listPlans(onlyActive: boolean = true): Promise<Plan[]> {
+    async listPlans(onlyActive: boolean = true): Promise<ServiceResponse> {
         const where: FilterQuery<Plan> = onlyActive
             ? {status: PlanStatus.ACTIVE}
             : {};
 
-        return await this.em.find<Plan>(Plan, where, {
+        const plans =  await this.em.find<Plan>(Plan, where, {
             orderBy: {amount: QueryOrder.ASC},
         });
+
+        return createServiceResponse(200, 'Plans has been fetched', true, {plans})
     }
 
-    async deactivatePlan(planId: string): Promise<Plan> {
+    async deactivatePlan(planId: string): Promise<ServiceResponse> {
         const plan = await this.em.findOne(Plan, {id: planId});
 
         if (!plan) {
-            throw new Error("Plan not found");
+            throw new NotFoundError("Plan");
         }
+
+        if(!plan.stripeProductId) throw new BadRequestError("Stripe product Id is required");
 
         try {
             // Desactivar precio en Stripe
             await this.stripe.prices.update(plan.stripePriceId, {
                 active: false,
             });
+
             await this.stripe.products.update(plan.stripeProductId, {
                 active: false,
             });
@@ -206,13 +245,13 @@ export class PlanService extends BaseService {
 
             await this.em.flush();
 
-            return plan;
+            return createServiceResponse(200, 'Plan has been deactivated', true, plan);
         } catch (error) {
             this.handleStripeError(error);
         }
     }
 
-    async syncPlanFromStripe(stripePriceId: string): Promise<Plan | null> {
+    async syncPlanFromStripe(stripePriceId: string): Promise<ServiceResponse> {
         try {
             const stripePrice = await this.stripe.prices.retrieve(stripePriceId);
             const stripeProduct = await this.stripe.products.retrieve(
@@ -260,7 +299,7 @@ export class PlanService extends BaseService {
                 );
             }
 
-            return plan;
+            return createServiceResponse(200, 'Plan has been synced', true, plan);
         } catch (error) {
             this.handleStripeError(error);
         }
@@ -278,7 +317,7 @@ export class PlanService extends BaseService {
             const product = await this.stripe.products.retrieve(stripeProductId);
 
             // Buscar plan existente por productId
-            let plan = await this.getPlanByStripeProductId(stripeProductId);
+            let {data: plan} = await this.getPlanByStripeProductId(stripeProductId);
 
             if (!plan) {
                 // El plan podría no existir aún si el precio no se ha creado
@@ -326,7 +365,7 @@ export class PlanService extends BaseService {
      */
     async archivePlanFromProduct(stripeProductId: string): Promise<void> {
         try {
-            const plan = await this.getPlanByStripeProductId(stripeProductId);
+            const {data: plan} = await this.getPlanByStripeProductId(stripeProductId);
 
             if (!plan) {
                 console.log(`No plan found for deleted product ${stripeProductId}`);
@@ -356,7 +395,7 @@ export class PlanService extends BaseService {
      */
     async archivePlanFromPrice(stripePriceId: string): Promise<void> {
         try {
-            const plan = await this.getPlanByStripeId(stripePriceId);
+            const {data: plan} = await this.getPlanByStripeId(stripePriceId);
 
             if (!plan) {
                 console.log(`No plan found for deleted price ${stripePriceId}`);

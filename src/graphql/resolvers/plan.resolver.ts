@@ -1,97 +1,95 @@
-import { PlanService } from "../../services/plan.service";
-import { CustomResponse } from "./errors";
-import { GraphQLError } from "graphql";
+import {PlanService} from "../../services/plan.service";
+import {GraphQLError} from "graphql";
+import {handleError} from "../../utils/errors.util";
 
 // ===== QUERY RESOLVERS =====
 export const getPlan = async (parent: any, args: any, context: any) => {
-  const planService = new PlanService(context.em);
-  const plan = await planService.getPlan(args.planId);
+    try {
+        const planService = new PlanService(context.em);
 
-  return CustomResponse(200, "Plan is fetched successfully.", true, { plan });
+        return await planService.getPlan(args.planId);
+    } catch (error: any) {
+        return handleError(error)
+    }
 };
 
 export const getPlanByStripeId = async (
-  parent: any,
-  args: any,
-  context: any
+    parent: any,
+    args: any,
+    context: any
 ) => {
-  const planService = new PlanService(context.em);
-  const plan = await planService.getPlanByStripeId(args.stripePriceId);
+    try {
+        const planService = new PlanService(context.em);
 
-  return CustomResponse(200, "Plan is fetched successfully.", true, { plan });
+        return await planService.getPlanByStripeId(args.stripePriceId);
+    } catch (error: any) {
+        return handleError(error)
+    }
 };
 
 export const listPlans = async (parent: any, args: any, context: any) => {
-  const planService = new PlanService(context.em);
-  const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
-  const plans = await planService.listPlans(onlyActive);
+    try {
+        const planService = new PlanService(context.em);
+        const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
 
-  return CustomResponse(200, "Plans are fetched successfully.", true, {
-    plans,
-  });
+        return await planService.listPlans(onlyActive);
+    } catch (error: any) {
+        return handleError(error)
+    }
+
 };
 
 // ===== MUTATION RESOLVERS =====
 
 export const createPlan = async (parent: any, args: any, context: any) => {
-  try {
-    const planService = new PlanService(context.em);
-    const plan = await planService.createPlan({
-      ...args.plan,
-      companyId: context.currentUser?.activeCompanyId,
-    });
+    try {
+        const planService = new PlanService(context.em);
 
-    return CustomResponse(200, "Plan created successfully.", true, { plan });
-  } catch (error: any) {
-    return new GraphQLError(error.message, {
-      extensions: {
-        code: "FAILED_CREATE_PLAN",
-      },
-    });
-  }
+        return await planService.createPlan({
+            ...args.plan,
+            companyId: context.currentUser?.activeCompanyId,
+        });
+
+    } catch (error: any) {
+        return handleError(error)
+    }
 };
 
 export const updatePlan = async (parent: any, args: any, context: any) => {
-  try {
-    const planService = new PlanService(context.em);
-    const plan = await planService.updatePlan(args.plan);
+    try {
+        const planService = new PlanService(context.em);
 
-    return CustomResponse(200, "Plan updated successfully.", true, { plan });
-  } catch (error: any) {
-    return new GraphQLError(error.message, {
-      extensions: {
-        code: "FAILED_UPDATE_PLAN",
-      },
-    });
-  }
+        return await planService.updatePlan(args.plan);
+    } catch (error: any) {
+        return new GraphQLError(error.message, {
+            extensions: {
+                code: "FAILED_UPDATE_PLAN",
+            },
+        });
+    }
 };
 
 export const removePlan = async (parent: any, args: any, context: any) => {
-  try {
-    const planService = new PlanService(context.em);
-    const plan = await planService.deactivatePlan(args.planId);
+    try {
+        const planService = new PlanService(context.em);
 
-    return CustomResponse(200, "Plan deactivated successfully", true, { plan });
-  } catch (error: any) {
-    return new GraphQLError(error.message, {
-      extensions: {
-        code: "FAILED_DELETE_PLAN",
-      },
-    });
-  }
+        return await planService.deactivatePlan(args.planId);
+    } catch (error: any) {
+        return handleError(error)
+    }
 };
 
 // ===== EXPORT RESOLVERS OBJECT =====
 export const planResolvers = {
-  Query: {
-    getPlan,
-    getPlanByStripeId,
-    listPlans,
-  },
+    Query: {
+        getPlan,
+        getPlanByStripeId,
+        listPlans,
+    },
 
-  Mutation: {
-    createPlan,
-    updatePlan,
-    removePlan,
-  },
+    Mutation: {
+        createPlan,
+        updatePlan,
+        removePlan,
+    },
 };

@@ -2,6 +2,8 @@ import {EntityManager} from '@mikro-orm/core';
 import {BaseService} from './base.service';
 import {StripeCustomer} from "../entities/StripeCustomer";
 import {User} from "../entities/User";
+import {createServiceResponse, NotFoundError, ValidationError} from "../utils/errors.util";
+import {ServiceResponse} from "../types/common.type";
 
 export interface CreateCustomerInput {
     userId: string;
@@ -32,13 +34,13 @@ export class CustomerService extends BaseService {
         return customer;
     }
 
-    async createCustomer(input: CreateCustomerInput): Promise<StripeCustomer> {
+    async createCustomer(input: CreateCustomerInput): Promise<ServiceResponse> {
         // Buscar usuario
         const user = await this.em.findOne(User, {id: input.userId}, {filters: false});
         const metadata: Record<string, any> = {};
 
         if (!user) {
-            throw new Error('User not found');
+            throw new Error('Customer');
         }
 
         // Verificar si ya tiene un customer activo
@@ -48,60 +50,56 @@ export class CustomerService extends BaseService {
         }, {filters: false});
 
         if (existingCustomer) {
-            throw new Error('User already has an active Stripe customer');
+            throw new ValidationError('User already has an active Stripe customer');
         }
-
-        try {
-            // Crear customer en Stripe
-            const stripeCustomer = await this.stripe.customers.create({
-                email: input.email || user.email,
-                name: input.name || user.fullName,
-                phone: input.phone! || user.phoneNumber!,
-                metadata: {
-                    userId: user.id,
-                    ...input.metadata
-                }
-            }, {
-                idempotencyKey: this.generateIdempotencyKey('customer', user.id)
-            });
-
-            if (stripeCustomer.metadata && Object.keys(stripeCustomer.metadata).length > 0) {
-                // Copiar todas las propiedades
-                Object.assign(metadata, stripeCustomer.metadata);
+        // Crear customer en Stripe
+        const stripeCustomer = await this.stripe.customers.create({
+            email: input.email || user.email,
+            name: input.name || user.fullName,
+            phone: input.phone! || user.phoneNumber!,
+            metadata: {
+                userId: user.id,
+                ...input.metadata
             }
+        }, {
+            idempotencyKey: this.generateIdempotencyKey('customer', user.id)
+        });
 
-            // Crear en base de datos
-            const customerEntity: any = this.em.create(StripeCustomer, {
-                stripeCustomerId: stripeCustomer.id,
-                user,
-                isActive: true,
-                defaultCurrency: 'EUR',
-            });
-
-            user.stripeCustomerId = customerEntity.stripeCustomerId;
-
-            this.em.persist(customerEntity);
-            await this.em.flush();
-
-            return customerEntity;
-        } catch (error) {
-            this.handleStripeError(error);
+        if (stripeCustomer.metadata && Object.keys(stripeCustomer.metadata).length > 0) {
+            // Copiar todas las propiedades
+            Object.assign(metadata, stripeCustomer.metadata);
         }
+
+        // Crear en base de datos
+        const customerEntity: any = this.em.create(StripeCustomer, {
+            stripeCustomerId: stripeCustomer.id,
+            user,
+            isActive: true,
+            defaultCurrency: 'EUR',
+        });
+
+        user.stripeCustomerId = customerEntity.stripeCustomerId;
+
+        this.em.persist(customerEntity);
+        await this.em.flush();
+
+        return createServiceResponse(200, 'Customer has been created', true, customerEntity);
+
     }
 
-    async updateCustomer(input: UpdateCustomerInput): Promise<StripeCustomer> {
+    async updateCustomer(input: UpdateCustomerInput): Promise<ServiceResponse> {
         const customer = await this.em.findOne(StripeCustomer, {
             stripeCustomerId: input.stripeCustomerId,
             isActive: true
         }, {filters: false});
 
         if (!customer) {
-            throw new Error('Stripe customer not found');
+            throw new NotFoundError('Customer');
         }
 
         try {
             // Actualizar en Stripe
-            const updatedStripeCustomer = await this.stripe.customers.update(
+            await this.stripe.customers.update(
                 input.stripeCustomerId,
                 {
                     email: input.email,
@@ -118,13 +116,13 @@ export class CustomerService extends BaseService {
 
             await this.em.flush();
 
-            return customer;
+            return createServiceResponse(200, 'Customer has been updated', true, customer);
         } catch (error) {
             this.handleStripeError(error);
         }
     }
 
-    async getCustomer(stripeCustomerId: string): Promise<StripeCustomer | null> {
+    async getCustomer(stripeCustomerId: string): Promise<ServiceResponse> {
         const customer = await this.em.findOne(StripeCustomer, {
             stripeCustomerId,
             isActive: true
@@ -133,30 +131,32 @@ export class CustomerService extends BaseService {
         });
 
         if (!customer) {
-            throw new Error('User not found');
+            throw new NotFoundError('Customer')
         }
-        return customer;
+        return createServiceResponse(200, 'Customer has been fetched successfully', true, customer);
     }
 
-    async getCustomerByUserId(userId: string): Promise<StripeCustomer | null> {
+    async getCustomerByUserId(userId: string): Promise<ServiceResponse> {
         const user = await this.em.findOne(User, {id: userId});
-        if (!user) return null;
+        if (!user) throw new NotFoundError('Customer');
 
-        return await this.em.findOne(StripeCustomer, {
+        const customer = await this.em.findOne(StripeCustomer, {
             user,
             isActive: true
         }, {
             populate: ['paymentMethods', 'subscriptions']
         });
+
+        return createServiceResponse(200, 'Customer has been fetched successfully', true, customer);
     }
 
-    async deactivateCustomer(stripeCustomerId: string): Promise<void> {
+    async deactivateCustomer(stripeCustomerId: string): Promise<ServiceResponse> {
         const customer = await this.em.findOne(StripeCustomer, {
             stripeCustomerId
         });
 
         if (!customer) {
-            throw new Error('Stripe customer not found');
+            throw new NotFoundError('Stripe customer not found');
         }
         if (customer.isActive)
             customer.isActive = false;
@@ -164,6 +164,8 @@ export class CustomerService extends BaseService {
             console.log(`Customer ${stripeCustomerId} already inactive`);
         }
         await this.em.flush();
+
+        return createServiceResponse(200, 'Customer has been deactivated', true, customer);
     }
 
     async syncCustomerFromStripe(stripeCustomerId: string): Promise<StripeCustomer> {

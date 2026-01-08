@@ -1,66 +1,46 @@
 import {CustomerService} from "../../services/customer.service";
-import {CustomResponse} from "./errors";
-import {GraphQLError} from "graphql/index";
+import {handleError} from "../../utils/errors.util";
 
 // ===== QUERY RESOLVERS =====
 export const getCustomer = async (parent: any, args: any, context: any) => {
     const customerService = new CustomerService(context.em);
-    const customer = await customerService.getCustomer(args.stripeCustomerId);
-
-    return CustomResponse(200, 'Customer fetched successfully!', true, {customer});
+    return await customerService.getCustomer(args.stripeCustomerId);
 }
 
 export const getCustomerByUserId = async (parent: any, args: any, context: any) => {
-    const customerService = new CustomerService(context.em);
-    const customer = await customerService.getCustomerByUserId(args.userId);
-
-    return await CustomResponse(200, 'Customer fetched successfully!', true, {customer});
+    try {
+        const customerService = new CustomerService(context.em);
+        return await customerService.getCustomerByUserId(args.userId);
+    } catch (error: any) {
+        return handleError(error);
+    }
 }
 
-// ===== QUERY RESOLVERS =====
+// ===== MUTATION RESOLVERS =====
 export const createCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        const customer = await customerService.createCustomer(args.customer);
-
-        return CustomResponse(200, 'Customer created successfully', true, {customer});
+        return await customerService.createCustomer(args.customer);
     } catch (error: any) {
-        return new GraphQLError(error.message, {
-            extensions: {
-                code: 'FAILED_CREATE_CUSTOMER',
-            }
-        })
+        return handleError(error)
     }
 }
 
 export const updateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        const customer = await customerService.updateCustomer(args.customer);
-
-        return CustomResponse(200, 'Customer updated successfully', true, customer);
-
+        return await customerService.updateCustomer(args.customer);
     } catch (error: any) {
-        return new GraphQLError(error.message, {
-            extensions: {
-                code: 'FAILED_UPDATE_CUSTOMER',
-            }
-        })
+        return handleError(error)
     }
 }
 
 export const deactivateCustomer = async (parent: any, args: any, context: any) => {
     try {
         const customerService = new CustomerService(context.em);
-        const customer = await customerService.deactivateCustomer(args.stripeCustomerId);
-
-        return CustomResponse(200, 'Customer deactivated successfully', true, null);
+        return await customerService.deactivateCustomer(args.stripeCustomerId);
     } catch (error: any) {
-        return new GraphQLError(error.message, {
-            extensions: {
-                code: 'FAILED_DEACTIVATE_CUSTOMER',
-            }
-        })
+        return handleError(error)
     }
 }
 

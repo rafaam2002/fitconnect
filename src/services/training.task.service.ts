@@ -1,5 +1,4 @@
 import { EntityManager } from "@mikro-orm/core";
-import { User } from "../entities/User";
 import { UserRoleEnum } from "../types/enums";
 import {
     createServiceResponse,

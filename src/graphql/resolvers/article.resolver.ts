@@ -1,48 +1,53 @@
-import { Article } from "../../entities/Article";
-import { GraphQLError } from "graphql";
-import {CustomResponse} from "./errors";
-import {ContextProps} from "../../types/resolvers";
+import { ContextProps } from "../../types/resolvers";
+import { ArticleService } from "../../services/article.service";
+import { UnauthorizedError } from "../../utils/errors.util";
+
+// ============= TYPES =============
 
 type PaginationProps = {
-  limit: number;
-  offset: number;
+    limit?: number;
+    offset?: number;
 };
 
-// ===== QUERY RESOLVERS =====
+// ============= QUERY RESOLVERS =============
+
+/**
+ * Obtener artículos desde API externa con paginación
+ *
+ * @param _ - Parent (no usado)
+ * @param args - Parámetros de paginación
+ * @param context - Contexto GraphQL con EntityManager y usuario actual
+ *
+ * @returns Respuesta con artículos, hasMore y total
+ *
+ * @throws UnauthorizedError - Si el usuario no está autenticado
+ * @throws BadRequestError - Si los parámetros de paginación son inválidos
+ * @throws ExternalAPIError - Si la API externa retorna un error
+ * @throws ServiceUnavailableError - Si no se puede conectar a la API
+ * @throws GatewayTimeoutError - Si la API no responde a tiempo
+ */
 export const getArticles = async (
-  _: any,
-  { limit, offset }: PaginationProps,
-  { em, currentUser }: ContextProps
+    _: any,
+    { limit = 10, offset = 0 }: PaginationProps,
+    { em, currentUser }: ContextProps
 ) => {
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-        extensions: {
-            code: "UNAUTHENTICATED",
-            http: { status: 401 },
-        },
-    });
-  }
-  const articles = await em.find(
-    Article,
-    {},
-    {
-      limit,
-      offset,
+    // Validar autenticación
+    if (!currentUser) {
+        throw new UnauthorizedError();
     }
-  );
 
-  const totalArticles = await em.count(Article);
+    // Crear instancia del servicio
+    const articleService = new ArticleService(em);
 
-  return CustomResponse(200, 'Articles are fetched successfully.', true, {articles, hasMore: offset+limit<totalArticles})
+    // Obtener artículos de la API externa
+    return await articleService.getArticles({ limit, offset });
 
 };
 
- export const articleResolvers = {
-     Query: {
-         getArticles
-     },
-     Mutation: {
+// ============= RESOLVER EXPORT =============
 
-     }
- }
+export const articleResolvers = {
+    Query: {
+        getArticles,
+    },
+};

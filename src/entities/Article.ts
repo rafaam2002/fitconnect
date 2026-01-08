@@ -21,9 +21,6 @@ export class Article {
   @Property({ type: t.string })
   image: string;
 
-  @ManyToOne(() => Company, { nullable: true })
-  company: Company;
-
   constructor(article: Article) {
     this.id = article.id;
     this.publishedAt = article.publishedAt;

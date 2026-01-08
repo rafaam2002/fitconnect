@@ -10,7 +10,6 @@ import {
     ConflictError,
     createServiceResponse,
     ForbiddenError,
-    InternalServerError,
     NotFoundError,
     UnauthorizedError
 } from '../utils/errors.util';

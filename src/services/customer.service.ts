@@ -160,7 +160,7 @@ export class CustomerService extends BaseService {
         }
         if (customer.isActive)
             customer.isActive = false;
-        else if (customer.isActive === false) {
+        else if (!customer.isActive) {
             console.log(`Customer ${stripeCustomerId} already inactive`);
         }
         await this.em.flush();
@@ -169,47 +169,44 @@ export class CustomerService extends BaseService {
     }
 
     async syncCustomerFromStripe(stripeCustomerId: string): Promise<StripeCustomer> {
-        try {
-            // Obtener datos de Stripe
-            const stripeCustomer: any = await this.stripe.customers.retrieve(stripeCustomerId);
 
-            if (stripeCustomer.deleted) {
-                throw new Error('Customer was deleted in Stripe');
-            }
+        // Obtener datos de Stripe
+        const stripeCustomer: any = await this.stripe.customers.retrieve(stripeCustomerId);
 
-            // Buscar en BD
-            let customer: any = await this.em.findOne(StripeCustomer, {stripeCustomerId});
-
-            if (!customer) {
-                // Si no existe, necesitamos encontrar el usuario por metadata o email
-                const userId = stripeCustomer.metadata?.userId;
-                if (!userId) {
-                    throw new Error('Cannot sync customer: no userId in metadata');
-                }
-
-                const user = await this.em.findOne(User, {id: userId});
-                if (!user) {
-                    throw new Error('User not found for sync');
-                }
-
-                customer = this.em.create(StripeCustomer, {
-                    stripeCustomerId,
-                    user,
-                    isActive: true,
-                    defaultCurrency: "EUR"
-                });
-            }
-
-            // Actualizar datos
-            customer.metadata = stripeCustomer.metadata;
-            customer.isActive = true;
-
-            this.em.persist(customer);
-            await this.em.flush();
-
-            return customer;
-        } catch (error) {
-            this.handleStripeError(error);
+        if (stripeCustomer.deleted) {
+            throw new Error('Customer was deleted in Stripe');
         }
+
+        // Buscar en BD
+        let customer: any = await this.em.findOne(StripeCustomer, {stripeCustomerId});
+
+        if (!customer) {
+            // Si no existe, necesitamos encontrar el usuario por metadata o email
+            const userId = stripeCustomer.metadata?.userId;
+            if (!userId) {
+                throw new Error('Cannot sync customer: no userId in metadata');
+            }
+
+            const user = await this.em.findOne(User, {id: userId});
+            if (!user) {
+                throw new Error('User not found for sync');
+            }
+
+            customer = this.em.create(StripeCustomer, {
+                stripeCustomerId,
+                user,
+                isActive: true,
+                defaultCurrency: "EUR"
+            });
+        }
+
+        // Actualizar datos
+        customer.metadata = stripeCustomer.metadata;
+        customer.isActive = true;
+
+        this.em.persist(customer);
+        await this.em.flush();
+
+        return customer;
     }
 }

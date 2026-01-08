@@ -30,15 +30,12 @@ export class TrainingTaskService {
             throw new UnauthorizedError();
         }
 
-        const trainingTaskRepo = this.em.getRepository(TrainingTask);
-        const userReference = this.em.getReference(User, userId);
-
         const trainingTasks = await this.em.find(TrainingTask,
             {
                 $and: [
                     {
                         $or: [
-                            { user: userReference },
+                            { user: userId },
                             { user: null },
                         ],
                     },

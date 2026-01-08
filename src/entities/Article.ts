@@ -1,5 +1,4 @@
-import { Entity, Filter, ManyToOne, PrimaryKey, Property, t } from "@mikro-orm/core";
-import { Company } from "./Company";
+import { Entity, PrimaryKey, Property, t } from "@mikro-orm/core";
 
 @Entity()
 export class Article {

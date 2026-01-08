@@ -19,7 +19,10 @@ export const getPaymentMethod = async (
     }
 };
 
-export const listPaymentMethods = async (parent: any, args: any, context: any) => {
+export const listPaymentMethods = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId } = args;
@@ -31,7 +34,10 @@ export const listPaymentMethods = async (parent: any, args: any, context: any) =
     }
 };
 
-export const listUserPaymentMethods = async (parent: any, args: any, context: any) => {
+export const listUserPaymentMethods = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { userId } = args;
@@ -43,7 +49,10 @@ export const listUserPaymentMethods = async (parent: any, args: any, context: an
     }
 };
 
-export const getDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
+export const getDefaultPaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId } = args;
@@ -55,7 +64,10 @@ export const getDefaultPaymentMethod = async (parent: any, args: any, context: a
     }
 };
 
-export const getUserDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
+export const getUserDefaultPaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { userId } = args;
@@ -67,7 +79,10 @@ export const getUserDefaultPaymentMethod = async (parent: any, args: any, contex
     }
 };
 
-export const getExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
+export const getExpiredPaymentMethods = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId } = args;
@@ -79,7 +94,10 @@ export const getExpiredPaymentMethods = async (parent: any, args: any, context: 
     }
 };
 
-export const getPaymentMethodsStats = async (parent: any, args: any, context: any) => {
+export const getPaymentMethodsStats = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId } = args;
@@ -92,7 +110,10 @@ export const getPaymentMethodsStats = async (parent: any, args: any, context: an
 };
 
 // ===== MUTATION RESOLVERS =====
-export const createSetupIntent = async (parent: any, args: any, context: any) => {
+export const createSetupIntent = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId, usage, metadata } = args;
@@ -108,7 +129,10 @@ export const createSetupIntent = async (parent: any, args: any, context: any) =>
     }
 };
 
-export const confirmSetupIntent = async (parent: any, args: any, context: any) => {
+export const confirmSetupIntent = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { setupIntentId, setAsDefault } = args;
@@ -123,7 +147,10 @@ export const confirmSetupIntent = async (parent: any, args: any, context: any) =
     }
 };
 
-export const attachPaymentMethod = async (parent: any, args: any, context: any) => {
+export const attachPaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { input } = args;
@@ -135,7 +162,10 @@ export const attachPaymentMethod = async (parent: any, args: any, context: any) 
     }
 };
 
-export const removePaymentMethod = async (parent: any, args: any, context: any) => {
+export const removePaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentId } = args;
@@ -147,7 +177,10 @@ export const removePaymentMethod = async (parent: any, args: any, context: any) 
     }
 };
 
-export const setDefaultPaymentMethod = async (parent: any, args: any, context: any) => {
+export const setDefaultPaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentMethodId } = args;
@@ -159,7 +192,10 @@ export const setDefaultPaymentMethod = async (parent: any, args: any, context: a
     }
 };
 
-export const updatePaymentMethodMetadata = async (parent: any, args: any, context: any) => {
+export const updatePaymentMethodMetadata = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentMethodId, metadata } = args;
@@ -174,7 +210,10 @@ export const updatePaymentMethodMetadata = async (parent: any, args: any, contex
     }
 };
 
-export const markPaymentMethodAsExpired = async (parent: any, args: any, context: any) => {
+export const markPaymentMethodAsExpired = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentMethodId } = args;
@@ -186,7 +225,10 @@ export const markPaymentMethodAsExpired = async (parent: any, args: any, context
     }
 };
 
-export const cleanupExpiredPaymentMethods = async (parent: any, args: any, context: any) => {
+export const cleanupExpiredPaymentMethods = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { stripeCustomerId } = args;
@@ -198,7 +240,10 @@ export const cleanupExpiredPaymentMethods = async (parent: any, args: any, conte
     }
 };
 
-export const syncPaymentMethodFromStripe = async (parent: any, args: any, context: any) => {
+export const syncPaymentMethodFromStripe = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentMethodId } = args;
@@ -210,7 +255,10 @@ export const syncPaymentMethodFromStripe = async (parent: any, args: any, contex
     }
 };
 
-export const validatePaymentMethod = async (parent: any, args: any, context: any) => {
+export const validatePaymentMethod = async (
+    parent: any,
+    args: any,
+    context: ContextProps) => {
     try {
         const { em } = context;
         const { paymentMethodId } = args;

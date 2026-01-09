@@ -51,12 +51,6 @@ export interface UpdatePasswordInput {
     confirmPassword: string;
 }
 
-
-interface TokenPai {
-    token: string;
-    refreshToken: string;
-}
-
 // ============= AUTH SERVICE =============
 
 export class AuthService extends BaseService {
@@ -119,7 +113,7 @@ export class AuthService extends BaseService {
         }
 
         // Si tiene múltiples empresas, devolver lista para que seleccione
-        const tokens = await this.createTokensPair(user);
+        const tokens: TokenPair = await this.createTokensPair(user);
         const data = {
             user,
             companies,

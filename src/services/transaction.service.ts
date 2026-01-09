@@ -78,7 +78,9 @@ export class TransactionService extends BaseService {
                 amount: input.amount,
                 currency: input.currency || 'usd',
                 description: input.description,
-                metadata: paymentIntent.metadata
+                metadata: paymentIntent.metadata,
+                company: user.activeCompanyId!,
+                amountRefunded: 0,
             });
 
             this.em.persist(transaction);
@@ -108,7 +110,7 @@ export class TransactionService extends BaseService {
 
         const refundAmount = input.amount || originalTransaction.amount;
 
-        if (refundAmount > originalTransaction.netAmount) {
+        if (refundAmount > originalTransaction.amount) {
             throw new Error('Refund amount cannot exceed the net amount of the original transaction');
         }
 
@@ -136,7 +138,9 @@ export class TransactionService extends BaseService {
                 amount: refundAmount,
                 currency: originalTransaction.currency,
                 description: `Refund for transaction ${originalTransaction.id}`,
-                metadata: stripeRefund.metadata
+                metadata: stripeRefund.metadata,
+                company: originalTransaction.user.activeCompanyId!,
+                amountRefunded: originalTransaction.amountRefunded,
             });
 
             // Actualizar transacción original
@@ -219,13 +223,14 @@ export class TransactionService extends BaseService {
                     currency: stripeCharge.currency,
                     description: stripeCharge.description,
                     failureReason: stripeCharge.failure_message,
-                    metadata: stripeCharge.metadata
+                    metadata: stripeCharge.metadata,
+                    company: stripeCustomer.user.activeCompanyId!
                 });
             } else {
                 // Actualizar existente
                 transaction.status = this.mapStripeStatusToTransactionStatus(stripeCharge.status);
                 transaction.amountRefunded = stripeCharge.amount_refunded;
-                transaction.failureReason = stripeCharge.failure_message;
+                transaction.failureReason = stripeCharge.failure_message ?? 'Fallo en la transaccion';
                 transaction.metadata = stripeCharge.metadata;
             }
 

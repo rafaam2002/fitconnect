@@ -1,11 +1,16 @@
 import {PlanService} from "../../services/plan.service";
-import {GraphQLError} from "graphql";
 import {handleError} from "../../utils/errors.util";
+import {ContextProps} from "../../types/resolvers";
 
 // ===== QUERY RESOLVERS =====
-export const getPlan = async (parent: any, args: any, context: any) => {
+export const getPlan = async (
+    _: any,
+    args: any,
+    context: ContextProps) => {
+    const {em} = context
+
     try {
-        const planService = new PlanService(context.em);
+        const planService = new PlanService(em);
 
         return await planService.getPlan(args.planId);
     } catch (error: any) {
@@ -14,12 +19,13 @@ export const getPlan = async (parent: any, args: any, context: any) => {
 };
 
 export const getPlanByStripeId = async (
-    parent: any,
+    _: any,
     args: any,
-    context: any
+    context: ContextProps
 ) => {
+    const {em} = context
     try {
-        const planService = new PlanService(context.em);
+        const planService = new PlanService(em);
 
         return await planService.getPlanByStripeId(args.stripePriceId);
     } catch (error: any) {
@@ -27,9 +33,13 @@ export const getPlanByStripeId = async (
     }
 };
 
-export const listPlans = async (parent: any, args: any, context: any) => {
+export const listPlans = async (
+    _: any,
+    args: any,
+    context: ContextProps) => {
+    const {em} = context
     try {
-        const planService = new PlanService(context.em);
+        const planService = new PlanService(em);
         const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
 
         return await planService.listPlans(onlyActive);
@@ -41,13 +51,18 @@ export const listPlans = async (parent: any, args: any, context: any) => {
 
 // ===== MUTATION RESOLVERS =====
 
-export const createPlan = async (parent: any, args: any, context: any) => {
+export const createPlan = async (
+    _: any,
+    args: any,
+    context: ContextProps) => {
+
+    const {em, currentUser} = context
     try {
-        const planService = new PlanService(context.em);
+        const planService = new PlanService(em);
 
         return await planService.createPlan({
             ...args.plan,
-            companyId: context.currentUser?.activeCompanyId,
+            companyId: currentUser.activeCompanyId,
         });
 
     } catch (error: any) {
@@ -55,21 +70,24 @@ export const createPlan = async (parent: any, args: any, context: any) => {
     }
 };
 
-export const updatePlan = async (parent: any, args: any, context: any) => {
+export const updatePlan = async (
+    _: any,
+    args: any,
+    context: ContextProps) => {
+    const {em} = context
     try {
-        const planService = new PlanService(context.em);
+        const planService = new PlanService(em);
 
         return await planService.updatePlan(args.plan);
     } catch (error: any) {
-        return new GraphQLError(error.message, {
-            extensions: {
-                code: "FAILED_UPDATE_PLAN",
-            },
-        });
+        return handleError(error)
     }
 };
 
-export const removePlan = async (parent: any, args: any, context: any) => {
+export const removePlan = async (
+    _: any,
+    args: any,
+    context: any) => {
     try {
         const planService = new PlanService(context.em);
 

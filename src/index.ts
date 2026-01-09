@@ -306,7 +306,7 @@ const startServer = async () => {
   );
 
   // ===== MANEJO DE ERRORES GLOBALES =====
-  app.use((error: any, req: any, res: any, next: any) => {
+  app.use((error: any, req: any, res: any, _: any) => {
     console.error("Global error handler:", error);
     if (req.path.startsWith("/webhooks")) {
       // Para webhooks, responder con formato que Stripe espera

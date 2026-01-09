@@ -55,35 +55,29 @@ export class PushTokenService extends BaseService {
             throw new UnauthorizedError();
         }
 
-        try {
-            let tokens: PushToken[];
+        let tokens: PushToken[];
 
-            if (forAll) {
-                // Enviar a todos los usuarios
-                tokens = await this.em.findAll(PushToken);
-            } else {
-                // Enviar solo al usuario actual
-                tokens = await this.em.find(PushToken, {user: currentUser.id});
-            }
-
-            if (!tokens.length) {
-                throw new NotFoundError('No tokens found');
-            }
-
-            // Enviar notificaciones
-            const results = await this.sendNotifications(tokens, title, body);
-
-            return createServiceResponse(201, 'The message has been sent', true, {
-                sent: results.sent,
-                failed: results.failed,
-                total: tokens.length,
-            });
-        } catch (error: any) {
-            if (error instanceof NotFoundError || error instanceof UnauthorizedError) {
-                throw error;
-            }
-            throw new InternalServerError('Error sending notification');
+        if (forAll) {
+            // Enviar a todos los usuarios
+            tokens = await this.em.findAll(PushToken);
+        } else {
+            // Enviar solo al usuario actual
+            tokens = await this.em.find(PushToken, {user: currentUser.id});
         }
+
+        if (!tokens.length) {
+            throw new NotFoundError('No tokens found');
+        }
+
+        // Enviar notificaciones
+        const results = await this.sendNotifications(tokens, title, body);
+
+        return createServiceResponse(201, 'The message has been sent', true, {
+            sent: results.sent,
+            failed: results.failed,
+            total: tokens.length,
+        });
+
     }
 
     /**
@@ -96,27 +90,19 @@ export class PushTokenService extends BaseService {
         if (!currentUser) {
             throw new UnauthorizedError();
         }
+        const pushTokenRepo = this.em.getRepository(PushToken);
+        const pushToken = await pushTokenRepo.findOne({
+            token,
+            user: currentUser,
+        });
 
-        try {
-            const pushTokenRepo = this.em.getRepository(PushToken);
-            const pushToken = await pushTokenRepo.findOne({
-                token,
-                user: currentUser,
-            });
-
-            if (!pushToken) {
-                throw new NotFoundError('Push token not found for the current user');
-            }
-
-            await this.em.removeAndFlush(pushToken);
-
-            return createServiceResponse(200, 'Push token removed successfully', true);
-        } catch (error: any) {
-            if (error instanceof NotFoundError || error instanceof UnauthorizedError) {
-                throw error;
-            }
-            throw new InternalServerError('Error removing push token');
+        if (!pushToken) {
+            throw new NotFoundError('Push token not found for the current user');
         }
+
+        await this.em.removeAndFlush(pushToken);
+
+        return createServiceResponse(200, 'Push token removed successfully', true);
     }
 
     // ============= MÉTODOS PRIVADOS =============

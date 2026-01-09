@@ -59,7 +59,7 @@ export class ScheduleProgrammed extends BaseEntity {
   @ManyToOne(() => Company)
   company: Company;
 
-  constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
+  constructor(scheduleProgrammed: ScheduleProgrammed) {
     super();
     this.daysOfWeek = scheduleProgrammed.daysOfWeek;
     this.startHour = scheduleProgrammed.startHour;

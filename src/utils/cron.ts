@@ -15,8 +15,6 @@ export const cronFunctions = async (
       console.log("🚀 Iniciando tareas programadas...");
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
-        const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
-
         await Promise.all([
           storeNews(em, 3, [1, 2, 3, 4]),
           // scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed(), //se ejecuta en domingo

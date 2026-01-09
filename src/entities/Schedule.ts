@@ -25,10 +25,10 @@ export class Schedule extends BaseEntity {
   title: string;
 
   @Property({ nullable: true })
-  description: string;
+  description: string | null;
 
   @Property({ nullable: true })
-  age: number;
+  age: number | null;
 
   @Property() //puede haber 2 schedules en la misma hora?
   startDate: Date;

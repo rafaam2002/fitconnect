@@ -1,7 +1,7 @@
 import { EntityRepository } from "@mikro-orm/postgresql";
 import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { createScheduleInXWeeks } from "../utils/schedules";
+import { createScheduleInXWeeks } from "../utils/schedules.util";
 import moment from "moment";
 
 export class CustomScheduleProgrammedRepository extends EntityRepository<ScheduleProgrammed> {

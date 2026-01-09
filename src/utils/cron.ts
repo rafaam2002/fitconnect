@@ -3,7 +3,7 @@ import cron from "node-cron";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import { storeNews } from "../helpers/articles";
 import { updatePictureUrls } from "./presigned-urls";
-import { sendScheduleReminders } from "./schedules";
+import { sendScheduleReminders } from "./schedules.util";
 import { setNotActiveUsers } from "./users";
 
 export const cronFunctions = async (

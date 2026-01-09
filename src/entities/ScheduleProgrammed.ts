@@ -49,7 +49,7 @@ export class ScheduleProgrammed extends BaseEntity {
   type: ScheduleType = ScheduleType.STANDARD;
 
   @Property({ nullable: true })
-  age: number;
+  age: number | null;
 
   @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
     cascade: [Cascade.REMOVE],

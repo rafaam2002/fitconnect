@@ -49,7 +49,7 @@ export type ScheduleProps = {
   schedule: {
     title: string;
     description: string;
-    age?: number | null;
+    age?: number | null ;
     type?: ScheduleType;
     startDate: string;
     endDate: string;
@@ -157,6 +157,8 @@ export type UserListProps = {
 export type GetPollProps = { pollId: string; filter: { since: string } };
 
 export type IdProps = { id: string };
+
+export type AddScheduleProps = { scheduleId: string };
 
 export type GetScheduleProps = {
   scheduleId: string;

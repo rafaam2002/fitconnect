@@ -7,7 +7,7 @@ import {Promotion} from "../entities/Promotion";
 export class PromotionFactory extends Factory<Promotion> {
     model = Promotion;
 
-    constructor(em: EntityManager, users: User[]) {
+    constructor(em: EntityManager) {
         super(em);
     }
 

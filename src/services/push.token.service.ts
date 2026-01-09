@@ -1,17 +1,8 @@
 import {EntityManager} from '@mikro-orm/core';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import {BaseService} from './base.service';
 import {PushToken} from '../entities/PushToken';
 import {User} from '../entities/User';
-import {RefreshToken} from '../entities/RefreshToken';
-import {
-    BadRequestError,
-    createServiceResponse,
-    InternalServerError,
-    NotFoundError,
-    UnauthorizedError
-} from '../utils/errors.util';
+import {createServiceResponse, InternalServerError, NotFoundError, UnauthorizedError} from '../utils/errors.util';
 import {CurrentUser, ServiceResponse} from '../types/common.type';
 import {sendPushNotification} from '../utils/notification.util';
 

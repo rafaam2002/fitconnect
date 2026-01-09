@@ -74,7 +74,7 @@ export class Transaction extends BaseEntity {
     @Property({type: 'json', nullable: true})
     metadata?: Record<string, any>;
 
-    private formattedAmount(): string {
+    /*private formattedAmount(): string {
         return (this.amount / 100).toFixed(2);
     }
 
@@ -92,5 +92,5 @@ export class Transaction extends BaseEntity {
 
     private isRefunded(): boolean {
         return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.status);
-    }
+    }*/
 }

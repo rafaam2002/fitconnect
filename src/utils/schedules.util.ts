@@ -4,7 +4,7 @@ import { Schedule } from "../entities/Schedule";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
 import { User } from "../entities/User";
 import { ScheduleState, ScheduleType, UserRoleEnum } from "../types/enums";
-import { sendPushNotification } from "./notifications";
+import { sendPushNotification } from "./notification.util";
 import { CurrentUser } from "../types/common.type";
 import {
   UnauthorizedError,

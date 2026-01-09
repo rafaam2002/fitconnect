@@ -2,7 +2,6 @@ import {
   Cascade,
   Collection,
   Entity,
-  EntityManager,
   EntityRepositoryType,
   Filter,
   ManyToOne,

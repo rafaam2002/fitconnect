@@ -226,7 +226,7 @@ export type RemoveUserWeight = {
   userWeightId: string;
 };
 
-export type CreateProduct = {
+export type CreateProductProps = {
   product: {
     name: string;
     description: string;

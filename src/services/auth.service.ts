@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import {UserProviderType} from '../types/enums';
 import {generateTempPassword, verifyGoogleToken} from '../utils/users';
-import {changePasswordHtml} from '../utils/emailHtml';
+import {changePasswordHtml} from '../utils/templates.util';
 import {ChangePasswordSchema} from '../validation/schemas';
 import {EmailService} from "./email.service";
 import {EmailConfig, ServiceResponse, TokenPair} from "../types/common.type";

@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
+import {CompanyProps} from "../types/resolvers";
+import {CurrentUser} from "../types/common.type";
 dotenv.config();
 
-export const emailHtml = (emailVerificationTk: string) => {
+export const templatesUtil = (emailVerificationTk: string) => {
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -242,4 +244,150 @@ export const changePasswordHtml = (token: string, tmpPassword: string) =>
   </html>
     `;
 
-    
+export const companyVerificationEmailHtml = (
+    companyTk: string,
+    company: CompanyProps,
+    user: CurrentUser
+) => {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nueva compañía pendiente de verificación</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f7;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      h1 {
+        color: #333333;
+        text-align: center;
+      }
+
+      p {
+        color: #555555;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .data-section {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+      }
+
+      .data-section h2 {
+        color: #333333;
+        font-size: 18px;
+        margin-top: 0;
+      }
+
+      .data-item {
+        margin: 5px 0;
+      }
+
+      .button {
+        display: inline-block;
+        margin: 10px 10px 0 0;
+        padding: 12px 24px;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+
+      .approve-button {
+        background-color: #4caf50;
+      }
+
+      .reject-button {
+        background-color: #f44336;
+      }
+
+      .button:link,
+      .button:visited,
+      .button:active,
+      .button:hover {
+        color: #ffffff !important;
+      }
+
+      .footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #999999;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Nueva compañía pendiente de verificación</h1>
+      <p>
+        Se ha registrado una nueva compañía en FitConnect que requiere verificación. Por favor, revisa los detalles a continuación y decide si aprobar o rechazar la solicitud.
+      </p>
+
+      <div class="data-section">
+        <h2>Datos de la compañía</h2>
+        <div class="data-item"><strong>Nombre:</strong> ${
+      company.name || "N/A"
+  }</div>
+        <div class="data-item"><strong>Email:</strong> ${
+      company.email || "N/A"
+  }</div>
+        <div class="data-item"><strong>Teléfono:</strong> ${
+      company.phoneNumber || "N/A"
+  }</div>
+        <div class="data-item"><strong>Dirección:</strong> ${
+      company.address || "N/A"
+  }</div>
+      </div>
+
+      <div class="data-section">
+        <h2>Datos del usuario solicitante</h2>
+        <div class="data-item"><strong>Nombre:</strong> ${
+      user.name || "N/A"
+  }</div>
+        <div class="data-item"><strong>Email:</strong> ${
+      user.email || "N/A"
+  }</div>
+        <div class="data-item"><strong>Teléfono:</strong> ${
+      user.phoneNumber || "N/A"
+  }</div>
+      </div>
+
+      <p style="text-align: center;">
+        <a href="${
+      process.env.API_URL
+  }/admin/verify-company?token=${companyTk}&verify=true" class="button approve-button">Aprobar compañía</a>
+        <a href="${
+      process.env.API_URL
+  }/admin/verify-company?token=${companyTk}&verify=false" class="button reject-button">Rechazar compañía</a>
+      </p>
+
+      <p>
+        Si tienes alguna duda, por favor contacta al equipo de soporte.
+      </p>
+
+      <div class="footer">
+        © 2025 FitConnect. Todos los derechos reservados.
+      </div>
+    </div>
+  </body>
+</html>
+  `;
+};
+

@@ -3,10 +3,10 @@ import {Company} from "../entities/Company";
 import {PictureUrl} from "../entities/PictureUrl";
 import {Product} from "../entities/Product";
 import {User} from "../entities/User";
-import {getPresignedUrl} from "./s3Client";
+import {getPresignedUrl} from "./s3client.util";
 import {BadRequestError} from "./errors.util";
 
-export * from "./s3Client";
+export * from "./s3client.util";
 
 /**
  * Actualizar URLs de imágenes con presigned URLs

@@ -1,6 +1,6 @@
 import { EntityManager } from "@mikro-orm/core";
 import { User } from "../entities/User";
-import { sendPushNotification } from "../utils/notifications";
+import { sendPushNotification } from "../utils/notification.util";
 import {PushNotificationData} from "../types/common.type";
 import {UserRoleEnum} from "../types/enums";
 

@@ -16,8 +16,8 @@ import {
 import {CurrentUser, ServiceResponse} from '../types/common.type';
 import {EmailService} from './email.service';
 import {AuthService} from './auth.service';
-import {sendPushNotification} from '../utils/notifications';
-import {createPictureUrl, getPresignedUrl} from '../utils/presigned-urls';
+import {sendPushNotification} from '../utils/notification.util';
+import {createPictureUrl, getPresignedUrl} from '../utils/presigned-urls.util';
 import {CompanyProps} from "../types/resolvers";
 import {Message} from "../entities/Message";
 

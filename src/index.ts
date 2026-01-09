@@ -17,9 +17,9 @@ import resolvers from "./graphql/resolvers";
 import { typeDefs } from "./graphql/schema/schema";
 import { middleware } from "./middlewares";
 import { storeNews } from "./helpers/articles";
-import { cronFunctions } from "./utils/cron";
-import { renderPage } from "./utils/emailHtml";
-import { initORM } from "./utils/microOrmClient";
+import { cronFunctions } from "./utils/cron.util";
+import { renderPage } from "./utils/templates.util";
+import { initORM } from "./utils/mikro-orm.util";
 import { createRetryingEntityManager } from "./utils/orm-retry";
 import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
 

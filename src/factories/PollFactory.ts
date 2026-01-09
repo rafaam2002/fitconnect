@@ -4,7 +4,7 @@ import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
 import { Schedule } from "../entities/Schedule";
 import { Poll } from "../entities/Poll";
-import { randomUser } from "../utils/factories";
+import { randomUser } from "../utils/factories.util";
 
 export class PollFactory extends Factory<Poll> {
   model = Poll;

@@ -1,7 +1,6 @@
 import nodemailer, { Transporter } from "nodemailer";
 import {EmailConfig} from "../types/common.type";
-import {emailHtml} from "../utils/emailHtml";
-import {companyVerificationEmailHtml} from "../utils/companyVerificationEmailHtml ";
+import {companyVerificationEmailHtml, templatesUtil} from "../utils/templates.util";
 
 
 /**
@@ -55,7 +54,7 @@ export class EmailService {
             from: process.env.GMAIL_USER!,
             to: email,
             subject: "Confirma tu cuenta",
-            html: emailHtml(token),
+            html: templatesUtil(token),
         };
 
         await this.sendEmail(config);

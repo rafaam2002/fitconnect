@@ -12,8 +12,8 @@ import {
     UnauthorizedError
 } from '../utils/errors.util';
 import {CurrentUser, ServiceResponse} from '../types/common.type';
-import {sendPushNotification} from '../utils/notifications';
-import {createPictureUrl, getPresignedUrl} from '../utils/presigned-urls';
+import {sendPushNotification} from '../utils/notification.util';
+import {createPictureUrl, getPresignedUrl} from '../utils/presigned-urls.util';
 
 export class ProductService extends BaseService {
     constructor(em: EntityManager) {

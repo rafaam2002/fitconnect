@@ -10,7 +10,7 @@ import {
     UnauthorizedError,
 } from "../utils/errors.util";
 import {updateUserSchema} from "../validation/schemas";
-import {createPictureUrl, getPresignedUrl} from "../utils/presigned-urls";
+import {createPictureUrl, getPresignedUrl} from "../utils/presigned-urls.util";
 import {EmailService} from "./email.service";
 import {CurrentUser, ServiceResponse} from "../types/common.type";
 import {BaseService} from "./base.service";

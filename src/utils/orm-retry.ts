@@ -19,7 +19,7 @@ export function createRetryingEntityManager(orm: MikroORM): EntityManager<IDatab
     const em = orm.em.fork();
 
     const handler = {
-        get(target: EntityManager, propKey: string | symbol, receiver: any) {
+        get(target: EntityManager, propKey: string | symbol, _: any) {
             const original = target[propKey];
 
             if (typeof original === 'function') {
@@ -27,7 +27,7 @@ export function createRetryingEntityManager(orm: MikroORM): EntityManager<IDatab
                     return async function (...args: any[]) {
                         try {
                             return await original.apply(target, args);
-                        } catch (error) {
+                        } catch (error: any) {
                             if (error.message.includes('Connection ended unexpectedly') || error.message.includes('ECONNRESET')) {
                                 console.warn(`Mikro-ORM: Connection error on method '${String(propKey)}'. Retrying...`);
                                 const newEm = orm.em.fork();

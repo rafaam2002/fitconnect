@@ -14,7 +14,7 @@ import {
     UnauthorizedError
 } from '../utils/errors.util';
 import {CurrentUser, ServiceResponse} from '../types/common.type';
-import {sendPushNotification} from '../utils/notifications';
+import {sendPushNotification} from '../utils/notification.util';
 
 export class PollService extends BaseService {
     constructor(em: EntityManager) {

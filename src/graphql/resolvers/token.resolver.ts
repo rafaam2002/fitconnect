@@ -1,7 +1,7 @@
 import { ContextProps, NotificationProps } from "../../types/resolvers";
 import { CustomResponse } from "./errors";
 import { PushToken } from "../../entities/PushToken";
-import { sendPushNotification } from "../../utils/notifications";
+import { sendPushNotification } from "../../utils/notification.util";
 import { GraphQLError } from "graphql";
 import {getProducts} from "./product.resolver";
 import {RefreshToken} from "../../entities/RefreshToken";

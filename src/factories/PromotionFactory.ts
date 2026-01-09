@@ -3,7 +3,7 @@ import { faker } from "@faker-js/faker";
 import { User } from "../entities/User";
 import { EntityManager } from "@mikro-orm/core";
 import { Promotion } from "../entities/Promotion";
-import { randomUser } from "../utils/factories";
+import { randomUser } from "../utils/factories.util";
 
 export class PromotionFactory extends Factory<Promotion> {
   model = Promotion;

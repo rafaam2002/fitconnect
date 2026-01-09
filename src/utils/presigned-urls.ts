@@ -51,8 +51,7 @@ const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
   // Generar presigned URLs en paralelo
   const urlPromises = users.map(async (user) => {
     if (user.pictureUrl) {
-      const newUrl = await getPresignedUrl(user.pictureUrl.name);
-      user.pictureUrl.url = newUrl;
+      user.pictureUrl.url = await getPresignedUrl(user.pictureUrl.name);
     }
   });
 
@@ -96,8 +95,8 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
 
   // Generar presigned URLs en paralelo
   const urlPromises = allPictures.map(async (picture) => {
-    const newUrl = await getPresignedUrl(picture.name);
-    picture.url = newUrl;
+    picture.url = await getPresignedUrl(picture.name);
+
   });
 
   await Promise.all(urlPromises);
@@ -152,13 +151,12 @@ export const createPictureUrl = (
     [config.field]: em.getReference(config.entity, item.id)
   };
 
-  const pictureUrl = em.create(PictureUrl, {
+  return em.create(PictureUrl, {
     name: item.name,
     url,
     ...owner
   });
 
-  return pictureUrl;
 };
 
 /**

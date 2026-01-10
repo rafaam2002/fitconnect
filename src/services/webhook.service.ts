@@ -83,19 +83,21 @@ export class WebhookService extends BaseService {
      * Obtener log de evento webhook por ID de Stripe
      */
     public async getWebhookEventLog(stripeEventId: string): Promise<ServiceResponse> {
+
+        if (!stripeEventId) {
+            throw new BadRequestError('Stripe event ID is required');
+        }
+
+
+        const eventLog = await this.em.findOne(WebhookEventLog, {
+            stripeEventId,
+        });
+
+        if (!eventLog) {
+            throw new NotFoundError('Webhook event log');
+        }
+
         try {
-            if (!stripeEventId) {
-                throw new BadRequestError('Stripe event ID is required');
-            }
-
-            const eventLog = await this.em.findOne(WebhookEventLog, {
-                stripeEventId,
-            });
-
-            if (!eventLog) {
-                throw new NotFoundError('Webhook event log');
-            }
-
             return createServiceResponse(200, 'Webhook event log fetched successfully', true, {
                 eventLog,
             });
@@ -114,15 +116,15 @@ export class WebhookService extends BaseService {
         maxRetries: number = 3,
         limit: number = 20
     ): Promise<ServiceResponse> {
+        if (maxRetries < 0) {
+            throw new BadRequestError('Max retries must be non-negative');
+        }
+
+        if (limit <= 0 || limit > 100) {
+            throw new BadRequestError('Limit must be between 1 and 100');
+        }
+
         try {
-            if (maxRetries < 0) {
-                throw new BadRequestError('Max retries must be non-negative');
-            }
-
-            if (limit <= 0 || limit > 100) {
-                throw new BadRequestError('Limit must be between 1 and 100');
-            }
-
             const failedEvents = await this.em.find(
                 WebhookEventLog,
                 {
@@ -180,105 +182,99 @@ export class WebhookService extends BaseService {
      * Procesar webhook de Stripe
      */
     public async processWebhook(body: string, signature: string): Promise<ServiceResponse> {
+        if (!body || !signature) {
+            throw new BadRequestError('Body and signature are required');
+        }
+
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+            throw new InternalServerError('STRIPE_WEBHOOK_SECRET not configured');
+        }
+
+
+        let event: Stripe.Event;
+
         try {
-            if (!body || !signature) {
-                throw new BadRequestError('Body and signature are required');
-            }
+            // Verificar firma del webhook
+            event = this.stripe.webhooks.constructEvent(
+                body,
+                signature,
+                process.env.STRIPE_WEBHOOK_SECRET!
+            );
+        } catch (error: any) {
+            console.error('Webhook signature verification failed:', error.message);
+            throw new BadRequestError(
+                `Webhook signature verification failed: ${error.message}`
+            );
+        }
 
-            if (!process.env.STRIPE_WEBHOOK_SECRET) {
-                throw new InternalServerError('STRIPE_WEBHOOK_SECRET not configured');
-            }
+        const em = this.em.fork();
 
-            let event: Stripe.Event;
+        // Verificar si ya hemos procesado este evento
+        const existingLog = await em.findOne(WebhookEventLog, {
+            stripeEventId: event.id,
+        });
 
-            try {
-                // Verificar firma del webhook
-                event = this.stripe.webhooks.constructEvent(
-                    body,
-                    signature,
-                    process.env.STRIPE_WEBHOOK_SECRET!
-                );
-            } catch (error: any) {
-                console.error('Webhook signature verification failed:', error.message);
-                throw new BadRequestError(
-                    `Webhook signature verification failed: ${error.message}`
-                );
-            }
+        if (existingLog && existingLog.status === WebhookEventStatus.PROCESSED) {
+            console.log(`Event ${event.id} already processed, skipping...`);
+            return createServiceResponse(200, 'Webhook already processed', true);
+        }
 
-            const em = this.em.fork();
-
-            // Verificar si ya hemos procesado este evento
-            const existingLog = await em.findOne(WebhookEventLog, {
+        // Crear o actualizar log del evento
+        let eventLog =
+            existingLog ??
+            em.create<WebhookEventLog>(WebhookEventLog, {
                 stripeEventId: event.id,
+                eventType: event.type,
+                payload: event.data.object,
+                status: WebhookEventStatus.PENDING,
+                created_at: new Date(),
+                retryCount: 0,
             });
 
-            if (existingLog && existingLog.status === WebhookEventStatus.PROCESSED) {
-                console.log(`Event ${event.id} already processed, skipping...`);
-                return createServiceResponse(200, 'Webhook already processed', true);
-            }
+        em.persist(eventLog);
+        await em.flush();
 
-            // Crear o actualizar log del evento
-            let eventLog =
-                existingLog ??
-                em.create<WebhookEventLog>(WebhookEventLog, {
-                    stripeEventId: event.id,
-                    eventType: event.type,
-                    payload: event.data.object,
-                    status: WebhookEventStatus.PENDING,
-                    created_at: new Date(),
-                    retryCount: 0,
-                });
+        try {
+            console.log(`Processing webhook event: ${event.type} (${event.id})`);
 
-            em.persist(eventLog);
-            await em.flush();
+            // Procesar evento según su tipo con timeout
+            await Promise.race([
+                this.handleWebhookEvent(event),
+                new Promise((_, reject) =>
+                    setTimeout(
+                        () => reject(new Error('Webhook processing timeout')),
+                        25000
+                    ) // 25s timeout
+                ),
+            ]);
 
-            try {
-                console.log(`Processing webhook event: ${event.type} (${event.id})`);
-
-                // Procesar evento según su tipo con timeout
-                await Promise.race([
-                    this.handleWebhookEvent(event),
-                    new Promise((_, reject) =>
-                        setTimeout(
-                            () => reject(new Error('Webhook processing timeout')),
-                            25000
-                        ) // 25s timeout
-                    ),
-                ]);
-
-                eventLog.markAsProcessed();
-                console.log(
-                    `Successfully processed webhook event: ${event.type} (${event.id})`
-                );
-            } catch (error: any) {
-                console.error(
-                    `Failed to process webhook event ${event.type} (${event.id}):`,
-                    error.message
-                );
-                eventLog.markAsFailed(error.message);
-            }
-
-            em.persist(eventLog);
-            await em.flush();
-
-            return createServiceResponse(200, 'Webhook processed successfully', true);
+            eventLog.markAsProcessed();
+            console.log(
+                `Successfully processed webhook event: ${event.type} (${event.id})`
+            );
         } catch (error: any) {
-            if (error instanceof BadRequestError || error instanceof InternalServerError) {
-                throw error;
-            }
-            throw new InternalServerError('Error processing webhook');
+            console.error(
+                `Failed to process webhook event ${event.type} (${event.id}):`,
+                error.message
+            );
+            eventLog.markAsFailed(error.message);
         }
+
+        em.persist(eventLog);
+        await em.flush();
+
+        return createServiceResponse(200, 'Webhook processed successfully', true);
+
     }
 
     /**
      * Reintentar eventos fallidos
      */
     public async retryFailedEvents(maxRetries: number = 3): Promise<ServiceResponse> {
+        if (maxRetries < 0) {
+            throw new BadRequestError('Max retries must be non-negative');
+        }
         try {
-            if (maxRetries < 0) {
-                throw new BadRequestError('Max retries must be non-negative');
-            }
-
             const failedEvents = await this.em.find(
                 WebhookEventLog,
                 {
@@ -300,7 +296,7 @@ export class WebhookService extends BaseService {
                         `Retrying failed event: ${eventLog.eventType} (${eventLog.stripeEventId})`
                     );
 
-                    // Simular el evento de Stripe para reprocessar
+                    // Simular el evento de Stripe para reprocess
                     const mockEvent: Stripe.Event = {
                         id: eventLog.stripeEventId,
                         type: eventLog.eventType as any,
@@ -347,22 +343,23 @@ export class WebhookService extends BaseService {
      * Reintentar evento webhook específico
      */
     public async retryWebhookEvent(stripeEventId: string): Promise<ServiceResponse> {
+        if (!stripeEventId) {
+            throw new BadRequestError('Stripe event ID is required');
+        }
+
+        const eventLog = await this.em.findOne(WebhookEventLog, {
+            stripeEventId,
+        });
+
+        if (!eventLog) {
+            throw new NotFoundError('Webhook event log');
+        }
+
+        if (eventLog.status === WebhookEventStatus.PROCESSED) {
+            throw new BadRequestError('Event already processed');
+        }
+
         try {
-            if (!stripeEventId) {
-                throw new BadRequestError('Stripe event ID is required');
-            }
-
-            const eventLog = await this.em.findOne(WebhookEventLog, {
-                stripeEventId,
-            });
-
-            if (!eventLog) {
-                throw new NotFoundError('Webhook event log');
-            }
-
-            if (eventLog.status === WebhookEventStatus.PROCESSED) {
-                throw new BadRequestError('Event already processed');
-            }
 
             // Simular el evento de Stripe para reprocessar
             const mockEvent: Stripe.Event = {
@@ -396,19 +393,19 @@ export class WebhookService extends BaseService {
      * Eliminar log de evento webhook
      */
     public async deleteWebhookEventLog(stripeEventId: string): Promise<ServiceResponse> {
+        if (!stripeEventId) {
+            throw new BadRequestError('Stripe event ID is required');
+        }
+
+        const eventLog = await this.em.findOne(WebhookEventLog, {
+            stripeEventId,
+        });
+
+        if (!eventLog) {
+            throw new NotFoundError('Webhook event log');
+        }
+
         try {
-            if (!stripeEventId) {
-                throw new BadRequestError('Stripe event ID is required');
-            }
-
-            const eventLog = await this.em.findOne(WebhookEventLog, {
-                stripeEventId,
-            });
-
-            if (!eventLog) {
-                throw new NotFoundError('Webhook event log');
-            }
-
             await this.em.removeAndFlush(eventLog);
 
             return createServiceResponse(200, 'Webhook event log deleted successfully', true);
@@ -427,11 +424,12 @@ export class WebhookService extends BaseService {
         daysOld: number = 30,
         status?: WebhookEventStatus
     ): Promise<ServiceResponse> {
-        try {
-            if (daysOld < 0) {
-                throw new BadRequestError('Days old must be non-negative');
-            }
 
+        if (daysOld < 0) {
+            throw new BadRequestError('Days old must be non-negative');
+        }
+
+        try {
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
@@ -599,7 +597,7 @@ export class WebhookService extends BaseService {
     }
 
     private async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
-        // Sincronizar para actualizar el estado a cancelado
+        // Sincronizar para actualizar el estado ha cancelado
         await this.subscriptionService.syncSubscriptionFromStripe(subscription.id);
     }
 

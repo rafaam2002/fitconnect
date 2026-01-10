@@ -11,12 +11,12 @@ interface StripeWebhookRequest extends Request {
 
 // Rate limiting para webhooks
 const webhookRateLimit = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minuto
+    windowMs: 60 * 1000, // 1 minuto
     max: 100, // máximo 100 requests por minuto
     message: { error: 'Too many webhook requests' },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => {
+    skip: (_) => {
         // Skip rate limiting en desarrollo
         return process.env.NODE_ENV === 'development';
     }

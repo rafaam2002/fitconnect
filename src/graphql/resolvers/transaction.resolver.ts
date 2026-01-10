@@ -201,6 +201,6 @@ export const transactionResolvers = {
         refundTransaction,
         retryFailedTransaction,
         markTransactionAsReconciled,
-        syncTransactionFromStripe,
+        //syncTransactionFromStripe,
     },
 };

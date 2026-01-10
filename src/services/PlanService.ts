@@ -15,7 +15,7 @@ interface CreatePlanInput {
   trialPeriodDays?: number;
   features?: string[];
   metadata?: Record<string, any>;
-  companyId?: string;
+  companyId: string;
 }
 
 interface UpdatePlanInput {

@@ -1,9 +1,9 @@
 import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import cron from "node-cron";
 import { ScheduleProgrammed } from "../entities/ScheduleProgrammed";
-import { storeNews } from "./articles";
-import { updatePictureUrls } from "./presigned-urls";
-import { sendScheduleReminders } from "./schedules";
+import { storeNews } from "../helpers/articles";
+import { updatePictureUrls } from "./presigned-urls.util";
+import { sendScheduleReminders } from "./schedules.util";
 import { setNotActiveUsers } from "./users";
 
 export const cronFunctions = async (
@@ -15,8 +15,6 @@ export const cronFunctions = async (
       console.log("🚀 Iniciando tareas programadas...");
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
-        const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
-
         await Promise.all([
           storeNews(em, 3, [1, 2, 3, 4]),
           // scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed(), //se ejecuta en domingo

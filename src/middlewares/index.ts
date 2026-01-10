@@ -10,7 +10,7 @@ export const middleware = async (
 ) => {
   const currentUser = await authenticateUser(em, authorization);
 
-  if (isSetCompanyMe) {
+   if (isSetCompanyMe) {
     em.setFilterParams("companyContext", {
       companyId,
     });

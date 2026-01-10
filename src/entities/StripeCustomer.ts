@@ -33,7 +33,4 @@ export class StripeCustomer extends BaseEntity {
     @OneToMany(() => Subscription, subscription => subscription.stripeCustomer)
     subscriptions = new Collection<Subscription>(this);
 
-    @ManyToOne(() => Company, {nullable: true})
-    company: Company;
-
 }

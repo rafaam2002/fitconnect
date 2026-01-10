@@ -1,9 +1,3 @@
-import { GraphQLError } from "graphql";
-import moment from "moment";
-import { Poll } from "../../entities/Poll";
-import { PollVote } from "../../entities/PollVote";
-import { User } from "../../entities/User";
-import { UserRoleEnum } from "../../types/enums";
 import {
   ContextProps,
   DeletePollProps,
@@ -11,319 +5,132 @@ import {
   GetPollProps,
   IdProps,
   PollProps,
-  VoteProps,
+  VoteProps
 } from "../../types/resolvers";
-import { sendPushNotification } from "../../utils/notifications";
-import { CustomResponse } from "./errors";
+import { PollService } from "../../services/poll.service";
+import { handleError } from "../../utils/errors.util";
 
-export const createPoll = async (
-  _: any,
-  args: PollProps,
-  context: ContextProps
+// ===== QUERY RESOLVERS =====
+
+export const getPolls = async (
+    _: any,
+    args: GetPollProps,
+    context: ContextProps
 ) => {
-  const { poll } = args;
-  const { title, endDate } = poll;
-  let { options } = poll;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (
-    currentUser.contextRole !== UserRoleEnum.COACH &&
-    currentUser.contextRole !== UserRoleEnum.BOSS
-  ) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-
-  options = options.filter((option) => option.trim() !== "");
-
-  if (moment(endDate).isBefore(new Date())) {
-    return CustomResponse(400, "End date must be in the future");
-  }
-
   try {
-    const newPoll = em.create(Poll, {
-      endDate: moment(endDate).toDate(),
-      title,
-      options,
-      admin: em.getReference(User, currentUser.id),
-    });
+    const { em, currentUser } = context;
+    const { pollId, filter } = args;
 
-    await em.persistAndFlush(newPoll);
-
-    // Send notification to all users
-    const users = await em.find(User, {}, { populate: ["pushTokens"] });
-    const notificationTitle = "¡Nueva encuesta disponible!";
-    const notificationBody = title;
-    const notificationData = {
-      type: "new_poll",
-      pollId: newPoll.id,
-    };
-
-    users.forEach((user) => {
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        user.pushTokens.getItems().forEach((pushToken) => {
-          sendPushNotification(
-            pushToken.token,
-            notificationTitle,
-            notificationBody,
-            notificationData
-          );
-        });
-      }
-    });
-
-    return CustomResponse(200, "Poll created successfully", true, {
-      poll: newPoll,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return CustomResponse(500, "Error creating poll");
-  }
-};
-
-export const createOrChangePollVote = async (
-  _: any,
-  args: VoteProps,
-  context: ContextProps
-) => {
-  const { vote } = args;
-  const { pollId, option } = vote;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  const pollRepo = em.getRepository(Poll);
-
-  const poll = await pollRepo.findOne({ id: pollId });
-
-  if (!poll) {
-    return CustomResponse(404, "Poll not found");
-  }
-
-  if (poll.endDate < new Date()) {
-    return CustomResponse(403, "Poll has ended");
-  }
-  if (option < 0 || option >= poll.options.length) {
-    return CustomResponse(400, "Invalid option");
-  }
-  const newPollVote = em.create(PollVote, {
-    poll,
-    user: em.getReference(User, currentUser.id),
-  });
-
-  try {
-    newPollVote.optionSelected = option;
-
-    await em.persistAndFlush(newPollVote);
-  } catch (error) {
-    return CustomResponse(500, "Error creating vote");
-  }
-
-  return CustomResponse(200, "Vote created successfully", true, {
-    vote: newPollVote,
-  });
-};
-
-export const deletePollVote = async (
-  _: any,
-  args: DeletePollProps,
-  context: ContextProps
-) => {
-  const { pollId } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  const pollVoteRepo = em.getRepository(PollVote);
-  const pollVote = await pollVoteRepo.findOne({
-    user: currentUser.id,
-    poll: pollId,
-  });
-
-  if (!pollVote) {
-    return CustomResponse(404, "Poll Vote not found");
-  }
-
-  await em.removeAndFlush(pollVote);
-
-  return CustomResponse(200, "Poll Vote deleted successfully", true);
-};
-
-export const removePolls = async (
-  _: any,
-  args: DeletePollsProps,
-  context: ContextProps
-) => {
-  const { ids } = args;
-  const { em, currentUser } = context;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (!ids || ids.length === 0) {
-    return CustomResponse(400, "At least one poll ID is required");
-  }
-
-  const pollRepo = em.getRepository(Poll);
-  const pollVoteRepo = em.getRepository(PollVote);
-
-  // Buscar las encuestas que existen con los IDs proporcionados
-  const polls = await pollRepo.find({
-    id: { $in: ids },
-    // user: currentUser.id
-  });
-
-  if (polls.length === 0) {
-    return CustomResponse(404, "No polls found with the provided IDs");
-  }
-
-  if (polls.length !== ids.length) {
-    const foundIds = polls.map((poll) => poll.id);
-    const notFoundIds = ids.filter((id) => !foundIds.includes(id));
-    return CustomResponse(
-      404,
-      `Some polls not found: ${notFoundIds.join(", ")}`
+    const pollService = new PollService(em);
+    return await pollService.getPolls(
+        currentUser,
+        pollId,
+        filter?.since
     );
-  }
-
-  try {
-    await pollVoteRepo.nativeDelete({
-      poll: { $in: ids },
-    });
-
-    await em.removeAndFlush(polls);
-
-    return CustomResponse(
-      200,
-      `${polls.length} poll(s) and associated votes deleted successfully`,
-      true
-    );
-  } catch (error) {
-    console.error("Error deleting polls:", error);
-    return CustomResponse(500, "Error occurred while deleting polls");
+  } catch (error: any) {
+    return handleError(error);
   }
 };
 
 export const getAdminPolls = async (
-  _: any,
-  args: IdProps,
-  context: ContextProps
+    _: any,
+    __: IdProps,
+    context: ContextProps
 ) => {
-  const { em, currentUser } = context;
-  const userRepo = em.getRepository(User);
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  if (currentUser.contextRole === UserRoleEnum.STANDARD) {
-    return CustomResponse(403, "You are not authorized to perform this action");
-  }
-
-  const user = await userRepo.findOne(
-    { id: currentUser.id },
-    { populate: ["adminPolls"] }
-  );
-  return user.adminPolls;
-};
-
-export const getPolls = async (
-  _: any,
-  args: GetPollProps,
-  context: ContextProps
-) => {
-  const { em, currentUser } = context;
-  const { pollId, filter } = args;
-
-  if (!currentUser) {
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-  }
-
-  const pollRepo = em.getRepository(Poll);
-
-  if (pollId) {
-    const poll = await pollRepo.findOne({ id: pollId });
-    if (!poll) {
-      return CustomResponse(404, "Poll not found");
-    }
-    return CustomResponse(200, "Poll found", true, { poll });
-  }
-
-  if (filter) {
-    const polls = await pollRepo.find(
-      {
-        endDate: { $gte: filter.since },
-      },
-      { populate: ["admin"] }
-    );
-
-    return CustomResponse(200, "Polls found", true, { polls });
-  }
-
   try {
-    const polls = await pollRepo.find(
-      {
-        endDate: { $gte: moment().format("YYYY-MM-DD HH:mm:ss") },
-      },
-      {
-        populate: [
-          "admin",
-          {
-            field: "pollVotes",
-            populate: [
-              {
-                field: "user",
-                fields: ["id", "profilePicture"],
-              },
-            ],
-          },
-        ],
-      }
-    );
-    return CustomResponse(200, "Polls found", true, { polls });
-  } catch (error) {
-    return CustomResponse(500, `Error fetching polls, ${error}`);
+    const { em, currentUser } = context;
+
+    const pollService = new PollService(em);
+    return await pollService.getAdminPolls(currentUser);
+  } catch (error: any) {
+    return handleError(error);
   }
 };
+
+// ===== MUTATION RESOLVERS =====
+
+export const createPoll = async (
+    _: any,
+    args: PollProps,
+    context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { poll } = args;
+    const { title, endDate, options } = poll;
+
+    const pollService = new PollService(em);
+    return await pollService.createPoll(
+        currentUser,
+        title,
+        endDate,
+        options
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+export const createOrChangePollVote = async (
+    _: any,
+    args: VoteProps,
+    context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { vote } = args;
+    const { pollId, option } = vote;
+
+    const pollService = new PollService(em);
+    return await pollService.createOrChangePollVote(
+        currentUser,
+        pollId,
+        option
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+export const deletePollVote = async (
+    _: any,
+    args: DeletePollProps,
+    context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { pollId } = args;
+
+    const pollService = new PollService(em);
+    return await pollService.deletePollVote(
+        currentUser,
+        pollId
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+export const removePolls = async (
+    _: any,
+    args: DeletePollsProps,
+    context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { ids } = args;
+
+    const pollService = new PollService(em);
+    return await pollService.removePolls(
+        currentUser,
+        ids
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+// ===== EXPORT RESOLVERS =====
 
 export const pollResolvers = {
   Query: {

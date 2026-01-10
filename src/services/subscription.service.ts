@@ -1,5 +1,5 @@
-import {EntityManager, QueryOrder} from '@mikro-orm/core';
-import {BaseService} from './BaseService.js';
+import {EntityData, EntityManager, QueryOrder} from '@mikro-orm/core';
+import {BaseService} from './base.service';
 import {User} from "../entities/User";
 import {Subscription, SubscriptionStatus} from "../entities/Subscription";
 import {StripeCustomer} from "../entities/StripeCustomer";
@@ -13,6 +13,7 @@ interface CreateSubscriptionInput {
     trialPeriodDays?: number;
     quantity?: number;
     metadata?: Record<string, any>;
+    companyId: string;
 }
 
 interface UpdateSubscriptionInput {
@@ -36,12 +37,12 @@ export class SubscriptionService extends BaseService {
 
     async createSubscription(input: CreateSubscriptionInput): Promise<Subscription> {
         // Buscar usuario y plan
-        const user = await this.em.findOne(User, { id: input.userId });
+        const user = await this.em.findOne(User, {id: input.userId});
         if (!user) {
             throw new Error('User not found');
         }
 
-        const plan = await this.em.findOne(Plan, { id: input.planId, isActive: true });
+        const plan = await this.em.findOne(Plan, {id: input.planId, isActive: true});
         if (!plan) {
             throw new Error('Plan not found or inactive');
         }
@@ -60,7 +61,7 @@ export class SubscriptionService extends BaseService {
         const existingSubscription = await this.em.findOne(Subscription, {
             user,
             plan,
-            status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] }
+            status: {$in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]}
         });
 
         if (existingSubscription) {
@@ -120,7 +121,7 @@ export class SubscriptionService extends BaseService {
             );
 
             // Crear en base de datos
-            const subscription = this.em.create<Subscription>(Subscription, {
+            const subscription = this.em.create(Subscription, {
                 stripeSubscriptionId: stripeSubscription.id,
                 user,
                 stripeCustomer,
@@ -132,7 +133,10 @@ export class SubscriptionService extends BaseService {
                 trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : undefined,
                 trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : undefined,
                 quantity: stripeSubscription.items.data[0]?.quantity || 1,
-                metadata: stripeSubscription.metadata
+                metadata: stripeSubscription.metadata,
+                company: input.companyId,
+                isInTrial: false,
+                isPastDue: false
             });
 
             this.em.persist(subscription);
@@ -160,7 +164,7 @@ export class SubscriptionService extends BaseService {
 
             // Cambiar plan
             if (input.planId) {
-                const newPlan = await this.em.findOne(Plan, { id: input.planId, isActive: true });
+                const newPlan = await this.em.findOne(Plan, {id: input.planId, isActive: true});
                 if (!newPlan) {
                     throw new Error('New plan not found or inactive');
                 }
@@ -202,7 +206,7 @@ export class SubscriptionService extends BaseService {
 
             // Metadatos
             if (input.metadata) {
-                updateData.metadata = { ...subscription.metadata, ...input.metadata };
+                updateData.metadata = {...subscription.metadata, ...input.metadata};
                 subscription.metadata = updateData.metadata;
             }
 
@@ -227,7 +231,7 @@ export class SubscriptionService extends BaseService {
     }
 
     async cancelSubscription(input: CancelSubscriptionInput): Promise<Subscription> {
-        const subscription: Subscription = await this.em.findOne(Subscription, {
+        const subscription = await this.em.findOne(Subscription, {
             id: input.subscriptionId
         });
 
@@ -250,7 +254,7 @@ export class SubscriptionService extends BaseService {
                         cancel_at_period_end: true,
                         metadata: {
                             ...subscription.metadata,
-                            cancellation_reason: input.cancellationReason
+                            cancellation_reason: input.cancellationReason ?? ""
                         }
                     }
                 );
@@ -258,7 +262,7 @@ export class SubscriptionService extends BaseService {
                 // Cancelar inmediatamente
                 await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
                     metadata: {
-                        cancellation_reason: input.cancellationReason
+                        cancellation_reason: input.cancellationReason ?? ""
                     }
                 });
 
@@ -291,7 +295,7 @@ export class SubscriptionService extends BaseService {
     }
 
     async pauseSubscription(subscriptionId: string): Promise<Subscription> {
-        const subscription = await this.em.findOne(Subscription, { id: subscriptionId });
+        const subscription = await this.em.findOne(Subscription, {id: subscriptionId});
 
         if (!subscription) {
             throw new Error('Subscription not found');
@@ -317,7 +321,7 @@ export class SubscriptionService extends BaseService {
     }
 
     async resumeSubscription(subscriptionId: string): Promise<Subscription> {
-        const subscription = await this.em.findOne(Subscription, { id: subscriptionId });
+        const subscription = await this.em.findOne(Subscription, {id: subscriptionId});
 
         if (!subscription) {
             throw new Error('Subscription not found');
@@ -341,21 +345,21 @@ export class SubscriptionService extends BaseService {
     }
 
     async getSubscription(subscriptionId: string): Promise<Subscription | null> {
-        return await this.em.findOne(Subscription, { id: subscriptionId }, {
+        return await this.em.findOne(Subscription, {id: subscriptionId}, {
             populate: ['user', 'plan', 'stripeCustomer', 'defaultPaymentMethod']
         });
     }
 
     async listUserSubscriptions(userId: string): Promise<Subscription[]> {
-        const user = await this.em.findOne(User, { id: userId });
+        const user = await this.em.findOne(User, {id: userId});
         if (!user) {
             throw new Error('User not found');
         }
 
-        return await this.em.find(Subscription, { user }, {
+        return await this.em.find(Subscription, {user}, {
             populate: ['plan', 'defaultPaymentMethod'],
-            orderBy: { created_at: QueryOrder.DESC }
-        }as any);
+            orderBy: {created_at: QueryOrder.DESC}
+        } as any);
     }
 
     async syncSubscriptionFromStripe(stripeSubscriptionId: string): Promise<Subscription | null> {
@@ -382,7 +386,7 @@ export class SubscriptionService extends BaseService {
                 throw new Error('Plan not found in database');
             }
 
-            let subscription: Subscription = await this.em.findOne(Subscription, {
+            let subscription = await this.em.findOne(Subscription, {
                 stripeSubscriptionId
             });
 
@@ -407,7 +411,7 @@ export class SubscriptionService extends BaseService {
                         new Date(stripeSubscription.ended_at * 1000) : undefined,
                     quantity: stripeSubscription.items.data[0]?.quantity || 1,
                     metadata: stripeSubscription.metadata
-                });
+                } as Subscription);
             } else {
                 // Actualizar existente
                 subscription.status = stripeSubscription.status as SubscriptionStatus;
@@ -422,7 +426,7 @@ export class SubscriptionService extends BaseService {
                 subscription.metadata = stripeSubscription.metadata;
             }
 
-            this.em.persist(subscription);
+            this.em.persist(subscription!);
             await this.em.flush();
 
             return subscription;

@@ -1,17 +1,17 @@
-import {PrimaryKey, Property, UuidType, t, Index} from "@mikro-orm/core";
+import {PrimaryKey, Property, UuidType, t, Index, OptionalProps} from "@mikro-orm/core";
 import {randomUUID} from "node:crypto";
 
 export abstract class BaseEntity {
-  // @Field(() => String)
-  @PrimaryKey({ type: t.uuid })
-  id: string = randomUUID(); //
+  [OptionalProps]?: 'created_at' | 'updated_at' | 'isActive' | 'isBlocked';
 
-  // @Field(() => Date)
+  @PrimaryKey({ type: t.uuid })
+  id: string = randomUUID();
+
   @Property({ onCreate: () => new Date() })
   @Index()
   created_at: Date = new Date();
 
-  // @Field(() => Date)
-  @Property({ onUpdate: () => new Date() })
+  // IMPORTANTE: Añade onCreate también aquí para que tenga valor inicial
+  @Property({ onCreate: () => new Date(), onUpdate: () => new Date() })
   updated_at: Date = new Date();
 }

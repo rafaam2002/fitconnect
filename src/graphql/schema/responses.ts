@@ -126,7 +126,6 @@ type CompanyResponse implements BasicResponse{
     success: Boolean!
     message: String!
     company: Company
-    companies: [Company]
 }
 
 type NotificationResponse implements BasicResponse{

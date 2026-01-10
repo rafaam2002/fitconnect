@@ -1,200 +1,206 @@
-// src/graphql/resolvers/transactionResolver.ts
-import { TransactionService } from '../../services/TransactionService.js';
-import {ContextProps} from "../../types/resolvers";
-import {CustomResponse} from "./errors";
-import {GraphQLError} from "graphql";
-import {Transaction, TransactionStatus} from "../../entities/Transaction";
+import { ContextProps } from "../../types/resolvers";
+import { TransactionService } from "../../services/transaction.service";
+import { handleError } from "../../utils/errors.util";
 
 // ===== QUERY RESOLVERS =====
 
-export const getTransaction = async(parent: any, args: any, context: ContextProps) => {
-    const transactionService = new TransactionService(context.em);
-    const transaction = await transactionService.getTransaction(args.transactionId);
+export const getTransaction = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { transactionId } = args;
 
-    return CustomResponse(200, 'Transaction is fetched sucessfully.', true, {transaction});
-}
+        const transactionService = new TransactionService(em);
+        return await transactionService.getTransaction(transactionId);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
-export const listUserTransactions = async(parent: any, args: any, context: ContextProps) => {
-    const transactionService = new TransactionService(context.em);
-    const limit = args.limit || 50;
-    const transactions = transactionService.listUserTransactions(args.userId, limit);
+export const listUserTransactions = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { userId, limit } = args;
 
-    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
-}
+        const transactionService = new TransactionService(em);
+        return await transactionService.listUserTransactions(userId, limit);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
-export const getTransactionsByStatus = async(parent: any, args: any, context: ContextProps) => {
-    const transactions = await context.em.find('Transaction', {
-        user: args.userId,
-        status: args.status
-    }, {
-        populate: ['paymentMethod', 'subscription'],
-        orderBy: { created_at: 'DESC' },
-        limit: args.limit || 50
-    });
+export const getTransactionsByStatus = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { userId, status, limit } = args;
 
-    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
-}
+        const transactionService = new TransactionService(em);
+        return await transactionService.getTransactionsByStatus(userId, status, limit);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
-export const getSuccessfulTransactions = async(parent: any, args: any, context: ContextProps) => {
-    const transactions = await context.em.find(Transaction, {
-        user: args.userId,
-        status: TransactionStatus.SUCCEEDED
-    }, {
-        populate: ['paymentMethod', 'subscription'],
-        orderBy: { created_at: 'DESC' },
-        limit: args.limit || 50
-    });
-    return CustomResponse(200, 'Transactions listed successfully.', true, {transactions});
-}
+export const getSuccessfulTransactions = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { userId, limit } = args;
 
-export const getFailedTransactions = async(parent: any, args: any, context: ContextProps) => {
-    const transactions = await context.em.find('Transaction', {
-        user: args.userId,
-        status: 'FAILED'
-    }, {
-        populate: ['paymentMethod'],
-        orderBy: { created_at: 'DESC' },
-        limit: args.limit || 50
-    });
-    return CustomResponse(200, 'Transactions failed.', true, {transactions});
-}
+        const transactionService = new TransactionService(em);
+        return await transactionService.getSuccessfulTransactions(userId, limit);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
-export const getUserTransactionsSummary = async(parent: any, args: any, context: ContextProps) => {
-    const allTransactions = await context.em.find(Transaction, {
-        user: args.userId
-    });
+export const getFailedTransactions = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { userId, limit } = args;
 
-    const summary = {
-        totalTransactions: allTransactions.length,
-        successfulTransactions: allTransactions.filter(t => t.status === TransactionStatus.SUCCEEDED).length,
-        failedTransactions: allTransactions.filter(t => t.status === TransactionStatus.FAILED).length,
-        totalAmount: allTransactions
-            .filter(t => t.status === TransactionStatus.SUCCEEDED)
-            .reduce((sum, t) => sum + t.amount, 0),
-        totalRefunded: allTransactions
-            .reduce((sum, t) => sum + t.amountRefunded, 0),
-        lastTransaction: allTransactions
-            .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0] || null
-    };
+        const transactionService = new TransactionService(em);
+        return await transactionService.getFailedTransactions(userId, limit);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
-    return CustomResponse(200, 'Summary has been loaded successfully.', true, {summary});
-}
+export const getUserTransactionsSummary = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { userId } = args;
+
+        const transactionService = new TransactionService(em);
+        return await transactionService.getUserTransactionsSummary(userId);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
 // ===== MUTATION RESOLVERS =====
 
-export const createCharge = async(parent: any, args: any, context: ContextProps) => {
+export const createCharge = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
     try {
-        const transactionService = new TransactionService(context.em);
-        const transaction = await transactionService.createCharge(args.input);
+        const { em } = context;
+        const { input } = args;
 
-        return CustomResponse(200, 'Charge created successfully.', true, {transaction});
+        const transactionService = new TransactionService(em);
+        return await transactionService.createCharge(input);
     } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: 'ERROR_CREATE_CHARGE'
-            }
-        });
-        return {
-            success: false,
-            message: 'Failed to create charge',
-            transaction: null,
-            errors: [error.message]
-        };
+        return handleError(error);
     }
-}
+};
 
-export const refundTransaction = async(parent: any, args: any, context: ContextProps) => {
+export const refundTransaction = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
     try {
-        const transactionService = new TransactionService(context.em);
-        const refundTransaction = await transactionService.refundTransaction(args.input);
+        const { em } = context;
+        const { input } = args;
 
-        return CustomResponse(200, 'Transaction refunded successfully', true, {transaction: refundTransaction})
+        const transactionService = new TransactionService(em);
+        return await transactionService.refundTransaction(input);
     } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: 'ERROR_REFUND_TRANSACTION',
-            }
-        })
+        return handleError(error);
     }
-}
+};
 
-export const retryFailedTransaction = async(parent: any, args: any, context: ContextProps) => {
+export const retryFailedTransaction = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
     try {
-        const transactionService = new TransactionService(context.em);
-        const originalTransaction = await transactionService.getTransaction(args.transactionId);
+        const { em } = context;
+        const { transactionId } = args;
 
-        if (!originalTransaction || originalTransaction.status !== TransactionStatus.FAILED) {
-            return CustomResponse(400, 'Transaction not found or not in failed state', false, {transaction: null})
-        }
-
-        const newTransaction = await transactionService.createCharge({
-            userId: originalTransaction.user.id,
-            amount: originalTransaction.amount,
-            currency: originalTransaction.currency,
-            paymentMethodId: originalTransaction.paymentMethod?.stripePaymentMethodId,
-            description: `Retry of failed transaction ${originalTransaction.id}`,
-            metadata: {
-                ...originalTransaction.metadata,
-                retryOf: originalTransaction.id,
-                retryAttempt: (originalTransaction.metadata?.retryAttempt || 0) + 1
-            }
-        });
-
-        return CustomResponse(200, 'Transaction retry initiated successfully',true, {transaction: newTransaction})
+        const transactionService = new TransactionService(em);
+        return await transactionService.retryFailedTransaction(transactionId);
     } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: 'ERROR_RETRY_FAILED',
-            }
-        })
+        return handleError(error);
     }
-}
+};
 
-export const markTransactionAsReconciled = async(parent: any, args: any, context: ContextProps) => {
+export const markTransactionAsReconciled = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
     try {
-        const transaction = await context.em.findOne(Transaction, {
-            id: args.transactionId
-        });
+        const { em } = context;
+        const { transactionId, reconciledBy } = args;
 
-        if (!transaction) {
-            return CustomResponse(400, 'Transaction not found', false, {transaction: null})
-        }
-
-        // Actualizar metadata para marcar como reconciliado
-        transaction.metadata = {
-            ...transaction.metadata,
-            reconciledAt: new Date().toISOString(),
-            reconciledBy: args.reconciledBy || 'system'
-        };
-
-        await context.em.flush();
-
-        return CustomResponse(200, 'Transaction reconcted successfully', true, {transaction})
+        const transactionService = new TransactionService(em);
+        return await transactionService.markTransactionAsReconciled(
+            transactionId,
+            reconciledBy
+        );
     } catch (error: any) {
-        return {
-            success: false,
-            message: 'Failed to mark transaction as reconciled',
-            transaction: null,
-            errors: [error.message]
-        };
+        return handleError(error);
     }
-}
+};
+
+export const syncTransactionFromStripe = async (
+    _: any,
+    args: any,
+    context: ContextProps
+) => {
+    try {
+        const { em } = context;
+        const { stripeChargeId } = args;
+
+        const transactionService = new TransactionService(em);
+        return await transactionService.syncTransactionFromStripe(stripeChargeId);
+    } catch (error: any) {
+        return handleError(error);
+    }
+};
 
 // ===== EXPORT RESOLVERS OBJECT =====
+
 export const transactionResolvers = {
     Query: {
-       getTransaction,
+        getTransaction,
         listUserTransactions,
         getTransactionsByStatus,
         getSuccessfulTransactions,
         getFailedTransactions,
-        getUserTransactionsSummary
+        getUserTransactionsSummary,
     },
-
     Mutation: {
         createCharge,
         refundTransaction,
         retryFailedTransaction,
-        markTransactionAsReconciled
-    }
+        markTransactionAsReconciled,
+        syncTransactionFromStripe,
+    },
 };

@@ -1,7 +1,7 @@
 import {
   BeforeCreate,
   Collection,
-  Entity,
+  Entity, EntityData,
   Filter,
   Index,
   ManyToMany,
@@ -57,13 +57,13 @@ export class User extends BaseEntity {
 
   @Property({ type: t.string, unique: true })
   @Index()
-  email: string | undefined;
+  email!: string | undefined;
 
   @Property({ nullable: true })
   phoneNumber?: string | null;
 
   @Property({ type: t.string, unique: true })
-  nickname: string;
+  nickname!: string;
 
   @Property()
   isActive: boolean;
@@ -165,7 +165,7 @@ export class User extends BaseEntity {
     super();
     this.name = user.name;
     this.surname = user.surname;
-    this.nickname = user.nickname;
+    this.nickname = user.nickname!;
     this.isActive = true;
     this.isBlocked = false;
     this.password = user.password;
@@ -206,5 +206,17 @@ export class User extends BaseEntity {
       const saltRounds = 10;
       this.password = await bcrypt.hash(this.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
     }
+  }
+
+  async checkPassword(password: string): Promise<boolean> {
+    if (this.password === undefined) {
+      throw new Error("La propiedad password no ha sido cargada. Asegúrate de usar populate: ['password']");
+    }
+
+    if (!this.password) {
+      return false;
+    }
+
+    return bcrypt.compare(password, this.password);
   }
 }

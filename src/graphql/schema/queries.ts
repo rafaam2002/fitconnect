@@ -60,7 +60,7 @@ type Query {
     
     #-----------------Payments------------
     listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
-    getPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
+    getPaymentMethod(stripePaymentMethodId: ID!): PaymentMethodResponse!
     listPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
     getDefaultPaymentMethod(stripeCustomerId: ID!): PaymentMethodResponse!
     getUserDefaultPaymentMethod(userId: ID!): PaymentMethodResponse!

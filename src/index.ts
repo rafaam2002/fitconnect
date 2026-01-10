@@ -16,10 +16,10 @@ import { User } from "./entities/User";
 import resolvers from "./graphql/resolvers";
 import { typeDefs } from "./graphql/schema/schema";
 import { middleware } from "./middlewares";
-import { storeNews } from "./utils/articles";
-import { cronFunctions } from "./utils/cron";
-import { renderPage } from "./utils/emailHtml";
-import { initORM } from "./utils/microOrmClient";
+import { storeNews } from "./helpers/articles";
+import { cronFunctions } from "./utils/cron.util";
+import { renderPage } from "./utils/templates.util";
+import { initORM } from "./utils/mikro-orm.util";
 import { createRetryingEntityManager } from "./utils/orm-retry";
 import { stripeWebhookRouter } from "./webhooks/stripe.webhook";
 
@@ -76,7 +76,7 @@ const startServer = async () => {
   app.get("/auth/verify-email", async (req, res) => {
     const token = req.query.token as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
         id: string;
       };
 
@@ -103,7 +103,7 @@ const startServer = async () => {
             true
           )
         );
-    } catch (err) {
+    } catch (err: any) {
       return res
         .status(400)
         .send(
@@ -120,13 +120,13 @@ const startServer = async () => {
     const token = req.query.token as string;
     const verify = req.query.verify as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET) as {
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
         id: string;
       };
 
       const em: EntityManager<IDatabaseDriver<Connection>> =
         createRetryingEntityManager(orm);
-      const company: Company = await em.findOne(Company, {
+      const company = await em.findOne(Company, {
         id: decodedToken.id,
       });
       if (!company) {
@@ -158,7 +158,7 @@ const startServer = async () => {
               true
             )
           );
-    } catch (err) {
+    } catch (err: any) {
       return res
         .status(400)
         .send(
@@ -207,7 +207,7 @@ const startServer = async () => {
             true
           )
         );
-    } catch (err) {
+    } catch (err: any) {
       return res
         .status(400)
         .send(
@@ -274,7 +274,7 @@ const startServer = async () => {
             return { em, currentUser: null };
           }
         }
-        return await middleware(em, authorization, companyId, isSetCompanyMe);
+        return await middleware(em, authorization, companyId, true);
       },
     })
   );
@@ -306,7 +306,7 @@ const startServer = async () => {
   );
 
   // ===== MANEJO DE ERRORES GLOBALES =====
-  app.use((error: any, req: any, res: any, next: any) => {
+  app.use((error: any, req: any, res: any, _: any) => {
     console.error("Global error handler:", error);
     if (req.path.startsWith("/webhooks")) {
       // Para webhooks, responder con formato que Stripe espera

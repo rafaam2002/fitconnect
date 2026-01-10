@@ -15,7 +15,7 @@ export class MessageSeeder extends Seeder {
     );
 
     adminUsers.forEach(async (admin) => {
-      const forumMessage = em.create(Message, {
+      const forumMessage = em.create<Message>(Message, {
         text: "Welcome to the forum!",
         sender: admin,
         isFixed: false,

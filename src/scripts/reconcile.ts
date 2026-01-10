@@ -1,6 +1,6 @@
 import {Subscription, SubscriptionStatus} from "../entities/Subscription";
-import {CustomerService} from "../services/CustomerService";
-import {SubscriptionService} from "../services/SubscriptionService";
+import {CustomerService} from "../services/customer.service";
+import {SubscriptionService} from "../services/subscription.service";
 import {MikroORM} from "@mikro-orm/core";
 import {StripeCustomer} from "../entities/StripeCustomer";
 import config from "../mikro-orm.config";

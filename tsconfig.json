@@ -1,16 +1,22 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "module": "Node16",
+    "module": "NodeNext",
     "esModuleInterop": true,
-    "target": "es6",
-    "moduleResolution": "node16",
+    "target": "ES2022",
+    "moduleResolution": "NodeNext",
     "sourceMap": true,
     "outDir": "dist",
-     "experimentalDecorators": true,
+    "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false // Importante para MikroORM y decoradores
+    "useDefineForClassFields": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false
+    // Importante para MikroORM y decoradores
   },
-  "lib": ["es2015"]
+  "lib": [
+    "es2015"
+  ]
 }
 

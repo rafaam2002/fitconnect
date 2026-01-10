@@ -1,65 +1,26 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import crypto from "crypto";
-import dotenv from "dotenv";
-import { GraphQLError } from "graphql";
 import { ContextProps } from "../../types/resolvers";
-import { CustomResponse } from "./errors";
-
-dotenv.config();
-
-const bucketName =
-  process.env.AWS_BUCKET_NAME || "pre-signed-url-demo-gondorwebmasters";
-
-const region = process.env.AWS_REGION || "eu-north-1";
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "";
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || "";
-
-export const s3 = new S3Client({
-  region,
-  credentials: {
-    accessKeyId,
-    secretAccessKey,
-  },
-  requestChecksumCalculation: "WHEN_REQUIRED",
-});
+import { S3Service } from "../../services/s3.service";
+import { handleError } from "../../utils/errors.util";
 
 // ===== QUERY RESOLVERS =====
+
 export const getPresignedUrl = async (
-  _: any,
-  {
-    key,
-  }: {
-    key?: string;
-  },
-  context: ContextProps
+    _: any,
+    args: any,
+    context: ContextProps
 ) => {
-  if (!context.currentUser)
-    throw new GraphQLError("Please login, token_expired", {
-      extensions: {
-        code: "UNAUTHENTICATED",
-        http: { status: 401 },
-      },
-    });
-
-  const Key = key || `${crypto.randomUUID()}.jpeg`;
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key,
-    ContentType: "image/jpeg",
-  });
-
   try {
-    const url = await getSignedUrl(s3, command, { expiresIn: 60 * 2 });
-    return CustomResponse(200, "Presigned URL generated successfully", true, {
-      presignedUrl: url,
-      key: Key,
-    });
-  } catch (error) {
-    console.error("Error generating presigned URL", error);
-    return CustomResponse(500, "Error generating presigned URL", false, null);
+    const { em, currentUser } = context;
+    const { key } = args;
+
+    const s3Service = new S3Service(em);
+    return await s3Service.getPresignedUrl(currentUser, key);
+  } catch (error: any) {
+    return handleError(error);
   }
 };
+
+// ===== EXPORT RESOLVERS =====
 
 export const s3Resolvers = {
   Query: {

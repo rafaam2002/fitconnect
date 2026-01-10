@@ -27,7 +27,7 @@ export class Message extends BaseEntity {
 
   //  @Field(() => Number, { nullable: true })
   @Property({ nullable: true })
-  fixedEndDate?: Date;
+  fixedEndDate?: Date | null;
 
   @ManyToOne(() => User, { nullable: true })
   fixedAdmin?: User;

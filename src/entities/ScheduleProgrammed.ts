@@ -2,7 +2,6 @@ import {
   Cascade,
   Collection,
   Entity,
-  EntityManager,
   EntityRepositoryType,
   Filter,
   ManyToOne,
@@ -49,7 +48,7 @@ export class ScheduleProgrammed extends BaseEntity {
   type: ScheduleType = ScheduleType.STANDARD;
 
   @Property({ nullable: true })
-  age: number;
+  age: number | null;
 
   @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
     cascade: [Cascade.REMOVE],
@@ -59,7 +58,7 @@ export class ScheduleProgrammed extends BaseEntity {
   @ManyToOne(() => Company)
   company: Company;
 
-  constructor(scheduleProgrammed: ScheduleProgrammed, em: EntityManager) {
+  constructor(scheduleProgrammed: ScheduleProgrammed) {
     super();
     this.daysOfWeek = scheduleProgrammed.daysOfWeek;
     this.startHour = scheduleProgrammed.startHour;

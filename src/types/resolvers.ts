@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { User } from "../entities/User";
 import { ScheduleState, ScheduleType, UserRoleEnum } from "./enums";
-import { UserType } from "./user";
+import {CurrentUser} from "./common.type";
 
 export type UserProps = {
   user: User & {
@@ -16,6 +16,7 @@ export type CompanyProps = {
   address: string;
   phoneNumber: string;
   email: string;
+  isValidated: boolean;
 };
 
 export type UserPictureProps = {
@@ -31,7 +32,7 @@ export type UpdateCompanyPictureProps = {
 
 export type ContextProps = {
   em: EntityManager | any;
-  currentUser: UserType;
+  currentUser: CurrentUser;
 };
 
 export type MessageProps = {
@@ -48,7 +49,7 @@ export type ScheduleProps = {
   schedule: {
     title: string;
     description: string;
-    age?: number | null;
+    age?: number | null ;
     type?: ScheduleType;
     startDate: string;
     endDate: string;
@@ -157,6 +158,8 @@ export type GetPollProps = { pollId: string; filter: { since: string } };
 
 export type IdProps = { id: string };
 
+export type AddScheduleProps = { scheduleId: string };
+
 export type GetScheduleProps = {
   scheduleId: string;
   schedulesIds?: string[];
@@ -204,7 +207,7 @@ export type GetTrainingTaskProps = {
 };
 
 export type removeTrainingTaskProps = {
-  taskId: string;
+  trainingTaskId: string;
 };
 
 export type GetUserWeightsProps = {
@@ -225,7 +228,7 @@ export type RemoveUserWeight = {
   userWeightId: string;
 };
 
-export type CreateProduct = {
+export type CreateProductProps = {
   product: {
     name: string;
     description: string;
@@ -255,3 +258,20 @@ export type DeletePollsProps = {
 export type RemoveProductProps = {
   ids: string[];
 };
+
+export type LoginProps = {
+  emailOrNickname: string;
+  password: string
+}
+
+export type PasswordResetProps = {
+  email: string;
+}
+
+export type UpdatePasswordProps = {
+  password: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }
+}

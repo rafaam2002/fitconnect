@@ -75,6 +75,7 @@ export class Subscription extends BaseEntity {
     metadata?: Record<string, any>;
 
     @ManyToOne(() => Company, {nullable: true})
+    @Index()
     company: Company;
 
     // Relaciones

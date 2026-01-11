@@ -1,8 +1,8 @@
-import { Factory } from "@mikro-orm/seeder";
-import { Company } from "../entities/Company";
-import { EntityData, EntityManager } from "@mikro-orm/core";
-import { PlanInterval } from "../entities/Plan";
-import { faker } from "@faker-js/faker";
+import { Factory } from '@mikro-orm/seeder';
+import { Company } from '../entities/Company';
+import { EntityData, EntityManager } from '@mikro-orm/core';
+import { PlanInterval } from '../entities/Plan';
+import { faker } from '@faker-js/faker';
 
 export class CompanyFactory extends Factory<Company> {
   model = Company;

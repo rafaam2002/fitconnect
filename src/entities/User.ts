@@ -1,7 +1,8 @@
 import {
   BeforeCreate,
   Collection,
-  Entity, EntityData,
+  Entity,
+  EntityData,
   Filter,
   Index,
   ManyToMany,
@@ -9,35 +10,35 @@ import {
   OneToOne,
   Property,
   t,
-} from "@mikro-orm/core";
-import bcrypt from "bcrypt";
-import { UserProviderType, UserRoleEnum } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Company } from "./Company";
-import { Message } from "./Message";
-import { PictureUrl } from "./PictureUrl";
-import { Poll } from "./Poll";
-import { PollVote } from "./PollVote";
-import { Promotion } from "./Promotion";
-import { PushToken } from "./PushToken";
-import { RefreshToken } from "./RefreshToken";
-import { Schedule } from "./Schedule";
-import { Subscription } from "./Subscription";
-import { TrainingTask } from "./TraningITask";
-import { Transaction } from "./Transaction";
-import { UserRole } from "./UserRole";
-import { UserWeight } from "./UserWeight";
+} from '@mikro-orm/core';
+import bcrypt from 'bcrypt';
+import { UserProviderType, UserRoleEnum } from '../types/enums';
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { Message } from './Message';
+import { PictureUrl } from './PictureUrl';
+import { Poll } from './Poll';
+import { PollVote } from './PollVote';
+import { Promotion } from './Promotion';
+import { PushToken } from './PushToken';
+import { RefreshToken } from './RefreshToken';
+import { Schedule } from './Schedule';
+import { Subscription } from './Subscription';
+import { TrainingTask } from './TraningITask';
+import { Transaction } from './Transaction';
+import { UserRole } from './UserRole';
+import { UserWeight } from './UserWeight';
 
 export enum UserStatus {
-  ACTIVE = "active",
-  INACTIVE = "inactive",
-  PENDING = "pending",
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
 }
 
 @Entity()
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({
+  name: 'companyContext',
+  cond: args => ({
     $or: [
       { companies: { id: args.companyId } },
       { pendingCompanies: { id: args.companyId } },
@@ -91,7 +92,7 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   activeCompanyId?: string | null;
 
-  @OneToMany(() => UserRole, (userRole) => userRole.user, { eager: true })
+  @OneToMany(() => UserRole, userRole => userRole.user, { eager: true })
   roles = new Collection<UserRole>(this);
 
   // @ManyToMany(() => Plan, (plan: Plan) =>plans.users, {
@@ -104,61 +105,61 @@ export class User extends BaseEntity {
   })
   schedules = new Collection<Schedule>(this);
 
-  @ManyToMany(() => Promotion, (promotion) => promotion.users, {
+  @ManyToMany(() => Promotion, promotion => promotion.users, {
     owner: true,
   })
   promotions = new Collection<Promotion>(this);
 
   // Relación OneToMany con Schedule (admin)
-  @OneToMany(() => Schedule, (schedule) => schedule.admin, { lazy: true })
+  @OneToMany(() => Schedule, schedule => schedule.admin, { lazy: true })
   adminSchedules = new Collection<Schedule>(this);
 
   // Relación OneToMany con Message (sender)
-  @OneToMany(() => Message, (message) => message.sender, { lazy: true })
+  @OneToMany(() => Message, message => message.sender, { lazy: true })
   messagesSent = new Collection<Message>(this);
 
   // Relación OneToMany con Message (receiver)
-  @OneToMany(() => Message, (message) => message.receiver, { lazy: true })
+  @OneToMany(() => Message, message => message.receiver, { lazy: true })
   messagesReceived = new Collection<Message>(this);
 
-  @OneToMany(() => Poll, (poll) => poll.admin, { lazy: true })
+  @OneToMany(() => Poll, poll => poll.admin, { lazy: true })
   adminPolls = new Collection<Poll>(this);
 
-  @OneToMany(() => PollVote, (PollVote) => PollVote.user, { lazy: true })
+  @OneToMany(() => PollVote, PollVote => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
-  @OneToMany(() => Subscription, (subscription) => subscription.user)
+  @OneToMany(() => Subscription, subscription => subscription.user)
   subscriptions = new Collection<Subscription>(this);
 
-  @OneToMany(() => Transaction, (transaction) => transaction.user)
+  @OneToMany(() => Transaction, transaction => transaction.user)
   transactions = new Collection<Transaction>(this);
 
   @Property({ nullable: true })
   stripeCustomerId?: string;
 
-  @OneToMany(() => TrainingTask, (trainingTask) => trainingTask.user, {
+  @OneToMany(() => TrainingTask, trainingTask => trainingTask.user, {
     lazy: true,
   })
   trainingTasks = new Collection<TrainingTask>(this);
 
-  @OneToMany(() => UserWeight, (userWeight) => userWeight.user, {
+  @OneToMany(() => UserWeight, userWeight => userWeight.user, {
     lazy: true,
   })
   userWeights = new Collection<UserWeight>(this);
 
-  @OneToOne(() => PictureUrl, (picture) => picture.user, {
+  @OneToOne(() => PictureUrl, picture => picture.user, {
     nullable: true,
     owner: true,
     eager: true,
   })
   pictureUrl?: PictureUrl;
 
-  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
+  @OneToMany(() => RefreshToken, refreshToken => refreshToken.user, {
     lazy: true,
   })
   refreshTokens = new Collection<RefreshToken>(this);
 
-  @OneToMany(() => PushToken, (pushToken) => pushToken.user, { lazy: true })
+  @OneToMany(() => PushToken, pushToken => pushToken.user, { lazy: true })
   pushTokens = new Collection<PushToken>(this);
 
   constructor(user: User) {
@@ -210,7 +211,9 @@ export class User extends BaseEntity {
 
   async checkPassword(password: string): Promise<boolean> {
     if (this.password === undefined) {
-      throw new Error("La propiedad password no ha sido cargada. Asegúrate de usar populate: ['password']");
+      throw new Error(
+        "La propiedad password no ha sido cargada. Asegúrate de usar populate: ['password']"
+      );
     }
 
     if (!this.password) {

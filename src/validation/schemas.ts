@@ -1,5 +1,5 @@
-import z from "zod";
-import { messages } from "./functions";
+import z from 'zod';
+import { messages } from './functions';
 
 export const updateUserSchema = z.object({
   nickname: z
@@ -33,7 +33,7 @@ export const ChangePasswordSchema = z
     newPassword: z.string().min(6, messages.minErrorMsg(6)),
     confirmPassword: z.string().min(6, messages.minErrorMsg(6)),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
+  .refine(data => data.newPassword === data.confirmPassword, {
     message: messages.passwordDontMatchErrorMsg,
   });
 

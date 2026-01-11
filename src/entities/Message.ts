@@ -5,15 +5,15 @@ import {
   Filter,
   ManyToOne,
   Property,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+import { BaseEntity } from './BaseEntity';
+import { User } from './User';
+import { Company } from './Company';
 
 @Entity()
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 export class Message extends BaseEntity {
@@ -60,7 +60,7 @@ export class Message extends BaseEntity {
   @BeforeUpdate()
   validate() {
     if (this.sender === this.receiver) {
-      throw new Error("Sender and receiver can not be the same.");
+      throw new Error('Sender and receiver can not be the same.');
     }
   }
 }

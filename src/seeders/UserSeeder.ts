@@ -1,17 +1,17 @@
-import { faker } from "@faker-js/faker";
-import type { EntityManager } from "@mikro-orm/core";
-import { Seeder } from "@mikro-orm/seeder";
-import { Company } from "../entities/Company";
-import { Promotion } from "../entities/Promotion";
-import { Schedule } from "../entities/Schedule";
-import { ScheduleOptions } from "../entities/ScheduleOptions";
-import { User } from "../entities/User";
-import { UserRole } from "../entities/UserRole";
-import { CompanyFactory } from "../factories/CompanyFactory";
-import { PollFactory } from "../factories/PollFactory";
-import { PollVoteFactory } from "../factories/PollVoteFactory";
-import { UserFactory } from "../factories/UserFactory";
-import { UserRoleEnum } from "../types/enums";
+import { faker } from '@faker-js/faker';
+import type { EntityManager } from '@mikro-orm/core';
+import { Seeder } from '@mikro-orm/seeder';
+import { Company } from '../entities/Company';
+import { Promotion } from '../entities/Promotion';
+import { Schedule } from '../entities/Schedule';
+import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
+import { CompanyFactory } from '../factories/CompanyFactory';
+import { PollFactory } from '../factories/PollFactory';
+import { PollVoteFactory } from '../factories/PollVoteFactory';
+import { UserFactory } from '../factories/UserFactory';
+import { UserRoleEnum } from '../types/enums';
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -44,12 +44,12 @@ export class UserSeeder extends Seeder {
 
       const admins = [
         em.create<User>(User, {
-          name: "Rafa",
-          surname: "Mesa",
-          password: "rafa",
-          email: "rafa@mail.com",
-          phoneNumber: "123456789",
-          nickname: "rafa",
+          name: 'Rafa',
+          surname: 'Mesa',
+          password: 'rafa',
+          email: 'rafa@mail.com',
+          phoneNumber: '123456789',
+          nickname: 'rafa',
           isActive: true,
           isBlocked: false,
           companies: [createdCompanies[0]],
@@ -61,12 +61,12 @@ export class UserSeeder extends Seeder {
           ],
         }),
         em.create<User>(User, {
-          name: "Juan",
-          surname: "Miguel",
-          password: "juan",
-          email: "juan@mail.com",
-          phoneNumber: "987654321",
-          nickname: "juan",
+          name: 'Juan',
+          surname: 'Miguel',
+          password: 'juan',
+          email: 'juan@mail.com',
+          phoneNumber: '987654321',
+          nickname: 'juan',
           isActive: true,
           isBlocked: false,
           companies: [createdCompanies[1]],
@@ -78,12 +78,12 @@ export class UserSeeder extends Seeder {
           ],
         }),
         em.create<User>(User, {
-          name: "Isaac",
-          surname: "Pinga",
-          password: "isaac",
-          email: "isaac@mail.com",
-          phoneNumber: "123123123",
-          nickname: "isaac",
+          name: 'Isaac',
+          surname: 'Pinga',
+          password: 'isaac',
+          email: 'isaac@mail.com',
+          phoneNumber: '123123123',
+          nickname: 'isaac',
           isActive: true,
           isBlocked: false,
           companies: [createdCompanies[2]],
@@ -101,7 +101,7 @@ export class UserSeeder extends Seeder {
       const createdAdmins = await em.find(
         User,
         {
-          nickname: { $in: ["rafa", "juan", "isaac"] },
+          nickname: { $in: ['rafa', 'juan', 'isaac'] },
         },
         { filters: false }
       );
@@ -110,13 +110,13 @@ export class UserSeeder extends Seeder {
       let PollsCreated = false;
 
       new UserFactory(em)
-        .each((user) => {
+        .each(user => {
           const company = faker.helpers.arrayElement(createdCompanies);
           if (!PollsCreated) {
-            createdCompanies.forEach((company) => {
+            createdCompanies.forEach(company => {
               cont++;
               new PollFactory(em, user)
-                .each(async (poll) => {
+                .each(async poll => {
                   poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
                   poll.company = company;
                 })
@@ -144,7 +144,7 @@ export class UserSeeder extends Seeder {
           }),
         });
     } catch (error) {
-      console.error("Error during UserSeeder execution:", error);
+      console.error('Error during UserSeeder execution:', error);
     }
   }
 }

@@ -1,20 +1,12 @@
-import {
-  Collection,
-  Entity,
-  Filter,
-  ManyToMany,
-  ManyToOne,
-  Property,
-  t,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { Company } from "./Company";
+import { Entity, Filter, ManyToOne, Property, t } from '@mikro-orm/core';
+import { BaseEntity } from './BaseEntity';
+import { User } from './User';
+import { Company } from './Company';
 
 @Entity()
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 export class UserWeight extends BaseEntity {

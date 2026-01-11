@@ -1,9 +1,9 @@
-import { Factory } from "@mikro-orm/seeder";
-import { faker } from "@faker-js/faker";
-import { User } from "../entities/User";
-import { EntityManager } from "@mikro-orm/core";
-import { PollVote } from "../entities/PollVote";
-import { Poll } from "../entities/Poll";
+import { Factory } from '@mikro-orm/seeder';
+import { faker } from '@faker-js/faker';
+import { User } from '../entities/User';
+import { EntityManager } from '@mikro-orm/core';
+import { PollVote } from '../entities/PollVote';
+import { Poll } from '../entities/Poll';
 
 export class PollVoteFactory extends Factory<PollVote> {
   model = PollVote;
@@ -20,7 +20,7 @@ export class PollVoteFactory extends Factory<PollVote> {
         optionSelected: faker.helpers.arrayElement(
           Array.from({ length: 2 }, (_, index) => index)
         ),
-        user: this.user,  
+        user: this.user,
       };
     } catch (e) {
       console.log(e);

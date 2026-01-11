@@ -1,6 +1,6 @@
-import dotenv from "dotenv";
-import {CompanyProps} from "../types/resolvers";
-import {CurrentUser} from "../types/common.type";
+import dotenv from 'dotenv';
+import { CompanyProps } from '../types/resolvers';
+import { CurrentUser } from '../types/common.type';
 dotenv.config();
 
 export const templatesUtil = (emailVerificationTk: string) => {
@@ -92,8 +92,8 @@ export const templatesUtil = (emailVerificationTk: string) => {
  * @param success Si es true, muestra icono de éxito; si no, de error
  */
 export function renderPage(title: string, message: string, success: boolean) {
-  const color = success ? "#4CAF50" : "#F44336";
-  const icon = success ? "✅" : "❌";
+  const color = success ? '#4CAF50' : '#F44336';
+  const icon = success ? '✅' : '❌';
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -245,9 +245,9 @@ export const changePasswordHtml = (token: string, tmpPassword: string) =>
     `;
 
 export const companyVerificationEmailHtml = (
-    companyTk: string,
-    company: CompanyProps,
-    user: CurrentUser
+  companyTk: string,
+  company: CompanyProps,
+  user: CurrentUser
 ) => {
   return `
 <!DOCTYPE html>
@@ -343,39 +343,39 @@ export const companyVerificationEmailHtml = (
       <div class="data-section">
         <h2>Datos de la compañía</h2>
         <div class="data-item"><strong>Nombre:</strong> ${
-      company.name || "N/A"
-  }</div>
+          company.name || 'N/A'
+        }</div>
         <div class="data-item"><strong>Email:</strong> ${
-      company.email || "N/A"
-  }</div>
+          company.email || 'N/A'
+        }</div>
         <div class="data-item"><strong>Teléfono:</strong> ${
-      company.phoneNumber || "N/A"
-  }</div>
+          company.phoneNumber || 'N/A'
+        }</div>
         <div class="data-item"><strong>Dirección:</strong> ${
-      company.address || "N/A"
-  }</div>
+          company.address || 'N/A'
+        }</div>
       </div>
 
       <div class="data-section">
         <h2>Datos del usuario solicitante</h2>
         <div class="data-item"><strong>Nombre:</strong> ${
-      user.name || "N/A"
-  }</div>
+          user.name || 'N/A'
+        }</div>
         <div class="data-item"><strong>Email:</strong> ${
-      user.email || "N/A"
-  }</div>
+          user.email || 'N/A'
+        }</div>
         <div class="data-item"><strong>Teléfono:</strong> ${
-      user.phoneNumber || "N/A"
-  }</div>
+          user.phoneNumber || 'N/A'
+        }</div>
       </div>
 
       <p style="text-align: center;">
         <a href="${
-      process.env.API_URL
-  }/admin/verify-company?token=${companyTk}&verify=true" class="button approve-button">Aprobar compañía</a>
+          process.env.API_URL
+        }/admin/verify-company?token=${companyTk}&verify=true" class="button approve-button">Aprobar compañía</a>
         <a href="${
-      process.env.API_URL
-  }/admin/verify-company?token=${companyTk}&verify=false" class="button reject-button">Rechazar compañía</a>
+          process.env.API_URL
+        }/admin/verify-company?token=${companyTk}&verify=false" class="button reject-button">Rechazar compañía</a>
       </p>
 
       <p>
@@ -390,4 +390,3 @@ export const companyVerificationEmailHtml = (
 </html>
   `;
 };
-

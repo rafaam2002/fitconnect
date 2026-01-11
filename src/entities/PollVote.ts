@@ -7,20 +7,20 @@ import {
   Filter,
   ManyToOne,
   Property,
-} from "@mikro-orm/core";
-import { Poll } from "./Poll";
-import { User } from "./User";
-import { CustomPollRepository } from "../customRepositories/pollRepository";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+import { Poll } from './Poll';
+import { User } from './User';
+import { CustomPollRepository } from '../customRepositories/pollRepository';
+import { Company } from './Company';
 
 @Entity({ repository: () => CustomPollRepository })
 export class PollVote {
   [EntityRepositoryType]?: CustomPollRepository;
 
-  @ManyToOne(() => Poll, { primary: true, deleteRule: "cascade" })
+  @ManyToOne(() => Poll, { primary: true, deleteRule: 'cascade' })
   poll!: Poll;
 
-  @ManyToOne(() => User, { primary: true, deleteRule: "cascade" })
+  @ManyToOne(() => User, { primary: true, deleteRule: 'cascade' })
   user!: User;
 
   @Property()
@@ -39,7 +39,7 @@ export class PollVote {
       this.optionSelected < 0 ||
       this.optionSelected >= this.poll.options.length
     ) {
-      throw new Error("The selected option is not valid");
+      throw new Error('The selected option is not valid');
     }
   }
 }

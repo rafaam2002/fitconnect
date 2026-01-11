@@ -1,13 +1,13 @@
-import { ContextProps } from "../../types/resolvers";
-import { S3Service } from "../../services/s3.service";
-import { handleError } from "../../utils/errors.util";
+import { ContextProps } from '../../types/resolvers';
+import { S3Service } from '../../services/s3.service';
+import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====
 
 export const getPresignedUrl = async (
-    _: any,
-    args: any,
-    context: ContextProps
+  _: any,
+  args: any,
+  context: ContextProps
 ) => {
   try {
     const { em, currentUser } = context;

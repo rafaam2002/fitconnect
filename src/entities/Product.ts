@@ -7,15 +7,15 @@ import {
   OneToMany,
   Property,
   t,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { PictureUrl } from "./PictureUrl";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+import { BaseEntity } from './BaseEntity';
+import { PictureUrl } from './PictureUrl';
+import { Company } from './Company';
 
 @Entity()
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 export class Product extends BaseEntity {
@@ -28,7 +28,7 @@ export class Product extends BaseEntity {
   @Property({ type: t.float })
   price: number;
 
-  @OneToMany(() => PictureUrl, (picture) => picture.product, {
+  @OneToMany(() => PictureUrl, picture => picture.product, {
     cascade: [Cascade.REMOVE],
     eager: true,
   })

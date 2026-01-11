@@ -1,11 +1,11 @@
-import { faker } from "@faker-js/faker";
-import type { EntityManager } from "@mikro-orm/core";
-import { Seeder } from "@mikro-orm/seeder";
-import { Company } from "../entities/Company";
-import { ScheduleFactory } from "../factories/ScheduleFactory";
-import { UserRoleEnum } from "../types/enums";
-import { UserRole } from "../entities/UserRole";
-import { User } from "../entities/User";
+import { faker } from '@faker-js/faker';
+import type { EntityManager } from '@mikro-orm/core';
+import { Seeder } from '@mikro-orm/seeder';
+import { Company } from '../entities/Company';
+import { ScheduleFactory } from '../factories/ScheduleFactory';
+import { UserRoleEnum } from '../types/enums';
+import { UserRole } from '../entities/UserRole';
+import { User } from '../entities/User';
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -15,7 +15,7 @@ export class ScheduleSeeder extends Seeder {
 
       if (companies.length === 0) {
         console.log(
-          "Please run the UserSeeder first to create companies and users."
+          'Please run the UserSeeder first to create companies and users.'
         );
         return;
       }
@@ -29,7 +29,7 @@ export class ScheduleSeeder extends Seeder {
             company: company,
             role: { $in: [UserRoleEnum.BOSS] },
           },
-          { populate: ["user"], filters: false }
+          { populate: ['user'], filters: false }
         );
 
         if (!adminRole) {
@@ -50,8 +50,6 @@ export class ScheduleSeeder extends Seeder {
           { limit: 20, filters: false }
         );
 
-
-
         if (usersInCompany.length === 0) {
           console.log(
             `No standard users found for company ${company.name}. Skipping schedule creation.`
@@ -61,7 +59,7 @@ export class ScheduleSeeder extends Seeder {
 
         // Create 20 schedules for the current company
         new ScheduleFactory(em)
-          .each((schedule) => {
+          .each(schedule => {
             // Assign the schedule to the company
             schedule.company = company;
             // Assign the admin from this company
@@ -80,7 +78,7 @@ export class ScheduleSeeder extends Seeder {
           .make(200);
       }
     } catch (error) {
-      console.error("Error in ScheduleSeeder:", error);
+      console.error('Error in ScheduleSeeder:', error);
     }
   }
 }

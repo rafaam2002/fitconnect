@@ -1,9 +1,9 @@
-import { Factory } from "@mikro-orm/seeder";
-import { faker } from "@faker-js/faker";
-import { EntityManager } from "@mikro-orm/core";
-import { Schedule } from "../entities/Schedule";
-import { ScheduleState, ScheduleType } from "../types/enums";
-import moment from "moment";
+import { Factory } from '@mikro-orm/seeder';
+import { faker } from '@faker-js/faker';
+import { EntityManager } from '@mikro-orm/core';
+import { Schedule } from '../entities/Schedule';
+import { ScheduleState, ScheduleType } from '../types/enums';
+import moment from 'moment';
 
 export class ScheduleFactory extends Factory<Schedule> {
   model = Schedule;
@@ -20,7 +20,7 @@ export class ScheduleFactory extends Factory<Schedule> {
     ]);
     // const startDate = moment(faker.date.soon({ days: 14 })).toDate();
 
-    const endDate = moment(startDate).add(1, "hour").toDate(); // Añadir 1 hora a startDate
+    const endDate = moment(startDate).add(1, 'hour').toDate(); // Añadir 1 hora a startDate
 
     return {
       title: faker.lorem.words(2),

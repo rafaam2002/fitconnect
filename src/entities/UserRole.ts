@@ -1,21 +1,21 @@
-import { Entity, Enum, Filter, ManyToOne, Unique } from "@mikro-orm/core";
-import { UserRoleEnum } from "../types/enums";
-import { BaseEntity } from "./BaseEntity";
-import { Company } from "./Company";
-import { User } from "./User";
+import { Entity, Enum, Filter, ManyToOne, Unique } from '@mikro-orm/core';
+import { UserRoleEnum } from '../types/enums';
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { User } from './User';
 
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 @Entity()
-@Unique({ properties: ["user", "company"] }) 
+@Unique({ properties: ['user', 'company'] })
 export class UserRole extends BaseEntity {
   @ManyToOne(() => User)
   user!: User;
 
-  @ManyToOne(() => Company, { deleteRule: "cascade" })
+  @ManyToOne(() => Company, { deleteRule: 'cascade' })
   company!: Company;
 
   @Enum(() => UserRoleEnum)

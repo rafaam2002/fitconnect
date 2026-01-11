@@ -1,6 +1,6 @@
-import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
-import axios from "axios";
-import { Article } from "../entities/Article";
+import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
+import axios from 'axios';
+import { Article } from '../entities/Article';
 
 export const storeNews = async (
   em: EntityManager<IDatabaseDriver<Connection>>,
@@ -13,7 +13,7 @@ export const storeNews = async (
     try {
       // Realizar todas las peticiones en paralelo
       const responses = await axios.all(
-        pages.map((page) => fetchBoxingNews(limit, page))
+        pages.map(page => fetchBoxingNews(limit, page))
       );
 
       // Obtener el repositorio de artículos
@@ -35,21 +35,21 @@ export const storeNews = async (
           }
         }
       }
-      console.log("Noticias guardadas correctamente.");
+      console.log('Noticias guardadas correctamente.');
     } catch (error) {
-      console.error("Error al almacenar las noticias:", error);
+      console.error('Error al almacenar las noticias:', error);
     }
   }
 };
 const fetchBoxingNews = async (limit: number, page: number) => {
   try {
-    const response = await axios.get("https://api.thenewsapi.com/v1/news/all", {
+    const response = await axios.get('https://api.thenewsapi.com/v1/news/all', {
       params: {
-        api_token: "2Z7NKRiCCOlyW1vRW9051aBRqCC9TtoI3d5zSg2e",
-        categories: "sports",
-        sort: "published_at_desc",
-        language: "es",
-        search: "boxeo",
+        api_token: '2Z7NKRiCCOlyW1vRW9051aBRqCC9TtoI3d5zSg2e',
+        categories: 'sports',
+        sort: 'published_at_desc',
+        language: 'es',
+        search: 'boxeo',
         limit,
         page,
       },
@@ -58,6 +58,6 @@ const fetchBoxingNews = async (limit: number, page: number) => {
     const newsData = response;
     return newsData.data;
   } catch (error) {
-    console.error("Error fetching boxing news", error);
+    console.error('Error fetching boxing news', error);
   }
 };

@@ -1,7 +1,7 @@
-import { EntityManager } from "@mikro-orm/postgresql";
-import { User } from "../entities/User";
-import { ScheduleState, ScheduleType, UserRoleEnum } from "./enums";
-import {CurrentUser} from "./common.type";
+import { EntityManager } from '@mikro-orm/postgresql';
+import { User } from '../entities/User';
+import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
+import { CurrentUser } from './common.type';
 
 export type UserProps = {
   user: User & {
@@ -49,7 +49,7 @@ export type ScheduleProps = {
   schedule: {
     title: string;
     description: string;
-    age?: number | null ;
+    age?: number | null;
     type?: ScheduleType;
     startDate: string;
     endDate: string;
@@ -145,11 +145,11 @@ export type UserListProps = {
   query: string;
   roleFilter?: UserRoleEnum[] | null;
   stateFilter?:
-    | "notActive"
-    | "blocked"
-    | "notVerified"
-    | "new"
-    | "pending"
+    | 'notActive'
+    | 'blocked'
+    | 'notVerified'
+    | 'new'
+    | 'pending'
     | null;
   page: number;
 };
@@ -261,17 +261,17 @@ export type RemoveProductProps = {
 
 export type LoginProps = {
   emailOrNickname: string;
-  password: string
-}
+  password: string;
+};
 
 export type PasswordResetProps = {
   email: string;
-}
+};
 
 export type UpdatePasswordProps = {
   password: {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
-  }
-}
+  };
+};

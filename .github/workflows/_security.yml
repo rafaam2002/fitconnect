@@ -1,0 +1,17 @@
+name: _ Internal Security
+on:
+  workflow_call:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Usamos la última para auditorías más frescas
+      - run: npm ci
+      - name: Audit High/Critical
+        run: npm audit --audit-level=high # Pro-tip: Solo rompe el build si el riesgo es real
+      - name: Outdated
+        run: npm outdated || true # Pro-tip: No falla el build por paquetes viejos, solo informa

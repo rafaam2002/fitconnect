@@ -1,0 +1,23 @@
+name: _ Internal Lint
+on:
+  workflow_call:
+
+jobs:
+  lint-and-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # Pro-tip: El lint no debería tardar más de 5 min
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Pro-tip: No necesitamos el historial para el lint
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Lint & Format
+        run: |
+          npm run lint
+          npm run format:check
+      - name: Type Check
+        run: npx tsc --noEmit

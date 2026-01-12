@@ -1,0 +1,28 @@
+name: _ Internal Tests
+on:
+  workflow_call:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 18.x, 20.x ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Run Tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+      - name: Upload LCOV
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-artifact
+          path: coverage/
+          retention-days: 1

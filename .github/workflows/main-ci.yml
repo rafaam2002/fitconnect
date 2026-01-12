@@ -20,7 +20,8 @@ jobs:
   sonar:
     needs: [ lint, test ]
     uses: ./.github/workflows/_sonar.yml
-    secrets: ${{ secrets.SONAR_TOKEN }} # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
   build:
     needs: [ lint, test ]
     uses: ./.github/workflows/_build.yml

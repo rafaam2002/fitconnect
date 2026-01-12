@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        target: 100%
+
+  comment:
+    layout: "reach,diff,flags,tree"
+    behavior: default
+    require_changes: false
+
+  ignore:
+    - "tests/"
+    - "**/*.test.js"
+    - "**/*.spec.ts"

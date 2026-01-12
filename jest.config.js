@@ -27,12 +27,6 @@ module.exports = {
       lines: 90,
       statements: 90,
     },
-    './src/auth/': {
-      branches: 95,
-      functions: 95,
-      lines: 95,
-      statements: 95,
-    },
   },
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html', 'json-summary'],

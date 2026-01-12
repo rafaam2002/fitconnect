@@ -1,0 +1,73 @@
+name: Cache Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
+
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+  ```
+  
+  3. **Agregar status checks requeridos**
+- GitHub repo → Settings → Branches
+- Add branch protection rule para `main`
+- Require status checks: lint, test, build
+
+---
+
+### **DÍA 7: Branch Protection + Merge Gates**
+
+  **Objetivo:** Configurar reglas que bloqueen merges malos
+  
+  **Pasos:**
+  
+  1. **Configurar Branch Protection en GitHub**
+  ```
+  Settings → Branches → Add rule
+
+Branch name pattern: main
+                       
+                       ✅ Require pull request reviews before merging
+                       - Required approving reviews: 1
+                       - Dismiss stale reviews when new commits pushed
+                       - Require review from Code Owners
+                         
+                         ✅ Require status checks to pass before merging
+                       - Require branches to be up to date
+                       - Status checks:
+                         ✓ lint
+                         ✓ test (18.x)
+                         ✓ test (20.x)
+                         ✓ build
+                         
+                         ✅ Require conversation resolution before merging
+                         
+                         ✅ Require signed commits (opcional pero recomendado)
+                         
+                         ✅ Include administrators (para que tú también cumplas las reglas)
+                         
+                         ✅ Restrict who can push to matching branches (opcional)
+                         ```
+                         
+                         2. **Crear CODEOWNERS** `.github/CODEOWNERS`
+                         ```
+                         # Default owners
+                         *       @tu-usuario @team-backend
+                         
+                         # Critical paths need senior review
+                         /src/auth/      @senior-dev @security-team
+                         /src/payment/   @senior-dev @finance-team
+                         /.github/       @devops-team
+
+                         # Docs can be reviewed by anyone
+                         *.md            @team-backend @team-docs

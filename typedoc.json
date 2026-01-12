@@ -1,0 +1,22 @@
+{
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**"],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "readme": "README.md",
+  "plugin": ["typedoc-plugin-markdown"],
+  "theme": "default",
+  "name": "API Documentation",
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "categoryOrder": ["Services", "Resolvers", "Repositories", "Types", "*"],
+  "sort": ["source-order"],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

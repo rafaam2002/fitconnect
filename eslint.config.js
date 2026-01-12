@@ -92,7 +92,7 @@ module.exports = [
 
       // --- TUS REGLAS PERSONALIZADAS ---
       'prettier/prettier': 'error',
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-secrets/no-secrets': 'error',
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',

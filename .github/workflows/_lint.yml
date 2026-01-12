@@ -7,10 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5 # Pro-tip: El lint no debería tardar más de 5 min
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1 # Pro-tip: No necesitamos el historial para el lint
-      - uses: actions/setup-node@39225597fd66c219463660335c02633935665959
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -23,7 +23,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Upload Lint Report
-        uses: actions/upload-artifact@65c84d6411d33189d9c6665c36f338b251a37c4e # v4.4.3
+        uses: actions/upload-artifact@v4 # v4.4.3
         with:
           name: lint-report
           path: eslint-report.json

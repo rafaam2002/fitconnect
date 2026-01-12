@@ -8,15 +8,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/setup-node@39225597fd66c219463660335c02633935665959
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - run: npm ci
       - run: npm run docs
       - name: Deploy
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
-        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ github.token }}
           publish_dir: ./docs/api

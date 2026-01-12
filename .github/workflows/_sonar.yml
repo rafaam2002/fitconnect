@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download Lint Report
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v4 # v4.1.8
         with:
           name: lint-report
           path: reports/lint-report/
 
       - name: Download Coverage Artifact
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        uses: actions/download-artifact@v4
         with:
           name: coverage-artifact
           path: reports/coverage-artifact/
@@ -37,7 +37,7 @@ jobs:
 
       # 3. Escaneo (Sin ejecutar tests)
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@db5030684120ec689a9f24467d353683a992ca3b
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

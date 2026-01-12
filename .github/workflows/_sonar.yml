@@ -1,6 +1,10 @@
 name: SonarCloud Scan
 on:
   workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+        description: "Token para autenticarse con sonarCloud"
 
 jobs:
   sonar-analysis:
@@ -33,7 +37,7 @@ jobs:
 
       # 3. Escaneo (Sin ejecutar tests)
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarcloud-github-action@db5030684120ec689a9f24467d353683a992ca3b
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

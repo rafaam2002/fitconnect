@@ -20,7 +20,7 @@ jobs:
   sonar:
     needs: [ lint, test ]
     uses: ./.github/workflows/_sonar.yml
-    secrets: inherit # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
+    secrets: ${{ secrets.SONAR_TOKEN }} # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
   build:
     needs: [ lint, test ]
     uses: ./.github/workflows/_build.yml
@@ -33,4 +33,3 @@ jobs:
     if: github.event_name == 'pull_request'
     needs: [ lint ]
     uses: ./.github/workflows/_danger.yml
-    secrets: inherit

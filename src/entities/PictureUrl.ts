@@ -6,9 +6,10 @@ import {
   t,
   Unique,
 } from '@mikro-orm/core';
-
 import { BeforeDelete, BeforeUpdate, EventArgs } from '@mikro-orm/core';
+
 import { deleteBucketPicture } from '../utils/s3client.util';
+
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 import { Product } from './Product';

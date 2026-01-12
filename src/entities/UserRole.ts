@@ -1,5 +1,7 @@
 import { Entity, Enum, Filter, ManyToOne, Unique } from '@mikro-orm/core';
+
 import { UserRoleEnum } from '../types/enums';
+
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 import { User } from './User';

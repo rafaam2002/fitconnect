@@ -1,5 +1,5 @@
-import { ContextProps } from '../../types/resolvers';
 import { WebhookService } from '../../services/webhook.service';
+import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====

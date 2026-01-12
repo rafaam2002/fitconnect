@@ -1,5 +1,8 @@
 import { EntityManager, FilterQuery } from '@mikro-orm/core';
+import { SqlEntityManager } from '@mikro-orm/postgresql';
+
 import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
@@ -9,18 +12,17 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { updateUserSchema } from '../validation/schemas';
 import {
   createPictureUrl,
   getPresignedUrl,
 } from '../utils/presigned-urls.util';
-import { EmailService } from './email.service';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
-import { BaseService } from './base.service';
-import { CustomerService } from './customer.service';
+import { updateUserSchema } from '../validation/schemas';
+
 import { AuthService } from './auth.service';
-import { SqlEntityManager } from '@mikro-orm/postgresql';
+import { BaseService } from './base.service';
 import { CompanyService } from './company.service';
+import { CustomerService } from './customer.service';
+import { EmailService } from './email.service';
 
 /**
  * User Service - Handles all user-related business logic

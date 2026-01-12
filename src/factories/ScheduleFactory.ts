@@ -1,9 +1,10 @@
-import { Factory } from '@mikro-orm/seeder';
 import { faker } from '@faker-js/faker';
 import { EntityManager } from '@mikro-orm/core';
+import { Factory } from '@mikro-orm/seeder';
+import moment from 'moment';
+
 import { Schedule } from '../entities/Schedule';
 import { ScheduleState, ScheduleType } from '../types/enums';
-import moment from 'moment';
 
 export class ScheduleFactory extends Factory<Schedule> {
   model = Schedule;

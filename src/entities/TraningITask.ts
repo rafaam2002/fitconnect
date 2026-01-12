@@ -1,7 +1,8 @@
 import { Entity, Filter, ManyToOne, Property, t } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
-import { User } from './User';
 import { Company } from './Company';
+import { User } from './User';
 
 @Filter({
   name: 'companyContext',

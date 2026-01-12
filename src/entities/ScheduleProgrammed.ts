@@ -8,12 +8,14 @@ import {
   OneToMany,
   Property,
 } from '@mikro-orm/core';
-import { BaseEntity } from './BaseEntity';
-import { User } from './User';
-import { Schedule } from './Schedule';
+
 import { CustomScheduleProgrammedRepository } from '../customRepositories/scheduleProgrammedRepository';
 import { ScheduleType } from '../types/enums';
+
+import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
+import { Schedule } from './Schedule';
+import { User } from './User';
 
 @Filter({
   name: 'companyContext',

@@ -1,15 +1,17 @@
 import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './base.service';
+
 import { PushToken } from '../entities/PushToken';
 import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
   createServiceResponse,
   InternalServerError,
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { sendPushNotification } from '../utils/notification.util';
+
+import { BaseService } from './base.service';
 
 export class PushTokenService extends BaseService {
   constructor(em: EntityManager) {

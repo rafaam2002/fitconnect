@@ -1,3 +1,7 @@
+import { IResolvers } from '@graphql-tools/utils';
+import dotenv from 'dotenv';
+
+import { ScheduleService } from '../../services/schedule.service';
 import {
   AddScheduleProps,
   ChangeScheduleStatusProp,
@@ -14,11 +18,6 @@ import {
   ScheduleStatsProps,
   updateScheduleOptionsProps,
 } from '../../types/resolvers';
-
-import dotenv from 'dotenv';
-
-import { IResolvers } from '@graphql-tools/utils';
-import { ScheduleService } from '../../services/schedule.service';
 import { handleError } from '../../utils/errors.util';
 
 dotenv.config();

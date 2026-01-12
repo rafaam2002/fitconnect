@@ -8,10 +8,12 @@ import {
   ManyToOne,
   Property,
 } from '@mikro-orm/core';
+
+import { CustomPollRepository } from '../customRepositories/pollRepository';
+
+import { Company } from './Company';
 import { Poll } from './Poll';
 import { User } from './User';
-import { CustomPollRepository } from '../customRepositories/pollRepository';
-import { Company } from './Company';
 
 @Entity({ repository: () => CustomPollRepository })
 export class PollVote {

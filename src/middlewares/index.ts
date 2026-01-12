@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 import { GraphQLError } from 'graphql';
+
 import { authenticateUser } from './auth';
 
 export const middleware = async (

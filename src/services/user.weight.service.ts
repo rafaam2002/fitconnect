@@ -1,6 +1,8 @@
 import { EntityManager } from '@mikro-orm/core';
-import { UserWeight } from '../entities/UserWeight';
+
 import { User } from '../entities/User';
+import { UserWeight } from '../entities/UserWeight';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
@@ -8,7 +10,7 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
+
 import { BaseService } from './base.service';
 
 /**

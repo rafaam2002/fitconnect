@@ -12,7 +12,9 @@ import {
   t,
 } from '@mikro-orm/core';
 import bcrypt from 'bcrypt';
+
 import { UserProviderType, UserRoleEnum } from '../types/enums';
+
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 import { Message } from './Message';

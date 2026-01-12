@@ -1,5 +1,5 @@
-import { ContextProps } from '../../types/resolvers';
 import { SubscriptionService } from '../../services/subscription.service';
+import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====

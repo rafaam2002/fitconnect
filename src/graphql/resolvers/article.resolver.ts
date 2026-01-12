@@ -1,5 +1,5 @@
-import { ContextProps } from '../../types/resolvers';
 import { ArticleService } from '../../services/article.service';
+import { ContextProps } from '../../types/resolvers';
 import { UnauthorizedError } from '../../utils/errors.util';
 
 // ============= TYPES =============

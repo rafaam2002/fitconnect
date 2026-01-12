@@ -1,5 +1,6 @@
-import { Seeder } from '@mikro-orm/seeder';
 import { EntityManager } from '@mikro-orm/core';
+import { Seeder } from '@mikro-orm/seeder';
+
 import { Plan, PlanInterval } from '../entities/Plan';
 import { PaymentType } from '../types/enums';
 

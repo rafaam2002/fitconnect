@@ -1,5 +1,5 @@
-import { ContextProps, CreateProductProps } from '../../types/resolvers';
 import { ProductService } from '../../services/product.service';
+import { ContextProps, CreateProductProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====

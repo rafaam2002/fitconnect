@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+
 import { Company } from '../entities/Company';
 import { Promotion } from '../entities/Promotion';
 import { Schedule } from '../entities/Schedule';

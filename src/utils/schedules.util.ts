@@ -1,16 +1,18 @@
 import { EntityManager } from '@mikro-orm/core';
 import moment, { Moment } from 'moment';
+
 import { Schedule } from '../entities/Schedule';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { User } from '../entities/User';
-import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
-import { sendPushNotification } from './notification.util';
 import { CurrentUser } from '../types/common.type';
+import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
+
 import {
   UnauthorizedError,
   ForbiddenError,
   InternalServerError,
 } from './errors.util';
+import { sendPushNotification } from './notification.util';
 
 /**
  * Crear fecha con tiempo específico

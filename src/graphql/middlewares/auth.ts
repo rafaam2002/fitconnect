@@ -1,5 +1,5 @@
-import { ForbiddenError, UnauthorizedError } from '../../utils/errors.util';
 import { CurrentUser } from '../../types/common.type';
+import { ForbiddenError, UnauthorizedError } from '../../utils/errors.util';
 
 /**
  * Require authentication decorator

@@ -1,9 +1,10 @@
-import { Factory } from '@mikro-orm/seeder';
 import { faker } from '@faker-js/faker';
-import { User } from '../entities/User';
 import { EntityManager } from '@mikro-orm/core';
-import { PollVote } from '../entities/PollVote';
+import { Factory } from '@mikro-orm/seeder';
+
 import { Poll } from '../entities/Poll';
+import { PollVote } from '../entities/PollVote';
+import { User } from '../entities/User';
 
 export class PollVoteFactory extends Factory<PollVote> {
   model = PollVote;

@@ -1,5 +1,6 @@
-import { Index, OptionalProps, PrimaryKey, Property, t } from '@mikro-orm/core';
 import { randomUUID } from 'node:crypto';
+
+import { Index, OptionalProps, PrimaryKey, Property, t } from '@mikro-orm/core';
 
 export abstract class BaseEntity {
   [OptionalProps]?: 'created_at' | 'updated_at' | 'isActive' | 'isBlocked';

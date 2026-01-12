@@ -1,18 +1,14 @@
-import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './base.service';
-import { User } from '../entities/User';
-import { RefreshToken } from '../entities/RefreshToken';
-import { Company } from '../entities/Company';
-import { PermissionService } from './permission.service';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { UserProviderType } from '../types/enums';
-import { generateTempPassword, verifyGoogleToken } from '../utils/users';
-import { changePasswordHtml } from '../utils/templates.util';
-import { ChangePasswordSchema } from '../validation/schemas';
-import { EmailService } from './email.service';
+
+import { EntityManager } from '@mikro-orm/core';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+import { Company } from '../entities/Company';
+import { RefreshToken } from '../entities/RefreshToken';
+import { User } from '../entities/User';
 import { EmailConfig, ServiceResponse, TokenPair } from '../types/common.type';
+import { UserProviderType } from '../types/enums';
 import {
   BadRequestError,
   createServiceResponse,
@@ -22,6 +18,13 @@ import {
   UnauthorizedError,
   ValidationError,
 } from '../utils/errors.util';
+import { changePasswordHtml } from '../utils/templates.util';
+import { generateTempPassword, verifyGoogleToken } from '../utils/users';
+import { ChangePasswordSchema } from '../validation/schemas';
+
+import { BaseService } from './base.service';
+import { EmailService } from './email.service';
+import { PermissionService } from './permission.service';
 
 // ============= INTERFACES =============
 

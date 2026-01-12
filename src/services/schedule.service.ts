@@ -1,9 +1,10 @@
 import { EntityManager } from '@mikro-orm/core';
 import moment from 'moment';
-import { BaseService } from './base.service';
+
 import { Schedule } from '../entities/Schedule';
-import { User } from '../entities/User';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
@@ -13,12 +14,13 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { sendPushNotification } from '../utils/notification.util';
 import {
   createDateWithTime,
   createScheduleProgrammed,
 } from '../utils/schedules.util';
+
+import { BaseService } from './base.service';
 
 export class ScheduleService extends BaseService {
   constructor(em: EntityManager) {

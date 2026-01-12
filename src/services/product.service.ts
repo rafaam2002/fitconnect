@@ -1,7 +1,8 @@
 import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './base.service';
+
 import { Product } from '../entities/Product';
 import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
@@ -11,12 +12,13 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
 } from '../utils/presigned-urls.util';
+
+import { BaseService } from './base.service';
 
 export class ProductService extends BaseService {
   constructor(em: EntityManager) {

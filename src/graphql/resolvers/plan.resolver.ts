@@ -1,6 +1,6 @@
 import { PlanService } from '../../services/plan.service';
-import { handleError } from '../../utils/errors.util';
 import { ContextProps } from '../../types/resolvers';
+import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====
 export const getPlan = async (_: any, args: any, context: ContextProps) => {

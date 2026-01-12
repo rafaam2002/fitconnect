@@ -1,5 +1,15 @@
 import { IResolvers } from '@graphql-tools/utils';
 import { withFilter } from 'graphql-subscriptions';
+
+import {
+  FIXED_MESSAGE_EVENT,
+  MESSAGE_EVENT,
+  myPubsub,
+} from '../../constants/subscriptions';
+import { MessageService } from '../../services/message.service';
+import { TrainingTaskService } from '../../services/training.task.service';
+import { UserService } from '../../services/user.service';
+import { UserWeightService } from '../../services/user.weight.service';
 import {
   AddUserWeight,
   ContextProps,
@@ -17,16 +27,7 @@ import {
   UserPictureProps,
   UserProps,
 } from '../../types/resolvers';
-import { UserService } from '../../services/user.service';
 import { handleError } from '../../utils/errors.util';
-import { MessageService } from '../../services/message.service';
-import {
-  FIXED_MESSAGE_EVENT,
-  MESSAGE_EVENT,
-  myPubsub,
-} from '../../constants/subscriptions';
-import { TrainingTaskService } from '../../services/training.task.service';
-import { UserWeightService } from '../../services/user.weight.service';
 
 // ===== QUERY RESOLVERS =====
 export const getUsers = async (

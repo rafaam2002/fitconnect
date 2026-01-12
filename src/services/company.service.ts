@@ -1,10 +1,13 @@
 import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './base.service';
+
 import { Company } from '../entities/Company';
+import { Message } from '../entities/Message';
+import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
-import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
+import { CompanyProps } from '../types/resolvers';
 import {
   BadRequestError,
   ConflictError,
@@ -13,16 +16,15 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
-import { EmailService } from './email.service';
-import { AuthService } from './auth.service';
 import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
 } from '../utils/presigned-urls.util';
-import { CompanyProps } from '../types/resolvers';
-import { Message } from '../entities/Message';
+
+import { AuthService } from './auth.service';
+import { BaseService } from './base.service';
+import { EmailService } from './email.service';
 
 export interface AdminCompanyResponse {
   newCompany: Company;

@@ -1,9 +1,10 @@
+import { MikroORM } from '@mikro-orm/core';
+
+import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
+import config from '../mikro-orm.config';
 import { CustomerService } from '../services/customer.service';
 import SubscriptionService from '../services/subscription.service';
-import { MikroORM } from '@mikro-orm/core';
-import { StripeCustomer } from '../entities/StripeCustomer';
-import config from '../mikro-orm.config';
 
 async function reconcileWithStripe() {
   const orm = await MikroORM.init(config);

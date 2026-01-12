@@ -1,10 +1,12 @@
 import { EntityManager } from '@mikro-orm/core';
+
 import { Company } from '../entities/Company';
 import { PictureUrl } from '../entities/PictureUrl';
 import { Product } from '../entities/Product';
 import { User } from '../entities/User';
-import { getPresignedUrl } from './s3client.util';
+
 import { BadRequestError } from './errors.util';
+import { getPresignedUrl } from './s3client.util';
 
 export * from './s3client.util';
 

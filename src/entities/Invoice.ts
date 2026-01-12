@@ -7,11 +7,12 @@ import {
   OneToMany,
   Property,
 } from '@mikro-orm/core';
-import { Subscription } from './Subscription';
-import { User } from './User';
-import { Transaction } from './Transaction';
+
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
+import { Subscription } from './Subscription';
+import { Transaction } from './Transaction';
+import { User } from './User';
 
 export enum InvoiceStatus {
   DRAFT = 'draft',

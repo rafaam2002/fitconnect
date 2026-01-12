@@ -1,3 +1,4 @@
+import { PollService } from '../../services/poll.service';
 import {
   ContextProps,
   DeletePollProps,
@@ -7,7 +8,6 @@ import {
   PollProps,
   VoteProps,
 } from '../../types/resolvers';
-import { PollService } from '../../services/poll.service';
 import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====

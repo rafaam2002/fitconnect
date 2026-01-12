@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 import jwt from 'jsonwebtoken';
+
 import { User } from '../entities/User';
 import { CurrentUser } from '../types/common.type';
 

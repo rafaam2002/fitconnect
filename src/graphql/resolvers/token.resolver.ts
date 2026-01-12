@@ -1,7 +1,7 @@
-import { ContextProps } from '../../types/resolvers';
-import { PushTokenService } from '../../services/push.token.service';
-import { handleError } from '../../utils/errors.util';
 import { User } from '../../entities/User';
+import { PushTokenService } from '../../services/push.token.service';
+import { ContextProps } from '../../types/resolvers';
+import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS ========
 

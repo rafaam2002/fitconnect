@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { Factory } from '@mikro-orm/seeder';
+
 import { Schedule } from '../entities/Schedule';
 import { User } from '../entities/User';
 

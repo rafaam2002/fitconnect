@@ -1,5 +1,5 @@
-import Stripe from 'stripe';
 import { EntityManager } from '@mikro-orm/core';
+import Stripe from 'stripe';
 
 export class BaseService {
   protected stripe: Stripe;

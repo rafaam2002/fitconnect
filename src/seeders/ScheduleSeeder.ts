@@ -1,11 +1,12 @@
 import { faker } from '@faker-js/faker';
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+
 import { Company } from '../entities/Company';
+import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
 import { ScheduleFactory } from '../factories/ScheduleFactory';
 import { UserRoleEnum } from '../types/enums';
-import { UserRole } from '../entities/UserRole';
-import { User } from '../entities/User';
 
 export class ScheduleSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

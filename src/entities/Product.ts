@@ -8,9 +8,10 @@ import {
   Property,
   t,
 } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
-import { PictureUrl } from './PictureUrl';
 import { Company } from './Company';
+import { PictureUrl } from './PictureUrl';
 
 @Entity()
 @Filter({

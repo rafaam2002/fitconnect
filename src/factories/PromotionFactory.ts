@@ -1,6 +1,7 @@
-import { Factory } from '@mikro-orm/seeder';
 import { faker } from '@faker-js/faker';
 import { EntityManager } from '@mikro-orm/core';
+import { Factory } from '@mikro-orm/seeder';
+
 import { Promotion } from '../entities/Promotion';
 
 export class PromotionFactory extends Factory<Promotion> {

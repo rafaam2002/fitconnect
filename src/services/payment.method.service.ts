@@ -1,14 +1,16 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
+
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
-import { BaseService } from './base.service';
+import { StripeCustomer } from '../entities/StripeCustomer';
+import { ServiceResponse } from '../types/common.type';
 import {
   BadRequestError,
   ConflictError,
   createServiceResponse,
   NotFoundError,
 } from '../utils/errors.util';
-import { ServiceResponse } from '../types/common.type';
-import { StripeCustomer } from '../entities/StripeCustomer';
+
+import { BaseService } from './base.service';
 
 interface AttachPaymentMethodInput {
   paymentMethodId: string;

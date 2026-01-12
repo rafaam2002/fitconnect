@@ -1,8 +1,9 @@
-import { Factory } from '@mikro-orm/seeder';
 import { faker } from '@faker-js/faker';
-import { User } from '../entities/User';
 import { EntityManager } from '@mikro-orm/core';
+import { Factory } from '@mikro-orm/seeder';
+
 import { Message } from '../entities/Message';
+import { User } from '../entities/User';
 import { randomSenderAndReceiver } from '../utils/factories.util';
 
 export class MessageFactory extends Factory<Message> {

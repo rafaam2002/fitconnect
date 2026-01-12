@@ -1,4 +1,5 @@
 import { Entity, Enum, Index, Property } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
 
 export enum WebhookEventStatus {

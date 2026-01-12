@@ -7,14 +7,15 @@ import {
   OneToMany,
   Property,
 } from '@mikro-orm/core';
-import { StripeCustomer } from './StripeCustomer';
-import { User } from './User';
-import { PaymentMethod } from './PaymentMethod';
+
 import { BaseEntity } from './BaseEntity';
-import { Plan } from './Plan';
-import { Invoice } from './Invoice';
-import { Transaction } from './Transaction';
 import { Company } from './Company';
+import { Invoice } from './Invoice';
+import { PaymentMethod } from './PaymentMethod';
+import { Plan } from './Plan';
+import { StripeCustomer } from './StripeCustomer';
+import { Transaction } from './Transaction';
+import { User } from './User';
 
 export enum SubscriptionStatus {
   INCOMPLETE = 'incomplete',

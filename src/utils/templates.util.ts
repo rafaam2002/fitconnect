@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
-import { CompanyProps } from '../types/resolvers';
+
 import { CurrentUser } from '../types/common.type';
+import { CompanyProps } from '../types/resolvers';
 dotenv.config();
 
 export const templatesUtil = (emailVerificationTk: string) => {

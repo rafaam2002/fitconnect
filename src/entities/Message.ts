@@ -6,9 +6,10 @@ import {
   ManyToOne,
   Property,
 } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
-import { User } from './User';
 import { Company } from './Company';
+import { User } from './User';
 
 @Entity()
 @Filter({

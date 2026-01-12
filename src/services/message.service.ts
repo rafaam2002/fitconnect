@@ -1,7 +1,14 @@
 import { EntityManager } from '@mikro-orm/core';
 import moment from 'moment';
+
+import {
+  FIXED_MESSAGE_EVENT,
+  MESSAGE_EVENT,
+  myPubsub,
+} from '../constants/subscriptions';
 import { Message } from '../entities/Message';
 import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
@@ -9,14 +16,9 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import {
-  FIXED_MESSAGE_EVENT,
-  MESSAGE_EVENT,
-  myPubsub,
-} from '../constants/subscriptions';
+
 import { BaseService } from './base.service';
 import { NotificationService } from './notification.service';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
 
 /**
  * Message Service - Handles messaging and conversations

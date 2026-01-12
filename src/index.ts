@@ -1,3 +1,5 @@
+import { createServer } from 'http';
+
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -8,19 +10,19 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { useServer } from 'graphql-ws/use/ws';
-import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
+
 import { Company } from './entities/Company';
 import { User } from './entities/User';
 import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
-import { middleware } from './middlewares';
 import { storeNews } from './helpers/articles';
+import { middleware } from './middlewares';
 import { cronFunctions } from './utils/cron.util';
-import { renderPage } from './utils/templates.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
+import { renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
 // const {

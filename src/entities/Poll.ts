@@ -7,12 +7,14 @@ import {
   OneToMany,
   Property,
 } from '@mikro-orm/core';
-import { BaseEntity } from './BaseEntity';
-import { User } from './User';
+
 import { CustomPollRepository } from '../customRepositories/pollRepository';
-import { PollVote } from './PollVote';
 import { NewPollSchema } from '../validation/schemas';
+
+import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
+import { PollVote } from './PollVote';
+import { User } from './User';
 
 @Entity({ repository: () => CustomPollRepository })
 @Filter({

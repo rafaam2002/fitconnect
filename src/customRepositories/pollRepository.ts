@@ -1,4 +1,5 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
+
 import { Poll } from '../entities/Poll';
 
 export class CustomPollRepository extends EntityRepository<Poll> {

@@ -1,25 +1,26 @@
 import { Migrator } from '@mikro-orm/migrations';
-import { Message } from './entities/Message';
-import { User } from './entities/User';
-import { ScheduleOptions } from './entities/ScheduleOptions';
-import { Schedule } from './entities/Schedule';
 import { SeedManager } from '@mikro-orm/seeder/SeedManager';
-import { Product } from './entities/Product';
-import { Article } from './entities/Article';
 import dotenv from 'dotenv';
-import { PushToken } from './entities/PushToken';
+
+import { Article } from './entities/Article';
+import { Invoice } from './entities/Invoice';
+import { Message } from './entities/Message';
 import { PaymentMethod } from './entities/PaymentMethod';
 import { Plan } from './entities/Plan';
-import { RefreshToken } from './entities/RefreshToken';
-import { Subscription } from './entities/Subscription';
-import { Invoice } from './entities/Invoice';
 import { Poll } from './entities/Poll';
 import { PollVote } from './entities/PollVote';
+import { Product } from './entities/Product';
 import { Promotion } from './entities/Promotion';
+import { PushToken } from './entities/PushToken';
+import { RefreshToken } from './entities/RefreshToken';
+import { Schedule } from './entities/Schedule';
+import { ScheduleOptions } from './entities/ScheduleOptions';
 import { ScheduleProgrammed } from './entities/ScheduleProgrammed';
 import { StripeCustomer } from './entities/StripeCustomer';
+import { Subscription } from './entities/Subscription';
 import { TrainingTask } from './entities/TraningITask';
 import { Transaction } from './entities/Transaction';
+import { User } from './entities/User';
 import { UserWeight } from './entities/UserWeight';
 import { WebhookEventLog } from './entities/WebhookEventLog';
 

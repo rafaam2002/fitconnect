@@ -1,4 +1,7 @@
 import { EntityManager } from '@mikro-orm/core';
+
+import { TrainingTask } from '../entities/TraningITask';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
@@ -6,9 +9,8 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '../utils/errors.util';
+
 import { NotificationService } from './notification.service';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
-import { TrainingTask } from '../entities/TraningITask';
 
 /**
  * Training Task Service - Handles training task operations

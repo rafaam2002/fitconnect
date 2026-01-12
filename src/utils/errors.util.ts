@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql';
+
 import { ServiceResponse } from '../types/common.type';
 
 /**

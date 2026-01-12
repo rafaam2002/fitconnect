@@ -7,6 +7,7 @@ import {
   Enum,
   Unique,
 } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
 import { PlanPermission } from './PlanPermission';
 

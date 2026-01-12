@@ -8,6 +8,7 @@ import {
   OneToOne,
   Property,
 } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
 import { PictureUrl } from './PictureUrl';
 import { ScheduleOptions } from './ScheduleOptions';

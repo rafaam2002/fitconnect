@@ -1,6 +1,6 @@
 import { PaymentMethodService } from '../../services/payment.method.service';
-import { handleError } from '../../utils/errors.util';
 import { ContextProps } from '../../types/resolvers';
+import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====
 

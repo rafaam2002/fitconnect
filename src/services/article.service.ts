@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
-import { BaseService } from './base.service';
+
+import { ServiceResponse } from '../types/common.type';
 import {
   BadRequestError,
   createServiceResponse,
@@ -8,7 +9,8 @@ import {
   handleExternalAPIError,
   ServiceUnavailableError,
 } from '../utils/errors.util';
-import { ServiceResponse } from '../types/common.type';
+
+import { BaseService } from './base.service';
 
 // ============= INTERFACES =============
 

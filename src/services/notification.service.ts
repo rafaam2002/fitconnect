@@ -1,8 +1,9 @@
 import { EntityManager } from '@mikro-orm/core';
+
 import { User } from '../entities/User';
-import { sendPushNotification } from '../utils/notification.util';
 import { PushNotificationData } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
+import { sendPushNotification } from '../utils/notification.util';
 
 /**
  * Notification Service - Handles push notifications

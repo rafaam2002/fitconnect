@@ -5,8 +5,9 @@ import express, {
   NextFunction,
   RequestHandler,
 } from 'express';
-import { WebhookService } from '../services/webhook.service';
 import rateLimit from 'express-rate-limit';
+
+import { WebhookService } from '../services/webhook.service';
 
 // Interfaz para el request con propiedades adicionales
 interface StripeWebhookRequest extends Request {

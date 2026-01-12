@@ -1,7 +1,8 @@
-import { Entity, ManyToOne, Property, Index, Unique } from '@mikro-orm/core';
+import { Entity, Index, ManyToOne, Property, Unique } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
-import { Plan } from './Plan';
 import { Permission } from './Permission';
+import { Plan } from './Plan';
 
 @Entity()
 @Index()

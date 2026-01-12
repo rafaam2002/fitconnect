@@ -1,17 +1,19 @@
 import { EntityManager } from '@mikro-orm/core';
+
 import {
   Permission,
   PermissionAction,
   PermissionModule,
 } from '../entities/Permission';
-import { PlanPermission } from '../entities/PlanPermission';
 import { Plan } from '../entities/Plan';
+import { PlanPermission } from '../entities/PlanPermission';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
-import { BaseService } from './base.service';
 import {
   CompanyPermissionsContext,
   LoginPermissionsContext,
 } from '../types/permissions';
+
+import { BaseService } from './base.service';
 
 interface CreatePermissionInput {
   module: PermissionModule;

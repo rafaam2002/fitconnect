@@ -6,8 +6,9 @@ import {
   Property,
   Unique,
 } from '@mikro-orm/core';
-import { StripeCustomer } from './StripeCustomer';
+
 import { BaseEntity } from './BaseEntity';
+import { StripeCustomer } from './StripeCustomer';
 
 export enum PaymentMethodType {
   CARD = 'card',

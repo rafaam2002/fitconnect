@@ -1,5 +1,6 @@
-import { Factory } from '@mikro-orm/seeder';
 import { faker } from '@faker-js/faker';
+import { Factory } from '@mikro-orm/seeder';
+
 import { Product } from '../entities/Product';
 
 export class ProductFactory extends Factory<Product> {

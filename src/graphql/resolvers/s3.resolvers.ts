@@ -1,5 +1,5 @@
-import { ContextProps } from '../../types/resolvers';
 import { S3Service } from '../../services/s3.service';
+import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====

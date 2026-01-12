@@ -8,10 +8,11 @@ import {
   OneToMany,
   Property,
 } from '@mikro-orm/core';
-import { Subscription } from './Subscription';
+
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 import { PlanPermission } from './PlanPermission';
+import { Subscription } from './Subscription';
 
 export enum PlanInterval {
   DAY = 'day',

@@ -1,4 +1,5 @@
 import { MikroORM } from '@mikro-orm/core';
+
 import { Company } from '../entities/Company';
 import { PushToken } from '../entities/PushToken';
 import { User } from '../entities/User';

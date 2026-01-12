@@ -1,4 +1,5 @@
 import z from 'zod';
+
 import { messages } from './functions';
 
 export const updateUserSchema = z.object({

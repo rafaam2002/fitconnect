@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from 'nodemailer';
+
 import { EmailConfig } from '../types/common.type';
 import {
   companyVerificationEmailHtml,

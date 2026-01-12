@@ -1,7 +1,9 @@
 import { EntityManager } from '@mikro-orm/postgresql';
+
 import { User } from '../entities/User';
-import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
+
 import { CurrentUser } from './common.type';
+import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
 
 export type UserProps = {
   user: User & {

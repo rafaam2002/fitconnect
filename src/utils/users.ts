@@ -1,6 +1,7 @@
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
 import { OAuth2Client } from 'google-auth-library';
 import moment from 'moment';
+
 import { User } from '../entities/User';
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 

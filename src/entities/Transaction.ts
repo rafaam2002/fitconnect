@@ -1,10 +1,11 @@
 import { Entity, Enum, Index, ManyToOne, Property } from '@mikro-orm/core';
+
 import { BaseEntity } from './BaseEntity';
-import { Subscription } from './Subscription';
-import { PaymentMethod } from './PaymentMethod';
-import { User } from './User';
-import { Invoice } from './Invoice';
 import { Company } from './Company';
+import { Invoice } from './Invoice';
+import { PaymentMethod } from './PaymentMethod';
+import { Subscription } from './Subscription';
+import { User } from './User';
 
 export enum TransactionType {
   CHARGE = 'charge',

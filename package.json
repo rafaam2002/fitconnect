@@ -19,7 +19,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --maxWorkers=2"
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "commit": "cz"
   },
   "keywords": [],
   "author": "",
@@ -46,6 +47,7 @@
     "@typescript-eslint/parser": "^8.52.0",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
+    "danger": "^13.0.5",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-boundaries": "^5.3.1",
@@ -133,6 +135,11 @@
     "*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

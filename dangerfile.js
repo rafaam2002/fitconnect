@@ -35,6 +35,7 @@ for (const file of tsFiles) {
 const hasMigration = danger.git.created_files.some(f =>
   f.includes('/migrations/')
 );
+
 if (hasMigration) {
   message(`📊 Se detectó una nueva migración. Asegúrate de:
   - [ ] Probarla en environment de desarrollo
@@ -75,6 +76,7 @@ if (bigFiles.length > 0) {
 const hasSourceChanges = danger.git.modified_files.some(
   file => file.startsWith('src/') && !file.includes('.test.')
 );
+
 const hasTestChanges = danger.git.modified_files.some(
   file => file.includes('.test.') || file.includes('.spec.')
 );

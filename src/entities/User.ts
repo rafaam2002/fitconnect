@@ -2,7 +2,6 @@ import {
   BeforeCreate,
   Collection,
   Entity,
-  EntityData,
   Filter,
   Index,
   ManyToMany,
@@ -77,8 +76,8 @@ export class User extends BaseEntity {
   @Property({ type: t.boolean })
   isVerified: boolean = false;
 
-  @Property({ type: t.string })
-  provider: UserProviderType = UserProviderType.LOCAL;
+  @Property({ type: t.string, nullable: true })
+  provider?: UserProviderType = UserProviderType.LOCAL;
 
   @ManyToMany(() => Company, (company: Company) => company.users, {
     owner: true,

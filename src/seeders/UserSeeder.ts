@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { EntityManager } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
 import { Company } from '../entities/Company';
@@ -24,80 +24,58 @@ export class UserSeeder extends Seeder {
     // em.getFilterParams.dis
 
     try {
-      let cont = 0;
-
       const schedules = await em.find(Schedule, {}, { filters: false });
       const promotions = await em.find(Promotion, {}, { filters: false });
-      const companies = new CompanyFactory(em).make(3, {
-        scheduleOptions: em.create(ScheduleOptions, {
-          maxActiveReservations: 3,
-          sameDayBookingAllowed: true,
-          fullOpenHours: 2, // 0 means always full
-          maxAdvanceBookingDays: 3,
-        }),
-      });
+      const companies = new CompanyFactory(em)
+        .make(3)
+        .map((company: Company) => {
+          company.scheduleOptions = em.create(ScheduleOptions, {
+            maxActiveReservations: 3,
+            sameDayBookingAllowed: true,
+            fullOpenHours: 2, // 0 means always full
+            maxAdvanceBookingDays: 3,
+            company,
+          });
+
+          return company;
+        });
       await em.persistAndFlush(companies);
       const createdCompanies: Company[] = await em.find(
         Company,
         {},
         { filters: false }
       );
-
-      const admins = [
-        em.create<User>(User, {
-          name: 'Rafa',
-          surname: 'Mesa',
-          password: 'rafa',
-          email: 'rafa@mail.com',
+      const names = ['Rafa', 'Juan', 'Isaac'];
+      const surnames = ['Mesa', 'Perez', 'Buu'];
+      const admins = [] as User[];
+      for (let i = 0; i < 3; i++) {
+        const user = em.create<User>(User, {
+          name: names[i],
+          surname: surnames[i],
+          password: names[i].toLowerCase(),
+          email: `${names[i]}@mail.com`,
           phoneNumber: '123456789',
-          nickname: 'rafa',
+          nickname: names[i].toLowerCase(),
           isActive: true,
           isBlocked: false,
-          companies: [createdCompanies[0]],
-          roles: [
-            em.create(UserRole, {
-              role: UserRoleEnum.BOSS,
-              company: createdCompanies[0],
-            }),
-          ],
-        }),
-        em.create<User>(User, {
-          name: 'Juan',
-          surname: 'Miguel',
-          password: 'juan',
-          email: 'juan@mail.com',
-          phoneNumber: '987654321',
-          nickname: 'juan',
-          isActive: true,
-          isBlocked: false,
-          companies: [createdCompanies[1]],
-          roles: [
-            em.create(UserRole, {
-              role: UserRoleEnum.BOSS,
-              company: createdCompanies[1],
-            }),
-          ],
-        }),
-        em.create<User>(User, {
-          name: 'Isaac',
-          surname: 'Pinga',
-          password: 'isaac',
-          email: 'isaac@mail.com',
-          phoneNumber: '123123123',
-          nickname: 'isaac',
-          isActive: true,
-          isBlocked: false,
-          companies: [createdCompanies[2]],
-          roles: [
-            em.create(UserRole, {
-              role: UserRoleEnum.BOSS,
-              company: createdCompanies[2],
-            }),
-          ],
-        }),
-      ];
+          isVerified: true,
+          fullName: 'Rafa',
+          companies: [createdCompanies[i]],
+        });
 
-      await em.persistAndFlush(admins);
+        user.roles.add(
+          em.create<UserRole>(UserRole, {
+            role: UserRoleEnum.BOSS,
+            company: createdCompanies[i],
+            user,
+          })
+        );
+
+        admins.push(user);
+      }
+
+      em.persist(admins);
+      await em.flush();
 
       const createdAdmins = await em.find(
         User,
@@ -115,7 +93,6 @@ export class UserSeeder extends Seeder {
           const company = faker.helpers.arrayElement(createdCompanies);
           if (!PollsCreated) {
             createdCompanies.forEach(company => {
-              cont++;
               new PollFactory(em, user)
                 .each(async poll => {
                   poll.pollVotes.set(new PollVoteFactory(em, user).make(1));
@@ -131,6 +108,7 @@ export class UserSeeder extends Seeder {
             em.create<UserRole>(UserRole, {
               role: UserRoleEnum.STANDARD,
               company,
+              user,
             }),
           ]);
         })

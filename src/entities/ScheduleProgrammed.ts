@@ -9,7 +9,7 @@ import {
   Property,
 } from '@mikro-orm/core';
 
-import { CustomScheduleProgrammedRepository } from '../customRepositories/scheduleProgrammedRepository';
+import { CustomScheduleProgrammedRepository } from '../repositories/scheduleProgrammedRepository';
 import { ScheduleType } from '../types/enums';
 
 import { BaseEntity } from './BaseEntity';

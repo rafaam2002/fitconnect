@@ -55,7 +55,18 @@ export interface UpdatePasswordInput {
 }
 
 // ============= AUTH SERVICE =============
-
+/**
+ * Service para manejar operaciones de usuarios
+ *
+ * @remarks
+ * Este servicio maneja autenticación, generación de Tokens
+ * para la entidad User. Login por OAuth.
+ *
+ * @example
+ * ```typescript
+ * const user = await login(loginInput);
+ * ```
+ */
 export class AuthService extends BaseService {
   private permissionService: PermissionService;
   private emailService: EmailService;

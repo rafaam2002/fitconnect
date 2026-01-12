@@ -8,7 +8,7 @@ import {
   Property,
 } from '@mikro-orm/core';
 
-import { CustomPollRepository } from '../customRepositories/pollRepository';
+import { CustomPollRepository } from '../repositories/pollRepository';
 import { NewPollSchema } from '../validation/schemas';
 
 import { BaseEntity } from './BaseEntity';

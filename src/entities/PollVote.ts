@@ -4,14 +4,11 @@ import {
   Entity,
   EntityManager,
   EntityRepositoryType,
-  Filter,
   ManyToOne,
   Property,
 } from '@mikro-orm/core';
 
-import { CustomPollRepository } from '../customRepositories/pollRepository';
-
-import { Company } from './Company';
+import { CustomPollRepository } from '../repositories/pollRepository';
 import { Poll } from './Poll';
 import { User } from './User';
 

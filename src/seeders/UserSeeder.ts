@@ -11,7 +11,7 @@ import { UserRole } from '../entities/UserRole';
 import { CompanyFactory } from '../factories/CompanyFactory';
 import { PollFactory } from '../factories/PollFactory';
 import { PollVoteFactory } from '../factories/PollVoteFactory';
-import { UserFactory } from '../factories/UserFactory';
+import { UserFactory } from '../factories/user.factory';
 import { UserRoleEnum } from '../types/enums';
 
 export class UserSeeder extends Seeder {

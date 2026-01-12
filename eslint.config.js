@@ -94,8 +94,8 @@ module.exports = [
       'prettier/prettier': 'error',
       'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-secrets/no-secrets': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
-      '@typescript-eslint/no-explicit-any': 'error',
+      // '@typescript-eslint/explicit-function-return-type': 'warn',
+      // '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },

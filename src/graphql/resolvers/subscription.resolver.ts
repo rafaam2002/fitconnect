@@ -186,6 +186,6 @@ export const subscriptionResolvers = {
     pauseSubscription,
     resumeSubscription,
     changeSubscriptionPlan,
-    syncSubscriptionFromStripe,
+    //syncSubscriptionFromStripe,
   },
 };

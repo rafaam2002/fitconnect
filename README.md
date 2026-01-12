@@ -1,3 +1,6 @@
+[![Documentation](https://img.shields.io/badge/docs-typedoc-blue)](https://github.com/gondorwebmasters/fitconnect)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=gondorwebmasters_fitconnect&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=gondorwebmasters_fitconnect)
+
 ## Commits
 
 Usamos conventional commits:

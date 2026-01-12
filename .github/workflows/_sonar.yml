@@ -10,11 +10,18 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
-      - name: Download Coverage
+
+      - name: Download Lint Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: lint-report
+          path: reports/lint-report/
+
+      - name: Download Coverage Artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: coverage-artifact  # Debe coincidir con el nombre en _test.yml
-          path: coverage/
+          name: coverage-artifact
+          path: reports/coverage-artifact/
 
       # 2. Cache para no descargar el motor de Sonar cada vez
       - name: SonarCloud Cache

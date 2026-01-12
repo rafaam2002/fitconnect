@@ -18,7 +18,7 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   sonar:
-    needs: [ test ]
+    needs: [ lint, test ]
     uses: ./.github/workflows/_sonar.yml
     secrets: inherit # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
   build:

@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 1 # Pro-tip: No necesitamos el historial para el lint
-      - uses: actions/setup-node@39225597fd66c219463660335c02633935665959
+      - uses: actions/setup-node@1d71da2ad040751d6f0227237077977a499c7161
         with:
           node-version: '20'
           cache: 'npm'
@@ -23,7 +23,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Upload Lint Report
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c84d6411d33189d9c6665c36f338b251a37c4e # v4.4.3
         with:
           name: lint-report
           path: eslint-report.json

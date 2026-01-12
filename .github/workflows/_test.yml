@@ -22,7 +22,7 @@ jobs:
 
       - name: Upload to Codecov
         if: matrix.node-version == '20.x' # Solo subimos el reporte de una versión para no duplicar
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@0cfda57bb96a5684d196822ecdce740e5776f3ee
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info

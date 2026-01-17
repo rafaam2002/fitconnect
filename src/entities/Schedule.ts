@@ -7,17 +7,19 @@ import {
   ManyToMany,
   ManyToOne,
   Property,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { ScheduleProgrammed } from "./ScheduleProgrammed";
-import { ScheduleState, ScheduleType } from "../types/enums";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+
+import { ScheduleState, ScheduleType } from '../types/enums';
+
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { ScheduleProgrammed } from './ScheduleProgrammed';
+import { User } from './User';
 
 @Entity()
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 export class Schedule extends BaseEntity {
@@ -48,7 +50,7 @@ export class Schedule extends BaseEntity {
   @Property({ default: ScheduleState.AVAILABLE })
   state: ScheduleState;
 
-  @ManyToMany(() => User, (user) => user.schedules)
+  @ManyToMany(() => User, user => user.schedules)
   users = new Collection<User>(this);
 
   @ManyToOne(() => User)
@@ -73,7 +75,7 @@ export class Schedule extends BaseEntity {
   @BeforeUpdate()
   validate() {
     if (this.startDate >= this.endDate) {
-      throw new Error("startDate must be before endDate.");
+      throw new Error('startDate must be before endDate.');
     }
   }
 }

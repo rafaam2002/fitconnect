@@ -6,18 +6,20 @@ import {
   ManyToOne,
   OneToMany,
   Property,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { CustomPollRepository } from "../customRepositories/pollRepository";
-import { PollVote } from "./PollVote";
-import { NewPollSchema } from "../validation/schemas";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+
+import { CustomPollRepository } from '../repositories/pollRepository';
+import { NewPollSchema } from '../validation/schemas';
+
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { PollVote } from './PollVote';
+import { User } from './User';
 
 @Entity({ repository: () => CustomPollRepository })
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 export class Poll extends BaseEntity {
@@ -35,7 +37,7 @@ export class Poll extends BaseEntity {
   @ManyToOne(() => User) // arreglar
   admin: User;
 
-  @OneToMany(() => PollVote, (pollVote) => pollVote.poll, { eager: true })
+  @OneToMany(() => PollVote, pollVote => pollVote.poll, { eager: true })
   pollVotes = new Collection<PollVote>(this);
 
   @ManyToOne(() => Company)

@@ -5,14 +5,15 @@ import {
   Property,
   t,
   Unique,
-} from "@mikro-orm/core";
+} from '@mikro-orm/core';
+import { BeforeDelete, BeforeUpdate, EventArgs } from '@mikro-orm/core';
 
-import { BeforeDelete, BeforeUpdate, EventArgs } from "@mikro-orm/core";
-import { deleteBucketPicture } from "../utils/s3client.util";
-import { BaseEntity } from "./BaseEntity";
-import { Company } from "./Company";
-import { Product } from "./Product";
-import { User } from "./User";
+import { deleteBucketPicture } from '../utils/s3client.util';
+
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { Product } from './Product';
+import { User } from './User';
 
 @Entity()
 export class PictureUrl extends BaseEntity {
@@ -23,7 +24,7 @@ export class PictureUrl extends BaseEntity {
   @Property({ type: t.text })
   url: string;
 
-  @OneToOne(() => User, (user) => user.pictureUrl, {
+  @OneToOne(() => User, user => user.pictureUrl, {
     nullable: true,
   })
   user?: User;
@@ -33,7 +34,7 @@ export class PictureUrl extends BaseEntity {
   })
   product?: Product;
 
-  @OneToOne(() => Company, (company) => company.logo, {
+  @OneToOne(() => Company, company => company.logo, {
     nullable: true,
   })
   companyLogo?: Company;
@@ -63,7 +64,7 @@ export class PictureUrl extends BaseEntity {
         try {
           await deleteBucketPicture(originalEntity.name);
         } catch (error) {
-          console.error("Error deleting old picture from bucket", error);
+          console.error('Error deleting old picture from bucket', error);
         }
       }
     }
@@ -73,7 +74,7 @@ export class PictureUrl extends BaseEntity {
     try {
       await deleteBucketPicture(this.name);
     } catch (error) {
-      console.error("Error deleting picture from bucket", error);
+      console.error('Error deleting picture from bucket', error);
     }
   }
 }

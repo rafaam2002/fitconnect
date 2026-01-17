@@ -1,0 +1,24 @@
+name: _ Internal Danger
+on:
+  workflow_call:
+
+jobs:
+  danger-run:
+    name: Pull Request Assistant
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx danger ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

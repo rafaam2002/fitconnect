@@ -1,6 +1,6 @@
-import { Poll } from "../entities/Poll";
+import { Poll } from '../entities/Poll';
 
 export type PollAndSelection = {
-    poll: Poll;
-    OptionSelected: number | null;
-}
+  poll: Poll;
+  OptionSelected: number | null;
+};

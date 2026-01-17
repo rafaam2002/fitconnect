@@ -1,7 +1,6 @@
-import { EventSubscriber, EntityManager, EventArgs } from "@mikro-orm/core";
-import { PollVote } from "../entities/PollVote";
-import { EntityRepository } from "@mikro-orm/postgresql";
-import { Poll } from "../entities/Poll";
+import { EventArgs, EventSubscriber } from '@mikro-orm/core';
+
+import { PollVote } from '../entities/PollVote';
 
 export class PollVoteSubscriber implements EventSubscriber<PollVote> {
   async beforeCreate(args: EventArgs<PollVote>): Promise<void> {
@@ -18,8 +17,8 @@ export class PollVoteSubscriber implements EventSubscriber<PollVote> {
 
     // if (existingVote) {
     //   throw new Error("El usuario ya ha votado en esta encuesta");
-      // }
-      console.log("Llama PollVoteSubscriber beforeCreate");
+    // }
+    console.log('Llama PollVoteSubscriber beforeCreate');
   }
 
   /**

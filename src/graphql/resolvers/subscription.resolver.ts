@@ -1,141 +1,191 @@
+import { SubscriptionService } from '../../services/subscription.service';
+import { ContextProps } from '../../types/resolvers';
+import { handleError } from '../../utils/errors.util';
+
 // ===== QUERY RESOLVERS =====
 
-import {SubscriptionService} from "../../services/subscription.service";
-import {CustomResponse} from "./errors";
-import {GraphQLError} from "graphql";
+export const getSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscriptionId } = args;
 
-export const getSubscription = async (parent: any, args: any, context: any) => {
-    const subscriptionService = new SubscriptionService(context.em);
-    const subscription = subscriptionService.getSubscription(args.subscriptionId);
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.getSubscription(subscriptionId);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-    return CustomResponse(200, 'Subscription fetched successfully', true, {subscription});
-}
+export const listUserSubscriptions = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { userId } = args;
 
-export const listUserSubscriptions = async (parent: any, args: any, context: any) => {
-    const subscriptionService = new SubscriptionService(context.em);
-    const subscriptions = await subscriptionService.listUserSubscriptions(args.userId);
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.listUserSubscriptions(userId);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-    return CustomResponse(200, 'User subscriptions are fetched succesffully', true, {subscriptions})
-}
+export const getActiveSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { userId } = args;
 
-export const getActiveSubscription = async (parent: any, args: any, context: any) => {
-    const subscriptionService = new SubscriptionService(context.em);
-    const subscriptions = await subscriptionService.listUserSubscriptions(args.userId);
-
-    return CustomResponse(200, 'Active Subscription fetched successfully', true, {subscription: subscriptions.find(sub => sub.isActive) || null});
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.getActiveSubscription(userId);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
 // ===== MUTATION RESOLVERS =====
-export const createSubscription = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.createSubscription(args.subscription);
 
-        return CustomResponse(200, 'Subscription created successfully.', true, {subscription});
+export const createSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscription } = args;
 
-    } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: "ERROR_CREATE_SUBSCRIPTION",
-            },
-        });
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.createSubscription(subscription);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-export const updateSubscription = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.updateSubscription(args.subscription);
+export const updateSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscription } = args;
 
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.updateSubscription(subscription);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-        return CustomResponse(200, 'Subscription updated successfully.', true, {subscription});
+export const cancelSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { input } = args;
 
-    } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: "ERROR_UPDATE_SUBSCRIPTION",
-            }
-        })
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.cancelSubscription(input);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-export const cancelSubscription = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.cancelSubscription(args.input);
+export const pauseSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscriptionId } = args;
 
-        return CustomResponse(200, 'Subscription cancelled successfully.', true, {subscription});
-    } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: "ERROR_CANCEL_SUBSCRIPTION",
-            }
-        })
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.pauseSubscription(subscriptionId);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-export const pauseSubscription = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.pauseSubscription(args.subscriptionId);
+export const resumeSubscription = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscriptionId } = args;
 
-        return CustomResponse(200, 'Subscription paused successfully.', true, {subscription});
-    } catch (error: any) {
-       throw new GraphQLError(error.message, {
-           extensions: {
-               code: "ERROR_PAUSE_SUBSCRIPTION",
-           }
-       })
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.resumeSubscription(subscriptionId);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-export const resumeSubscription = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.resumeSubscription(args.subscriptionId);
+export const changeSubscriptionPlan = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { subscriptionId, newPlanId } = args;
 
-        return CustomResponse(200, 'Subscription resumed successfully.', true, {subscription});
-    } catch (error: any) {
-       throw new GraphQLError(error.message, {
-           extensions: {
-               code: "ERROR_RESUME_SUBSCRIPTION",
-           }
-       })
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.updateSubscription({
+      subscriptionId,
+      planId: newPlanId,
+    });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
-export const changeSubscriptionPlan = async (parent: any, args: any, context: any) => {
-    try {
-        const subscriptionService = new SubscriptionService(context.em);
-        const subscription = await subscriptionService.updateSubscription({
-            subscriptionId: args.subscriptionId,
-            planId: args.newPlanId
-        });
+export const syncSubscriptionFromStripe = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const { stripeSubscriptionId } = args;
 
-        CustomResponse(200, 'Subscription changed successfully.', true, {subscription});
-    } catch (error: any) {
-        throw new GraphQLError(error.message, {
-            extensions: {
-                code: "ERROR_CHANGE_SUBSCRIPTION",
-            }
-        })
-    }
-}
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.syncSubscriptionFromStripe(
+      stripeSubscriptionId
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
 
 // ===== EXPORT RESOLVERS OBJECT =====
-export const subscriptionResolvers = {
-    Query: {
-        getSubscription,
-        listUserSubscriptions,
-        getActiveSubscription
-    },
 
-    Mutation: {
-        createSubscription,
-        updateSubscription,
-        cancelSubscription,
-        pauseSubscription,
-        resumeSubscription,
-        changeSubscriptionPlan
-    }
+export const subscriptionResolvers = {
+  Query: {
+    getSubscription,
+    listUserSubscriptions,
+    getActiveSubscription,
+  },
+  Mutation: {
+    createSubscription,
+    updateSubscription,
+    cancelSubscription,
+    pauseSubscription,
+    resumeSubscription,
+    changeSubscriptionPlan,
+    //syncSubscriptionFromStripe,
+  },
 };

@@ -1,12 +1,12 @@
-import { ContextProps } from "../../types/resolvers";
-import { ArticleService } from "../../services/article.service";
-import { UnauthorizedError } from "../../utils/errors.util";
+import { ArticleService } from '../../services/article.service';
+import { ContextProps } from '../../types/resolvers';
+import { UnauthorizedError } from '../../utils/errors.util';
 
 // ============= TYPES =============
 
 type PaginationProps = {
-    limit?: number;
-    offset?: number;
+  limit?: number;
+  offset?: number;
 };
 
 // ============= QUERY RESOLVERS =============
@@ -27,27 +27,26 @@ type PaginationProps = {
  * @throws GatewayTimeoutError - Si la API no responde a tiempo
  */
 export const getArticles = async (
-    _: any,
-    { limit = 10, offset = 0 }: PaginationProps,
-    { em, currentUser }: ContextProps
+  _: any,
+  { limit = 10, offset = 0 }: PaginationProps,
+  { em, currentUser }: ContextProps
 ) => {
-    // Validar autenticación
-    if (!currentUser) {
-        throw new UnauthorizedError();
-    }
+  // Validar autenticación
+  if (!currentUser) {
+    throw new UnauthorizedError();
+  }
 
-    // Crear instancia del servicio
-    const articleService = new ArticleService(em);
+  // Crear instancia del servicio
+  const articleService = new ArticleService(em);
 
-    // Obtener artículos de la API externa
-    return await articleService.getArticles({ limit, offset });
-
+  // Obtener artículos de la API externa
+  return await articleService.getArticles({ limit, offset });
 };
 
 // ============= RESOLVER EXPORT =============
 
 export const articleResolvers = {
-    Query: {
-        getArticles,
-    },
+  Query: {
+    getArticles,
+  },
 };

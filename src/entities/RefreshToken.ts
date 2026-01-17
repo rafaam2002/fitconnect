@@ -1,14 +1,14 @@
+import { Entity, ManyToOne, Property } from '@mikro-orm/core';
 
-import { Entity, ManyToOne, Property } from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
+import { BaseEntity } from './BaseEntity';
+import { User } from './User';
 
 @Entity()
 export class RefreshToken extends BaseEntity {
   @ManyToOne(() => User)
   user!: User;
 
-  @Property({ type: "text" })
+  @Property({ type: 'text' })
   token!: string;
 
   @Property()

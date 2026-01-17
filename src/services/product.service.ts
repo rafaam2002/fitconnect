@@ -1,198 +1,209 @@
-import {EntityManager} from '@mikro-orm/core';
-import {BaseService} from './base.service';
-import {Product} from '../entities/Product';
-import {User} from '../entities/User';
-import {UserRoleEnum} from '../types/enums';
+import { EntityManager } from '@mikro-orm/core';
+
+import { Product } from '../entities/Product';
+import { User } from '../entities/User';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
+import { UserRoleEnum } from '../types/enums';
 import {
-    BadRequestError,
-    createServiceResponse,
-    ForbiddenError,
-    InternalServerError,
-    NotFoundError,
-    UnauthorizedError
+  BadRequestError,
+  createServiceResponse,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError,
+  UnauthorizedError,
 } from '../utils/errors.util';
-import {CurrentUser, ServiceResponse} from '../types/common.type';
-import {sendPushNotification} from '../utils/notification.util';
-import {createPictureUrl, getPresignedUrl} from '../utils/presigned-urls.util';
+import { sendPushNotification } from '../utils/notification.util';
+import {
+  createPictureUrl,
+  getPresignedUrl,
+} from '../utils/presigned-urls.util';
+
+import { BaseService } from './base.service';
 
 export class ProductService extends BaseService {
-    constructor(em: EntityManager) {
-        super(em);
+  constructor(em: EntityManager) {
+    super(em);
+  }
+
+  /**
+   * Obtener todos los productos
+   */
+  public async getProducts(currentUser: CurrentUser): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
     }
 
-    /**
-     * Obtener todos los productos
-     */
-    public async getProducts(currentUser: CurrentUser): Promise<ServiceResponse> {
-        if (!currentUser) {
-            throw new UnauthorizedError();
-        }
+    try {
+      const products = await this.em.findAll(Product, {});
 
-        try {
-            const products = await this.em.findAll(Product, {});
+      return createServiceResponse(200, 'Products found', true, { products });
+    } catch (error: any) {
+      throw new InternalServerError('Error fetching products');
+    }
+  }
 
-            return createServiceResponse(200, 'Products found', true, {products});
-        } catch (error: any) {
-            throw new InternalServerError('Error fetching products');
-        }
+  /**
+   * Crear nuevo producto (solo BOSS)
+   */
+  public async createProduct(
+    currentUser: CurrentUser,
+    name: string,
+    description: string,
+    price: number
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
     }
 
-    /**
-     * Crear nuevo producto (solo BOSS)
-     */
-    public async createProduct(
-        currentUser: CurrentUser,
-        name: string,
-        description: string,
-        price: number
-    ): Promise<ServiceResponse> {
-        if (!currentUser) {
-            throw new UnauthorizedError();
-        }
-
-        // Verificar rol BOSS
-        if (currentUser.contextRole !== UserRoleEnum.BOSS) {
-            throw new ForbiddenError('You are not allowed to create a product');
-        }
-
-        // Validar campos requeridos
-        if (!name || !description || !price) {
-            throw new BadRequestError('Please fill all the fields');
-        }
-
-        try {
-            const product = this.em.create(Product, {
-                name,
-                description,
-                price,
-                company: currentUser.activeCompanyId!
-            });
-
-            await this.em.persistAndFlush(product);
-
-            // Enviar notificaciones push a todos los usuarios
-            await this.sendProductNotifications(product);
-
-            return createServiceResponse(200, 'Product created', true, {product});
-        } catch (error: any) {
-            if (error instanceof ForbiddenError ||
-                error instanceof BadRequestError ||
-                error instanceof UnauthorizedError) {
-                throw error;
-            }
-            throw new InternalServerError('Error creating product');
-        }
+    // Verificar rol BOSS
+    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+      throw new ForbiddenError('You are not allowed to create a product');
     }
 
-    /**
-     * Actualizar imagen de producto (solo BOSS)
-     */
-    public async updateProductPicture(
-        currentUser: CurrentUser,
-        imageName: string,
-        productId: string
-    ): Promise<ServiceResponse> {
-        if (!currentUser) {
-            throw new UnauthorizedError();
-        }
-
-        // Verificar rol BOSS
-        if (currentUser.contextRole !== UserRoleEnum.BOSS) {
-            throw new ForbiddenError('You are not allowed to update a product');
-        }
-        const productRepo = this.em.getRepository(Product);
-        const product = await productRepo.findOne({id: productId});
-
-        if (!product) {
-            throw new NotFoundError('Product');
-        }
-
-        const pictureUrl = createPictureUrl(
-            this.em,
-            {
-                id: productId,
-                name: imageName,
-                type: 'product',
-            },
-            await getPresignedUrl(imageName)
-        );
-
-        await this.em.persistAndFlush(pictureUrl);
-
-        return createServiceResponse(200, 'Product picture updated', true, {product});
+    // Validar campos requeridos
+    if (!name || !description || !price) {
+      throw new BadRequestError('Please fill all the fields');
     }
 
-    /**
-     * Eliminar múltiples productos
-     */
-    public async removeProducts(
-        currentUser: CurrentUser,
-        ids: string[]
-    ): Promise<ServiceResponse> {
-        if (!currentUser) {
-            throw new UnauthorizedError();
-        }
+    try {
+      const product = this.em.create(Product, {
+        name,
+        description,
+        price,
+        company: currentUser.activeCompanyId!,
+      });
 
-        if (!ids || ids.length === 0) {
-            throw new BadRequestError('At least one product ID is required');
-        }
+      await this.em.persistAndFlush(product);
 
-        const productRepo = this.em.getRepository(Product);
+      // Enviar notificaciones push a todos los usuarios
+      await this.sendProductNotifications(product);
 
-        const products = await productRepo.find({
-            id: {$in: ids},
-        });
+      return createServiceResponse(200, 'Product created', true, { product });
+    } catch (error: any) {
+      if (
+        error instanceof ForbiddenError ||
+        error instanceof BadRequestError ||
+        error instanceof UnauthorizedError
+      ) {
+        throw error;
+      }
+      throw new InternalServerError('Error creating product');
+    }
+  }
 
-        if (products.length === 0) {
-            throw new NotFoundError('No products found with the provided IDs');
-        }
-
-        // Verificar si se encontraron todos los productos
-        if (products.length !== ids.length) {
-            const foundIds = products.map((product: Product) => product.id);
-            const notFoundIds = ids.filter((id) => !foundIds.includes(id));
-            throw new NotFoundError(`Some products not found: ${notFoundIds.join(', ')}`);
-        }
-
-        await this.em.removeAndFlush(products);
-
-        return createServiceResponse(
-            200,
-            `${products.length} product(s) deleted successfully`,
-            true
-        );
+  /**
+   * Actualizar imagen de producto (solo BOSS)
+   */
+  public async updateProductPicture(
+    currentUser: CurrentUser,
+    imageName: string,
+    productId: string
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
     }
 
-    // ============= MÉTODOS PRIVADOS =============
-
-    /**
-     * Enviar notificaciones push sobre nuevo producto
-     */
-    private async sendProductNotifications(product: Product): Promise<void> {
-        try {
-            const users = await this.em.find(User, {}, {populate: ['pushTokens']});
-            const notificationTitle = '¡Nuevo producto disponible!';
-            const notificationBody = product.name;
-            const notificationData = {
-                type: 'new_product',
-                productId: product.id,
-            };
-
-            users.forEach((user: User) => {
-                if (user.pushTokens && user.pushTokens.length > 0) {
-                    user.pushTokens.getItems().forEach((pushToken) => {
-                        sendPushNotification(
-                            pushToken.token,
-                            notificationTitle,
-                            notificationBody,
-                            notificationData
-                        );
-                    });
-                }
-            });
-        } catch (error) {
-            console.error('Error sending product notifications:', error);
-            // No lanzar error - las notificaciones son secundarias
-        }
+    // Verificar rol BOSS
+    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+      throw new ForbiddenError('You are not allowed to update a product');
     }
+    const productRepo = this.em.getRepository(Product);
+    const product = await productRepo.findOne({ id: productId });
+
+    if (!product) {
+      throw new NotFoundError('Product');
+    }
+
+    const pictureUrl = createPictureUrl(
+      this.em,
+      {
+        id: productId,
+        name: imageName,
+        type: 'product',
+      },
+      await getPresignedUrl(imageName)
+    );
+
+    await this.em.persistAndFlush(pictureUrl);
+
+    return createServiceResponse(200, 'Product picture updated', true, {
+      product,
+    });
+  }
+
+  /**
+   * Eliminar múltiples productos
+   */
+  public async removeProducts(
+    currentUser: CurrentUser,
+    ids: string[]
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (!ids || ids.length === 0) {
+      throw new BadRequestError('At least one product ID is required');
+    }
+
+    const productRepo = this.em.getRepository(Product);
+
+    const products = await productRepo.find({
+      id: { $in: ids },
+    });
+
+    if (products.length === 0) {
+      throw new NotFoundError('No products found with the provided IDs');
+    }
+
+    // Verificar si se encontraron todos los productos
+    if (products.length !== ids.length) {
+      const foundIds = products.map((product: Product) => product.id);
+      const notFoundIds = ids.filter(id => !foundIds.includes(id));
+      throw new NotFoundError(
+        `Some products not found: ${notFoundIds.join(', ')}`
+      );
+    }
+
+    await this.em.removeAndFlush(products);
+
+    return createServiceResponse(
+      200,
+      `${products.length} product(s) deleted successfully`,
+      true
+    );
+  }
+
+  // ============= MÉTODOS PRIVADOS =============
+
+  /**
+   * Enviar notificaciones push sobre nuevo producto
+   */
+  private async sendProductNotifications(product: Product): Promise<void> {
+    try {
+      const users = await this.em.find(User, {}, { populate: ['pushTokens'] });
+      const notificationTitle = '¡Nuevo producto disponible!';
+      const notificationBody = product.name;
+      const notificationData = {
+        type: 'new_product',
+        productId: product.id,
+      };
+
+      users.forEach((user: User) => {
+        if (user.pushTokens && user.pushTokens.length > 0) {
+          user.pushTokens.getItems().forEach(pushToken => {
+            sendPushNotification(
+              pushToken.token,
+              notificationTitle,
+              notificationBody,
+              notificationData
+            );
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error sending product notifications:', error);
+      // No lanzar error - las notificaciones son secundarias
+    }
+  }
 }

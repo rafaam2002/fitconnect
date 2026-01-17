@@ -1,12 +1,14 @@
-import {EntityManager} from "@mikro-orm/core";
-import {Company} from "../entities/Company";
-import {PictureUrl} from "../entities/PictureUrl";
-import {Product} from "../entities/Product";
-import {User} from "../entities/User";
-import {getPresignedUrl} from "./s3client.util";
-import {BadRequestError} from "./errors.util";
+import { EntityManager } from '@mikro-orm/core';
 
-export * from "./s3client.util";
+import { Company } from '../entities/Company';
+import { PictureUrl } from '../entities/PictureUrl';
+import { Product } from '../entities/Product';
+import { User } from '../entities/User';
+
+import { BadRequestError } from './errors.util';
+import { getPresignedUrl } from './s3client.util';
+
+export * from './s3client.util';
 
 /**
  * Actualizar URLs de imágenes con presigned URLs
@@ -34,13 +36,13 @@ const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
   const userRepo = em.getRepository(User);
 
   const users = await userRepo.find(
-      {
-        pictureUrl: { $ne: null }
-      },
-      {
-        filters: false,
-        populate: ['pictureUrl']
-      }
+    {
+      pictureUrl: { $ne: null },
+    },
+    {
+      filters: false,
+      populate: ['pictureUrl'],
+    }
   );
 
   if (users.length === 0) {
@@ -49,7 +51,7 @@ const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
   }
 
   // Generar presigned URLs en paralelo
-  const urlPromises = users.map(async (user) => {
+  const urlPromises = users.map(async user => {
     if (user.pictureUrl) {
       user.pictureUrl.url = await getPresignedUrl(user.pictureUrl.name);
     }
@@ -70,12 +72,12 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
   const productRepo = em.getRepository(Product);
 
   const products = await productRepo.find(
-      {
-        pictures: { $ne: null }
-      },
-      {
-        populate: ['pictures']
-      }
+    {
+      pictures: { $ne: null },
+    },
+    {
+      populate: ['pictures'],
+    }
   );
 
   if (products.length === 0) {
@@ -84,9 +86,7 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
   }
 
   // Obtener todas las pictures de todos los productos
-  const allPictures = products.flatMap(product =>
-      product.pictures.getItems()
-  );
+  const allPictures = products.flatMap(product => product.pictures.getItems());
 
   if (allPictures.length === 0) {
     console.log('No product pictures to update');
@@ -94,9 +94,8 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
   }
 
   // Generar presigned URLs en paralelo
-  const urlPromises = allPictures.map(async (picture) => {
+  const urlPromises = allPictures.map(async picture => {
     picture.url = await getPresignedUrl(picture.name);
-
   });
 
   await Promise.all(urlPromises);
@@ -110,7 +109,7 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
 /**
  * Tipos de owner para PictureUrl
  */
-type PictureOwnerType = "user" | "product" | "companyLogo";
+type PictureOwnerType = 'user' | 'product' | 'companyLogo';
 
 interface CreatePictureUrlInput {
   id: string;
@@ -123,9 +122,9 @@ interface CreatePictureUrlInput {
  * @throws Error si el tipo de owner es inválido
  */
 export const createPictureUrl = (
-    em: EntityManager,
-    item: CreatePictureUrlInput,
-    url: string
+  em: EntityManager,
+  item: CreatePictureUrlInput,
+  url: string
 ): PictureUrl => {
   // Validar input
   if (!item.id || !item.name || !url) {
@@ -137,35 +136,35 @@ export const createPictureUrl = (
   }
 
   // Mapeo de tipo a entidad y campo
-  const ownerConfig: Record<PictureOwnerType, { entity: any; field: string }> = {
-    user: { entity: User, field: 'user' },
-    product: { entity: Product, field: 'product' },
-    companyLogo: { entity: Company, field: 'companyLogo' }
-  };
+  const ownerConfig: Record<PictureOwnerType, { entity: any; field: string }> =
+    {
+      user: { entity: User, field: 'user' },
+      product: { entity: Product, field: 'product' },
+      companyLogo: { entity: Company, field: 'companyLogo' },
+    };
 
   const config = ownerConfig[item.type];
   const owner = {
     user: null,
     product: null,
     companyLogo: null,
-    [config.field]: em.getReference(config.entity, item.id)
+    [config.field]: em.getReference(config.entity, item.id),
   };
 
   return em.create(PictureUrl, {
     name: item.name,
     url,
-    ...owner
+    ...owner,
   });
-
 };
 
 /**
  * Crear y persistir PictureUrl en una sola operación
  */
 export const createAndPersistPictureUrl = async (
-    em: EntityManager,
-    item: CreatePictureUrlInput,
-    url: string
+  em: EntityManager,
+  item: CreatePictureUrlInput,
+  url: string
 ): Promise<PictureUrl> => {
   const pictureUrl = createPictureUrl(em, item, url);
   await em.persistAndFlush(pictureUrl);
@@ -177,12 +176,12 @@ export const createAndPersistPictureUrl = async (
  * Si ya existe, actualiza la URL. Si no, crea uno nuevo.
  */
 export const upsertPictureUrl = async (
-    em: EntityManager,
-    item: CreatePictureUrlInput,
-    url: string
+  em: EntityManager,
+  item: CreatePictureUrlInput,
+  url: string
 ): Promise<PictureUrl> => {
   const existingPictureUrl = await em.findOne(PictureUrl, {
-    name: item.name
+    name: item.name,
   });
 
   if (existingPictureUrl) {
@@ -198,11 +197,11 @@ export const upsertPictureUrl = async (
  * Crear múltiples PictureUrls en batch
  */
 export const createPictureUrlsBatch = async (
-    em: EntityManager,
-    items: Array<{ input: CreatePictureUrlInput; url: string }>
+  em: EntityManager,
+  items: Array<{ input: CreatePictureUrlInput; url: string }>
 ): Promise<PictureUrl[]> => {
   const pictureUrls = items.map(({ input, url }) =>
-      createPictureUrl(em, input, url)
+    createPictureUrl(em, input, url)
   );
 
   await em.persistAndFlush(pictureUrls);
@@ -213,8 +212,8 @@ export const createPictureUrlsBatch = async (
  * Obtener presigned URL y crear PictureUrl en un solo paso
  */
 export const createPictureUrlWithPresigned = async (
-    em: EntityManager,
-    item: CreatePictureUrlInput
+  em: EntityManager,
+  item: CreatePictureUrlInput
 ): Promise<PictureUrl> => {
   const presignedUrl = await getPresignedUrl(item.name);
   return await createAndPersistPictureUrl(em, item, presignedUrl);
@@ -225,8 +224,8 @@ export const createPictureUrlWithPresigned = async (
  * Útil para ejecutar periódicamente
  */
 export const refreshExpiredPresignedUrls = async (
-    em: EntityManager,
-    expirationThresholdHours: number = 24
+  em: EntityManager,
+  expirationThresholdHours: number = 24
 ): Promise<number> => {
   try {
     const threshold = new Date();
@@ -234,7 +233,7 @@ export const refreshExpiredPresignedUrls = async (
 
     // Obtener todas las PictureUrls que puedan estar expiradas
     const pictureUrls = await em.find(PictureUrl, {
-      updated_at: { $lt: threshold }
+      updated_at: { $lt: threshold },
     });
 
     if (pictureUrls.length === 0) {
@@ -243,7 +242,7 @@ export const refreshExpiredPresignedUrls = async (
     }
 
     // Regenerar URLs en paralelo
-    const urlPromises = pictureUrls.map(async (pictureUrl) => {
+    const urlPromises = pictureUrls.map(async pictureUrl => {
       pictureUrl.url = await getPresignedUrl(pictureUrl.name);
     });
 

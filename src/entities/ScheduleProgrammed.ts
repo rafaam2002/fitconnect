@@ -7,17 +7,19 @@ import {
   ManyToOne,
   OneToMany,
   Property,
-} from "@mikro-orm/core";
-import { BaseEntity } from "./BaseEntity";
-import { User } from "./User";
-import { Schedule } from "./Schedule";
-import { CustomScheduleProgrammedRepository } from "../customRepositories/scheduleProgrammedRepository";
-import { ScheduleType } from "../types/enums";
-import { Company } from "./Company";
+} from '@mikro-orm/core';
+
+import { CustomScheduleProgrammedRepository } from '../repositories/scheduleProgrammedRepository';
+import { ScheduleType } from '../types/enums';
+
+import { BaseEntity } from './BaseEntity';
+import { Company } from './Company';
+import { Schedule } from './Schedule';
+import { User } from './User';
 
 @Filter({
-  name: "companyContext",
-  cond: (args) => ({ company: args.companyId }),
+  name: 'companyContext',
+  cond: args => ({ company: args.companyId }),
   default: true,
 })
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
@@ -26,10 +28,10 @@ export class ScheduleProgrammed extends BaseEntity {
   @Property()
   daysOfWeek: number[];
 
-  @Property({ type: "time" })
+  @Property({ type: 'time' })
   startHour: string;
 
-  @Property({ type: "time" })
+  @Property({ type: 'time' })
   endHour: string; // in minutes
 
   @Property()
@@ -50,7 +52,7 @@ export class ScheduleProgrammed extends BaseEntity {
   @Property({ nullable: true })
   age: number | null;
 
-  @OneToMany(() => Schedule, (schedule) => schedule.scheduleProgrammed, {
+  @OneToMany(() => Schedule, schedule => schedule.scheduleProgrammed, {
     cascade: [Cascade.REMOVE],
   })
   schedules = new Collection<Schedule>(this);

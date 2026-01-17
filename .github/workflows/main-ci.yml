@@ -1,0 +1,36 @@
+name: CI Orchestrator
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: ./.github/workflows/_lint.yml
+  test:
+    uses: ./.github/workflows/_test.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  sonar:
+    needs: [ lint, test ]
+    uses: ./.github/workflows/_sonar.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # Pasa SONAR_TOKEN y GITHUB_TOKEN automáticamente
+  build:
+    needs: [ lint, test ]
+    uses: ./.github/workflows/_build.yml
+  security:
+    uses: ./.github/workflows/_security.yml
+  docs:
+    needs: [ build ]
+    uses: ./.github/workflows/_docs.yml
+  danger:
+    if: github.event_name == 'pull_request'
+    needs: [ lint ]
+    uses: ./.github/workflows/_danger.yml

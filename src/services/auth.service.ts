@@ -110,10 +110,10 @@ export class AuthService extends BaseService {
 
     const companies = user.companies.getItems();
 
-    // Si el usuario no tiene empresas
-    if (companies.length === 0) {
-      throw new ValidationError('User has no associated companies');
-    }
+    // Si el usuario no tiene empresas (puede logearse sin empresa)
+    // if (companies.length === 0) {
+    //   throw new ValidationError('User has no associated companies');
+    // }
 
     // Si tiene solo una empresa, hacer login completo automáticamente
     if (companies.length === 1) {
@@ -131,12 +131,16 @@ export class AuthService extends BaseService {
       companies,
       tokens,
     };
-    return createServiceResponse(
-      200,
-      'User needs to select company',
-      true,
-      data
-    );
+
+    const activeCompany = companies.find(c => c.id === user.activeCompanyId);
+
+    return activeCompany
+      ? await this.buildAuthResponseWithPermissions(
+          user,
+          activeCompany,
+          'Login successful'
+        )
+      : createServiceResponse(200, 'logging successfully', true, data);
   }
 
   /**

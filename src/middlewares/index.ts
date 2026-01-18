@@ -9,15 +9,10 @@ export const middleware = async (
   em: EntityManager,
   authorization?: string,
   companyId?: string,
-  isSetCompanyMe?: boolean
 ) => {
   const currentUser = await authenticateUser(em, authorization);
 
-  if (isSetCompanyMe) {
-    em.setFilterParams('companyContext', {
-      companyId,
-    });
-  } else if (currentUser?.activeCompanyId) {
+  if (currentUser?.activeCompanyId) {
     if (currentUser.activeCompanyId !== companyId) {
       throw new BadRequestError(
         'User is logged in two companies at the same time'

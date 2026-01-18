@@ -63,6 +63,7 @@ export class PermissionService extends BaseService {
       { id: planId },
       {
         populate: ['planPermissions', 'planPermissions.permission'],
+        filters: false,
       }
     );
 

@@ -3,6 +3,7 @@ import { Seeder } from '@mikro-orm/seeder';
 
 import { MessageSeeder } from './MessageSeeder';
 import { PermissionSeeder } from './PermissionSeeder';
+import { PlanSeeder } from './PlanSeeder';
 import { PollSeeder } from './PollSeeder';
 import { PollVoteSeeder } from './PollVoteSeeder';
 import { ProductSeeder } from './ProductSeeder';
@@ -20,9 +21,9 @@ export class DatabaseSeeder extends Seeder {
       PollSeeder,
       MessageSeeder,
       PollVoteSeeder,
-      // PlanSeeder,
-      ProductSeeder,
       PermissionSeeder,
+      PlanSeeder,
+      ProductSeeder,
     ]);
   }
 }

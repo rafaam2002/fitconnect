@@ -11,7 +11,7 @@ import {
 import { BaseService } from './base.service';
 import { PermissionService } from './permission.service';
 
-interface CreatePlanInput {
+export interface CreatePlanInput {
   name: string;
   description?: string;
   amount: number;

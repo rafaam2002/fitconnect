@@ -53,7 +53,7 @@ export class UserSeeder extends Seeder {
           name: names[i],
           surname: surnames[i],
           password: names[i].toLowerCase(),
-          email: `${names[i]}@mail.com`,
+          email: `${names[i].toLowerCase()}@mail.com`,
           phoneNumber: '123456789',
           nickname: names[i].toLowerCase(),
           isActive: true,

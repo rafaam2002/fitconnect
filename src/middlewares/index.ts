@@ -1,6 +1,8 @@
 import { EntityManager } from '@mikro-orm/core';
-import { GraphQLError } from 'graphql';
 
+import {
+  BadRequestError,
+} from '../utils/errors.util';
 import { authenticateUser } from './auth';
 
 export const middleware = async (
@@ -17,14 +19,8 @@ export const middleware = async (
     });
   } else if (currentUser?.activeCompanyId) {
     if (currentUser.activeCompanyId !== companyId) {
-      throw new GraphQLError(
-        'User is logged in two companies at the same time',
-        {
-          extensions: {
-            code: 'USER_LOGGED_IN_TWO_COMPANIES',
-            http: { status: 401 },
-          },
-        }
+      throw new BadRequestError(
+        'User is logged in two companies at the same time'
       );
     }
     em.setFilterParams('companyContext', {

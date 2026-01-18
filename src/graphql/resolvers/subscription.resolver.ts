@@ -60,8 +60,9 @@ export const createSubscription = async (
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
+    const { em,currentUser } = context;
     const { subscription } = args;
+    subscription.companyId = currentUser.activeCompanyId;
 
     const subscriptionService = new SubscriptionService(em);
     return await subscriptionService.createSubscription(subscription);

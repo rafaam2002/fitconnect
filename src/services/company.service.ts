@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { Company } from '../entities/Company';
 import { Message } from '../entities/Message';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
@@ -395,6 +396,38 @@ export class CompanyService extends BaseService {
 
     if (!currentUserRole) {
       throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    const activeSubscription = await this.em.findOne(
+      Subscription,
+      {
+        user: currentUser.id,
+        company: company.id,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      { populate: ['plan'] }
+    );
+
+    if (activeSubscription?.plan?.metadata?.maxUsers) {
+      const maxUsers = activeSubscription.plan.metadata.maxUsers;
+
+      if (maxUsers !== 'unlimited') {
+        const maxUsersLimit = parseInt(maxUsers, 10);
+
+        if (!isNaN(maxUsersLimit)) {
+          const currentUsersCount = await this.em.count(UserRole, {
+            company: company.id,
+          });
+
+          if (currentUsersCount >= maxUsersLimit) {
+            throw new BadRequestError(
+              `User limit reached. Your plan allows a maximum of ${maxUsersLimit} users.`
+            );
+          }
+        }
+      }
     }
 
     const userToAdmit = await this.em.findOne(

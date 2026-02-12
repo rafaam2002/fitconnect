@@ -458,7 +458,7 @@ export class CompanyService extends BaseService {
     );
     this.em.persist(newUserRole);
 
-    await this.em.persistAndFlush(userToAdmit);
+    await this.em.flush();
 
     // Enviar notificación al usuario admitido
     try {

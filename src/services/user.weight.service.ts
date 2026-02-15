@@ -82,7 +82,7 @@ export class UserWeightService extends BaseService {
     }
   }
 
-  public async removeUserWeight(
+  public async removeUserWeights(
     ids: string[],
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
@@ -109,7 +109,9 @@ export class UserWeightService extends BaseService {
       }
     }
 
-    await this.em.remove(userWeights).flush();
+    this.em.remove(userWeights)
+    await this.em.flush();
+
 
     return createServiceResponse(
       200,

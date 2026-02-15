@@ -425,7 +425,7 @@ export const addUserWeight = async (
 /**
  * Remove a weight entry
  */
-export const removeUserWeight = async (
+export const removeUserWeights = async (
   _: any,
   args: RemoveUserWeight,
   context: ContextProps
@@ -435,7 +435,7 @@ export const removeUserWeight = async (
     const { em, currentUser } = context;
 
     const userWeightService = new UserWeightService(em);
-    return await userWeightService.removeUserWeight(ids, currentUser!);
+    return await userWeightService.removeUserWeights(ids, currentUser!);
   } catch (error) {
     return handleError(error);
   }
@@ -494,7 +494,7 @@ export const userResolvers: IResolvers = {
     createTrainingTask,
     removeTrainingTask,
     addUserWeight,
-    removeUserWeight,
+    removeUserWeights,
   },
   Subscription: {
     fixedMessages,

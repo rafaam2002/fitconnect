@@ -431,11 +431,11 @@ export const removeUserWeight = async (
   context: ContextProps
 ) => {
   try {
-    const { userWeightId } = args;
+    const { ids } = args;
     const { em, currentUser } = context;
 
     const userWeightService = new UserWeightService(em);
-    return await userWeightService.removeUserWeight(userWeightId, currentUser!);
+    return await userWeightService.removeUserWeight(ids, currentUser!);
   } catch (error) {
     return handleError(error);
   }

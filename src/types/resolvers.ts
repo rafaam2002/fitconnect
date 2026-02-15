@@ -225,8 +225,7 @@ export type AddUserWeight = {
 };
 
 export type RemoveUserWeight = {
-  userId: string;
-  userWeightId: string;
+  ids: string[];
 };
 
 export type CreateProductProps = {

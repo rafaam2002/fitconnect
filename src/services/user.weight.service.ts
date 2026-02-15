@@ -6,8 +6,8 @@ import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
-  NotFoundError,
   ForbiddenError,
+  NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
 
@@ -83,7 +83,7 @@ export class UserWeightService extends BaseService {
   }
 
   public async removeUserWeight(
-    userWeightId: string,
+    ids: string[],
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -91,30 +91,32 @@ export class UserWeightService extends BaseService {
     }
 
     const userWeightRepo = this.em.getRepository(UserWeight);
-    const userWeight = await userWeightRepo.findOne(
-      { id: userWeightId },
+    const userWeights = await userWeightRepo.find(
+      { id: { $in: ids } },
       { populate: ['user'] }
     );
 
-    if (!userWeight) {
-      throw new NotFoundError('User weight');
+    if (userWeights.length === 0) {
+      throw new NotFoundError('User weights');
     }
 
-    if (
-      userWeight.user.id !== currentUser.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
-    ) {
-      throw new ForbiddenError();
+    for (const weight of userWeights) {
+      if (
+        weight.user.id !== currentUser.id &&
+        currentUser.contextRole !== UserRoleEnum.BOSS
+      ) {
+        throw new ForbiddenError();
+      }
     }
 
-    await this.em.removeAndFlush(userWeight);
+    await this.em.remove(userWeights).flush();
 
     return createServiceResponse(
       200,
-      'User weight removed successfully',
+      'User weights removed successfully',
       true,
       {
-        userWeight,
+        userWeights,
       }
     );
   }

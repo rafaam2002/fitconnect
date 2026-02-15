@@ -50,7 +50,7 @@ type Mutation {
 
     #----------------UserWeight----------------
     addUserWeight(userWeight: AddUserWeightInput!): UserWeightResponse!
-    removeUserWeight(userWeightId: ID!): UserWeightResponse!
+    removeUserWeight(ids: [ID]!): UserWeightResponse!
 
     #-----------------Product------------------
     createProduct(product: CreateProductInput!): ProductResponse!

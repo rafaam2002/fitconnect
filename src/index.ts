@@ -53,6 +53,7 @@ const apolloServer = new ApolloServer({
   ],
   csrfPrevention: true,
   cache: 'bounded',
+  introspection: true,
 });
 
 const startServer = async () => {
@@ -236,53 +237,37 @@ const startServer = async () => {
   app.use(
     '/',
     cors<cors.CorsRequest>({
-      origin: '*',
+      origin: '*', // O tus dominios permitidos
       allowedHeaders: ['x-company-id', 'content-type', 'authorization'],
     }),
-    express.json(),
+    express.json(), // Asegúrate de que esté aquí si no es global
     expressMiddleware(apolloServer, {
       context: async ({ req }) => {
-        const em = createRetryingEntityManager(orm); //createRetryingEntityManager(orm);
-        const authorization = req.headers.authorization || '';
-        const companyId = req.headers['x-company-id'] as string;
+        const em = createRetryingEntityManager(orm);
         const query = req.body?.query || '';
 
-        //sacar query por consola para debug
-        //  console.log("Query: ", query);
-
-        // Operations that don't require an authenticated user
-        const publicOperations = [
-          'login',
-          'loginWithGoogle',
-          'loginWithId',
-          'refreshToken',
-          'getAccessToken',
-          'createUser',
-          'forgotPassword',
-          'sendChangePasswordEmail',
-          'verifyEmail',
-        ];
-        // If the query string contains a public operation, skip token authentication
-        const isPublicOperation = publicOperations.some(op =>
-          query.toLowerCase().includes(op.toLowerCase())
-        );
-
-        // Bypass de introspección para Apollo Sandbox (puedes comentar este bloque si molesta)
+        // 1. Si es introspección, dejar pasar sin auth
         if (
-          query.includes('IntrospectionQuery') &&
-          process.env.DEBUG_IGNORE_INTROSPECTION === 'true'
+          query.includes('__schema') ||
+          query.includes('IntrospectionQuery')
         ) {
           return { em, currentUser: null };
         }
 
-        if (isPublicOperation) {
-          try {
-            return { em, currentUser: null };
-          } catch (error) {
-            console.error('Error in public operation context:', error);
-            return { em, currentUser: null };
-          }
+        // 2. Si es operación pública (login, etc), dejar pasar sin auth
+        const publicOperations = [
+          'login',
+          'createUser',
+          'forgotPassword',
+          'verifyEmail',
+        ]; // ...tus ops
+        if (publicOperations.some(op => query.includes(op))) {
+          return { em, currentUser: null };
         }
+
+        // 3. Todo lo demás requiere auth
+        const authorization = req.headers.authorization || '';
+        const companyId = req.headers['x-company-id'] as string;
         return await middleware(em, authorization, companyId);
       },
     })

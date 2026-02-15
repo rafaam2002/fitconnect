@@ -78,7 +78,8 @@ export class TrainingTaskService {
     });
 
     try {
-      await this.em.persistAndFlush(newTrainingTask);
+      this.em.persist(newTrainingTask);
+      await this.em.flush();
 
       await this.sendTaskNotifications(newTrainingTask, userId, content);
 

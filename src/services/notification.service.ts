@@ -92,7 +92,7 @@ export class NotificationService {
   ): Promise<void> {
     const users = await this.em.find(
       User,
-      { roles: UserRoleEnum.PREMIUM },
+      { roles: { role: UserRoleEnum.PREMIUM } },
       { populate: ['pushTokens'] }
     );
 

@@ -187,7 +187,8 @@ export class CompanyService extends BaseService {
       }
     }
 
-    await this.em.persistAndFlush(company);
+    this.em.persist(company);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Company updated successfully', true, {
       company,
@@ -232,7 +233,8 @@ export class CompanyService extends BaseService {
       updateCompany.logo.url = await getPresignedUrl(picture);
     }
 
-    await this.em.persistAndFlush(updateCompany);
+    this.em.persist(updateCompany);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Company updated successfully', true, {
       company: updateCompany,
@@ -267,12 +269,13 @@ export class CompanyService extends BaseService {
       newScheduleOptions,
     } = this.createAdminCompany(this.em, user, companyData.company);
 
-    await this.em.persistAndFlush([
+    this.em.persist([
       newCompany,
       newFirstForumMessage,
       newScheduleOptions,
       newAdminUser,
     ]);
+    await this.em.flush();
 
     const companyToken = this.authService.generateCompanyVerificationToken(
       newCompany.id
@@ -336,7 +339,8 @@ export class CompanyService extends BaseService {
     }
 
     user.pendingCompanies.add(company);
-    await this.em.persistAndFlush(user);
+    this.em.persist(user);
+    await this.em.flush();
 
     // Enviar notificaciones a los BOSS
     try {

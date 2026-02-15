@@ -19,7 +19,7 @@ import { CustomerService } from './customer.service';
 import { InvoiceService } from './invoice.service';
 import { PaymentMethodService } from './payment.method.service';
 import { PlanService } from './plan.service';
-import SubscriptionService from './subscription.service';
+import { SubscriptionService } from './subscription.service';
 import { TransactionService } from './transaction.service';
 
 export class WebhookService extends BaseService {
@@ -620,7 +620,8 @@ export class WebhookService extends BaseService {
 
     if (existingPaymentMethod) {
       existingPaymentMethod.updated_at = new Date();
-      await this.em.persistAndFlush(existingPaymentMethod);
+      this.em.persist(existingPaymentMethod);
+      await this.em.flush();
       console.log(`Payment method ${paymentMethod.id} marked as detached`);
     }
   }

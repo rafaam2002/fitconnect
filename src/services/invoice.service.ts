@@ -189,7 +189,8 @@ export class InvoiceService extends BaseService {
       invoice.lineItems = stripeInvoice.lines?.data || undefined;
       invoice.metadata = stripeInvoice.metadata || undefined;
 
-      await this.em.persistAndFlush(invoice);
+      this.em.persist(invoice);
+      await this.em.flush();
       return invoice;
     } catch (error) {
       console.error('Error syncing invoice from Stripe:', error);
@@ -255,7 +256,8 @@ export class InvoiceService extends BaseService {
     invoice.amountPaid = invoice.total;
     invoice.amountRemaining = 0;
 
-    await this.em.persistAndFlush(invoice);
+    this.em.persist(invoice);
+    await this.em.flush();
     return invoice;
   }
 

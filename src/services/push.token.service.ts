@@ -38,7 +38,8 @@ export class PushTokenService extends BaseService {
           token,
           user: currentUser,
         });
-        await this.em.persistAndFlush(newToken);
+        this.em.persist(newToken);
+        await this.em.flush();
       } else {
         await this.em.flush();
       }

@@ -112,7 +112,8 @@ export class MessageService extends BaseService {
         company: currentUser.activeCompanyId!,
       });
 
-      await this.em.persistAndFlush(newMessage);
+      this.em.persist(newMessage);
+      await this.em.flush();
 
       await this.handleMessageNotifications(
         newMessage,
@@ -163,7 +164,8 @@ export class MessageService extends BaseService {
     message.fixedEndDate = moment(fixedEndDate).toDate();
     message.fixedAdmin = this.em.getReference(User, currentUser.id);
 
-    await this.em.persistAndFlush(message);
+    this.em.persist(message);
+    await this.em.flush();
 
     myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
 
@@ -203,7 +205,8 @@ export class MessageService extends BaseService {
     message.isFixed = false;
     message.fixedEndDate = null;
 
-    await this.em.persistAndFlush(message);
+    this.em.persist(message);
+    await this.em.flush();
 
     myPubsub.publish(FIXED_MESSAGE_EVENT, { message });
 

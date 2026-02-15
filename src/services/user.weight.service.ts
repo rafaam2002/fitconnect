@@ -71,7 +71,8 @@ export class UserWeightService extends BaseService {
     });
 
     try {
-      await this.em.persistAndFlush(userWeight);
+      this.em.persist(userWeight);
+      await this.em.flush();
 
       return createServiceResponse(200, 'Weight added successfully', true, {
         userWeight,

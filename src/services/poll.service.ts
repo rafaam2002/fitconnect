@@ -65,7 +65,9 @@ export class PollService extends BaseService {
         company: currentUser.activeCompanyId!,
       });
 
-      await this.em.persistAndFlush(newPoll);
+      this.em.persist(newPoll);
+      await this.em.flush();
+      
 
       // Enviar notificaciones push a todos los usuarios
       await this.sendPollNotifications(newPoll);
@@ -120,7 +122,8 @@ export class PollService extends BaseService {
       optionSelected: option,
     });
 
-    await this.em.persistAndFlush(newPollVote);
+    this.em.persist(newPollVote);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Vote created successfully', true, {
       vote: newPollVote,

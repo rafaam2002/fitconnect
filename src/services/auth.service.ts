@@ -434,7 +434,8 @@ export class AuthService extends BaseService {
       expiresAt,
     });
 
-    await this.em.persistAndFlush(refreshToken);
+    this.em.persist(refreshToken);
+    await this.em.flush();
 
     return tokenString;
   }
@@ -588,7 +589,8 @@ export class AuthService extends BaseService {
         isVerified: true,
         fullName: name || '',
       });
-      await this.em.persistAndFlush(newUser);
+      this.em.persist(newUser);
+      await this.em.flush();
 
       // Volver a buscar para tener las relaciones cargadas
       user = await this.em.findOne(

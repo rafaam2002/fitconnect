@@ -128,8 +128,9 @@ export class UserService extends BaseService {
     }
 
     user.activeCompanyId = companyId;
-    await this.em.persistAndFlush(user);
-
+    this.em.persist(user)
+    await this.em.flush();
+    
     return createServiceResponse(200, 'Company set successfully', true, {
       user,
       companies: userForCompanies!.companies.getItems(),
@@ -209,11 +210,12 @@ export class UserService extends BaseService {
           newScheduleOptions,
         } = this.companyService.createAdminCompany(em, newUser, companyData);
 
-        await this.em.persistAndFlush([
+        this.em.persist([
           newCompany,
           newFirstForumMessage,
           newScheduleOptions,
         ]);
+        await this.em.flush();
 
         newUser = adminUser;
 
@@ -227,7 +229,8 @@ export class UserService extends BaseService {
         );
       }
 
-      await this.em.persistAndFlush(newUser);
+      this.em.persist(newUser);
+      await this.em.flush();
 
       const stripeData = {
         userId: newUser.id,
@@ -372,7 +375,8 @@ export class UserService extends BaseService {
     }
 
     try {
-      await this.em.persistAndFlush(user);
+      this.em.persist(user);
+      await this.em.flush();
 
       return createServiceResponse(
         200,

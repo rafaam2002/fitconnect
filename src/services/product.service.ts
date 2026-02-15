@@ -73,7 +73,8 @@ export class ProductService extends BaseService {
         company: currentUser.activeCompanyId!,
       });
 
-      await this.em.persistAndFlush(product);
+      this.em.persist(product);
+      await this.em.flush();
 
       // Enviar notificaciones push a todos los usuarios
       await this.sendProductNotifications(product);
@@ -124,7 +125,8 @@ export class ProductService extends BaseService {
       await getPresignedUrl(imageName)
     );
 
-    await this.em.persistAndFlush(pictureUrl);
+    this.em.persist(pictureUrl);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Product picture updated', true, {
       product,

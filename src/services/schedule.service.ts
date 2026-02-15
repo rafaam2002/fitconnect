@@ -553,7 +553,8 @@ export class ScheduleService extends BaseService {
           company: currentUser.activeCompanyId!,
         });
 
-        await this.em.persistAndFlush(newSchedule);
+        this.em.persist(newSchedule);
+        await this.em.flush();
 
         return createServiceResponse(
           200,
@@ -658,7 +659,8 @@ export class ScheduleService extends BaseService {
     }
 
     schedule.users.add(user);
-    await this.em.persistAndFlush(schedule);
+    this.em.persist(schedule);
+    await this.em.flush();
 
     return createServiceResponse(200, 'User added to schedule', true, {
       schedule,
@@ -717,7 +719,8 @@ export class ScheduleService extends BaseService {
     }
 
     schedule.users.remove(user);
-    await this.em.persistAndFlush(schedule);
+    this.em.persist(schedule);
+    await this.em.flush();
 
     return createServiceResponse(200, 'User removed from schedule', true, {
       schedule,
@@ -755,7 +758,8 @@ export class ScheduleService extends BaseService {
         type: ScheduleType.STANDARD,
       });
 
-      await this.em.persistAndFlush(newSchedule);
+      this.em.persist(newSchedule);
+      await this.em.flush();
 
       return createServiceResponse(200, 'Schedule created successfully', true);
     } catch (error: any) {
@@ -797,7 +801,8 @@ export class ScheduleService extends BaseService {
         : ScheduleState.AVAILABLE;
     schedule.state = newState;
 
-    await this.em.persistAndFlush(schedule);
+    this.em.persist(schedule);
+    await this.em.flush();
 
     // Enviar notificaciones si fue cancelado
     if (newState === ScheduleState.CANCELLED) {
@@ -881,7 +886,8 @@ export class ScheduleService extends BaseService {
       scheduleOptions.maxAdvanceBookingDays = maxAdvanceBookingDays;
       scheduleOptions.sameDayBookingAllowed = sameDayBookingAllowed;
 
-      await this.em.persistAndFlush(scheduleOptions);
+      this.em.persist(scheduleOptions);
+      await this.em.flush();
 
       return createServiceResponse(
         200,

@@ -20,7 +20,7 @@ import {
   GetUserWeightsProps,
   IdProps,
   MessageProps,
-  removeTrainingTaskProps,
+  RemoveTrainingTaskProps,
   RemoveUserWeight,
   UnfixMessageProps,
   UserListProps,
@@ -378,20 +378,17 @@ export const createTrainingTask = async (
 /**
  * Remove a training task
  */
-export const removeTrainingTask = async (
+export const removeTrainingTasks = async (
   _: any,
-  args: removeTrainingTaskProps,
+  args: RemoveTrainingTaskProps,
   context: ContextProps
 ) => {
   try {
-    const { trainingTaskId } = args;
+    const { ids } = args;
     const { em, currentUser } = context;
 
     const trainingTaskService = new TrainingTaskService(em);
-    return await trainingTaskService.removeTrainingTask(
-      trainingTaskId,
-      currentUser!
-    );
+    return await trainingTaskService.removeTrainingTasks(ids, currentUser!);
   } catch (error) {
     return handleError(error);
   }
@@ -492,7 +489,7 @@ export const userResolvers: IResolvers = {
     fixMessage,
     unfixMessage,
     createTrainingTask,
-    removeTrainingTask,
+    removeTrainingTasks,
     addUserWeight,
     removeUserWeights,
   },

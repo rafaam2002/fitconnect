@@ -46,7 +46,7 @@ type Mutation {
 
     #---------------TrainingTask---------------
     createTrainingTask(trainingTask: CreateTrainingTaskInput!): TrainingTaskResponse!
-    removeTrainingTask(trainingTaskId: ID!): TrainingTaskResponse!
+    removeTrainingTasks(ids: [ID]!): TrainingTaskResponse!
 
     #----------------UserWeight----------------
     addUserWeight(userWeight: AddUserWeightInput!): UserWeightResponse!

@@ -207,8 +207,8 @@ export type GetTrainingTaskProps = {
   dateRange: [string, string];
 };
 
-export type removeTrainingTaskProps = {
-  trainingTaskId: string;
+export type RemoveTrainingTaskProps = {
+  ids: string[];
 };
 
 export type GetUserWeightsProps = {

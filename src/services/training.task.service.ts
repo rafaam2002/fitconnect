@@ -5,8 +5,8 @@ import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
-  NotFoundError,
   ForbiddenError,
+  NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
 
@@ -97,8 +97,8 @@ export class TrainingTaskService {
     }
   }
 
-  public async removeTrainingTask(
-    taskId: string,
+  public async removeTrainingTasks(
+    taskIds: string[],
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -110,17 +110,18 @@ export class TrainingTaskService {
     }
 
     const trainingTaskRepo = this.em.getRepository(TrainingTask);
-    const trainingTask = await trainingTaskRepo.findOne({ id: taskId });
+    const trainingTasks = await trainingTaskRepo.find({ id: { $in: taskIds } });
 
-    if (!trainingTask) {
-      throw new NotFoundError('Training task');
+    if (trainingTasks.length === 0) {
+      throw new NotFoundError('Training tasks');
     }
 
-    await this.em.removeAndFlush(trainingTask);
+    this.em.remove(trainingTasks);
+    await this.em.flush();
 
     return createServiceResponse(
       200,
-      'Training task removed successfully',
+      'Training tasks removed successfully',
       true
     );
   }

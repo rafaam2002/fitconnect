@@ -390,7 +390,7 @@ export class ScheduleService extends BaseService {
             sum + schedule.users.length / schedule.maxUsers,
           0
         );
-        const averageRatio = totalRatio / group.length;
+        const averageRatio = (totalRatio / group.length) * 100;
         return { dayAndTime, ratio: averageRatio };
       });
 
@@ -431,7 +431,7 @@ export class ScheduleService extends BaseService {
             sum + schedule.users.length / schedule.maxUsers,
           0
         );
-        const averageRatio = totalRatio / group.length;
+        const averageRatio = (totalRatio / group.length) * 100;
         return { dayAndTime, ratio: averageRatio };
       });
 

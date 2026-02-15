@@ -59,7 +59,7 @@ enum CreditCardProvider{
     mastercard
 }
 
-enum PaymentMethod {
+enum PaymentMethodEnum {
     credit_card
     apple_pay
     google_pay

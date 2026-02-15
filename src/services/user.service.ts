@@ -258,8 +258,7 @@ export class UserService extends BaseService {
   }
 
   public async updateUser(
-    userId: string,
-    fields: any,
+    userUpdates: User,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -267,54 +266,54 @@ export class UserService extends BaseService {
     }
 
     if (
-      currentUser.id !== userId &&
+      currentUser.id !== userUpdates.id &&
       currentUser.contextRole !== UserRoleEnum.BOSS
     ) {
       throw new ForbiddenError();
     }
 
-    const user = await this.em.findOne(User, { id: userId });
+    const user = await this.em.findOne(User, { id: userUpdates.id });
 
     if (!user) {
       throw new NotFoundError('User');
     }
 
-    const oldEmail = user.email;
-
-    Object.assign(user, {
-      name: fields.name ?? user.name,
-      email: fields.email ?? user.email,
-      surname: fields.surname ?? user.surname,
-      nickname: fields.nickname ?? user.nickname,
-      phoneNumber: fields.phoneNumber ?? user.phoneNumber,
-      isActive: fields.isActive ?? user.isActive,
-      isBlocked: fields.isBlocked ?? user.isBlocked,
-    });
-
     try {
-      updateUserSchema.parse(user);
+      updateUserSchema.parse(userUpdates);
     } catch (error: any) {
       throw new BadRequestError(error.message);
     }
 
-    if (oldEmail !== fields.email) {
+    const oldEmail = user.email;
+
+    if (oldEmail !== userUpdates.email) {
       const existingEmail = await this.em.findOne(User, {
-        email: fields.email,
+        email: userUpdates.email,
       });
-      if (existingEmail && existingEmail.id !== userId) {
+      if (existingEmail && existingEmail.id !== userUpdates.id) {
         throw new BadRequestError('Email already exists');
       }
     }
 
     const existingNickname = await this.em.find(User, {
-      nickname: fields.nickname,
+      nickname: userUpdates.nickname,
     });
     if (existingNickname.length > 1) {
       throw new BadRequestError('Nickname already exists');
     }
+    Object.assign(user, {
+      name: userUpdates.name ?? user.name,
+      email: userUpdates.email ?? user.email,
+      surname: userUpdates.surname ?? user.surname,
+      nickname: userUpdates.nickname ?? user.nickname,
+      phoneNumber: userUpdates.phoneNumber ?? user.phoneNumber,
+      isActive: userUpdates.isActive ?? user.isActive,
+      isBlocked: userUpdates.isBlocked ?? user.isBlocked,
+    });
 
     try {
-      await this.em.persistAndFlush(user);
+      this.em.persist(user);
+      await this.em.flush();
       const stripeData = {
         stripeCustomerId: user.stripeCustomerId!,
         email: user.email,
@@ -324,9 +323,10 @@ export class UserService extends BaseService {
       await this.customerService.updateCustomer(stripeData);
 
       return createServiceResponse(200, 'User updated successfully', true, {
-        user,
+        user: userUpdates,
       });
     } catch (error) {
+      console.error('Error updating user: ', error);
       throw new Error('Error updating user');
     }
   }
@@ -417,18 +417,21 @@ export class UserService extends BaseService {
 
     const knex = em.getKnex();
 
-    const result = await knex('user as u').select([
-      knex.raw('COUNT(u.id) as totalusers'),
-      knex.raw(
-        'COUNT(CASE WHEN u.is_blocked = true THEN 1 END) as blockedusers'
-      ),
-      knex.raw(
-        'COUNT(CASE WHEN u.is_active = false THEN 1 END) as notactiveusers'
-      ),
-      knex.raw(
-        "COUNT(CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as newusers"
-      ),
-    ]);
+    const result = await knex('user as u')
+      .join('user_companies as uc', 'u.id', 'uc.user_id')
+      .where('uc.company_id', currentUser.activeCompanyId)
+      .select([
+        knex.raw('COUNT(u.id) as totalusers'),
+        knex.raw(
+          'COUNT(CASE WHEN u.is_blocked = true THEN 1 END) as blockedusers'
+        ),
+        knex.raw(
+          'COUNT(CASE WHEN u.is_active = false THEN 1 END) as notactiveusers'
+        ),
+        knex.raw(
+          "COUNT(CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as newusers"
+        ),
+      ]);
 
     const pendingUsers = await this.em.count(User, {
       pendingCompanies: { id: currentUser.activeCompanyId! },

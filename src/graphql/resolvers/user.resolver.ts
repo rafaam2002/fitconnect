@@ -234,11 +234,11 @@ export const updateUser = async (
   context: ContextProps
 ) => {
   try {
-    const { user: fields, userId } = args;
+    const { user } = args;
     const { em, currentUser } = context;
     const userService = new UserService(em);
 
-    return await userService.updateUser(userId!, fields, currentUser!);
+    return await userService.updateUser(user, currentUser!);
   } catch (error) {
     return handleError(error);
   }

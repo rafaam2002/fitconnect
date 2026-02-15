@@ -3,7 +3,7 @@ type Mutation {
     #------------------User--------------------
     setCompanyMe(companyId: ID!): MeResponse,
     createUser( user: CreateUserInput!, company: CreateCompanyInput): LoginResponse
-    updateUser ( user: UpdateUserInput!, userId: String!): UserResponse!
+    updateUser ( user: UpdateUserInput!): UserResponse!
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     updateUserPicture(picture: String!, userId: String!): UserResponse!

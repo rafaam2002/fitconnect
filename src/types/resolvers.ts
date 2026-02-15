@@ -9,7 +9,6 @@ export type UserProps = {
   user: User & {
     role: UserRoleEnum;
   };
-  userId?: string;
   company?: CompanyProps;
 };
 

@@ -11,6 +11,7 @@ import {
 } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
+import { Article } from '../entities/Article';
 
 // ============= INTERFACES =============
 
@@ -19,14 +20,14 @@ export interface GetArticlesInput {
   offset: number;
 }
 
-export interface Article {
-  id: string;
-  title: string;
-  content: string;
-  author?: string;
-  publishedAt?: string;
-  [key: string]: any; // Permitir campos adicionales de la API
-}
+// export interface Article {
+//   id: string;
+//   title: string;
+//   content: string;
+//   author?: string;
+//   publishedAt?: string;
+//   [key: string]: any; // Permitir campos adicionales de la API
+// }
 
 export interface ArticlesResponse {
   articles: Article[];
@@ -64,7 +65,7 @@ export class ArticleService extends BaseService {
   /**
    * Obtener artículos desde API externa con paginación
    */
-  async getArticles(input: GetArticlesInput): Promise<ServiceResponse> {
+  async getArticlesOld(input: GetArticlesInput): Promise<ServiceResponse> {
     const { limit, offset } = input;
 
     // Validar parámetros de paginación
@@ -111,6 +112,24 @@ export class ArticleService extends BaseService {
       handleExternalAPIError(error, this.apiName);
       throw error;
     }
+  }
+
+  async getArticles(input: GetArticlesInput): Promise<ServiceResponse> {
+    const { limit, offset } = input;
+
+    const articleRepo = this.em.getRepository(Article);
+    const articles = await articleRepo.find(
+      {},
+      {
+        limit,
+        offset,
+      }
+    );
+
+
+    return createServiceResponse(200, 'Articles fetched successfully', true, {
+      articles,
+    });
   }
 
   // ============= MÉTODOS PRIVADOS HELPER =============

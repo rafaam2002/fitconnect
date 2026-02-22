@@ -79,7 +79,7 @@ export const createOrChangePollVote = async (
       option
     );
   } catch (error: any) {
-    return handleError(error);
+    return handleError(error);  
   }
 };
 

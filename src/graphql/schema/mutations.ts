@@ -61,7 +61,7 @@ type Mutation {
     registerToken(token: String!): RegisterTokenResponse!
     removePushToken(token: String!): DefaultResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
-    refreshToken(refreshToken: String!): LoginResponse!
+    refreshAccessToken(inputToken: String!): LoginResponse!
     
     #-----------------PaymentMethod------------
     createSetupIntent(stripeCustomerId: String!, usage: String): SetupIntentResponse!

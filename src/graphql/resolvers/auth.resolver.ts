@@ -6,7 +6,7 @@ import {
   PasswordResetProps,
   UpdatePasswordProps,
 } from '../../types/resolvers';
-import { handleError } from '../../utils/errors.util';
+import { createServiceResponse, handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====
 const login = async (_: any, args: LoginProps, { em }: ContextProps) => {
@@ -136,6 +136,19 @@ const loginWithGoogle = async (_: any, args: any, { em }: ContextProps) => {
   }
 };
 
+const refreshAccessToken = async (
+  _: any,
+  { inputToken }: { inputToken: string },
+  { em }: ContextProps
+) => {
+  try {
+    const authService = new AuthService(em);
+    
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 export const authResolvers = {
   Query: {
     login,
@@ -146,5 +159,6 @@ export const authResolvers = {
     updatePassword,
     loginWithGoogle,
     sendChangePasswordEmail,
+    refreshAccessToken,
   },
 };

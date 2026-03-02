@@ -249,7 +249,7 @@ export class PollService extends BaseService {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
-
+``
     const pollRepo = this.em.getRepository(Poll);
 
     // Si se especifica un pollId, buscar esa encuesta

@@ -71,7 +71,7 @@ export class AuthService extends BaseService {
   private permissionService: PermissionService;
   private emailService: EmailService;
   private readonly jwtSecret: string;
-  private readonly accessTokenExpiry: jwt.SignOptions['expiresIn'] = '1d';
+  private readonly accessTokenExpiry: jwt.SignOptions['expiresIn'] = '10s';
   private readonly refreshTokenExpiry: number = 30 * 24 * 60 * 60 * 1000;
 
   constructor(em: EntityManager) {
@@ -511,9 +511,9 @@ export class AuthService extends BaseService {
   /**
    * Validate refresh token and generate new access token
    */
-  public async refreshAccessToken(refreshTokenString: string): Promise<string> {
+  public async refreshAccessToken(inputToken: string): Promise<string> {
     const refreshToken = await this.em.findOne(RefreshToken, {
-      token: refreshTokenString,
+      token: inputToken,
     });
 
     if (!refreshToken || refreshToken.expiresAt < new Date()) {

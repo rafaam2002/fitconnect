@@ -1,5 +1,5 @@
 import { EntityManager } from '@mikro-orm/core';
-import jwt from 'jsonwebtoken';
+import jwt, { TokenExpiredError } from 'jsonwebtoken';
 
 import { User } from '../entities/User';
 import { CurrentUser } from '../types/common.type';
@@ -25,8 +25,12 @@ export const authenticateUser = async (
 
       return currentUser as CurrentUser;
     } catch (error) {
-      throw error;
+      if(error instanceof TokenExpiredError) {
+        throw new UnauthorizedError();
+      } else {
+        throw error;
+      }
     }
   }
-  return null;
+  throw new UnauthorizedError('Authorization token is missing');
 };

@@ -32,5 +32,5 @@ export const authenticateUser = async (
       }
     }
   }
-  throw new UnauthorizedError('Authorization token is missing');
+  return null;
 };

@@ -71,7 +71,7 @@ export class AuthService extends BaseService {
   private permissionService: PermissionService;
   private emailService: EmailService;
   private readonly jwtSecret: string;
-  private readonly accessTokenExpiry: jwt.SignOptions['expiresIn'] = '10s';
+  private readonly accessTokenExpiry: jwt.SignOptions['expiresIn'] = '1d';
   private readonly refreshTokenExpiry: number = 30 * 24 * 60 * 60 * 1000;
 
   constructor(em: EntityManager) {

@@ -254,21 +254,10 @@ const startServer = async () => {
           return { em, currentUser: null };
         }
 
-        // 2. Si es operación pública (login, etc), dejar pasar sin auth
-        const publicOperations = [
-          'login',
-          'createUser',
-          'forgotPassword',
-          'verifyEmail',
-        ]; // ...tus ops
-        if (publicOperations.some(op => query.includes(op))) {
-          return { em, currentUser: null };
-        }
-
         // 3. Todo lo demás requiere auth
         const authorization = req.headers.authorization || '';
         const companyId = req.headers['x-company-id'] as string;
-        return await middleware(em, authorization, companyId);
+        return await middleware(em, query, authorization, companyId);
       },
     })
   );

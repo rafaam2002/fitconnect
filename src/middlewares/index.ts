@@ -1,15 +1,25 @@
 import { EntityManager } from '@mikro-orm/core';
 
-import {
-  BadRequestError,
-} from '../utils/errors.util';
+import { BadRequestError } from '../utils/errors.util';
 import { authenticateUser } from './auth';
+
+import {
+  filterPublicQueries,
+  filterRefreshTokenQueries,
+} from './filter-queries';
 
 export const middleware = async (
   em: EntityManager,
+  query: string,
   authorization?: string,
-  companyId?: string,
+  companyId?: string
 ) => {
+  const publicContext = filterPublicQueries(em, query);
+  if (publicContext) return publicContext;
+
+  const refreshContext = filterRefreshTokenQueries(em, query, companyId);
+  if (refreshContext) return refreshContext;
+
   const currentUser = await authenticateUser(em, authorization);
 
   if (currentUser?.activeCompanyId) {
@@ -22,5 +32,6 @@ export const middleware = async (
       companyId: currentUser.activeCompanyId,
     });
   }
+
   return { em, currentUser };
 };

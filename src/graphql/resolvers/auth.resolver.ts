@@ -1,3 +1,8 @@
+import crypto from 'crypto';
+
+import jwt from 'jsonwebtoken';
+
+import { RefreshToken } from '../../entities/RefreshToken';
 import { User } from '../../entities/User';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -6,7 +11,7 @@ import {
   PasswordResetProps,
   UpdatePasswordProps,
 } from '../../types/resolvers';
-import { createServiceResponse, handleError } from '../../utils/errors.util';
+import { handleError } from '../../utils/errors.util';
 
 // ===== QUERY RESOLVERS =====
 const login = async (_: any, args: LoginProps, { em }: ContextProps) => {
@@ -142,8 +147,65 @@ const refreshAccessToken = async (
   { em }: ContextProps
 ) => {
   try {
-    const authService = new AuthService(em);
-    
+    if (!inputToken) {
+      return {
+        success: false,
+        code: '400',
+        message: 'Refresh token is required',
+      };
+    }
+
+    const storedRefreshToken = await em.findOne(
+      RefreshToken,
+      { token: inputToken },
+      { populate: ['user'] }
+    );
+
+    if (!storedRefreshToken) {
+      return {
+        success: false,
+        code: '401',
+        message: 'Invalid refresh token',
+      };
+    }
+
+    if (storedRefreshToken.expiresAt < new Date()) {
+      await em.removeAndFlush(storedRefreshToken);
+      return {
+        success: false,
+        code: '401',
+        message: 'Refresh token expired',
+      };
+    }
+
+    const user = storedRefreshToken.user;
+    const userForToken = {
+      id: user.id,
+      userId: user.id,
+      email: user.email,
+    };
+
+    const token = jwt.sign(userForToken, process.env.JWT_SECRET!, {
+      expiresIn: '30m',
+    });
+
+    const newRefreshTokenString = crypto.randomBytes(64).toString('hex');
+    storedRefreshToken.token = newRefreshTokenString;
+    storedRefreshToken.expiresAt = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000
+    ); // 30 days
+
+    await em.flush();
+
+    return {
+      success: true,
+      code: '200',
+      message: 'Token refreshed successfully',
+      tokens: {
+        token,
+        refreshToken: newRefreshTokenString,
+      },
+    };
   } catch (error: any) {
     return handleError(error);
   }

@@ -32,5 +32,5 @@ export const authenticateUser = async (
       }
     }
   }
-  return null;
+  throw new UnauthorizedError("No token provided");
 };

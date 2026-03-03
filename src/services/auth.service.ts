@@ -511,16 +511,42 @@ export class AuthService extends BaseService {
   /**
    * Validate refresh token and generate new access token
    */
-  public async refreshAccessToken(inputToken: string): Promise<string> {
-    const refreshToken = await this.em.findOne(RefreshToken, {
-      token: inputToken,
-    });
-
-    if (!refreshToken || refreshToken.expiresAt < new Date()) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+  public async refreshAccessToken(
+    inputToken: string
+  ): Promise<ServiceResponse> {
+    if (!inputToken) {
+      throw new ValidationError('Refresh token is required');
     }
 
-    return this.generateAccessToken(refreshToken.user.id);
+    const storedRefreshToken = await this.em.findOne(
+      RefreshToken,
+      { token: inputToken },
+      { populate: ['user'] }
+    );
+
+    if (!storedRefreshToken) {
+      throw new UnauthorizedError('Invalid refresh token');
+    }
+
+    if (storedRefreshToken.expiresAt < new Date()) {
+      this.em.remove(storedRefreshToken);
+      await this.em.flush();
+      throw new UnauthorizedError('Refresh token expired');
+    }
+
+    const { user } = storedRefreshToken;
+
+    // Generar nuevo par de tokens (Rotación)
+    // Esto usa generateAccessToken internamente
+    const tokens = await this.createTokensPair(user);
+
+    // Eliminar el token antiguo (completar rotación)
+    this.em.remove(storedRefreshToken);
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Token refreshed successfully', true, {
+      tokens,
+    });
   }
 
   // ============= TOKEN VERIFICATION & MANAGEMENT =============

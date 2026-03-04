@@ -116,13 +116,13 @@ export class AuthService extends BaseService {
     // }
 
     // Si tiene solo una empresa, hacer login completo automáticamente
-    if (companies.length === 1) {
-      const data = await this.loginWithCompany({
-        emailOrNickname,
-        password,
-        companyId: companies[0].id,
-      });
-    }
+    // if (companies.length === 1) {
+    //   const data = await this.loginWithCompany({
+    //     emailOrNickname,
+    //     password,
+    //     companyId: companies[0].id,
+    //   });
+    // }
 
     // Si tiene múltiples empresas, devolver lista para que seleccione
     const tokens: TokenPair = await this.createTokensPair(user);
@@ -688,6 +688,59 @@ export class AuthService extends BaseService {
     user.activeCompanyId = company.id;
     await this.em.flush();
 
+    const debugPermissions = [
+      'users:create',
+      'users:read',
+      'users:update',
+      'users:delete',
+      'users:manage',
+      'schedules:create',
+      'schedules:read',
+      'schedules:update',
+      'schedules:delete',
+      'schedules:manage',
+      'payments:create',
+      'payments:read',
+      'payments:update',
+      'payments:delete',
+      'payments:manage',
+      'settings:create',
+      'settings:read',
+      'settings:update',
+      'settings:delete',
+      'settings:manage',
+      'promotions:create',
+      'promotions:read',
+      'promotions:update',
+      'promotions:delete',
+      'promotions:manage',
+      'messages:create',
+      'messages:read',
+      'messages:update',
+      'messages:delete',
+      'messages:manage',
+      'polls:create',
+      'polls:read',
+      'polls:update',
+      'polls:delete',
+      'polls:manage',
+      'training:create',
+      'training:read',
+      'training:update',
+      'training:delete',
+      'training:manage',
+      'plans:create',
+      'plans:read',
+      'plans:update',
+      'plans:delete',
+      'plans:manage',
+      'products:create',
+      'products:read',
+      'products:update',
+      'products:delete',
+      'products:manage',
+    ];
+
     // Agregar permisos y subscription al objeto user para retrocompatibilidad
     Object.assign(user, {
       subscription: {
@@ -697,7 +750,8 @@ export class AuthService extends BaseService {
         isInTrial: permissionsContext.isInTrial || false,
         trialEndsAt: permissionsContext.trialEndsAt || null,
       },
-      permissions: permissionsContext.permissionNames,
+      // TODO: Quitar esto en produccion
+      permissions: debugPermissions, //permissionsContext.permissionNames,
     });
 
     return createServiceResponse(200, message, true, {

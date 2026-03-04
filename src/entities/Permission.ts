@@ -21,6 +21,7 @@ export enum PermissionModule {
   POLLS = 'polls',
   TRAINING = 'training',
   PLANS = 'plans',
+  PRODUCTS = 'products',
 }
 
 export enum PermissionAction {

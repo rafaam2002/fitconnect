@@ -22,6 +22,7 @@ export enum PermissionModule {
   TRAINING = 'training',
   PLANS = 'plans',
   PRODUCTS = 'products',
+  USER_WEIGHTS = 'user_weights',
 }
 
 export enum PermissionAction {

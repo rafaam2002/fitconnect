@@ -17,12 +17,13 @@ export enum PermissionModule {
   PAYMENTS = 'payments',
   SETTINGS = 'settings',
   PROMOTIONS = 'promotions',
-  MESSAGES = 'messages',
+  CHATS = 'chats',
   POLLS = 'polls',
-  TRAINING = 'training',
+  WORKOUTS = 'workouts',
   PLANS = 'plans',
   PRODUCTS = 'products',
   USER_WEIGHTS = 'user_weights',
+  STATS = 'stats',
 }
 
 export enum PermissionAction {

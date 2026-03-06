@@ -124,6 +124,14 @@ export class AuthService extends BaseService {
     //   });
     // }
 
+    if (!user.activeCompanyId && companies.length > 0) {
+      //si el usuario tiene empresas pero no esta activo en ninguna, se activa en la primera 
+      //(este caso en realidad nunca puede pasar, pero con los mocks de los seeders si pasa)
+      user.activeCompanyId = companies[0].id;
+      this.em.persist(user);
+      await this.em.flush();
+    }
+
     // Si tiene múltiples empresas, devolver lista para que seleccione
     const tokens: TokenPair = await this.createTokensPair(user);
     const data = {

@@ -6,6 +6,7 @@ import { Plan } from './Plan';
 
 @Entity()
 @Index()
+@Unique({ properties: ['plan', 'permission'] })
 export class PlanPermission extends BaseEntity {
   @ManyToOne(() => Plan, { eager: false })
   @Index()
@@ -13,7 +14,6 @@ export class PlanPermission extends BaseEntity {
 
   @ManyToOne(() => Permission, { eager: true })
   @Index()
-  @Unique()
   permission!: Permission;
 
   @Property({ type: 'json', nullable: true })

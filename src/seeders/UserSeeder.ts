@@ -72,6 +72,8 @@ export class UserSeeder extends Seeder {
         );
 
         admins.push(user);
+
+        
       }
 
       em.persist(admins);

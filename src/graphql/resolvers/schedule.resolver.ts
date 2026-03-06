@@ -9,6 +9,7 @@ import {
   GetMonthlyScheduleStats,
   GetScheduleProps,
   GetScheduleRangeProps,
+  GetUserSchedulesProps,
   IdProps,
   RemoveScheduleProps,
   RemoveUserSheduleProps,
@@ -39,6 +40,22 @@ export const getSchedules = async (
       scheduleId,
       schedulesIds
     );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+export const getUserSchedules = async (
+  _: any,
+  args: GetUserSchedulesProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { userId, past } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.getUserSchedules(currentUser, userId, past);
   } catch (error: any) {
     return handleError(error);
   }
@@ -365,6 +382,7 @@ export const scheduleResolvers: IResolvers = {
     getScheduleOptions,
     getSchedulesStats,
     getMonthlySchedules,
+    getUserSchedules,
   },
   Mutation: {
     createSchedule,

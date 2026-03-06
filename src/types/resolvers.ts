@@ -166,6 +166,11 @@ export type GetScheduleProps = {
   schedulesIds?: string[];
 };
 
+export type GetUserSchedulesProps = {
+  userId?: string;
+  past?: boolean;
+};
+
 export type GetConversationProps = {
   otherUserId?: string;
   page?: number;

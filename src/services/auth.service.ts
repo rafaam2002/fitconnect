@@ -125,7 +125,7 @@ export class AuthService extends BaseService {
     // }
 
     if (!user.activeCompanyId && companies.length > 0) {
-      //si el usuario tiene empresas pero no esta activo en ninguna, se activa en la primera 
+      //si el usuario tiene empresas pero no esta activo en ninguna, se activa en la primera
       //(este caso en realidad nunca puede pasar, pero con los mocks de los seeders si pasa)
       user.activeCompanyId = companies[0].id;
       this.em.persist(user);
@@ -701,7 +701,7 @@ export class AuthService extends BaseService {
       'users:read',
       // 'users:update',
       // 'users:delete',
-      // 'users:manage',
+      'users:manage',
       'schedules:create',
       'schedules:read',
       'schedules:update',

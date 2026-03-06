@@ -68,7 +68,7 @@ type User {
     activeCompanyId: ID
     isPending: Boolean
     subscription: JSON
-    permissions: JSON
+    permissions: [String]
 }
 
 type Schedule {

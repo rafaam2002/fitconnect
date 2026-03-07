@@ -456,7 +456,7 @@ export const userResolvers: IResolvers = {
     me: withPermissions(usersPermissions.READ, me),
     findUser: withPermissions(usersPermissions.READ, findUser),
     // getAdminSchedules,
-    getConversation: withPermissions(usersPermissions.READ, getConversation),
+    getConversation: withPermissions(chatsPermissions.READ, getConversation),
     sendEmailVerification,
     getAdminStats: withPermissions(statsPermissions.READ, getAdminStats),
     getTrainingTasks: withPermissions(

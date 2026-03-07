@@ -20,6 +20,8 @@ import {
   updateScheduleOptionsProps,
 } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { withPermissions } from '../middlewares/permissions';
+import { schedulesPermissions } from '../../utils/permissions';
 
 dotenv.config();
 
@@ -373,24 +375,72 @@ export const updateScheduleOptions = async (
 
 export const scheduleResolvers: IResolvers = {
   Query: {
-    getSchedules,
-    getSchedulesFromToday,
-    getSchedulesResume,
-    getTodaySchedulesResume,
-    getSchedulesRange,
-    getSchedulesResumeRange,
-    getScheduleOptions,
-    getSchedulesStats,
-    getMonthlySchedules,
-    getUserSchedules,
+    getSchedules: withPermissions(schedulesPermissions.READ, getSchedules),
+    getSchedulesFromToday: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesFromToday
+    ),
+    getSchedulesResume: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesResume
+    ),
+    getTodaySchedulesResume: withPermissions(
+      schedulesPermissions.READ,
+      getTodaySchedulesResume
+    ),
+    getSchedulesRange: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesRange
+    ),
+    getSchedulesResumeRange: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesResumeRange
+    ),
+    getScheduleOptions: withPermissions(
+      schedulesPermissions.READ,
+      getScheduleOptions
+    ),
+    getSchedulesStats: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesStats
+    ),
+    getMonthlySchedules: withPermissions(
+      schedulesPermissions.READ,
+      getMonthlySchedules
+    ),
+    getUserSchedules: withPermissions(
+      schedulesPermissions.READ,
+      getUserSchedules
+    ),
   },
   Mutation: {
-    createSchedule,
-    addUserToSchedule,
-    removeUserFromSchedule,
-    createScheduleDevelopment,
-    changeScheduleStatus,
-    removeSchedule,
-    updateScheduleOptions,
+    createSchedule: withPermissions(
+      schedulesPermissions.CREATE,
+      createSchedule
+    ),
+    addUserToSchedule: withPermissions(
+      schedulesPermissions.READ,
+      addUserToSchedule
+    ),
+    removeUserFromSchedule: withPermissions(
+      schedulesPermissions.READ,
+      removeUserFromSchedule
+    ),
+    createScheduleDevelopment: withPermissions(
+      schedulesPermissions.CREATE,
+      createScheduleDevelopment
+    ),
+    changeScheduleStatus: withPermissions(
+      schedulesPermissions.UPDATE,
+      changeScheduleStatus
+    ),
+    removeSchedule: withPermissions(
+      schedulesPermissions.DELETE,
+      removeSchedule
+    ),
+    updateScheduleOptions: withPermissions(
+      schedulesPermissions.UPDATE,
+      updateScheduleOptions
+    ),
   },
 };

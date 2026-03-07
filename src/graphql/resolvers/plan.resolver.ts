@@ -1,6 +1,8 @@
 import { PlanService } from '../../services/plan.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { plansPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
 export const getPlan = async (_: any, args: any, context: ContextProps) => {
@@ -82,14 +84,14 @@ export const removePlan = async (_: any, args: any, context: any) => {
 // ===== EXPORT RESOLVERS OBJECT =====
 export const planResolvers = {
   Query: {
-    getPlan,
-    getPlanByStripeId,
-    listPlans,
+    getPlan: withPermissions(plansPermissions.READ, getPlan),
+    getPlanByStripeId: withPermissions(plansPermissions.READ, getPlanByStripeId),
+    listPlans: withPermissions(plansPermissions.READ, listPlans),
   },
 
   Mutation: {
-    createPlan,
-    updatePlan,
-    removePlan,
+    createPlan: withPermissions(plansPermissions.CREATE, createPlan),
+    updatePlan: withPermissions(plansPermissions.UPDATE, updatePlan),
+    removePlan: withPermissions(plansPermissions.DELETE, removePlan),
   },
 };

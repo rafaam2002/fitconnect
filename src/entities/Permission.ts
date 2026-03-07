@@ -24,6 +24,8 @@ export enum PermissionModule {
   PRODUCTS = 'products',
   USER_WEIGHTS = 'user_weights',
   STATS = 'stats',
+  COMPANIES = 'companies',
+  SUBSCRIPTIONS = 'subscriptions'
 }
 
 export enum PermissionAction {

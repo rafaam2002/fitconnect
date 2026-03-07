@@ -1,6 +1,8 @@
 import { ProductService } from '../../services/product.service';
 import { ContextProps, CreateProductProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { productsPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
 
@@ -79,11 +81,11 @@ export const removeProduct = async (
 
 export const productResolvers = {
   Query: {
-    getProducts,
+    getProducts: withPermissions(productsPermissions.READ, getProducts),
   },
   Mutation: {
-    createProduct,
-    updateProductPicture,
-    removeProduct,
+    createProduct: withPermissions(productsPermissions.CREATE, createProduct),
+    updateProductPicture: withPermissions(productsPermissions.UPDATE, updateProductPicture),
+    removeProduct: withPermissions(productsPermissions.DELETE, removeProduct),
   },
 };

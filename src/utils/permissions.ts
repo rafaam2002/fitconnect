@@ -33,3 +33,11 @@ export const chatsPermissions = createPermissions('chats');
 export const userWeightsPermissions = createPermissions('user_weights');
 
 export const usersPermissions = createPermissions('users');
+export const companiesPermissions = createPermissions('companies');
+
+export const plansPermissions = createPermissions('plans');
+
+export const subcriptionsPermissions = createPermissions('subcriptions');
+
+
+

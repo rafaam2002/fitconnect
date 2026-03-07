@@ -9,6 +9,8 @@ import {
   VoteProps,
 } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { pollsPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
 
@@ -119,13 +121,13 @@ export const removePolls = async (
 
 export const pollResolvers = {
   Query: {
-    getPolls,
-    getAdminPolls,
+    getPolls: withPermissions(pollsPermissions.READ, getPolls),
+    getAdminPolls: withPermissions(pollsPermissions.READ, getAdminPolls),
   },
   Mutation: {
-    createPoll,
-    createOrChangePollVote,
-    deletePollVote,
-    removePolls,
+    createPoll: withPermissions(pollsPermissions.CREATE, createPoll),
+    createOrChangePollVote: withPermissions(pollsPermissions.UPDATE, createOrChangePollVote),
+    deletePollVote: withPermissions(pollsPermissions.UPDATE, deletePollVote),
+    removePolls: withPermissions(pollsPermissions.DELETE, removePolls),
   },
 };

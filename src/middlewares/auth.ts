@@ -2,7 +2,9 @@ import { EntityManager } from '@mikro-orm/core';
 import jwt, { TokenExpiredError } from 'jsonwebtoken';
 
 import { User } from '../entities/User';
+import { PermissionService } from '../services/permission.service';
 import { CurrentUser } from '../types/common.type';
+import { LoginPermissionsContext } from '../types/permissions';
 import { UnauthorizedError } from '../utils/errors.util';
 
 export const authenticateUser = async (
@@ -23,14 +25,39 @@ export const authenticateUser = async (
         throw new UnauthorizedError();
       }
 
-      return currentUser as CurrentUser;
+      const permissionService = new PermissionService(em);
+
+      let permissions: LoginPermissionsContext = {
+        hasActiveSubscription: false,
+        plan: null,
+        permissions: [],
+        permissionNames: [],
+        subscriptionStatus: null,
+        trialEndsAt: null,
+        renewsAt: null,
+      };
+      if (currentUser?.activeCompanyId) {
+        permissions = await permissionService.getLoginPermissionsContext(
+          decodedToken.id,
+          currentUser.activeCompanyId
+        );
+      }
+
+      const currentUserWithPermissions = {
+        ...currentUser,
+        ...permissions,
+        contextRole: currentUser.contextRole || 'standard',
+        // Make sure mandatory fields from CurrentUser are include
+      };
+
+      return currentUserWithPermissions  as CurrentUser;
     } catch (error) {
-      if(error instanceof TokenExpiredError) {
+      if (error instanceof TokenExpiredError) {
         throw new UnauthorizedError();
       } else {
         throw error;
       }
     }
   }
-  throw new UnauthorizedError("No token provided");
+  throw new UnauthorizedError('No token provided');
 };

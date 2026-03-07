@@ -7,6 +7,7 @@ import {
   ManyToMany,
   OneToMany,
   OneToOne,
+  OptionalProps,
   Property,
   t,
 } from '@mikro-orm/core';
@@ -48,6 +49,14 @@ export enum UserStatus {
   default: true,
 })
 export class User extends BaseEntity {
+  [OptionalProps]?:
+    | 'isActive'
+    | 'isBlocked'
+    | 'isVerified'
+    | 'isAdminVerified'
+    | 'created_at'
+    | 'updated_at';
+
   @Property({ type: t.string, nullable: true })
   name?: string | null;
 
@@ -67,14 +76,17 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   nickname!: string;
 
-  @Property()
-  isActive: boolean;
+  @Property({ default: true })
+  isActive: boolean = true;
 
-  @Property({ type: t.boolean })
-  isBlocked: boolean;
+  @Property({ type: t.boolean, default: false })
+  isBlocked: boolean = false;
 
-  @Property({ type: t.boolean })
+  @Property({ type: t.boolean, default: false })
   isVerified: boolean = false;
+
+  @Property({ type: t.boolean, default: false })
+  isAdminVerified: boolean = false;
 
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;

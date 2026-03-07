@@ -628,10 +628,8 @@ export class AuthService extends BaseService {
         name,
         nickname: email.split('@')[0],
         provider: UserProviderType.GOOGLE,
-        isActive: true,
-        isBlocked: false,
         isVerified: true,
-        fullName: name || '',
+        fullName: name || "",
       });
       this.em.persist(newUser);
       await this.em.flush();

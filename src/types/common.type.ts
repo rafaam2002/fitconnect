@@ -2,6 +2,9 @@
  * Common types and interfaces for the application
  */
 
+import { Plan } from '../entities/Plan';
+import { SubscriptionStatus } from './enums';
+
 export interface ServiceResponse<T = any> {
   code: number;
   message: string;
@@ -27,6 +30,13 @@ export interface CurrentUser {
   name: string;
   phoneNumber: string;
   activeCompanyId?: string;
+  hasActiveSubscription: boolean;
+  plan: Plan | null;
+  permissions: any[];
+  permissionNames: string[];
+  subscriptionStatus: SubscriptionStatus | null;
+  trialEndsAt?: string | Date | null;
+  renewsAt?: string | Date | null;
 }
 
 export interface TokenPair {

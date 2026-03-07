@@ -95,8 +95,8 @@ export class AuthService extends BaseService {
     const user = await this.findUserByEmailOrNickname(emailOrNickname, [
       'password',
       'companies',
-      'schedules.id',
-      'schedules.startDate',
+      // 'schedules.id',
+      // 'schedules.startDate',
     ]);
 
     if (!user) {
@@ -142,6 +142,7 @@ export class AuthService extends BaseService {
 
     const activeCompany = companies.find(c => c.id === user.activeCompanyId);
 
+    // si tiene empresa hace login con permisos, si no login normal
     return activeCompany
       ? await this.buildAuthResponseWithPermissions(
           user,
@@ -253,23 +254,32 @@ export class AuthService extends BaseService {
       );
     }
 
-    // Si tiene una empresa, login completo
-    if (companies.length === 1) {
-      return await this.buildAuthResponseWithPermissions(
-        user,
-        companies[0],
-        'Login successful'
-      );
+    if (!user.activeCompanyId && companies.length > 0) {
+      //si el usuario tiene empresas pero no esta activo en ninguna, se activa en la primera
+      //(este caso en realidad nunca puede pasar, pero con los mocks de los seeders si pasa)
+      user.activeCompanyId = companies[0].id;
+      this.em.persist(user);
+      await this.em.flush();
     }
 
-    // Si tiene múltiples empresas
-    const tokens = await this.createTokensPair(user);
-
-    return createServiceResponse(200, 'User needs to select company', true, {
+    // Si tiene múltiples empresas, devolver lista para que seleccione
+    const tokens: TokenPair = await this.createTokensPair(user);
+    const data = {
       user,
       companies,
       tokens,
-    });
+    };
+
+    const activeCompany = companies.find(c => c.id === user.activeCompanyId);
+
+    // si tiene empresa hace login con permisos, si no login normal
+    return activeCompany
+      ? await this.buildAuthResponseWithPermissions(
+          user,
+          activeCompany,
+          'Login successful'
+        )
+      : createServiceResponse(200, 'logging successfully', true, data);
   }
 
   /**

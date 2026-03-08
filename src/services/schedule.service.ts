@@ -15,10 +15,7 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import {
-  createDateWithTime,
-  createScheduleProgrammed,
-} from '../utils/schedules.util';
+import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
 
@@ -900,7 +897,8 @@ export class ScheduleService extends BaseService {
     currentUser: CurrentUser,
     maxActiveReservations: number,
     maxAdvanceBookingDays: number,
-    sameDayBookingAllowed: boolean
+    sameDayBookingAllowed: boolean,
+    fullOpenHours: number
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -916,16 +914,15 @@ export class ScheduleService extends BaseService {
         id: { $ne: null },
       });
 
-      if (!scheduleOptions) {
-        scheduleOptions = this.em.create(
-          ScheduleOptions,
-          {} as ScheduleOptions
-        );
-      }
+      scheduleOptions ??= this.em.create(
+        ScheduleOptions,
+        {} as ScheduleOptions
+      );
 
       scheduleOptions.maxActiveReservations = maxActiveReservations;
       scheduleOptions.maxAdvanceBookingDays = maxAdvanceBookingDays;
       scheduleOptions.sameDayBookingAllowed = sameDayBookingAllowed;
+      scheduleOptions.fullOpenHours = fullOpenHours;
 
       this.em.persist(scheduleOptions);
       await this.em.flush();

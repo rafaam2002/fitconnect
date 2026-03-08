@@ -123,7 +123,7 @@ export const admitUserToCompany = async (
 
 // ============= RESOLVER EXPORT =============
 
-export const companyResolvers = {
+const companyResolvers = {
   Query: {
     getCompanies: withPermissions(companiesPermissions.READ, getCompanies),
   },
@@ -135,3 +135,4 @@ export const companyResolvers = {
     admitUserToCompany: withPermissions(companiesPermissions.UPDATE, admitUserToCompany),
   },
 };
+export default companyResolvers;

@@ -359,6 +359,7 @@ export const updateScheduleOptions = async (
       maxActiveReservations,
       maxAdvanceBookingDays,
       sameDayBookingAllowed,
+      fullOpenHours,
     } = scheduleOptions;
 
     const scheduleService = new ScheduleService(em);
@@ -366,7 +367,8 @@ export const updateScheduleOptions = async (
       currentUser,
       maxActiveReservations,
       maxAdvanceBookingDays,
-      sameDayBookingAllowed
+      sameDayBookingAllowed,
+      fullOpenHours
     );
   } catch (error: any) {
     return handleError(error);

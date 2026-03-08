@@ -15,10 +15,7 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import {
-  createDateWithTime,
-  createScheduleProgrammed,
-} from '../utils/schedules.util';
+import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
 
@@ -81,6 +78,44 @@ export class ScheduleService extends BaseService {
     });
 
     return createServiceResponse(200, 'Schedules found', true, { schedules });
+  }
+
+  public async getUserSchedules(
+    currentUser: CurrentUser,
+    userId?: string,
+    past: boolean = false
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    const targetUserId = userId || currentUser.id;
+
+    // Solo BOSS puede ver schedules de otros usuarios, o COACH si tiene permisos
+    if (
+      targetUserId !== currentUser.id &&
+      currentUser.contextRole === UserRoleEnum.STANDARD
+    ) {
+      throw new ForbiddenError(
+        'You are not authorized to view these schedules'
+      );
+    }
+
+    const scheduleRepo = this.em.getRepository(Schedule);
+    const filter: any = { users: targetUserId };
+
+    if (!past) {
+      filter.startDate = { $gte: new Date() };
+    }
+
+    const schedules = await scheduleRepo.find(filter, {
+      populate: ['admin', 'users'],
+      orderBy: { startDate: 'ASC' },
+    });
+
+    return createServiceResponse(200, 'User schedules found', true, {
+      schedules,
+    });
   }
 
   /**
@@ -900,7 +935,8 @@ export class ScheduleService extends BaseService {
     currentUser: CurrentUser,
     maxActiveReservations: number,
     maxAdvanceBookingDays: number,
-    sameDayBookingAllowed: boolean
+    sameDayBookingAllowed: boolean,
+    fullOpenHours: number
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -916,16 +952,15 @@ export class ScheduleService extends BaseService {
         id: { $ne: null },
       });
 
-      if (!scheduleOptions) {
-        scheduleOptions = this.em.create(
-          ScheduleOptions,
-          {} as ScheduleOptions
-        );
-      }
+      scheduleOptions ??= this.em.create(
+        ScheduleOptions,
+        {} as ScheduleOptions
+      );
 
       scheduleOptions.maxActiveReservations = maxActiveReservations;
       scheduleOptions.maxAdvanceBookingDays = maxAdvanceBookingDays;
       scheduleOptions.sameDayBookingAllowed = sameDayBookingAllowed;
+      scheduleOptions.fullOpenHours = fullOpenHours;
 
       this.em.persist(scheduleOptions);
       await this.em.flush();

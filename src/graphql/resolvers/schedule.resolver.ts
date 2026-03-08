@@ -44,6 +44,22 @@ export const getSchedules = async (
   }
 };
 
+export const getUserSchedules = async (
+  _: any,
+  args: GetUserSchedulesProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { userId, past } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.getUserSchedules(currentUser, userId, past);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 export const getSchedulesFromToday = async (
   _: any,
   __: any,

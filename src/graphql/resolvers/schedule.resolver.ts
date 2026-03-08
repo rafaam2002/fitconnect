@@ -385,7 +385,6 @@ export const scheduleResolvers: IResolvers = {
     getScheduleOptions,
     getSchedulesStats,
     getMonthlySchedules,
-    getUserSchedules,
   },
   Mutation: {
     createSchedule,

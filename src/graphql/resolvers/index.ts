@@ -2,7 +2,7 @@ import { merge } from 'lodash';
 
 import { articleResolvers } from './article.resolver';
 import { authResolvers } from './auth.resolver';
-import { companyResolvers } from './company.resolver';
+import companyResolvers from './company.resolver';
 import { customerResolvers } from './customer.resolver';
 import { paymentMethodResolvers } from './payment-method.resolver';
 import { planResolvers } from './plan.resolver';

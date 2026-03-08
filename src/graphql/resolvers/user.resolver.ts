@@ -1,11 +1,7 @@
 import { IResolvers } from '@graphql-tools/utils';
 import { withFilter } from 'graphql-subscriptions';
 
-import {
-  FIXED_MESSAGE_EVENT,
-  MESSAGE_EVENT,
-  myPubsub,
-} from '../../constants/subscriptions';
+import { FIXED_MESSAGE_EVENT, MESSAGE_EVENT, myPubsub, } from '../../constants/subscriptions';
 import { MessageService } from '../../services/message.service';
 import { TrainingTaskService } from '../../services/training.task.service';
 import { UserService } from '../../services/user.service';
@@ -192,7 +188,7 @@ export const getUserWeights = async (
 /**
  * Set active company for user
  */
-export const setCompanyMe = async (
+export const setActiveCompany = async (
   _: any,
   { companyId }: { companyId: string },
   context: ContextProps
@@ -200,7 +196,7 @@ export const setCompanyMe = async (
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
-    return await userService.setActiveCompany(companyId, currentUser!);
+    return await userService.setActiveCompany(companyId, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -257,7 +253,7 @@ export const updateUserPicture = async (
     const { em, currentUser } = context;
     const userService = new UserService(em);
 
-    return await userService.updateUserPicture(userId, picture, currentUser!);
+    return await userService.updateUserPicture(userId, picture, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -480,7 +476,7 @@ export const userResolvers: IResolvers = {
     getUsers,
   },
   Mutation: {
-    setCompanyMe,
+    setActiveCompany,
     createUser,
     updateUser,
     updateUserPicture,

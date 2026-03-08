@@ -12,10 +12,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from '../utils/presigned-urls.util';
+import { createPictureUrl, getPresignedUrl, } from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
 import { AuthService } from './auth.service';
@@ -128,9 +125,9 @@ export class UserService extends BaseService {
     }
 
     user.activeCompanyId = companyId;
-    this.em.persist(user)
+    this.em.persist(user);
     await this.em.flush();
-    
+
     return createServiceResponse(200, 'Company set successfully', true, {
       user,
       companies: userForCompanies!.companies.getItems(),
@@ -210,11 +207,7 @@ export class UserService extends BaseService {
           newScheduleOptions,
         } = this.companyService.createAdminCompany(em, newUser, companyData);
 
-        this.em.persist([
-          newCompany,
-          newFirstForumMessage,
-          newScheduleOptions,
-        ]);
+        this.em.persist([newCompany, newFirstForumMessage, newScheduleOptions]);
         await this.em.flush();
 
         newUser = adminUser;
@@ -360,7 +353,7 @@ export class UserService extends BaseService {
     const url = await getPresignedUrl(pictureName);
 
     if (!user.pictureUrl) {
-      user.pictureUrl = await createPictureUrl(
+      user.pictureUrl = createPictureUrl(
         this.em,
         {
           id: userId,

@@ -9,6 +9,7 @@ import {
   GetMonthlyScheduleStats,
   GetScheduleProps,
   GetScheduleRangeProps,
+  GetUserSchedulesProps,
   IdProps,
   RemoveScheduleProps,
   RemoveUserSheduleProps,

@@ -28,6 +28,7 @@ input UpdateUserInput {
     nickname: String!,
     isBlocked: Boolean,
     role: UserRoleEnum,
+    activeCompanyId: String
 }
 
 input CreateCompanyInput {

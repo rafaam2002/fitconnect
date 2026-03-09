@@ -1,6 +1,7 @@
 import { EntityManager, FilterQuery } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 
+import { Company } from '../entities/Company';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
@@ -128,10 +129,12 @@ export class UserService extends BaseService {
     this.em.persist(user);
     await this.em.flush();
 
-    return createServiceResponse(200, 'Company set successfully', true, {
+    const company = await this.em.findOne<Company>(Company, { id: companyId });
+    return await this.authService.buildAuthResponseWithPermissions(
       user,
-      companies: userForCompanies!.companies.getItems(),
-    });
+      company as Company,
+      'Company set successfully'
+    );
   }
 
   public async findUser(id: string): Promise<ServiceResponse> {
@@ -319,7 +322,7 @@ export class UserService extends BaseService {
       await this.customerService.updateCustomer(stripeData);
 
       return createServiceResponse(200, 'User updated successfully', true, {
-        user: userUpdates,
+        user,
       });
     } catch (error) {
       console.error('Error updating user: ', error);

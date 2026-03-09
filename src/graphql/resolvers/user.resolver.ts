@@ -234,7 +234,7 @@ export const updateUser = async (
     const { em, currentUser } = context;
     const userService = new UserService(em);
 
-    return await userService.updateUser(user, currentUser!);
+    return await userService.updateUser(user, currentUser);
   } catch (error) {
     return handleError(error);
   }

@@ -591,98 +591,9 @@ export class AuthService extends BaseService {
   }
 
   /**
-   * Buscar usuario por email o nickname
-   */
-  private async findUserByEmailOrNickname(
-    emailOrNickname: string,
-    populate: string[] = []
-  ): Promise<User | null> {
-    return await this.em.findOne(
-      User,
-      {
-        $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
-      },
-      {
-        populate: populate as any,
-        filters: false,
-      } as const
-    );
-  }
-
-  /**
-   * Buscar o crear usuario de Google
-   */
-  private async findOrCreateGoogleUser(
-    email: string,
-    name?: string
-  ): Promise<User> {
-    let user = await this.em.findOne(
-      User,
-      { email },
-      { populate: ['companies'], filters: false }
-    );
-
-    if (!user) {
-      const newUser = this.em.create(User, {
-        email,
-        name,
-        nickname: email.split('@')[0],
-        provider: UserProviderType.GOOGLE,
-        isActive: true,
-        isBlocked: false,
-        isVerified: true,
-        fullName: name || '',
-      });
-      this.em.persist(newUser);
-      await this.em.flush();
-
-      // Volver a buscar para tener las relaciones cargadas
-      user = await this.em.findOne(
-        User,
-        { email },
-        { populate: ['companies'], filters: false }
-      );
-
-      if (!user) {
-        throw new InternalServerError('Failed to create user');
-      }
-    }
-
-    return user;
-  }
-
-  /**
-   * Validar que el usuario tiene acceso a la empresa
-   */
-  private async validateCompanyAccess(
-    user: User,
-    companyId: string
-  ): Promise<Company | null> {
-    const belongsToCompany = user.companies
-      .getItems()
-      .some(c => c.id === companyId);
-
-    if (!belongsToCompany) {
-      return null;
-    }
-
-    const company = await this.em.findOne(
-      Company,
-      { id: companyId },
-      { filters: false }
-    );
-
-    if (!company) {
-      return null;
-    }
-
-    return company;
-  }
-
-  /**
    * Construir respuesta de autenticación completa con permisos
    */
-  private async buildAuthResponseWithPermissions(
+  public async buildAuthResponseWithPermissions(
     user: User,
     company: Company,
     message: string
@@ -795,5 +706,94 @@ export class AuthService extends BaseService {
       },
       permissions: permissionsContext.permissionNames,
     });
+  }
+
+  /**
+   * Buscar usuario por email o nickname
+   */
+  private async findUserByEmailOrNickname(
+    emailOrNickname: string,
+    populate: string[] = []
+  ): Promise<User | null> {
+    return await this.em.findOne(
+      User,
+      {
+        $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
+      },
+      {
+        populate: populate as any,
+        filters: false,
+      } as const
+    );
+  }
+
+  /**
+   * Buscar o crear usuario de Google
+   */
+  private async findOrCreateGoogleUser(
+    email: string,
+    name?: string
+  ): Promise<User> {
+    let user = await this.em.findOne(
+      User,
+      { email },
+      { populate: ['companies'], filters: false }
+    );
+
+    if (!user) {
+      const newUser = this.em.create(User, {
+        email,
+        name,
+        nickname: email.split('@')[0],
+        provider: UserProviderType.GOOGLE,
+        isActive: true,
+        isBlocked: false,
+        isVerified: true,
+        fullName: name || '',
+      });
+      this.em.persist(newUser);
+      await this.em.flush();
+
+      // Volver a buscar para tener las relaciones cargadas
+      user = await this.em.findOne(
+        User,
+        { email },
+        { populate: ['companies'], filters: false }
+      );
+
+      if (!user) {
+        throw new InternalServerError('Failed to create user');
+      }
+    }
+
+    return user;
+  }
+
+  /**
+   * Validar que el usuario tiene acceso a la empresa
+   */
+  private async validateCompanyAccess(
+    user: User,
+    companyId: string
+  ): Promise<Company | null> {
+    const belongsToCompany = user.companies
+      .getItems()
+      .some(c => c.id === companyId);
+
+    if (!belongsToCompany) {
+      return null;
+    }
+
+    const company = await this.em.findOne(
+      Company,
+      { id: companyId },
+      { filters: false }
+    );
+
+    if (!company) {
+      return null;
+    }
+
+    return company;
   }
 }

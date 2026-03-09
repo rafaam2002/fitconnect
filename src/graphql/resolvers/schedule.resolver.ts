@@ -376,6 +376,7 @@ export const updateScheduleOptions = async (
 export const scheduleResolvers: IResolvers = {
   Query: {
     getSchedules,
+    getUserSchedules,
     getSchedulesFromToday,
     getSchedulesResume,
     getTodaySchedulesResume,
@@ -384,7 +385,6 @@ export const scheduleResolvers: IResolvers = {
     getScheduleOptions,
     getSchedulesStats,
     getMonthlySchedules,
-    getUserSchedules,
   },
   Mutation: {
     createSchedule,

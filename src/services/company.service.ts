@@ -221,6 +221,7 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
+    //TODO: mirar esto, creo que no tiene sentido cuando no hay logo
     if (!updateCompany.logo) {
       updateCompany.logo = await createPictureUrl(
         this.em,

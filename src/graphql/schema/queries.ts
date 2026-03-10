@@ -53,7 +53,7 @@ type Query {
     getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!
 
     #------------------s3-----------------
-    getPresignedUrl(key: String ): PresignedUrlResponse!
+    getPresignedUrl(key: String, command: String ): PresignedUrlResponse!
     
     #--------------StripeCustomer---------
     getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!

@@ -11,10 +11,10 @@ export const getPresignedUrl = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { key } = args;
+    const { key, command } = args;
 
     const s3Service = new S3Service(em);
-    return await s3Service.getPresignedUrl(currentUser, key);
+    return await s3Service.getPresignedUrl(currentUser, key, command);
   } catch (error: any) {
     return handleError(error);
   }

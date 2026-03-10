@@ -73,7 +73,7 @@ export class CompanyService extends BaseService {
         Company,
         { id: companyId },
         {
-          populate: ['scheduleOptions'],
+          populate: ['scheduleOptions','logo','pictures'],
           filters: false,
         }
       );
@@ -117,7 +117,7 @@ export class CompanyService extends BaseService {
         {
           limit,
           offset,
-          populate: ['scheduleOptions'],
+          populate: ['scheduleOptions','logo'],
           filters: false,
         }
       );

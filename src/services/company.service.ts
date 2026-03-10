@@ -213,7 +213,9 @@ export class CompanyService extends BaseService {
     }
 
     const companyRepo = this.em.getRepository(Company);
-    const updateCompany = await companyRepo.findOne({ id: companyId });
+    const updateCompany = await companyRepo.findOne({ id: companyId }, {
+      populate: ['logo'],
+    });
 
     if (!updateCompany) {
       throw new NotFoundError('Company');

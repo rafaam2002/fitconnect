@@ -33,7 +33,7 @@ export const getUsers = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { query, roleFilter, page, stateFilter } = args;
+    const { query, roleFilter, page, stateFilter, filterMe } = args;
 
     const userService = new UserService(em);
     return await userService.getUsers(
@@ -41,7 +41,8 @@ export const getUsers = async (
       query,
       roleFilter ?? undefined,
       stateFilter ?? undefined,
-      page
+      page,
+      filterMe
     );
   } catch (error: any) {
     return handleError(error);

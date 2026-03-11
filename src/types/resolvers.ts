@@ -153,6 +153,7 @@ export type UserListProps = {
     | 'pending'
     | null;
   page: number;
+  filterMe?: boolean;
 };
 
 export type GetPollProps = { pollId: string; filter: { since: string } };

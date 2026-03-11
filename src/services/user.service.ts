@@ -44,7 +44,8 @@ export class UserService extends BaseService {
     query?: string,
     roleFilter?: string[],
     stateFilter?: string,
-    page: number = 0
+    page: number = 0,
+    filterMe: boolean = true,
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -69,7 +70,7 @@ export class UserService extends BaseService {
           ? await userRepo.find(where, pagination)
           : await userRepo.findAll(pagination);
 
-      const filteredUsers = users.filter(user => user.id !== currentUser.id);
+      const filteredUsers = filterMe ? users.filter(user => user.id !== currentUser.id) : users;
 
       return createServiceResponse(200, 'Users found', true, {
         users: filteredUsers,

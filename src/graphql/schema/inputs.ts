@@ -74,10 +74,11 @@ input CreateScheduleInput {
     description: String!,
     age: Int,
     type: ScheduleType!,
-    startDate: String!,
-    endDate: String!,
+    startHour: String!,
+    endHour: String!,
+    days: [Int]!,
+    repeat: Boolean,
     maxUsers: Int!,
-    repeatDays: [Int],
     admin: ID!,
 }
 

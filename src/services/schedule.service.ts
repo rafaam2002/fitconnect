@@ -15,7 +15,10 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
+import {
+  createDateWithTime,
+  createScheduleProgrammed,
+} from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
 
@@ -530,10 +533,11 @@ export class ScheduleService extends BaseService {
     currentUser: CurrentUser,
     title: string,
     description: string,
-    startDate: Date | string,
-    endDate: Date | string,
+    startHour: string,
+    endHour: string,
+    days: number[],
+    repeat: boolean = false,
     maxUsers: number,
-    repeatDays: number[],
     age: number | null | undefined,
     admin: string,
     type: ScheduleType = ScheduleType.STANDARD
@@ -550,15 +554,10 @@ export class ScheduleService extends BaseService {
       const finalAge = age && age > 0 ? age : null;
       const adminRef = this.em.getReference(User, admin);
 
-      if (repeatDays.length > 0) {
-        const startHour = moment(startDate)
-          .subtract(1, 'hours')
-          .format('HH:mm');
-        const endHour = moment(endDate).subtract(1, 'hours').format('HH:mm');
-
+      if (repeat) {
         const schedule = await createScheduleProgrammed(
           {
-            daysOfWeek: repeatDays,
+            daysOfWeek: days,
             title,
             description,
             startHour,
@@ -575,28 +574,56 @@ export class ScheduleService extends BaseService {
           schedule,
         });
       } else {
-        const newSchedule = this.em.create(Schedule, {
-          title,
-          description,
-          age: finalAge,
-          type,
-          startDate,
-          endDate,
-          maxUsers,
-          state: ScheduleState.AVAILABLE,
-          admin: adminRef,
-          company: currentUser.activeCompanyId!,
-        });
+        const now = moment();
+        const schedules: Schedule[] = [];
 
-        this.em.persist(newSchedule);
+        for (const day of days) {
+          // Moment days: 0=Sunday, 1=Monday...6=Saturday
+          const momentDay = day;
+          const [startH, startM] = startHour.split(':').map(Number);
+          const [endH, endM] = endHour.split(':').map(Number);
+
+          const startDate = moment().day(momentDay).set({
+            hour: startH,
+            minute: startM,
+            second: 0,
+            millisecond: 0,
+          });
+
+          if (startDate.isBefore(now)) {
+            startDate.add(7, 'days');
+          }
+
+          const endDate = startDate.clone().set({
+            hour: endH,
+            minute: endM,
+          });
+
+          const newSchedule = this.em.create(Schedule, {
+            title,
+            description,
+            age: finalAge,
+            type,
+            startDate: startDate.toDate(),
+            endDate: endDate.toDate(),
+            maxUsers,
+            state: ScheduleState.AVAILABLE,
+            admin: adminRef,
+            company: currentUser.activeCompanyId!,
+          });
+
+          this.em.persist(newSchedule);
+          schedules.push(newSchedule);
+        }
+
         await this.em.flush();
 
         return createServiceResponse(
           200,
-          'Schedule created successfully',
+          'Schedules created successfully',
           true,
           {
-            schedule: newSchedule,
+            schedules,
           }
         );
       }

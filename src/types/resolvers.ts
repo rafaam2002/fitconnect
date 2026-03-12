@@ -52,10 +52,11 @@ export type ScheduleProps = {
     description: string;
     age?: number | null;
     type?: ScheduleType;
-    startDate: string;
-    endDate: string;
+    startHour: string;
+    endHour: string;
+    days: number[];
+    repeat: boolean;
     maxUsers: number;
-    repeatDays: number[];
     admin: string;
   };
 };

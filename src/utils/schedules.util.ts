@@ -8,9 +8,9 @@ import { CurrentUser } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 
 import {
-  UnauthorizedError,
   ForbiddenError,
   InternalServerError,
+  UnauthorizedError,
 } from './errors.util';
 import { sendPushNotification } from './notification.util';
 
@@ -76,7 +76,8 @@ export const createScheduleProgrammed = async (
       }
     );
 
-    await em.persistAndFlush(newScheduleProgrammed);
+    em.persist(newScheduleProgrammed);
+    await em.flush();
 
     // Crear schedules iniciales
     await createInitialSchedules(newScheduleProgrammed, em);
@@ -101,15 +102,29 @@ const createInitialSchedules = async (
   try {
     const now = moment();
 
+    const [startHour, startMinutes] = scheduleProgrammed.startHour
+      .split(':')
+      .map(Number);
+
     const promises = scheduleProgrammed.daysOfWeek.map(async day => {
-      // Crear horarios para los dos días más cercanos con el mismo número
-      for (let i = 0; i < 2; i++) {
+      // Crear horarios para los dos días futuros más cercanos
+      let createdCount = 0;
+      let i = 0;
+
+      while (createdCount < 2 && i < 4) {
         const targetDay = now
           .clone()
           .day(day)
           .add(i * 7, 'days');
 
-        if (targetDay.isSameOrAfter(now, 'day')) {
+        targetDay.set({
+          hour: startHour,
+          minute: startMinutes,
+          second: 0,
+          millisecond: 0,
+        });
+
+        if (targetDay.isAfter(now)) {
           await createScheduleInXWeeks(
             targetDay,
             day,
@@ -117,7 +132,9 @@ const createInitialSchedules = async (
             scheduleProgrammed,
             em
           );
+          createdCount++;
         }
+        i++;
       }
     });
 

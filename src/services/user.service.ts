@@ -13,7 +13,10 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { createPictureUrl, getPresignedUrl, } from '../utils/presigned-urls.util';
+import {
+  createPictureUrl,
+  getPresignedUrl,
+} from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
 import { AuthService } from './auth.service';
@@ -21,6 +24,7 @@ import { BaseService } from './base.service';
 import { CompanyService } from './company.service';
 import { CustomerService } from './customer.service';
 import { EmailService } from './email.service';
+import { S3Service } from './s3.service';
 
 /**
  * User Service - Handles all user-related business logic
@@ -31,12 +35,15 @@ export class UserService extends BaseService {
   private authService: AuthService;
   private companyService: CompanyService;
 
+  private s3Service: S3Service;
+
   constructor(em: EntityManager) {
     super(em);
     this.emailService = EmailService.getInstance();
     this.customerService = new CustomerService(em);
     this.authService = new AuthService(em);
     this.companyService = new CompanyService(em);
+    this.s3Service = new S3Service(em);
   }
 
   public async getUsers(
@@ -45,7 +52,7 @@ export class UserService extends BaseService {
     roleFilter?: string[],
     stateFilter?: string,
     page: number = 0,
-    filterMe: boolean = true,
+    filterMe: boolean = true
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -70,7 +77,9 @@ export class UserService extends BaseService {
           ? await userRepo.find(where, pagination)
           : await userRepo.findAll(pagination);
 
-      const filteredUsers = filterMe ? users.filter(user => user.id !== currentUser.id) : users;
+      const filteredUsers = filterMe
+        ? users.filter(user => user.id !== currentUser.id)
+        : users;
 
       return createServiceResponse(200, 'Users found', true, {
         users: filteredUsers,
@@ -367,6 +376,11 @@ export class UserService extends BaseService {
         url
       );
     } else {
+      // Borrar imagen antigua de S3 antes de actualizar
+      if (user.pictureUrl.name) {
+        await this.s3Service.deleteFile(user.pictureUrl.name);
+      }
+
       user.pictureUrl.name = pictureName;
       user.pictureUrl.url = url;
     }

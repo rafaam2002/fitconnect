@@ -94,4 +94,21 @@ export class S3Service extends BaseService {
       throw new InternalServerError('Error generating presigned URL');
     }
   }
+
+  /**
+   * Borrar archivo de S3 directamente
+   */
+  public async deleteFile(key: string): Promise<void> {
+    try {
+      const s3Command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.s3Client.send(s3Command);
+    } catch (error: any) {
+      console.error(`Error deleting file from S3 (Key: ${key}):`, error);
+      // No lanzamos error para no bloquear el flujo principal, pero lo logueamos
+    }
+  }
 }

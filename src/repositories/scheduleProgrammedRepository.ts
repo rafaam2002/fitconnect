@@ -8,18 +8,22 @@ export class CustomScheduleProgrammedRepository extends EntityRepository<Schedul
   // Métodos personalizados...
   public async createSchedulesFromSchedulesProgrammed(): Promise<string> {
     const schedulesProgrammed = await this.findAll();
-    schedulesProgrammed.forEach(scheduleProgrammed => {
-      scheduleProgrammed.daysOfWeek.forEach(async day => {
-        await createScheduleInXWeeks(
-          moment(),
-          day,
-          3,
-          scheduleProgrammed,
-          this.em
-        );
-        //hace falta poner el await aqui?
-      });
+
+    await this.em.transactional(async tem => {
+      for (const scheduleProgrammed of schedulesProgrammed) {
+        for (const day of scheduleProgrammed.daysOfWeek) {
+          await createScheduleInXWeeks(
+            moment(),
+            day,
+            3,
+            scheduleProgrammed,
+            tem
+          );
+        }
+      }
+      await tem.flush();
     });
+
     return `Schedules created successfully`;
   }
 }

@@ -550,90 +550,92 @@ export class ScheduleService extends BaseService {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
-    try {
-      const finalAge = age && age > 0 ? age : null;
-      const adminRef = this.em.getReference(User, admin);
+    return await this.em.transactional(async tem => {
+      try {
+        const finalAge = age && age > 0 ? age : null;
+        const adminRef = tem.getReference(User, admin);
 
-      if (repeat) {
-        const schedule = await createScheduleProgrammed(
-          {
-            daysOfWeek: days,
-            title,
-            description,
-            startHour,
-            endHour,
-            maxUsers,
-            admin: adminRef,
-            age: finalAge,
-            type,
-          },
-          { em: this.em, currentUser }
-        );
+        if (repeat) {
+          const schedule = await createScheduleProgrammed(
+            {
+              daysOfWeek: days,
+              title,
+              description,
+              startHour,
+              endHour,
+              maxUsers,
+              admin: adminRef,
+              age: finalAge,
+              type,
+            },
+            { em: tem, currentUser }
+          );
 
-        return createServiceResponse(200, 'Schedule created', true);
-      } else {
-        const now = moment();
-        const schedules: Schedule[] = [];
+          return createServiceResponse(200, 'Schedule created', true);
+        } else {
+          const now = moment();
+          const schedules: Schedule[] = [];
 
-        for (const day of days) {
-          // Moment days: 0=Sunday, 1=Monday...6=Saturday
-          const momentDay = day;
-          const [startH, startM] = startHour.split(':').map(Number);
-          const [endH, endM] = endHour.split(':').map(Number);
+          for (const day of days) {
+            // Moment days: 0=Sunday, 1=Monday...6=Saturday
+            const momentDay = day;
+            const [startH, startM] = startHour.split(':').map(Number);
+            const [endH, endM] = endHour.split(':').map(Number);
 
-          const startDate = moment().day(momentDay).set({
-            hour: startH,
-            minute: startM,
-            second: 0,
-            millisecond: 0,
-          });
+            const startDate = moment().day(momentDay).set({
+              hour: startH,
+              minute: startM,
+              second: 0,
+              millisecond: 0,
+            });
 
-          if (startDate.isBefore(now)) {
-            startDate.add(7, 'days');
+            if (startDate.isBefore(now)) {
+              startDate.add(7, 'days');
+            }
+
+            const endDate = startDate.clone().set({
+              hour: endH,
+              minute: endM,
+            });
+
+            const newSchedule = tem.create(Schedule, {
+              title,
+              description,
+              age: finalAge,
+              type,
+              startDate: startDate.toDate(),
+              endDate: endDate.toDate(),
+              maxUsers,
+              state: ScheduleState.AVAILABLE,
+              admin: adminRef,
+              company: currentUser.activeCompanyId!,
+            });
+
+            tem.persist(newSchedule);
+            schedules.push(newSchedule);
           }
 
-          const endDate = startDate.clone().set({
-            hour: endH,
-            minute: endM,
-          });
+          await tem.flush();
 
-          const newSchedule = this.em.create(Schedule, {
-            title,
-            description,
-            age: finalAge,
-            type,
-            startDate: startDate.toDate(),
-            endDate: endDate.toDate(),
-            maxUsers,
-            state: ScheduleState.AVAILABLE,
-            admin: adminRef,
-            company: currentUser.activeCompanyId!,
-          });
-
-          this.em.persist(newSchedule);
-          schedules.push(newSchedule);
+          return createServiceResponse(
+            200,
+            'Schedules created successfully',
+            true,
+            {
+              schedules,
+            }
+          );
         }
-
-        await this.em.flush();
-
-        return createServiceResponse(
-          200,
-          'Schedules created successfully',
-          true,
-          {
-            schedules,
-          }
-        );
+      } catch (error: any) {
+        if (
+          error instanceof ForbiddenError ||
+          error instanceof UnauthorizedError
+        ) {
+          throw error;
+        }
+        throw new InternalServerError('Error creating schedule');
       }
-    } catch (error: any) {
-      if (
-        error instanceof ForbiddenError ||
-        error instanceof UnauthorizedError
-      ) {
-        throw error;
-      }
-      throw new InternalServerError('Error creating schedule');
-    }
+    });
   }
 
   /**

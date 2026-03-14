@@ -570,9 +570,7 @@ export class ScheduleService extends BaseService {
           { em: this.em, currentUser }
         );
 
-        return createServiceResponse(200, 'Schedule created', true, {
-          schedule,
-        });
+        return createServiceResponse(200, 'Schedule created', true);
       } else {
         const now = moment();
         const schedules: Schedule[] = [];

@@ -14,7 +14,7 @@ export const getPresignedUrl = async (
     const { key, command } = args;
 
     const s3Service = new S3Service(em);
-    return await s3Service.getPresignedUrl(currentUser, key, command);
+    return await s3Service.getPresignedUrl(currentUser, key);
   } catch (error: any) {
     return handleError(error);
   }

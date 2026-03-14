@@ -26,6 +26,7 @@ import {
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
+import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
   newCompany: Company;
@@ -44,10 +45,13 @@ export class CompanyService extends BaseService {
   private emailService: EmailService;
   private authService: AuthService;
 
+  private s3Service: S3Service;
+
   constructor(em: EntityManager) {
     super(em);
     this.emailService = EmailService.getInstance();
     this.authService = new AuthService(em);
+    this.s3Service = new S3Service(em);
   }
 
   /**
@@ -73,7 +77,7 @@ export class CompanyService extends BaseService {
         Company,
         { id: companyId },
         {
-          populate: ['scheduleOptions','logo','pictures'],
+          populate: ['scheduleOptions', 'logo', 'pictures'],
           filters: false,
         }
       );
@@ -117,7 +121,7 @@ export class CompanyService extends BaseService {
         {
           limit,
           offset,
-          populate: ['scheduleOptions','logo'],
+          populate: ['scheduleOptions', 'logo'],
           filters: false,
         }
       );
@@ -213,9 +217,12 @@ export class CompanyService extends BaseService {
     }
 
     const companyRepo = this.em.getRepository(Company);
-    const updateCompany = await companyRepo.findOne({ id: companyId }, {
-      populate: ['logo'],
-    });
+    const updateCompany = await companyRepo.findOne(
+      { id: companyId },
+      {
+        populate: ['logo'],
+      }
+    );
 
     if (!updateCompany) {
       throw new NotFoundError('Company');
@@ -233,6 +240,12 @@ export class CompanyService extends BaseService {
         await getPresignedUrl(picture)
       );
     } else {
+      // Borrar logo antiguo de S3
+      if (updateCompany.logo.name) {
+        await this.s3Service.deleteFile(updateCompany.logo.name);
+      }
+
+      updateCompany.logo.name = picture;
       updateCompany.logo.url = await getPresignedUrl(picture);
     }
 

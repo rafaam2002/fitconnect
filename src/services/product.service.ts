@@ -19,10 +19,14 @@ import {
 } from '../utils/presigned-urls.util';
 
 import { BaseService } from './base.service';
+import { S3Service } from './s3.service';
 
 export class ProductService extends BaseService {
+  private s3Service: S3Service;
+
   constructor(em: EntityManager) {
     super(em);
+    this.s3Service = new S3Service(em);
   }
 
   /**
@@ -113,6 +117,12 @@ export class ProductService extends BaseService {
 
     if (!product) {
       throw new NotFoundError('Product');
+    }
+
+    if (product.pictures && product.pictures.length > 0) {
+      for (const picture of product.pictures.getItems()) {
+        await this.s3Service.deleteFile(picture.name);
+      }
     }
 
     const pictureUrl = createPictureUrl(

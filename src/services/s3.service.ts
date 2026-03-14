@@ -50,8 +50,7 @@ export class S3Service extends BaseService {
    */
   public async getPresignedUrl(
     currentUser: CurrentUser,
-    key?: string,
-    command: 'put' | 'delete' = 'put'
+    key?: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -61,19 +60,11 @@ export class S3Service extends BaseService {
       // Generar key aleatorio si no se proporciona
       const Key = key || `${crypto.randomUUID()}.jpeg`;
 
-      let s3Command;
-      if (command === 'put') {
-        s3Command = new PutObjectCommand({
-          Bucket: this.bucketName,
-          Key,
-          ContentType: 'image/jpeg',
-        });
-      } else {
-        s3Command = new DeleteObjectCommand({
-          Bucket: this.bucketName,
-          Key,
-        });
-      }
+      const s3Command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key,
+        ContentType: 'image/jpeg',
+      });
 
       // Generar presigned URL con expiración de 2 minutos
       const url = await getSignedUrl(this.s3Client, s3Command, {

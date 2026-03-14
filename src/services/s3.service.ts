@@ -89,7 +89,7 @@ export class S3Service extends BaseService {
   /**
    * Borrar archivo de S3 directamente
    */
-  public async deleteFile(key: string): Promise<void> {
+  public async deleteObject(key: string): Promise<void> {
     try {
       const s3Command = new DeleteObjectCommand({
         Bucket: this.bucketName,

@@ -242,7 +242,7 @@ export class CompanyService extends BaseService {
     } else {
       // Borrar logo antiguo de S3
       if (updateCompany.logo.name) {
-        await this.s3Service.deleteFile(updateCompany.logo.name);
+        await this.s3Service.deleteObject(updateCompany.logo.name);
       }
 
       updateCompany.logo.name = picture;

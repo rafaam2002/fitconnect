@@ -378,7 +378,7 @@ export class UserService extends BaseService {
     } else {
       // Borrar imagen antigua de S3 antes de actualizar
       if (user.pictureUrl.name) {
-        await this.s3Service.deleteFile(user.pictureUrl.name);
+        await this.s3Service.deleteObject(user.pictureUrl.name);
       }
 
       user.pictureUrl.name = pictureName;

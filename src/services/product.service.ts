@@ -121,7 +121,7 @@ export class ProductService extends BaseService {
 
     if (product.pictures && product.pictures.length > 0) {
       for (const picture of product.pictures.getItems()) {
-        await this.s3Service.deleteFile(picture.name);
+        await this.s3Service.deleteObject(picture.name);
       }
     }
 

@@ -471,6 +471,11 @@ export class UserService extends BaseService {
     return createServiceResponse(200, 'Stats found', true, { stats });
   }
 
+  // public async getUsersByPermissions(permissions: string[]) {
+  //   const users = await this.em.find(User,);
+  //   return users;
+  // }
+
   private buildUserFilter(
     query?: string,
     roleFilter?: string[],

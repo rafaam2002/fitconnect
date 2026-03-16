@@ -85,19 +85,19 @@ export class NotificationService {
   /**
    * Send notification to premium users
    */
-  public async sendToPremiumUsers(
-    title: string,
-    body: string,
-    data?: PushNotificationData
-  ): Promise<void> {
-    const users = await this.em.find(
-      User,
-      { roles: { role: UserRoleEnum.PREMIUM } },
-      { populate: ['pushTokens'] }
-    );
+  // public async sendToPremiumUsers(
+  //   title: string,
+  //   body: string,
+  //   data?: PushNotificationData
+  // ): Promise<void> {
+  //   const users = await this.em.find(
+  //     User,
+  //     { roles: { role: UserRoleEnum.PREMIUM } },
+  //     { populate: ['pushTokens'] }
+  //   );
 
-    await this.sendToUserEntities(users, title, body, data);
-  }
+  //   await this.sendToUserEntities(users, title, body, data);
+  // }
 
   /**
    * Helper: Send notification to user entities

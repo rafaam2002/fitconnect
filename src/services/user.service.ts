@@ -19,6 +19,7 @@ import {
 } from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
+import { SubscriptionStatus } from '../entities/Subscription';
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { CompanyService } from './company.service';
@@ -147,11 +148,14 @@ export class UserService extends BaseService {
     );
   }
 
-  public async findUser(id: string): Promise<ServiceResponse> {
+  public async findUser(id: string, options?: {
+    includePermissions?: boolean;
+  }): Promise<ServiceResponse> {
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id },
-      { populate: ['pendingCompanies'] }
+      { populate: ['pendingCompanies'] },
+      
     );
 
     if (!user) {
@@ -471,10 +475,38 @@ export class UserService extends BaseService {
     return createServiceResponse(200, 'Stats found', true, { stats });
   }
 
-  // public async getUsersByPermissions(permissions: string[]) {
-  //   const users = await this.em.find(User,);
-  //   return users;
-  // }
+  public async getUsersByPermissions(
+    permissions: string[],
+    extraWhere?: FilterQuery<User>
+  ) {
+    const users = await this.em.find(
+      User,
+      {
+        ...((extraWhere ?? {}) as object),
+        subscriptions: {
+          status: {
+            $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+          plan: {
+            planPermissions: {
+              permission: {
+                name: { $in: permissions },
+              },
+            },
+          },
+        },
+      },
+      {
+        populate: [
+          'subscriptions',
+          'subscriptions.plan',
+          'subscriptions.plan.planPermissions',
+          'subscriptions.plan.planPermissions.permission',
+        ],
+      }
+    );
+    return users;
+  }
 
   private buildUserFilter(
     query?: string,

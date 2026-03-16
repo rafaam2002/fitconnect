@@ -148,14 +148,39 @@ export class UserService extends BaseService {
     );
   }
 
-  public async findUser(id: string, options?: {
-    includePermissions?: boolean;
-  }): Promise<ServiceResponse> {
+  public async findUser(
+    id: string,
+    options?: {
+      includePermissions?: boolean;
+    }
+  ): Promise<ServiceResponse> {
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
-      { id },
-      { populate: ['pendingCompanies'] },
-      
+      {
+        id,
+        ...(options?.includePermissions
+          ? {
+              subscriptions: {
+                status: {
+                  $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+                },
+              },
+            }
+          : {}),
+      },
+      {
+        populate: [
+          'pendingCompanies',
+          ...((options?.includePermissions
+            ? [
+                'subscriptions',
+                'subscriptions.plan',
+                'subscriptions.plan.planPermissions',
+                'subscriptions.plan.planPermissions.permission',
+              ]
+            : []) as any[]),
+        ],
+      }
     );
 
     if (!user) {

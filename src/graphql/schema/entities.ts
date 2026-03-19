@@ -284,4 +284,9 @@ type Stats {
     hasDefault: Boolean
     byBrand: JSON
 }
+
+type Tokens {
+    token: String
+    refreshToken: String
+}
 `;

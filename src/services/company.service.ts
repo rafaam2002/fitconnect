@@ -67,10 +67,6 @@ export class CompanyService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (!companyId) {
-      throw new BadRequestError('Company id is required');
-    }
-
     if (companyId) {
       // Obtener empresa específica
       const company = await this.em.findOne(

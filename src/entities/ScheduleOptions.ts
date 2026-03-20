@@ -1,10 +1,21 @@
-import { Entity, OneToOne, Property } from '@mikro-orm/core';
+import { Entity, OneToOne, OptionalProps, Property } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 
 @Entity()
 export class ScheduleOptions extends BaseEntity {
+  [OptionalProps]?:
+    | 'created_at'
+    | 'updated_at'
+    | 'isActive'
+    | 'isBlocked'
+    | 'maxActiveReservations'
+    | 'bookingCutoffMinutes'
+    | 'maxAdvanceBookingDays'
+    | 'sameDayBookingAllowed'
+    | 'fullOpenHours';
+
   @Property({ default: 1 })
   maxActiveReservations: number;
 

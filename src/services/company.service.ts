@@ -27,6 +27,7 @@ import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
 import { S3Service } from './s3.service';
+import { CompanyConfig } from '../entities/CompanyConfig';
 
 export interface AdminCompanyResponse {
   newCompany: Company;
@@ -519,7 +520,17 @@ export class CompanyService extends BaseService {
       maxAdvanceBookingDays: 1,
       sameDayBookingAllowed: false,
       fullOpenHours: 0,
+      bookingCutoffMinutes: 0,
     });
+
+    const companyConfig = em.create(CompanyConfig, {
+      company: newCompany,
+      pollsEnabled: true,
+      productEnabled: true,
+      chatEnabled: true,
+      trainingEnabled: true,
+    });
+
     return {
       newCompany,
       newScheduleOptions: scheduleOptions,

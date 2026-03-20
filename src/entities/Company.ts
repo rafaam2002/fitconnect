@@ -12,6 +12,7 @@ import {
 import { BaseEntity } from './BaseEntity';
 import { PictureUrl } from './PictureUrl';
 import { ScheduleOptions } from './ScheduleOptions';
+import { CompanyConfig } from './CompanyConfig';
 import { User } from './User';
 
 @Entity()
@@ -65,6 +66,12 @@ export class Company extends BaseEntity {
   })
   scheduleOptions?: ScheduleOptions;
 
+  @OneToOne(() => CompanyConfig, companyConfig => companyConfig.company, {
+    nullable: true,
+    owner: true,
+  })
+  companyConfig?: CompanyConfig;
+
   constructor(company: Partial<Company>) {
     super();
     this.name = company.name || '';
@@ -74,5 +81,6 @@ export class Company extends BaseEntity {
     this.logo = company.logo || undefined;
     this.pictures = company.pictures || new Collection<PictureUrl>(this);
     this.scheduleOptions = company.scheduleOptions;
+    this.companyConfig = company.companyConfig;
   }
 }

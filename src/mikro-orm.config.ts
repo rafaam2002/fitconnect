@@ -3,6 +3,8 @@ import { SeedManager } from '@mikro-orm/seeder/SeedManager';
 import dotenv from 'dotenv';
 
 import { Article } from './entities/Article';
+import { Company } from './entities/Company';
+import { CompanyConfig } from './entities/CompanyConfig';
 import { Invoice } from './entities/Invoice';
 import { Message } from './entities/Message';
 import { PaymentMethod } from './entities/PaymentMethod';
@@ -29,6 +31,8 @@ dotenv.config();
 export default {
   entities: [
     Article,
+    Company,
+    CompanyConfig,
     Invoice,
     Message,
     PaymentMethod,

@@ -11,7 +11,7 @@ export class CompanyConfig extends BaseEntity {
     | 'isActive'
     | 'isBlocked'
     | 'pollsEnabled'
-    | 'productEnabled'
+    | 'productsEnabled'
     | 'chatEnabled'
     | 'trainingEnabled';
 
@@ -19,7 +19,7 @@ export class CompanyConfig extends BaseEntity {
   pollsEnabled: boolean = true;
 
   @Property({ default: true })
-  productEnabled: boolean = true;
+  productsEnabled: boolean = true;
 
   @Property({ default: true })
   chatEnabled: boolean = true;

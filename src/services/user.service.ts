@@ -246,10 +246,9 @@ export class UserService extends BaseService {
           newCompany,
           newUser: adminUser,
           newFirstForumMessage,
-          newScheduleOptions,
         } = this.companyService.createAdminCompany(em, newUser, companyData);
 
-        this.em.persist([newCompany, newFirstForumMessage, newScheduleOptions]);
+        this.em.persist([newCompany, newFirstForumMessage]);
         await this.em.flush();
 
         newUser = adminUser;

@@ -23,7 +23,6 @@ import {
   getPresignedUrl,
 } from '../utils/presigned-urls.util';
 
-import { CompanyConfig } from '../entities/CompanyConfig';
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
@@ -31,13 +30,6 @@ import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
   newCompany: Company;
-  newScheduleOptions: {
-    company: Company;
-    maxActiveReservations: number;
-    maxAdvanceBookingDays: number;
-    sameDayBookingAllowed: boolean;
-    fullOpenHours: number;
-  };
   newUser: User;
   newFirstForumMessage: Message;
 }
@@ -279,15 +271,9 @@ export class CompanyService extends BaseService {
       newCompany,
       newUser: newAdminUser,
       newFirstForumMessage,
-      newScheduleOptions,
     } = this.createAdminCompany(this.em, user, companyData.company);
 
-    this.em.persist([
-      newCompany,
-      newFirstForumMessage,
-      newScheduleOptions,
-      newAdminUser,
-    ]);
+    this.em.persist([newCompany, newFirstForumMessage, newAdminUser]);
     await this.em.flush();
 
     const companyToken = this.authService.generateCompanyVerificationToken(
@@ -514,17 +500,8 @@ export class CompanyService extends BaseService {
       isFixed: false,
     });
 
-    const scheduleOptions = em.create(ScheduleOptions, {
-      company: newCompany,
-    });
-
-    const companyConfig = em.create(CompanyConfig, {
-      company: newCompany,
-    });
-
     return {
       newCompany,
-      newScheduleOptions: scheduleOptions,
       newFirstForumMessage: firstForumMessage,
       newUser: user,
     };

@@ -31,6 +31,9 @@ export class ScheduleOptions extends BaseEntity {
   @Property({ default: 0 })
   bookingCutoffMinutes: number;
 
+  @Property({ default: 0 })
+  minBookingsRequired: number;
+
   @Property({ default: 7 }) // in days
   maxAdvanceBookingDays: number;
 

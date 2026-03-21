@@ -394,6 +394,16 @@
           "default": "0",
           "mappedType": "integer"
         },
+        "min_bookings_required": {
+          "name": "min_bookings_required",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
         "max_advance_booking_days": {
           "name": "max_advance_booking_days",
           "type": "int",

@@ -2,7 +2,6 @@ import { EntityManager } from '@mikro-orm/core';
 
 import { Company } from '../entities/Company';
 import { Message } from '../entities/Message';
-import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
@@ -66,7 +65,7 @@ export class CompanyService extends BaseService {
         Company,
         { id: companyId },
         {
-          populate: ['scheduleOptions', 'logo', 'pictures'],
+          populate: ['scheduleOptions', 'logo', 'pictures', 'companyConfig'],
           filters: false,
         }
       );
@@ -157,7 +156,7 @@ export class CompanyService extends BaseService {
       Company,
       { id: companyId },
       {
-        populate: ['scheduleOptions'],
+        populate: ['scheduleOptions', 'companyConfig'],
       }
     );
 
@@ -165,20 +164,11 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
-    // Actualizar datos de la empresa
-    Object.assign(company, companyData);
-
-    // Actualizar o crear scheduleOptions
-    if (scheduleOptions) {
-      if (company.scheduleOptions) {
-        Object.assign(company.scheduleOptions, scheduleOptions);
-      } else {
-        company.scheduleOptions = this.em.create(ScheduleOptions, {
-          ...scheduleOptions,
-          company: company,
-        });
-      }
-    }
+    // Actualizar datos de la empresa y sus relaciones (companyConfig, scheduleOptions)
+    this.em.assign(company, {
+      ...companyData,
+      ...(scheduleOptions ? { scheduleOptions } : {}),
+    });
 
     this.em.persist(company);
     await this.em.flush();

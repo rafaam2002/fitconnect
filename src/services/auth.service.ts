@@ -95,6 +95,7 @@ export class AuthService extends BaseService {
     const user = await this.findUserByEmailOrNickname(emailOrNickname, [
       'password',
       'companies',
+      'companies.companyConfig',
       // 'schedules.id',
       // 'schedules.startDate',
     ]);
@@ -737,7 +738,7 @@ export class AuthService extends BaseService {
     let user = await this.em.findOne(
       User,
       { email },
-      { populate: ['companies'], filters: false }
+      { populate: ['companies', 'companies.companyConfig'], filters: false }
     );
 
     if (!user) {

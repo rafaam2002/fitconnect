@@ -124,13 +124,12 @@ export class UserService extends BaseService {
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
-      { populate: ['schedules.id', 'schedules.startDate'] }
     );
 
-    const userForCompanies = await userRepo.findOne(
-      { id: currentUser.id },
-      { filters: false }
-    );
+    // const userForCompanies = await userRepo.findOne(
+    //   { id: currentUser.id },
+    //   { filters: false }
+    // );
 
     if (!user) {
       throw new NotFoundError('User');
@@ -140,7 +139,13 @@ export class UserService extends BaseService {
     this.em.persist(user);
     await this.em.flush();
 
-    const company = await this.em.findOne<Company>(Company, { id: companyId });
+    const companyRepo = this.em.getRepository(Company);
+
+    const company = await companyRepo.findOne(
+      { id: companyId },
+      { populate: ['companyConfig'] }
+    );
+    
     return await this.authService.buildAuthResponseWithPermissions(
       user,
       company as Company,

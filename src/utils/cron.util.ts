@@ -7,6 +7,7 @@ import { storeNews } from '../helpers/articles';
 import { updatePictureUrls } from './presigned-urls.util';
 import { sendScheduleReminders } from './schedules.util';
 import { setNotActiveUsers } from './users';
+import { ScheduleService } from '../services/schedule.service';
 
 export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>
@@ -76,6 +77,26 @@ export const cronFunctions = async (
       timezone: 'Europe/Madrid',
     }
   );
+
+   cron.schedule(
+     '*/30 * * * *', // Every 30 minutes
+     async () => {
+       console.log('🚀 Iniciando tarea de recordatorios de horarios...');
+       try {
+         const scheduleService = new ScheduleService(em.fork());
+         await scheduleService.cutOffSchedules();
+       } catch (error) {
+         console.error(
+           'Error al ejecutar la tarea de recordatorios de horarios:',
+           error
+         );
+       }
+       console.log('✅ Tarea de recordatorios de horarios completada.');
+     },
+     {
+       timezone: 'Europe/Madrid',
+     }
+   );
 
   console.log('📅 Tarea programada para ejecutarse cada domingo a las 3AM.');
   console.log(

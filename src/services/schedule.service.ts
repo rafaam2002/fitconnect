@@ -970,6 +970,66 @@ export class ScheduleService extends BaseService {
     }
   }
 
+  public async cutOffSchedules() {
+    try {
+      const now = moment();
+      const twentyFourHoursLater = now.clone().add(24, 'hours').toDate();
+
+      const scheduleRepo = this.em.getRepository(Schedule);
+      const schedules = await scheduleRepo.find(
+        {
+          state: ScheduleState.AVAILABLE,
+          startDate: { $gte: now.toDate(), $lte: twentyFourHoursLater },
+        },
+        {
+          populate: [
+            'users',
+            'company',
+            'company.scheduleOptions',
+            'users.pushTokens',
+          ],
+        }
+      );
+
+      const cancelledSchedules: Schedule[] = [];
+
+      for (const schedule of schedules) {
+        const options = schedule.company?.scheduleOptions;
+        if (!options) continue;
+
+        const cutoffMinutes = options.bookingCutoffMinutes || 0;
+        const minBookings = options.minBookingsRequired || 0;
+
+        // Si no hay requisitos de reserva o el tiempo de corte es 0 (deshabilitado), saltamos
+        if (minBookings <= 0 || cutoffMinutes <= 0) continue;
+
+        const cutoffTime = moment(schedule.startDate).subtract(
+          cutoffMinutes,
+          'minutes'
+        );
+
+        if (
+          now.isSameOrAfter(cutoffTime) &&
+          schedule.users.length < minBookings
+        ) {
+          schedule.state = ScheduleState.CANCELLED;
+          cancelledSchedules.push(schedule);
+        }
+      }
+
+      if (cancelledSchedules.length > 0) {
+        await this.em.flush();
+
+        // Enviar notificaciones
+        for (const schedule of cancelledSchedules) {
+          await this.sendScheduleCancellationNotifications(schedule);
+        }
+      }
+    } catch (error) {
+      console.error('Error in cutOffSchedules:', error);
+    }
+  }
+
   // ============= MÉTODOS PRIVADOS =============
 
   /**

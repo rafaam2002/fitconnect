@@ -23,6 +23,7 @@ import { Subscription } from './entities/Subscription';
 import { TrainingTask } from './entities/TraningITask';
 import { Transaction } from './entities/Transaction';
 import { User } from './entities/User';
+import { UserRole } from './entities/UserRole';
 import { UserWeight } from './entities/UserWeight';
 import { WebhookEventLog } from './entities/WebhookEventLog';
 
@@ -51,6 +52,7 @@ export default {
     TrainingTask,
     Transaction,
     User,
+    UserRole,
     UserWeight,
     WebhookEventLog,
   ],

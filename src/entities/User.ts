@@ -79,7 +79,12 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;
 
-  @ManyToMany(() => Company, (company: Company) => company.users, {
+  @ManyToMany({
+    entity: () => Company,
+    inversedBy: (company: Company) => company.users,
+    pivotEntity: () => UserRole,
+    joinColumn: 'user',
+    inverseJoinColumn: 'company',
     owner: true,
   })
   companies = new Collection<Company>(this);
@@ -93,7 +98,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   activeCompanyId?: string | null;
 
-  @OneToMany(() => UserRole, userRole => userRole.user, { eager: true })
+  @OneToMany(() => UserRole, userRole => userRole.user, {
+    eager: true,
+    orphanRemoval: true,
+  })
   roles = new Collection<UserRole>(this);
 
   // @ManyToMany(() => Plan, (plan: Plan) =>plans.users, {

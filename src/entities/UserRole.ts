@@ -20,8 +20,8 @@ export class UserRole extends BaseEntity {
   @ManyToOne(() => Company, { deleteRule: 'cascade' })
   company!: Company;
 
-  @Enum(() => UserRoleEnum)
-  role!: UserRoleEnum;
+  @Enum({ items: () => UserRoleEnum, default: UserRoleEnum.STANDARD })
+  role: UserRoleEnum = UserRoleEnum.STANDARD;
 
   constructor(user: User, company: Company, role: UserRoleEnum) {
     super();

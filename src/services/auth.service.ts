@@ -96,8 +96,6 @@ export class AuthService extends BaseService {
       'password',
       'companies',
       'companies.companyConfig',
-      // 'schedules.id',
-      // 'schedules.startDate',
     ]);
 
     if (!user) {

@@ -574,7 +574,7 @@ export class UserService extends BaseService {
 
     if (stateFilter) {
       switch (stateFilter) {
-        case 'notActive':
+        case 'inactive':
           where.isActive = false;
           break;
         case 'blocked':

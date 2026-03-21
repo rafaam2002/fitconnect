@@ -59,9 +59,18 @@ export default {
   // user: process.env.DB_USERNAME || "postgres",
   // password: process.env.DB_PASSWORD || "Pececitos1$",
   // host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT) || 5432,
+  port: parseInt(process.env.DB_PORT || '5432'),
   allowGlobalContext: true,
   driver: require('@mikro-orm/postgresql').PostgreSqlDriver,
+  migrations: {
+    path: './src/migrations',
+    pathTs: './src/migrations',
+    dropTables: false, // Do not drop tables that are not defined in entities
+    safe: true, // Only allow additive changes if possible (optional but good)
+  },
+  schemaGenerator: {
+    disableForeignKeys: false,
+  },
   extensions: [Migrator, SeedManager],
   debug: false, //process.env.NODE_ENV !== 'production',
   driverOptions: {

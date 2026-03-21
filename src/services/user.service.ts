@@ -585,7 +585,7 @@ export class UserService extends BaseService {
           break;
         case 'new':
           where.created_at = {
-            $gte: new Date(Date.now() - 31 * 60 * 60 * 1000),
+            $gte: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
           };
           break;
         case 'pending':

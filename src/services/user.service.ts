@@ -95,22 +95,30 @@ export class UserService extends BaseService {
       throw new UnauthorizedError('No esta autorizado para acceder al recurso');
     }
 
+    const authService = new AuthService(this.em);
+
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
       {
-        populate: ['schedules.id', 'schedules.startDate', 'companies'],
-      }
+        populate: ['companies', 'companies.companyConfig'],
+        filters: false
+      },
     );
 
     if (!user) {
       throw new NotFoundError('User');
     }
 
-    return createServiceResponse(200, 'User found', true, {
-      user,
-      companies: user.companies.getItems(),
-    });
+    return user.activeCompanyId
+      ? await authService.buildAuthResponseWithPermissions(
+          user,
+          user.companies.getItems().find(c => c.id === user.activeCompanyId)!,
+          'Login successful'
+        )
+      : createServiceResponse(200, 'logging successfully', true, {
+          user,
+        });
   }
 
   public async setActiveCompany(
@@ -121,9 +129,14 @@ export class UserService extends BaseService {
       throw new UnauthorizedError();
     }
 
+    this.em.setFilterParams('companyContext', {
+      companyId: companyId,
+    });
+
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
+      { refresh: true }
     );
 
     // const userForCompanies = await userRepo.findOne(
@@ -145,7 +158,7 @@ export class UserService extends BaseService {
       { id: companyId },
       { populate: ['companyConfig'] }
     );
-    
+
     return await this.authService.buildAuthResponseWithPermissions(
       user,
       company as Company,

@@ -122,10 +122,10 @@ type ScheduleOptions {
 }
 
 type CompanyConfig {
-    pollsEnabled: Boolean
-    productsEnabled: Boolean
-    chatEnabled: Boolean
-    trainingEnabled: Boolean
+    pollsEnabled: Boolean!
+    productsEnabled: Boolean!
+    chatEnabled: Boolean!
+    trainingEnabled: Boolean!
 }
 
 type Poll {

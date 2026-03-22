@@ -83,8 +83,8 @@ export class User extends BaseEntity {
     entity: () => Company,
     inversedBy: (company: Company) => company.users,
     pivotEntity: () => UserRole,
-    joinColumn: 'user',
-    inverseJoinColumn: 'company',
+    joinColumn: 'user_id',
+    inverseJoinColumn: 'company_id',
     owner: true,
   })
   companies = new Collection<Company>(this);

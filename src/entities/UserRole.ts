@@ -14,10 +14,10 @@ import { User } from './User';
 @Entity()
 @Unique({ properties: ['user', 'company'] })
 export class UserRole extends BaseEntity {
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { fieldName: 'user_id' })
   user!: User;
 
-  @ManyToOne(() => Company, { deleteRule: 'cascade' })
+  @ManyToOne(() => Company, { fieldName: 'company_id', deleteRule: 'cascade' })
   company!: Company;
 
   @Enum({ items: () => UserRoleEnum, default: UserRoleEnum.STANDARD })

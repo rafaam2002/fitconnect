@@ -187,10 +187,13 @@ export class User extends BaseEntity {
   }
 
   get contextRole(): UserRoleEnum | null {
-    if (!this.roles.isInitialized()) {
+    if (!this.roles.isInitialized() || !this.activeCompanyId) {
       return null;
     }
-    return this.roles.length > 0 ? this.roles[0].role : null;
+    return (
+      this.roles.find(role => role.company.id === this.activeCompanyId)?.role ??
+      null
+    );
   }
 
   // get contextPlan(): Plan | null {

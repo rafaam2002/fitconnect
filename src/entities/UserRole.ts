@@ -23,7 +23,7 @@ export class UserRole extends BaseEntity {
   @Enum({ items: () => UserRoleEnum, default: UserRoleEnum.STANDARD })
   role: UserRoleEnum = UserRoleEnum.STANDARD;
 
-  constructor(user: User, company: Company, role: UserRoleEnum) {
+  constructor(user: User, company: Company, role: UserRoleEnum = UserRoleEnum.STANDARD) {
     super();
     this.user = user;
     this.company = company;

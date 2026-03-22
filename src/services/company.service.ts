@@ -441,14 +441,12 @@ export class CompanyService extends BaseService {
 
     // Mover de pendientes a miembros
     userToAdmit.pendingCompanies.remove(company);
-    userToAdmit.companies.add(company);
 
     // Crear UserRole para el nuevo miembro (default STANDARD)
-    const newUserRole = new UserRole(
-      userToAdmit,
-      company,
-      UserRoleEnum.STANDARD
-    );
+    const newUserRole = this.em.create(UserRole, {
+      user: userToAdmit,
+      company: company,
+    });
     this.em.persist(newUserRole);
 
     await this.em.flush();
@@ -480,7 +478,13 @@ export class CompanyService extends BaseService {
   ): AdminCompanyResponse {
     const newCompany = em.create(Company, company);
 
-    user.companies.add(newCompany);
+    // Create UserRole as BOSS for the creator
+    em.create(UserRole, {
+      user,
+      company: newCompany,
+      role: UserRoleEnum.BOSS,
+    });
+
     const firstForumMessage = em.create(Message, {
       sender: user,
       receiver: null,

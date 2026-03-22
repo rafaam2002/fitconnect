@@ -102,8 +102,8 @@ export class UserService extends BaseService {
       { id: currentUser.id },
       {
         populate: ['companies', 'companies.companyConfig'],
-        filters: false
-      },
+        filters: false,
+      }
     );
 
     if (!user) {
@@ -479,8 +479,8 @@ export class UserService extends BaseService {
     const knex = em.getKnex();
 
     const result = await knex('user as u')
-      .join('user_companies as uc', 'u.id', 'uc.user_id')
-      .where('uc.company_id', currentUser.activeCompanyId)
+      .join('user_role as ur', 'u.id', 'ur.user_id')
+      .where('ur.company_id', currentUser.activeCompanyId)
       .select([
         knex.raw('COUNT(u.id) as totalusers'),
         knex.raw(

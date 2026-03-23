@@ -2,7 +2,11 @@ import { EntityManager, FilterQuery, QueryOrder } from '@mikro-orm/core';
 
 import { Plan, PlanInterval, PlanStatus } from '../entities/Plan';
 import { ServiceResponse } from '../types/common.type';
-import { BadRequestError, createServiceResponse, NotFoundError, } from '../utils/errors.util';
+import {
+  BadRequestError,
+  createServiceResponse,
+  NotFoundError,
+} from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 import { PermissionService } from './permission.service';

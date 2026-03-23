@@ -31,7 +31,7 @@ interface UpdatePlanInput {
 }
 
 export class PlanService extends BaseService {
-  private permissionService: PermissionService;
+  private readonly permissionService: PermissionService;
 
   constructor(em: EntityManager) {
     super(em);

@@ -13,10 +13,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from '../utils/presigned-urls.util';
+import { createPictureUrl, getPresignedUrl, } from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
 import { SubscriptionStatus } from '../entities/Subscription';
@@ -238,7 +235,7 @@ export class UserService extends BaseService {
       throw new BadRequestError('Please provide all required fields');
     }
 
-    if (role === UserRoleEnum.BOSS && !companyData?.name) {
+    if (role === UserRoleEnum.ADMIN && !companyData?.name) {
       throw new BadRequestError('Admin users must provide a Company name');
     }
 
@@ -259,7 +256,7 @@ export class UserService extends BaseService {
     let newUser: User = this.em.create(User, userData);
 
     try {
-      if (role === UserRoleEnum.BOSS) {
+      if (role === UserRoleEnum.ADMIN) {
         const {
           newCompany,
           newUser: adminUser,
@@ -322,7 +319,7 @@ export class UserService extends BaseService {
 
     if (
       currentUser.id !== userUpdates.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError();
     }
@@ -397,7 +394,7 @@ export class UserService extends BaseService {
 
     if (
       currentUser.id !== userId &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError();
     }
@@ -472,7 +469,7 @@ export class UserService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError();
     }
 

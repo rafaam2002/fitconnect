@@ -100,7 +100,7 @@ export class SubscriptionService extends BaseService {
       .join('sc.user', 'u')
       .join('u.roles', 'r')
       .join('sc.paymentMethods', 'pm')
-      .where({ 'r.role': UserRoleEnum.BOSS })
+      .where({ 'r.role': UserRoleEnum.ADMIN })
       .getSingleResult();
 
     if (stripeCustomer)

@@ -4,7 +4,7 @@ import { Seeder } from '@mikro-orm/seeder';
 export class PollVoteSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     //   const users = await em.find(User, {
-    //     rol: { $in: [UserRol.BOSS, UserRol.COACH] },
+    //     rol: { $in: [UserRol.ADMIN, UserRol.COACH] },
     //   });
     //   const polls = await em.find(Poll, {});
     //   try {

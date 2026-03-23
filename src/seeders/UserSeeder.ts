@@ -65,15 +65,13 @@ export class UserSeeder extends Seeder {
 
         user.roles.add(
           em.create<UserRole>(UserRole, {
-            role: UserRoleEnum.BOSS,
+            role: UserRoleEnum.ADMIN,
             company: createdCompanies[i],
             user,
           })
         );
 
         admins.push(user);
-
-        
       }
 
       em.persist(admins);

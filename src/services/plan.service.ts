@@ -226,7 +226,7 @@ export class PlanService extends BaseService {
 
     const plans = await this.em.find<Plan>(Plan, where, {
       orderBy: { amount: QueryOrder.ASC },
-      populate: ['subscriptions'],
+      populate: ['subscriptions'] as any,
     });
 
     return createServiceResponse(200, 'Plans has been fetched', true, {

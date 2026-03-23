@@ -94,7 +94,7 @@ export class ScheduleService extends BaseService {
 
     const targetUserId = userId || currentUser.id;
 
-    // Solo BOSS puede ver schedules de otros usuarios, o COACH si tiene permisos
+    // Solo ADMIN puede ver schedules de otros usuarios, o COACH si tiene permisos
     if (
       targetUserId !== currentUser.id &&
       currentUser.contextRole === UserRoleEnum.STANDARD
@@ -184,7 +184,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener schedules de admin (solo COACH/BOSS)
+   * Obtener schedules de admin (solo COACH/ADMIN)
    */
   public async getAdminSchedules(
     currentUser: CurrentUser
@@ -380,7 +380,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener estadísticas de schedules (solo BOSS)
+   * Obtener estadísticas de schedules (solo ADMIN)
    */
   public async getSchedulesStats(
     currentUser: CurrentUser,
@@ -390,7 +390,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
@@ -488,7 +488,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener schedules mensuales por hora específica (solo BOSS)
+   * Obtener schedules mensuales por hora específica (solo ADMIN)
    */
   public async getMonthlySchedules(
     currentUser: CurrentUser,
@@ -499,7 +499,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
@@ -678,7 +678,7 @@ export class ScheduleService extends BaseService {
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
     const isFull = schedule.users.length >= schedule.maxUsers;
     const isBooked = user.schedules.getItems().some(s => s.id === schedule.id);
-    const isUserBoss = currentUser.contextRole === UserRoleEnum.BOSS;
+    const isAdmin = currentUser.contextRole === UserRoleEnum.ADMIN;
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
@@ -710,7 +710,7 @@ export class ScheduleService extends BaseService {
         isHourDisabled ||
         (!isBooked &&
           (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
-      !(isUserBoss || isUserCoachOfEvent);
+      !(isAdmin || isUserCoachOfEvent);
 
     if (disabled) {
       throw new BadRequestError('Schedule is not available for booking');
@@ -758,7 +758,7 @@ export class ScheduleService extends BaseService {
         userId === currentUser.id ||
         (currentUser.contextRole === UserRoleEnum.COACH &&
           userId === schedule.admin.id) ||
-        currentUser.contextRole === UserRoleEnum.BOSS
+        currentUser.contextRole === UserRoleEnum.ADMIN
       ) {
         id = userId;
       } else {
@@ -852,7 +852,7 @@ export class ScheduleService extends BaseService {
 
     if (
       schedule.admin.id !== currentUser.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
@@ -904,7 +904,7 @@ export class ScheduleService extends BaseService {
 
     if (
       schedule.admin.id !== currentUser.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
@@ -915,7 +915,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Actualizar opciones de schedule (solo BOSS)
+   * Actualizar opciones de schedule (solo ADMIN)
    */
   public async updateScheduleOptions(
     currentUser: CurrentUser,
@@ -928,7 +928,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 

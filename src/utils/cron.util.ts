@@ -108,9 +108,4 @@ export const cronFunctions = async (
       console.error('[CRON] Error checking expiring subscriptions:', error);
     }
   });
-
-  console.log('📅 Tarea programada para ejecutarse cada domingo a las 3AM.');
-  console.log(
-    '📅 Tarea programada para enviar recordatorios de horarios cada hora.'
-  );
 };

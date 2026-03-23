@@ -8,8 +8,7 @@ enum NotificationType{
 
 enum UserRoleEnum {
     standard
-    boss
-    premium
+    admin
     coach
 }
 

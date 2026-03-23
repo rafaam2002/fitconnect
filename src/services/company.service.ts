@@ -331,21 +331,21 @@ export class CompanyService extends BaseService {
     this.em.persist(user);
     await this.em.flush();
 
-    // Enviar notificaciones a los BOSS
+    // Enviar notificaciones a los ADMIN
     try {
-      const bossRoles = await this.em.find(
+      const adminRoles = await this.em.find(
         UserRole,
         {
           company: company.id,
-          role: UserRoleEnum.BOSS,
+          role: UserRoleEnum.ADMIN,
         },
         { populate: ['user.pushTokens'] }
       );
 
-      for (const role of bossRoles) {
-        const boss = role.user;
-        if (boss && boss.pushTokens) {
-          for (const tokenEntity of boss.pushTokens) {
+      for (const role of adminRoles) {
+        const admin = role.user;
+        if (admin && admin.pushTokens) {
+          for (const tokenEntity of admin.pushTokens) {
             await sendPushNotification(
               tokenEntity.token,
               'Nueva solicitud de unión',
@@ -364,7 +364,7 @@ export class CompanyService extends BaseService {
   }
 
   /**
-   * Admitir usuario a la empresa (solo BOSS)
+   * Admitir usuario a la empresa (solo ADMIN)
    */
   public async admitUserToCompany(
     currentUser: CurrentUser,
@@ -380,11 +380,11 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
-    // Verificar que el usuario actual es BOSS de la empresa
+    // Verificar que el usuario actual es ADMIN de la empresa
     const currentUserRole = await this.em.findOne(UserRole, {
       user: currentUser.id,
       company: company.id,
-      role: UserRoleEnum.BOSS,
+      role: UserRoleEnum.ADMIN,
     });
 
     if (!currentUserRole) {
@@ -478,11 +478,11 @@ export class CompanyService extends BaseService {
   ): AdminCompanyResponse {
     const newCompany = em.create(Company, company);
 
-    // Create UserRole as BOSS for the creator
+    // Create UserRole as ADMIN for the creator
     em.create(UserRole, {
       user,
       company: newCompany,
-      role: UserRoleEnum.BOSS,
+      role: UserRoleEnum.ADMIN,
     });
 
     const firstForumMessage = em.create(Message, {

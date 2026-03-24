@@ -55,7 +55,8 @@ export class User extends BaseEntity {
     | 'isVerified'
     | 'isAdminVerified'
     | 'created_at'
-    | 'updated_at';
+    | 'updated_at'
+    | 'isSuperAdmin';
 
   @Property({ type: t.string, nullable: true })
   name?: string | null;

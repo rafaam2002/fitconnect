@@ -22,6 +22,10 @@ export const middleware = async (
 
   const currentUser = await authenticateUser(em, authorization);
 
+  if (currentUser?.isSuperAdmin) {
+    currentUser.permissionNames= ["*:*"]
+  }
+
   if (currentUser?.activeCompanyId) {
     if (currentUser.activeCompanyId !== companyId) {
       throw new BadRequestError(

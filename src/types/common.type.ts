@@ -34,6 +34,7 @@ export interface CurrentUser {
   plan: Plan | null;
   permissions: any[];
   permissionNames: string[];
+  isSuperAdmin: boolean;
   subscriptionStatus: SubscriptionStatus | null;
   trialEndsAt?: string | Date | null;
   renewsAt?: string | Date | null;

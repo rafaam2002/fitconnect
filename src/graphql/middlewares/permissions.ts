@@ -12,6 +12,11 @@ export const withPermissions = (
     const currentUser = context.currentUser as CurrentUser | null;
     const userPermissions = currentUser?.permissionNames || [];
 
+    // All permissions wildcard
+    if (userPermissions.includes('*:*')) {
+      return resolver(parent, args, context, info);
+    }
+
     if (!requiredPermissions.every(p => userPermissions.includes(p))) {
       throw new ForbiddenError();
     }

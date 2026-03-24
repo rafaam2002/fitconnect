@@ -988,6 +988,7 @@ export class ScheduleService extends BaseService {
             'company.scheduleOptions',
             'users.pushTokens',
           ],
+          filters: false,
         }
       );
 

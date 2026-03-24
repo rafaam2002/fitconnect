@@ -3,6 +3,8 @@ import { SeedManager } from '@mikro-orm/seeder/SeedManager';
 import dotenv from 'dotenv';
 
 import { Article } from './entities/Article';
+import { Company } from './entities/Company';
+import { CompanyConfig } from './entities/CompanyConfig';
 import { Invoice } from './entities/Invoice';
 import { Message } from './entities/Message';
 import { PaymentMethod } from './entities/PaymentMethod';
@@ -21,14 +23,19 @@ import { Subscription } from './entities/Subscription';
 import { TrainingTask } from './entities/TraningITask';
 import { Transaction } from './entities/Transaction';
 import { User } from './entities/User';
+import { UserRole } from './entities/UserRole';
 import { UserWeight } from './entities/UserWeight';
 import { WebhookEventLog } from './entities/WebhookEventLog';
 
 dotenv.config();
 
+const isLocal = process.env.DB_ENV === 'local';
+
 export default {
   entities: [
     Article,
+    Company,
+    CompanyConfig,
     Invoice,
     Message,
     PaymentMethod,
@@ -47,17 +54,27 @@ export default {
     TrainingTask,
     Transaction,
     User,
+    UserRole,
     UserWeight,
     WebhookEventLog,
   ],
-  clientUrl: process.env.DATABASE_URL,
-  // dbName: process.env.DB_NAME || "fitconnect_db",
-  // user: process.env.DB_USERNAME || "postgres",
-  // password: process.env.DB_PASSWORD || "Pececitos1$",
-  // host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT) || 5432,
+  clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
+  dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,
+  user: isLocal ? process.env.DB_USERNAME || 'postgres' : undefined,
+  password: isLocal ? process.env.DB_PASSWORD || 'Pececitos1$' : undefined,
+  host: isLocal ? process.env.DB_HOST || 'localhost' : undefined,
+  port: parseInt(process.env.DB_PORT || '5432'),
   allowGlobalContext: true,
   driver: require('@mikro-orm/postgresql').PostgreSqlDriver,
+  migrations: {
+    path: './src/migrations',
+    pathTs: './src/migrations',
+    dropTables: false, // Do not drop tables that are not defined in entities
+    safe: true, // Only allow additive changes if possible (optional but good)
+  },
+  schemaGenerator: {
+    disableForeignKeys: false,
+  },
   extensions: [Migrator, SeedManager],
   debug: false, //process.env.NODE_ENV !== 'production',
   driverOptions: {

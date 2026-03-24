@@ -76,7 +76,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   nickname!: string;
 
-  @Property({ default: true })
+  @Property({ type: t.boolean, default: false })
+  isSuperAdmin: boolean = false;
+
+  @Property({ type: t.boolean, default: true })
   isActive: boolean = true;
 
   @Property({ type: t.boolean, default: false })
@@ -91,7 +94,12 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;
 
-  @ManyToMany(() => Company, (company: Company) => company.users, {
+  @ManyToMany({
+    entity: () => Company,
+    inversedBy: (company: Company) => company.users,
+    pivotEntity: () => UserRole,
+    joinColumn: 'user_id',
+    inverseJoinColumn: 'company_id',
     owner: true,
   })
   companies = new Collection<Company>(this);
@@ -105,7 +113,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   activeCompanyId?: string | null;
 
-  @OneToMany(() => UserRole, userRole => userRole.user, { eager: true })
+  @OneToMany(() => UserRole, userRole => userRole.user, {
+    eager: true,
+    orphanRemoval: true,
+  })
   roles = new Collection<UserRole>(this);
 
   // @ManyToMany(() => Plan, (plan: Plan) =>plans.users, {
@@ -191,10 +202,16 @@ export class User extends BaseEntity {
   }
 
   get contextRole(): UserRoleEnum | null {
-    if (!this.roles.isInitialized()) {
+    if (this.isSuperAdmin) {
+      return UserRoleEnum.ADMIN;
+    }
+    if (!this.roles.isInitialized() || !this.activeCompanyId) {
       return null;
     }
-    return this.roles.length > 0 ? this.roles[0].role : null;
+    return (
+      this.roles.find(role => role.company.id === this.activeCompanyId)?.role ??
+      null
+    );
   }
 
   // get contextPlan(): Plan | null {

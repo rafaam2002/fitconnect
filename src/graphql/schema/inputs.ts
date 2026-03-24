@@ -28,6 +28,7 @@ input UpdateUserInput {
     nickname: String!,
     isBlocked: Boolean,
     role: UserRoleEnum,
+    activeCompanyId: String
 }
 
 input CreateCompanyInput {
@@ -42,12 +43,23 @@ input CompanyDataInput {
     address: String,
     phoneNumber: String,
     email: String,
+    companyConfig: CompanyConfigInput
 }
+
+input CompanyConfigInput {
+    pollsEnabled: Boolean,
+    productsEnabled: Boolean,
+    chatEnabled: Boolean,
+    trainingEnabled: Boolean
+}
+
 input ScheduleOptionsInput {
-maxActiveReservations: Int,
-maxAdvanceBookingDays: Int,
-sameDayBookingAllowed: Boolean,
-fullOpenHours: Int,
+    maxActiveReservations: Int,
+    maxAdvanceBookingDays: Int,
+    sameDayBookingAllowed: Boolean,
+    fullOpenHours: Int,
+    bookingCutoffMinutes: Int,
+    minBookingsRequired: Int,
 }
 
 input CreateUserInput {
@@ -73,10 +85,11 @@ input CreateScheduleInput {
     description: String!,
     age: Int,
     type: ScheduleType!,
-    startDate: String!,
-    endDate: String!,
+    startHour: String!,
+    endHour: String!,
+    days: [Int]!,
+    repeat: Boolean,
     maxUsers: Int!,
-    repeatDays: [Int],
     admin: ID!,
 }
 
@@ -85,6 +98,8 @@ input UpdateScheduleOptionsInput {
     maxAdvanceBookingDays: Int!,
     sameDayBookingAllowed: Boolean!,
     fullOpenHours: Int!,
+    bookingCutoffMinutes: Int!,
+    minBookingsRequired: Int!,
 }
 
 input CreateScheduleDevelopmentInput {

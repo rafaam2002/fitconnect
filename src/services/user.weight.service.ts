@@ -4,12 +4,7 @@ import { User } from '../entities/User';
 import { UserWeight } from '../entities/UserWeight';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
-import {
-  createServiceResponse,
-  ForbiddenError,
-  NotFoundError,
-  UnauthorizedError,
-} from '../utils/errors.util';
+import { createServiceResponse, ForbiddenError, NotFoundError, UnauthorizedError, } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 
@@ -104,15 +99,14 @@ export class UserWeightService extends BaseService {
     for (const weight of userWeights) {
       if (
         weight.user.id !== currentUser.id &&
-        currentUser.contextRole !== UserRoleEnum.BOSS
+        currentUser.contextRole !== UserRoleEnum.ADMIN
       ) {
         throw new ForbiddenError();
       }
     }
 
-    this.em.remove(userWeights)
+    this.em.remove(userWeights);
     await this.em.flush();
-
 
     return createServiceResponse(
       200,

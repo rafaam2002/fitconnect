@@ -1,15 +1,18 @@
 import crypto from 'crypto';
 
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { EntityManager } from '@mikro-orm/core';
 import dotenv from 'dotenv';
 
-import { ServiceResponse } from '../types/common.type';
-import { CurrentUser } from '../types/common.type';
+import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
-  UnauthorizedError,
   InternalServerError,
+  UnauthorizedError,
   createServiceResponse,
 } from '../utils/errors.util';
 
@@ -57,14 +60,14 @@ export class S3Service extends BaseService {
       // Generar key aleatorio si no se proporciona
       const Key = key || `${crypto.randomUUID()}.jpeg`;
 
-      const command = new PutObjectCommand({
+      const s3Command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key,
         ContentType: 'image/jpeg',
       });
 
       // Generar presigned URL con expiración de 2 minutos
-      const url = await getSignedUrl(this.s3Client, command, {
+      const url = await getSignedUrl(this.s3Client, s3Command, {
         expiresIn: 60 * 2,
       });
 
@@ -80,6 +83,23 @@ export class S3Service extends BaseService {
     } catch (error: any) {
       console.error('Error generating presigned URL:', error);
       throw new InternalServerError('Error generating presigned URL');
+    }
+  }
+
+  /**
+   * Borrar archivo de S3 directamente
+   */
+  public async deleteObject(key: string): Promise<void> {
+    try {
+      const s3Command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.s3Client.send(s3Command);
+    } catch (error: any) {
+      console.error(`Error deleting file from S3 (Key: ${key}):`, error);
+      // No lanzamos error para no bloquear el flujo principal, pero lo logueamos
     }
   }
 }

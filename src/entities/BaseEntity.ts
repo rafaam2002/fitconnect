@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Index, OptionalProps, PrimaryKey, Property, t } from '@mikro-orm/core';
 
 export abstract class BaseEntity {
-  [OptionalProps]?: string;
+  [OptionalProps]?: any;
 
   @PrimaryKey({ type: t.uuid })
   id: string = randomUUID();

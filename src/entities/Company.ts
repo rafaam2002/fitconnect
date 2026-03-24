@@ -10,6 +10,7 @@ import {
 } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
+import { CompanyConfig } from './CompanyConfig';
 import { PictureUrl } from './PictureUrl';
 import { ScheduleOptions } from './ScheduleOptions';
 import { User } from './User';
@@ -62,8 +63,18 @@ export class Company extends BaseEntity {
   @OneToOne(() => ScheduleOptions, scheduleOptions => scheduleOptions.company, {
     nullable: true,
     owner: true,
+    cascade: [Cascade.ALL],
+    orphanRemoval: true,
   })
   scheduleOptions?: ScheduleOptions;
+
+  @OneToOne(() => CompanyConfig, companyConfig => companyConfig.company, {
+    nullable: true,
+    owner: true,
+    cascade: [Cascade.ALL],
+    orphanRemoval: true,
+  })
+  companyConfig?: CompanyConfig;
 
   constructor(company: Partial<Company>) {
     super();
@@ -73,6 +84,10 @@ export class Company extends BaseEntity {
     this.email = company.email || '';
     this.logo = company.logo || undefined;
     this.pictures = company.pictures || new Collection<PictureUrl>(this);
-    this.scheduleOptions = company.scheduleOptions;
+    this.scheduleOptions = company.scheduleOptions || new ScheduleOptions();
+    this.companyConfig = company.companyConfig || new CompanyConfig();
+
+    this.scheduleOptions.company = this;
+    this.companyConfig.company = this;
   }
 }

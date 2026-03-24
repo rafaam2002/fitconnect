@@ -9,11 +9,6 @@ export const typeDefs = `#graphql
 
 ${graphqlEnums}
 
-type Tokens {
-    token: String
-    refreshToken: String
-}
-
 ${graphqlEntities}
 
 ${graphqlResponses}

@@ -58,6 +58,10 @@ const apolloServer = new ApolloServer({
 
 const startServer = async () => {
   const orm = await initORM();
+  // Imprime la configuración que MikroORM está usando
+  console.log('🔌 Conectado al Host:', orm.config.get('host'));
+  console.log('🗄️  Base de datos:', orm.config.get('dbName'));
+  console.log('👤 Usuario:', orm.config.get('user'));
 
   const webhookCors = cors({
     origin: '*', // Stripe puede llamar desde diferentes IPs
@@ -315,6 +319,6 @@ const startServer = async () => {
   cronFunctions(createRetryingEntityManager(orm));
 
   storeNews(createRetryingEntityManager(orm), 3, [1, 2, 3, 4]); //limt = 3 free plan
-};
+};;
 
 startServer();

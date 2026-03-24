@@ -11,6 +11,7 @@ import {
 } from '../utils/errors.util';
 
 import { NotificationService } from './notification.service';
+import { UserService } from './user.service';
 
 /**
  * Training Task Service - Handles training task operations
@@ -141,7 +142,16 @@ export class TrainingTaskService {
     if (userId) {
       await this.notificationService.sendToUser(userId, title, body, data);
     } else {
-      await this.notificationService.sendToPremiumUsers(title, body, data);
+      const userService = new UserService(this.em);
+      const users = await userService.getUsersByPermissions([
+        'training_task.create',
+      ]);
+      await this.notificationService.sendToUsers(
+        users.map(user => user.id),
+        title,
+        body,
+        data
+      );
     }
   }
 }

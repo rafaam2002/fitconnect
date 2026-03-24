@@ -24,7 +24,7 @@ export class PollService extends BaseService {
   }
 
   /**
-   * Crear nueva encuesta (solo COACH/BOSS)
+   * Crear nueva encuesta (solo COACH/ADMIN)
    */
   public async createPoll(
     currentUser: CurrentUser,
@@ -39,7 +39,7 @@ export class PollService extends BaseService {
     // Verificar rol
     if (
       currentUser.contextRole !== UserRoleEnum.COACH &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
@@ -67,7 +67,6 @@ export class PollService extends BaseService {
 
       this.em.persist(newPoll);
       await this.em.flush();
-      
 
       // Enviar notificaciones push a todos los usuarios
       await this.sendPollNotifications(newPoll);
@@ -249,7 +248,7 @@ export class PollService extends BaseService {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
-``
+    ``;
     const pollRepo = this.em.getRepository(Poll);
 
     // Si se especifica un pollId, buscar esa encuesta

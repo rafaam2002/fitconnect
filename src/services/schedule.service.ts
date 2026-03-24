@@ -15,7 +15,10 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
+import {
+  createDateWithTime,
+  createScheduleProgrammed,
+} from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
 
@@ -91,48 +94,7 @@ export class ScheduleService extends BaseService {
 
     const targetUserId = userId || currentUser.id;
 
-    // Solo BOSS puede ver schedules de otros usuarios, o COACH si tiene permisos
-    if (
-      targetUserId !== currentUser.id &&
-      currentUser.contextRole === UserRoleEnum.STANDARD
-    ) {
-      throw new ForbiddenError(
-        'You are not authorized to view these schedules'
-      );
-    }
-
-    const scheduleRepo = this.em.getRepository(Schedule);
-    const filter: any = { users: targetUserId };
-
-    if (!past) {
-      filter.startDate = { $gte: new Date() };
-    }
-
-    const schedules = await scheduleRepo.find(filter, {
-      populate: ['admin', 'users'],
-      orderBy: { startDate: 'ASC' },
-    });
-
-    return createServiceResponse(200, 'User schedules found', true, {
-      schedules,
-    });
-  }
-
-  /**
-   * Obtener schedules en los que está inscrito el usuario
-   */
-  public async getUserSchedules(
-    currentUser: CurrentUser,
-    userId?: string,
-    past: boolean = false
-  ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
-
-    const targetUserId = userId || currentUser.id;
-
-    // Solo BOSS puede ver schedules de otros usuarios, o COACH si tiene permisos
+    // Solo ADMIN puede ver schedules de otros usuarios, o COACH si tiene permisos
     if (
       targetUserId !== currentUser.id &&
       currentUser.contextRole === UserRoleEnum.STANDARD
@@ -222,7 +184,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener schedules de admin (solo COACH/BOSS)
+   * Obtener schedules de admin (solo COACH/ADMIN)
    */
   public async getAdminSchedules(
     currentUser: CurrentUser
@@ -418,7 +380,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener estadísticas de schedules (solo BOSS)
+   * Obtener estadísticas de schedules (solo ADMIN)
    */
   public async getSchedulesStats(
     currentUser: CurrentUser,
@@ -428,7 +390,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
@@ -526,7 +488,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Obtener schedules mensuales por hora específica (solo BOSS)
+   * Obtener schedules mensuales por hora específica (solo ADMIN)
    */
   public async getMonthlySchedules(
     currentUser: CurrentUser,
@@ -537,7 +499,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
@@ -571,10 +533,11 @@ export class ScheduleService extends BaseService {
     currentUser: CurrentUser,
     title: string,
     description: string,
-    startDate: Date | string,
-    endDate: Date | string,
+    startHour: string,
+    endHour: string,
+    days: number[],
+    repeat: boolean = false,
     maxUsers: number,
-    repeatDays: number[],
     age: number | null | undefined,
     admin: string,
     type: ScheduleType = ScheduleType.STANDARD
@@ -587,69 +550,92 @@ export class ScheduleService extends BaseService {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
-    try {
-      const finalAge = age && age > 0 ? age : null;
-      const adminRef = this.em.getReference(User, admin);
+    return await this.em.transactional(async tem => {
+      try {
+        const finalAge = age && age > 0 ? age : null;
+        const adminRef = tem.getReference(User, admin);
 
-      if (repeatDays.length > 0) {
-        const startHour = moment(startDate)
-          .subtract(1, 'hours')
-          .format('HH:mm');
-        const endHour = moment(endDate).subtract(1, 'hours').format('HH:mm');
+        if (repeat) {
+          const schedule = await createScheduleProgrammed(
+            {
+              daysOfWeek: days,
+              title,
+              description,
+              startHour,
+              endHour,
+              maxUsers,
+              admin: adminRef,
+              age: finalAge,
+              type,
+            },
+            { em: tem, currentUser }
+          );
 
-        const schedule = await createScheduleProgrammed(
-          {
-            daysOfWeek: repeatDays,
-            title,
-            description,
-            startHour,
-            endHour,
-            maxUsers,
-            admin: adminRef,
-            age: finalAge,
-            type,
-          },
-          { em: this.em, currentUser }
-        );
+          return createServiceResponse(200, 'Schedule created', true);
+        } else {
+          const now = moment();
+          const schedules: Schedule[] = [];
 
-        return createServiceResponse(200, 'Schedule created', true, {
-          schedule,
-        });
-      } else {
-        const newSchedule = this.em.create(Schedule, {
-          title,
-          description,
-          age: finalAge,
-          type,
-          startDate,
-          endDate,
-          maxUsers,
-          state: ScheduleState.AVAILABLE,
-          admin: adminRef,
-          company: currentUser.activeCompanyId!,
-        });
+          for (const day of days) {
+            // Moment days: 0=Sunday, 1=Monday...6=Saturday
+            const momentDay = day;
+            const [startH, startM] = startHour.split(':').map(Number);
+            const [endH, endM] = endHour.split(':').map(Number);
 
-        this.em.persist(newSchedule);
-        await this.em.flush();
+            const startDate = moment().day(momentDay).set({
+              hour: startH,
+              minute: startM,
+              second: 0,
+              millisecond: 0,
+            });
 
-        return createServiceResponse(
-          200,
-          'Schedule created successfully',
-          true,
-          {
-            schedule: newSchedule,
+            if (startDate.isBefore(now)) {
+              startDate.add(7, 'days');
+            }
+
+            const endDate = startDate.clone().set({
+              hour: endH,
+              minute: endM,
+            });
+
+            const newSchedule = tem.create(Schedule, {
+              title,
+              description,
+              age: finalAge,
+              type,
+              startDate: startDate.toDate(),
+              endDate: endDate.toDate(),
+              maxUsers,
+              state: ScheduleState.AVAILABLE,
+              admin: adminRef,
+              company: currentUser.activeCompanyId!,
+            });
+
+            tem.persist(newSchedule);
+            schedules.push(newSchedule);
           }
-        );
+
+          await tem.flush();
+
+          return createServiceResponse(
+            200,
+            'Schedules created successfully',
+            true,
+            {
+              schedules,
+            }
+          );
+        }
+      } catch (error: any) {
+        if (
+          error instanceof ForbiddenError ||
+          error instanceof UnauthorizedError
+        ) {
+          throw error;
+        }
+        throw new InternalServerError('Error creating schedule');
       }
-    } catch (error: any) {
-      if (
-        error instanceof ForbiddenError ||
-        error instanceof UnauthorizedError
-      ) {
-        throw error;
-      }
-      throw new InternalServerError('Error creating schedule');
-    }
+    });
   }
 
   /**
@@ -692,7 +678,7 @@ export class ScheduleService extends BaseService {
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
     const isFull = schedule.users.length >= schedule.maxUsers;
     const isBooked = user.schedules.getItems().some(s => s.id === schedule.id);
-    const isUserBoss = currentUser.contextRole === UserRoleEnum.BOSS;
+    const isAdmin = currentUser.contextRole === UserRoleEnum.ADMIN;
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
@@ -724,7 +710,7 @@ export class ScheduleService extends BaseService {
         isHourDisabled ||
         (!isBooked &&
           (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
-      !(isUserBoss || isUserCoachOfEvent);
+      !(isAdmin || isUserCoachOfEvent);
 
     if (disabled) {
       throw new BadRequestError('Schedule is not available for booking');
@@ -772,7 +758,7 @@ export class ScheduleService extends BaseService {
         userId === currentUser.id ||
         (currentUser.contextRole === UserRoleEnum.COACH &&
           userId === schedule.admin.id) ||
-        currentUser.contextRole === UserRoleEnum.BOSS
+        currentUser.contextRole === UserRoleEnum.ADMIN
       ) {
         id = userId;
       } else {
@@ -866,7 +852,7 @@ export class ScheduleService extends BaseService {
 
     if (
       schedule.admin.id !== currentUser.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
@@ -918,7 +904,7 @@ export class ScheduleService extends BaseService {
 
     if (
       schedule.admin.id !== currentUser.id &&
-      currentUser.contextRole !== UserRoleEnum.BOSS
+      currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
@@ -929,7 +915,7 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Actualizar opciones de schedule (solo BOSS)
+   * Actualizar opciones de schedule (solo ADMIN)
    */
   public async updateScheduleOptions(
     currentUser: CurrentUser,
@@ -942,7 +928,7 @@ export class ScheduleService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
@@ -981,6 +967,67 @@ export class ScheduleService extends BaseService {
         throw error;
       }
       throw new InternalServerError('Error updating schedule options');
+    }
+  }
+
+  public async cutOffSchedules() {
+    try {
+      const now = moment();
+      const twentyFourHoursLater = now.clone().add(24, 'hours').toDate();
+
+      const scheduleRepo = this.em.getRepository(Schedule);
+      const schedules = await scheduleRepo.find(
+        {
+          state: ScheduleState.AVAILABLE,
+          startDate: { $gte: now.toDate(), $lte: twentyFourHoursLater },
+        },
+        {
+          populate: [
+            'users',
+            'company',
+            'company.scheduleOptions',
+            'users.pushTokens',
+          ],
+          filters: false,
+        }
+      );
+
+      const cancelledSchedules: Schedule[] = [];
+
+      for (const schedule of schedules) {
+        const options = schedule.company?.scheduleOptions;
+        if (!options) continue;
+
+        const cutoffMinutes = options.bookingCutoffMinutes || 0;
+        const minBookings = options.minBookingsRequired || 0;
+
+        // Si no hay requisitos de reserva o el tiempo de corte es 0 (deshabilitado), saltamos
+        if (minBookings <= 0 || cutoffMinutes <= 0) continue;
+
+        const cutoffTime = moment(schedule.startDate).subtract(
+          cutoffMinutes,
+          'minutes'
+        );
+
+        if (
+          now.isSameOrAfter(cutoffTime) &&
+          schedule.users.length < minBookings
+        ) {
+          schedule.state = ScheduleState.CANCELLED;
+          cancelledSchedules.push(schedule);
+        }
+      }
+
+      if (cancelledSchedules.length > 0) {
+        await this.em.flush();
+
+        // Enviar notificaciones
+        for (const schedule of cancelledSchedules) {
+          await this.sendScheduleCancellationNotifications(schedule);
+        }
+      }
+    } catch (error) {
+      console.error('Error in cutOffSchedules:', error);
     }
   }
 

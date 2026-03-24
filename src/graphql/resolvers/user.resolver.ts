@@ -37,7 +37,7 @@ import { withPermissions } from '../middlewares/permissions';
 const getUsers = async (_: any, args: UserListProps, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
-    const { query, roleFilter, page, stateFilter } = args;
+    const { query, roleFilter, page, stateFilter, filterMe } = args;
 
     const userService = new UserService(em);
     return await userService.getUsers(
@@ -45,7 +45,8 @@ const getUsers = async (_: any, args: UserListProps, context: ContextProps) => {
       query,
       roleFilter ?? undefined,
       stateFilter ?? undefined,
-      page
+      page,
+      filterMe
     );
   } catch (error: any) {
     return handleError(error);
@@ -218,7 +219,7 @@ const updateUser = async (_: any, args: UserProps, context: ContextProps) => {
     const { em, currentUser } = context;
     const userService = new UserService(em);
 
-    return await userService.updateUser(user, currentUser!);
+    return await userService.updateUser(user, currentUser);
   } catch (error) {
     return handleError(error);
   }

@@ -2,7 +2,6 @@ import { EntityManager } from '@mikro-orm/core';
 
 import { Company } from '../entities/Company';
 import { Message } from '../entities/Message';
-import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
@@ -26,16 +25,10 @@ import {
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
+import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
   newCompany: Company;
-  newScheduleOptions: {
-    company: Company;
-    maxActiveReservations: number;
-    maxAdvanceBookingDays: number;
-    sameDayBookingAllowed: boolean;
-    fullOpenHours: number;
-  };
   newUser: User;
   newFirstForumMessage: Message;
 }
@@ -44,10 +37,13 @@ export class CompanyService extends BaseService {
   private emailService: EmailService;
   private authService: AuthService;
 
+  private s3Service: S3Service;
+
   constructor(em: EntityManager) {
     super(em);
     this.emailService = EmailService.getInstance();
     this.authService = new AuthService(em);
+    this.s3Service = new S3Service(em);
   }
 
   /**
@@ -63,17 +59,13 @@ export class CompanyService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (!companyId) {
-      throw new BadRequestError('Company id is required');
-    }
-
     if (companyId) {
       // Obtener empresa específica
       const company = await this.em.findOne(
         Company,
         { id: companyId },
         {
-          populate: ['scheduleOptions'],
+          populate: ['scheduleOptions', 'logo', 'pictures', 'companyConfig'],
           filters: false,
         }
       );
@@ -117,7 +109,7 @@ export class CompanyService extends BaseService {
         {
           limit,
           offset,
-          populate: ['scheduleOptions'],
+          populate: ['scheduleOptions', 'logo'],
           filters: false,
         }
       );
@@ -164,7 +156,7 @@ export class CompanyService extends BaseService {
       Company,
       { id: companyId },
       {
-        populate: ['scheduleOptions'],
+        populate: ['scheduleOptions', 'companyConfig'],
       }
     );
 
@@ -172,20 +164,11 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
-    // Actualizar datos de la empresa
-    Object.assign(company, companyData);
-
-    // Actualizar o crear scheduleOptions
-    if (scheduleOptions) {
-      if (company.scheduleOptions) {
-        Object.assign(company.scheduleOptions, scheduleOptions);
-      } else {
-        company.scheduleOptions = this.em.create(ScheduleOptions, {
-          ...scheduleOptions,
-          company: company,
-        });
-      }
-    }
+    // Actualizar datos de la empresa y sus relaciones (companyConfig, scheduleOptions)
+    this.em.assign(company, {
+      ...companyData,
+      ...(scheduleOptions ? { scheduleOptions } : {}),
+    });
 
     this.em.persist(company);
     await this.em.flush();
@@ -213,12 +196,18 @@ export class CompanyService extends BaseService {
     }
 
     const companyRepo = this.em.getRepository(Company);
-    const updateCompany = await companyRepo.findOne({ id: companyId });
+    const updateCompany = await companyRepo.findOne(
+      { id: companyId },
+      {
+        populate: ['logo'],
+      }
+    );
 
     if (!updateCompany) {
       throw new NotFoundError('Company');
     }
 
+    //TODO: mirar esto, creo que no tiene sentido cuando no hay logo
     if (!updateCompany.logo) {
       updateCompany.logo = await createPictureUrl(
         this.em,
@@ -230,6 +219,12 @@ export class CompanyService extends BaseService {
         await getPresignedUrl(picture)
       );
     } else {
+      // Borrar logo antiguo de S3
+      if (updateCompany.logo.name) {
+        await this.s3Service.deleteObject(updateCompany.logo.name);
+      }
+
+      updateCompany.logo.name = picture;
       updateCompany.logo.url = await getPresignedUrl(picture);
     }
 
@@ -266,15 +261,9 @@ export class CompanyService extends BaseService {
       newCompany,
       newUser: newAdminUser,
       newFirstForumMessage,
-      newScheduleOptions,
     } = this.createAdminCompany(this.em, user, companyData.company);
 
-    this.em.persist([
-      newCompany,
-      newFirstForumMessage,
-      newScheduleOptions,
-      newAdminUser,
-    ]);
+    this.em.persist([newCompany, newFirstForumMessage, newAdminUser]);
     await this.em.flush();
 
     const companyToken = this.authService.generateCompanyVerificationToken(
@@ -342,21 +331,21 @@ export class CompanyService extends BaseService {
     this.em.persist(user);
     await this.em.flush();
 
-    // Enviar notificaciones a los BOSS
+    // Enviar notificaciones a los ADMIN
     try {
-      const bossRoles = await this.em.find(
+      const adminRoles = await this.em.find(
         UserRole,
         {
           company: company.id,
-          role: UserRoleEnum.BOSS,
+          role: UserRoleEnum.ADMIN,
         },
         { populate: ['user.pushTokens'] }
       );
 
-      for (const role of bossRoles) {
-        const boss = role.user;
-        if (boss && boss.pushTokens) {
-          for (const tokenEntity of boss.pushTokens) {
+      for (const role of adminRoles) {
+        const admin = role.user;
+        if (admin && admin.pushTokens) {
+          for (const tokenEntity of admin.pushTokens) {
             await sendPushNotification(
               tokenEntity.token,
               'Nueva solicitud de unión',
@@ -375,7 +364,7 @@ export class CompanyService extends BaseService {
   }
 
   /**
-   * Admitir usuario a la empresa (solo BOSS)
+   * Admitir usuario a la empresa (solo ADMIN)
    */
   public async admitUserToCompany(
     currentUser: CurrentUser,
@@ -391,11 +380,11 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
-    // Verificar que el usuario actual es BOSS de la empresa
+    // Verificar que el usuario actual es ADMIN de la empresa
     const currentUserRole = await this.em.findOne(UserRole, {
       user: currentUser.id,
       company: company.id,
-      role: UserRoleEnum.BOSS,
+      role: UserRoleEnum.ADMIN,
     });
 
     if (!currentUserRole) {
@@ -452,14 +441,12 @@ export class CompanyService extends BaseService {
 
     // Mover de pendientes a miembros
     userToAdmit.pendingCompanies.remove(company);
-    userToAdmit.companies.add(company);
 
     // Crear UserRole para el nuevo miembro (default STANDARD)
-    const newUserRole = new UserRole(
-      userToAdmit,
-      company,
-      UserRoleEnum.STANDARD
-    );
+    const newUserRole = this.em.create(UserRole, {
+      user: userToAdmit,
+      company: company,
+    });
     this.em.persist(newUserRole);
 
     await this.em.flush();
@@ -491,7 +478,13 @@ export class CompanyService extends BaseService {
   ): AdminCompanyResponse {
     const newCompany = em.create(Company, company);
 
-    user.companies.add(newCompany);
+    // Create UserRole as ADMIN for the creator
+    em.create(UserRole, {
+      user,
+      company: newCompany,
+      role: UserRoleEnum.ADMIN,
+    });
+
     const firstForumMessage = em.create(Message, {
       sender: user,
       receiver: null,
@@ -501,16 +494,8 @@ export class CompanyService extends BaseService {
       isFixed: false,
     });
 
-    const scheduleOptions = em.create(ScheduleOptions, {
-      company: newCompany,
-      maxActiveReservations: 1,
-      maxAdvanceBookingDays: 1,
-      sameDayBookingAllowed: false,
-      fullOpenHours: 0,
-    });
     return {
       newCompany,
-      newScheduleOptions: scheduleOptions,
       newFirstForumMessage: firstForumMessage,
       newUser: user,
     };

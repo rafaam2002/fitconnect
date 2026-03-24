@@ -95,8 +95,7 @@ export class AuthService extends BaseService {
     const user = await this.findUserByEmailOrNickname(emailOrNickname, [
       'password',
       'companies',
-      // 'schedules.id',
-      // 'schedules.startDate',
+      'companies.companyConfig',
     ]);
 
     if (!user) {
@@ -619,7 +618,7 @@ export class AuthService extends BaseService {
     let user = await this.em.findOne(
       User,
       { email },
-      { populate: ['companies'], filters: false }
+      { populate: ['companies', 'companies.companyConfig'], filters: false }
     );
 
     if (!user) {
@@ -628,8 +627,10 @@ export class AuthService extends BaseService {
         name,
         nickname: email.split('@')[0],
         provider: UserProviderType.GOOGLE,
+        isActive: true,
+        isBlocked: false,
         isVerified: true,
-        fullName: name || "",
+        fullName: name || '',
       });
       this.em.persist(newUser);
       await this.em.flush();
@@ -680,7 +681,7 @@ export class AuthService extends BaseService {
   /**
    * Construir respuesta de autenticación completa con permisos
    */
-  private async buildAuthResponseWithPermissions(
+  public async buildAuthResponseWithPermissions(
     user: User,
     company: Company,
     message: string

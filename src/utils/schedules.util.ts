@@ -8,9 +8,9 @@ import { CurrentUser } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 
 import {
-  UnauthorizedError,
   ForbiddenError,
   InternalServerError,
+  UnauthorizedError,
 } from './errors.util';
 import { sendPushNotification } from './notification.util';
 
@@ -76,7 +76,8 @@ export const createScheduleProgrammed = async (
       }
     );
 
-    await em.persistAndFlush(newScheduleProgrammed);
+    em.persist(newScheduleProgrammed);
+    await em.flush();
 
     // Crear schedules iniciales
     await createInitialSchedules(newScheduleProgrammed, em);
@@ -98,34 +99,39 @@ const createInitialSchedules = async (
   scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
 ): Promise<void> => {
-  try {
-    const now = moment();
+  const now = moment();
 
-    const promises = scheduleProgrammed.daysOfWeek.map(async day => {
-      // Crear horarios para los dos días más cercanos con el mismo número
-      for (let i = 0; i < 2; i++) {
-        const targetDay = now
-          .clone()
-          .day(day)
-          .add(i * 7, 'days');
+  const [startHour, startMinutes] = scheduleProgrammed.startHour
+    .split(':')
+    .map(Number);
 
-        if (targetDay.isSameOrAfter(now, 'day')) {
-          await createScheduleInXWeeks(
-            targetDay,
-            day,
-            0,
-            scheduleProgrammed,
-            em
-          );
-        }
+  const promises = scheduleProgrammed.daysOfWeek.map(async day => {
+    // Crear horarios para los dos días futuros más cercanos
+    let createdCount = 0;
+    let i = 0;
+
+    while (createdCount < 2 && i < 4) {
+      const targetDay = now
+        .clone()
+        .day(day)
+        .add(i * 7, 'days');
+
+      targetDay.set({
+        hour: startHour,
+        minute: startMinutes,
+        second: 0,
+        millisecond: 0,
+      });
+
+      if (targetDay.isAfter(now)) {
+        await createScheduleInXWeeks(targetDay, day, 0, scheduleProgrammed, em);
+        createdCount++;
       }
-    });
+      i++;
+    }
+  });
 
-    await Promise.all(promises);
-  } catch (error) {
-    console.error('Error creating initial schedules:', error);
-    // No lanzar error - los schedules iniciales son secundarios
-  }
+  await Promise.all(promises);
 };
 
 /**
@@ -138,51 +144,46 @@ export const createScheduleInXWeeks = async (
   scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
 ): Promise<void> => {
-  try {
-    const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
-    const startDate = now.clone().add(daysToAdd, 'days');
-    const endDate = now.clone().add(daysToAdd, 'days');
+  const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
+  const startDate = now.clone().add(daysToAdd, 'days');
+  const endDate = now.clone().add(daysToAdd, 'days');
 
-    const [startHour, startMinutes] = scheduleProgrammed.startHour
-      .split(':')
-      .map(Number);
-    const [endHour, endMinutes] = scheduleProgrammed.endHour
-      .split(':')
-      .map(Number);
+  const [startHour, startMinutes] = scheduleProgrammed.startHour
+    .split(':')
+    .map(Number);
+  const [endHour, endMinutes] = scheduleProgrammed.endHour
+    .split(':')
+    .map(Number);
 
-    // Ajustar la hora en la fecha objetivo
-    startDate.set({
-      hour: startHour,
-      minute: startMinutes,
-      second: 0,
-      millisecond: 0,
-    });
-    endDate.set({
-      hour: endHour,
-      minute: endMinutes,
-      second: 0,
-      millisecond: 0,
-    });
+  // Ajustar la hora en la fecha objetivo
+  startDate.set({
+    hour: startHour,
+    minute: startMinutes,
+    second: 0,
+    millisecond: 0,
+  });
+  endDate.set({
+    hour: endHour,
+    minute: endMinutes,
+    second: 0,
+    millisecond: 0,
+  });
 
-    const newSchedule = em.create<Schedule>(Schedule, {
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      maxUsers: scheduleProgrammed.maxUsers,
-      state: ScheduleState.AVAILABLE,
-      admin: scheduleProgrammed.admin!,
-      title: scheduleProgrammed.title,
-      description: scheduleProgrammed.description,
-      type: scheduleProgrammed.type,
-      age: scheduleProgrammed.age,
-      scheduleProgrammed,
-      company: scheduleProgrammed.company!,
-    });
+  const newSchedule = em.create<Schedule>(Schedule, {
+    startDate: startDate.toDate(),
+    endDate: endDate.toDate(),
+    maxUsers: scheduleProgrammed.maxUsers,
+    state: ScheduleState.AVAILABLE,
+    admin: scheduleProgrammed.admin!,
+    title: scheduleProgrammed.title,
+    description: scheduleProgrammed.description,
+    type: scheduleProgrammed.type,
+    age: scheduleProgrammed.age,
+    scheduleProgrammed,
+    company: scheduleProgrammed.company!,
+  });
 
-    await em.persistAndFlush(newSchedule);
-  } catch (error) {
-    console.error('Error creating schedule in X weeks:', error);
-    // No lanzar error - se intenta crear el siguiente schedule
-  }
+  em.persist(newSchedule);
 };
 
 /**

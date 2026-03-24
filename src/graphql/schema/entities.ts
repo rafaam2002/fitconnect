@@ -48,6 +48,7 @@ type Company {
     logo: PictureUrl
     pictures: [PictureUrl]
     scheduleOptions: ScheduleOptions
+    companyConfig: CompanyConfig
     amIPending: Boolean
 }
 type User {
@@ -115,7 +116,16 @@ type ScheduleOptions {
     maxActiveReservations: Int!
     maxAdvanceBookingDays: Int!
     sameDayBookingAllowed: Boolean!
-    fullOpenHours: Int! 
+    fullOpenHours: Int!
+    bookingCutoffMinutes: Int!
+    minBookingsRequired: Int!
+}
+
+type CompanyConfig {
+    pollsEnabled: Boolean!
+    productsEnabled: Boolean!
+    chatEnabled: Boolean!
+    trainingEnabled: Boolean!
 }
 
 type Poll {
@@ -186,8 +196,6 @@ type Subscription {
     updated_at: String!
     user: IdResponse !
     status: SubscriptionStatus!
-    startDate: String!
-    endDate: String!
     transactions: [Transaction]
 }
 
@@ -283,5 +291,10 @@ type Stats {
     expired: Int
     hasDefault: Boolean
     byBrand: JSON
+}
+
+type Tokens {
+    token: String
+    refreshToken: String
 }
 `;

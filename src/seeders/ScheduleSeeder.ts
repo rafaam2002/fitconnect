@@ -28,7 +28,7 @@ export class ScheduleSeeder extends Seeder {
           UserRole,
           {
             company: company,
-            role: { $in: [UserRoleEnum.BOSS] },
+            role: { $in: [UserRoleEnum.ADMIN] },
           },
           { populate: ['user'], filters: false }
         );

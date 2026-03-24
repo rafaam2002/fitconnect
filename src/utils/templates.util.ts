@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
+import moment from 'moment';
 
 import { CurrentUser } from '../types/common.type';
 import { CompanyProps } from '../types/resolvers';
+
 dotenv.config();
 
 export const templatesUtil = (emailVerificationTk: string) => {
@@ -391,3 +393,165 @@ export const companyVerificationEmailHtml = (
 </html>
   `;
 };
+
+export const sendSubscriptionExpiryWarning = (expiryDate: string) => `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu suscripción está a punto de terminar</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .header {
+            background-color: #2c3e50;
+            color: #ffffff;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .content p {
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .highlight p {
+            margin: 0;
+            color: #856404;
+            font-weight: 500;
+        }
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 30px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .cta-button:hover {
+            background-color: #2980b9;
+        }
+        .benefits-list {
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+        .benefits-list li {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .footer {
+            background-color: #ecf0f1;
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        /* Dark mode support for email clients */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+            }
+            .container {
+                background-color: #2d2d2d;
+            }
+            .content, .content p, .benefits-list li {
+                color: #e0e0e0;
+            }
+            .highlight {
+                background-color: #332b00;
+                border-left-color: #ffc107;
+            }
+            .highlight p {
+                color: #ffda6a;
+            }
+            .footer {
+                background-color: #1f1f1f;
+                color: #a0a0a0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>¡Tu suscripción está por expirar!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hola <strong>[Nombre del Usuario]</strong>,</p>
+            
+            <p>Esperamos que estés disfrutando de todos los beneficios de tu cuenta <strong>[Nombre del Plan]</strong>. Te escribimos para recordarte que tu suscripción actual finalizará pronto.</p>
+            
+            <div class="highlight">
+                <p>Fecha de vencimiento: <strong>${expiryDate}</strong></p>
+            </div>
+            
+            <p>Para asegurarte de no perder el acceso a tus funciones favoritas y mantener tu progreso, te recomendamos renovar tu suscripción antes de esta fecha.</p>
+            
+            <p>Al renovar, seguirás disfrutando de:</p>
+            <ul class="benefits-list">
+                <li>Acceso ininterrumpido a todas las funciones premium.</li>
+                <li>Soporte prioritario 24/7.</li>
+                <li>Actualizaciones y nuevas características exclusivas.</li>
+            </ul>
+            
+            <div class="cta-container">
+                <a href="[Enlace de Renovación]" class="cta-button">Renovar mi Suscripción Ahora</a>
+            </div>
+            
+            <p>Si tienes alguna pregunta o necesitas ayuda con el proceso de renovación, no dudes en responder a este correo o visitar nuestro centro de ayuda.</p>
+            
+            <p>¡Gracias por ser parte de nuestra comunidad!</p>
+            
+            <p>Atentamente,<br>El equipo de <strong>[Nombre de tu Empresa]</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Has recibido este correo porque estás suscrito a los servicios de [Nombre de tu Empresa].</p>
+            <p><a href="[Enlace a Preferencias]">Administrar preferencias de correo</a> | <a href="[Enlace a Política de Privacidad]">Política de Privacidad</a></p>
+            <p>&copy; ${moment().year()} FitConnect. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+`;

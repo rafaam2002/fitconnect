@@ -19,10 +19,14 @@ import {
 } from '../utils/presigned-urls.util';
 
 import { BaseService } from './base.service';
+import { S3Service } from './s3.service';
 
 export class ProductService extends BaseService {
+  private s3Service: S3Service;
+
   constructor(em: EntityManager) {
     super(em);
+    this.s3Service = new S3Service(em);
   }
 
   /**
@@ -43,7 +47,7 @@ export class ProductService extends BaseService {
   }
 
   /**
-   * Crear nuevo producto (solo BOSS)
+   * Crear nuevo producto (solo ADMIN)
    */
   public async createProduct(
     currentUser: CurrentUser,
@@ -55,8 +59,8 @@ export class ProductService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    // Verificar rol BOSS
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    // Verificar rol ADMIN
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not allowed to create a product');
     }
 
@@ -93,7 +97,7 @@ export class ProductService extends BaseService {
   }
 
   /**
-   * Actualizar imagen de producto (solo BOSS)
+   * Actualizar imagen de producto (solo ADMIN)
    */
   public async updateProductPicture(
     currentUser: CurrentUser,
@@ -104,8 +108,8 @@ export class ProductService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    // Verificar rol BOSS
-    if (currentUser.contextRole !== UserRoleEnum.BOSS) {
+    // Verificar rol ADMIN
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
       throw new ForbiddenError('You are not allowed to update a product');
     }
     const productRepo = this.em.getRepository(Product);
@@ -113,6 +117,12 @@ export class ProductService extends BaseService {
 
     if (!product) {
       throw new NotFoundError('Product');
+    }
+
+    if (product.pictures && product.pictures.length > 0) {
+      for (const picture of product.pictures.getItems()) {
+        await this.s3Service.deleteObject(picture.name);
+      }
     }
 
     const pictureUrl = createPictureUrl(

@@ -67,13 +67,16 @@ export class User extends BaseEntity {
   @Property({ type: t.string, unique: true })
   nickname!: string;
 
-  @Property()
-  isActive: boolean;
+  @Property({ type: t.boolean, default: false })
+  isSuperAdmin: boolean = false;
 
-  @Property({ type: t.boolean })
-  isBlocked: boolean;
+  @Property({ type: t.boolean, default: true })
+  isActive: boolean = true;
 
-  @Property({ type: t.boolean })
+  @Property({ type: t.boolean, default: false })
+  isBlocked: boolean = false;
+
+  @Property({ type: t.boolean, default: false })
   isVerified: boolean = false;
 
   @Property({ type: t.string, nullable: true })
@@ -187,6 +190,9 @@ export class User extends BaseEntity {
   }
 
   get contextRole(): UserRoleEnum | null {
+    if (this.isSuperAdmin) {
+      return UserRoleEnum.SUPER_ADMIN;
+    }
     if (!this.roles.isInitialized() || !this.activeCompanyId) {
       return null;
     }

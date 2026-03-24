@@ -191,7 +191,7 @@ export class User extends BaseEntity {
 
   get contextRole(): UserRoleEnum | null {
     if (this.isSuperAdmin) {
-      return UserRoleEnum.SUPER_ADMIN;
+      return UserRoleEnum.ADMIN;
     }
     if (!this.roles.isInitialized() || !this.activeCompanyId) {
       return null;

@@ -29,6 +29,8 @@ import { WebhookEventLog } from './entities/WebhookEventLog';
 
 dotenv.config();
 
+const isLocal = process.env.DB_ENV === 'local';
+
 export default {
   entities: [
     Article,
@@ -56,11 +58,11 @@ export default {
     UserWeight,
     WebhookEventLog,
   ],
-  clientUrl: process.env.DATABASE_URL,
-  // dbName: process.env.DB_NAME || "fitconnect_db",
-  // user: process.env.DB_USERNAME || "postgres",
-  // password: process.env.DB_PASSWORD || "Pececitos1$",
-  // host: process.env.DB_HOST || "localhost",
+  clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
+  dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,
+  user: isLocal ? process.env.DB_USERNAME || 'postgres' : undefined,
+  password: isLocal ? process.env.DB_PASSWORD || 'Pececitos1$' : undefined,
+  host: isLocal ? process.env.DB_HOST || 'localhost' : undefined,
   port: parseInt(process.env.DB_PORT || '5432'),
   allowGlobalContext: true,
   driver: require('@mikro-orm/postgresql').PostgreSqlDriver,

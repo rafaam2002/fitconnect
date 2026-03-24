@@ -2,14 +2,16 @@ import { EntityManager } from '@mikro-orm/core';
 
 import { User } from '../entities/User';
 import { PushNotificationData } from '../types/common.type';
-import { UserRoleEnum } from '../types/enums';
 import { sendPushNotification } from '../utils/notification.util';
+import { BaseService } from './base.service';
 
 /**
  * Notification Service - Handles push notifications
  */
-export class NotificationService {
-  constructor(private readonly em: EntityManager) {}
+export class NotificationService extends BaseService {
+  constructor(em: EntityManager) {
+    super(em);
+  }
 
   /**
    * Send notification to a specific user

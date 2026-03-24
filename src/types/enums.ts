@@ -80,7 +80,6 @@ export enum ScheduleType {
 
 export enum UserRoleEnum {
   STANDARD = 'standard',
-  BOSS = 'boss',
-  PREMIUM = 'premium',
+  ADMIN = 'admin',
   COACH = 'coach',
 }

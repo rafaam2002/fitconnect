@@ -2,7 +2,11 @@ import { EntityManager, FilterQuery, QueryOrder } from '@mikro-orm/core';
 
 import { Plan, PlanInterval, PlanStatus } from '../entities/Plan';
 import { ServiceResponse } from '../types/common.type';
-import { BadRequestError, createServiceResponse, NotFoundError, } from '../utils/errors.util';
+import {
+  BadRequestError,
+  createServiceResponse,
+  NotFoundError,
+} from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 import { PermissionService } from './permission.service';
@@ -31,7 +35,7 @@ interface UpdatePlanInput {
 }
 
 export class PlanService extends BaseService {
-  private permissionService: PermissionService;
+  private readonly permissionService: PermissionService;
 
   constructor(em: EntityManager) {
     super(em);
@@ -226,7 +230,7 @@ export class PlanService extends BaseService {
 
     const plans = await this.em.find<Plan>(Plan, where, {
       orderBy: { amount: QueryOrder.ASC },
-      populate: ['subscriptions'],
+      populate: ['subscriptions'] as any,
     });
 
     return createServiceResponse(200, 'Plans has been fetched', true, {

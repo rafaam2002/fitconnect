@@ -1,11 +1,14 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
+import { EntityManager as EM } from '@mikro-orm/postgresql';
+import moment from 'moment';
 
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Plan } from '../entities/Plan';
 import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
-import { ServiceResponse } from '../types/common.type';
+import { EmailConfig, ServiceResponse } from '../types/common.type';
+import { UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
   ConflictError,
@@ -13,8 +16,12 @@ import {
   InternalServerError,
   NotFoundError,
 } from '../utils/errors.util';
+import { sendSubscriptionExpiryWarning } from '../utils/templates.util';
 
 import { BaseService } from './base.service';
+import { CreateCustomerInput, CustomerService } from './customer.service';
+import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 
 interface CreateSubscriptionInput {
   userId: string;
@@ -41,8 +48,16 @@ interface CancelSubscriptionInput {
 }
 
 export class SubscriptionService extends BaseService {
+  private customerService: CustomerService;
+  private emailService: EmailService;
+  private notificationService: NotificationService;
+
   constructor(em: EntityManager) {
     super(em);
+
+    this.customerService = new CustomerService(em);
+    this.emailService = new EmailService();
+    this.notificationService = new NotificationService(em);
   }
 
   /**
@@ -78,16 +93,31 @@ export class SubscriptionService extends BaseService {
       throw new NotFoundError('Plan not found or inactive');
     }
 
-    // Buscar customer de Stripe
-    const stripeCustomer = await this.em.findOne(StripeCustomer, {
-      user,
-      isActive: true,
-    });
+    //Buscar el admin del sistema
+    const sqlEm = this.em as unknown as EM;
+    const stripeCustomer = await sqlEm
+      .createQueryBuilder(StripeCustomer, 'sc')
+      .join('sc.user', 'u')
+      .join('u.roles', 'r')
+      .join('sc.paymentMethods', 'pm')
+      .where({ 'r.role': UserRoleEnum.ADMIN })
+      .getSingleResult();
+
+    if (stripeCustomer)
+      await this.em.populate(stripeCustomer, [
+        'paymentMethods',
+        'user',
+        'user.roles',
+      ]);
 
     if (!stripeCustomer) {
-      throw new BadRequestError(
-        'Stripe customer not found. Please create a customer first'
-      );
+      const input: CreateCustomerInput = {
+        userId: user.id,
+        email: user.email,
+        name: user.name || 'Usuario',
+        phone: user.phoneNumber || '+34 1234 45 67 89',
+      };
+      await this.customerService.createCustomer(input);
     }
 
     // Verificar suscripción duplicada al mismo plan
@@ -119,28 +149,29 @@ export class SubscriptionService extends BaseService {
       }
     }
     try {
-      // Crear suscripción en Stripe
-      const stripeSubscriptionData: any = {
-        customer: stripeCustomer.stripeCustomerId,
-        items: [
-          {
-            price: plan.stripePriceId,
-            quantity: input.quantity || 1,
+      let stripeSubscriptionData: any;
+      if (stripeCustomer) {
+        stripeSubscriptionData = {
+          customer: stripeCustomer.stripeCustomerId,
+          default_payment_method:
+            stripeCustomer.paymentMethods[0].stripePaymentMethodId,
+          items: [
+            {
+              price: plan.stripePriceId,
+              quantity: input.quantity || 1,
+            },
+          ],
+          metadata: {
+            userId: user.id,
+            planId: plan.id,
+            ...input.metadata,
           },
-        ],
-        metadata: {
-          userId: user.id,
-          planId: plan.id,
-          ...input.metadata,
-        },
-      };
-
-      // Configurar método de pago por defecto
+        };
+      }
       if (paymentMethod) {
         stripeSubscriptionData.default_payment_method = input.paymentMethodId;
       }
 
-      // Configurar período de prueba personalizado
       if (input.trialPeriodDays !== undefined) {
         if (input.trialPeriodDays > 0) {
           const trialEnd = new Date();
@@ -168,7 +199,7 @@ export class SubscriptionService extends BaseService {
       const subscription = this.em.create(Subscription, {
         stripeSubscriptionId: stripeSubscription.id,
         user,
-        stripeCustomer,
+        stripeCustomer: stripeCustomer!,
         plan,
         defaultPaymentMethod: paymentMethod,
         status: stripeSubscription.status as SubscriptionStatus,
@@ -441,14 +472,14 @@ export class SubscriptionService extends BaseService {
       throw new BadRequestError('Subscription is not active');
     }
 
-    const updatedStripeSubscription = await this.stripe.subscriptions.update(
+    /*const updatedStripeSubscription = await this.stripe.subscriptions.update(
       subscription.stripeSubscriptionId,
       {
         pause_collection: {
           behavior: 'void',
         },
       }
-    );
+    );*/
 
     subscription.status = SubscriptionStatus.PAUSED as SubscriptionStatus;
     await this.em.flush();
@@ -718,5 +749,65 @@ export class SubscriptionService extends BaseService {
       }
       this.handleStripeError(error);
     }
+  }
+
+  public async notifyExpiringSubscriptions(): Promise<void> {
+    const tomorrow = moment().add(1, 'days');
+    const from = tomorrow.startOf('days').toDate();
+    const to = tomorrow.endOf('days').toDate();
+
+    // Traemos suscripciones activas que vencen mañana
+    const expiringSubscriptions = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.ACTIVE,
+        endedAt: { $gte: from, $lte: to },
+      },
+      {
+        populate: ['user', 'user.pushTokens'],
+        filters: false,
+      }
+    );
+
+    if (!expiringSubscriptions.length) {
+      console.log('[CRON] Ninguna suscripción expira mañana.');
+      return;
+    }
+
+    console.log(
+      `[CRON] Found ${expiringSubscriptions.length} subscripciones expiran mañana.`
+    );
+
+    await Promise.allSettled(
+      expiringSubscriptions.map(subscription => this.notifyUser(subscription))
+    );
+  }
+
+  private async notifyUser(subscription: Subscription): Promise<void> {
+    const { user } = subscription;
+
+    const expiryDate = subscription.endedAt?.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    const config: EmailConfig = {
+      from: process.env.GMAIL_USER!,
+      to: user.email!,
+      subject: 'Change your password',
+      html: sendSubscriptionExpiryWarning(
+        expiryDate || moment().format('YYYY-MM-DD')
+      ),
+    };
+    // Email y push en paralelo
+    await Promise.allSettled([
+      this.emailService.sendEmail(config),
+      this.notificationService.sendToUser(
+        user.id,
+        '⚠️ Suscripción por vencer',
+        `Tu suscripción vence el ${expiryDate}. Contacta con el administrador para renovarla.`
+      ),
+    ]);
   }
 }

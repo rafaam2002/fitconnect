@@ -1,10 +1,7 @@
 import nodemailer, { Transporter } from 'nodemailer';
 
 import { EmailConfig } from '../types/common.type';
-import {
-  companyVerificationEmailHtml,
-  templatesUtil,
-} from '../utils/templates.util';
+import { companyVerificationEmailHtml, templatesUtil, } from '../utils/templates.util';
 
 /**
  * Email Service - Handles all email operations
@@ -12,9 +9,9 @@ import {
  */
 export class EmailService {
   private static instance: EmailService;
-  private transporter: Transporter;
+  private readonly transporter: Transporter;
 
-  private constructor() {
+  constructor() {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {

@@ -196,8 +196,6 @@ type Subscription {
     updated_at: String!
     user: IdResponse !
     status: SubscriptionStatus!
-    startDate: String!
-    endDate: String!
     transactions: [Transaction]
 }
 

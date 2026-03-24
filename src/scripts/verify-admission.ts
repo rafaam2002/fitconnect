@@ -25,12 +25,12 @@ async function verify() {
     address: 'Test Address',
   });
 
-  // Create Boss User
-  const bossUser = new User({
-    name: 'Boss',
+  // Create Admin User
+  const adminUser = new User({
+    name: 'Admin',
     surname: 'User',
-    nickname: 'boss' + Date.now(),
-    email: 'boss' + Date.now() + '@test.com',
+    nickname: 'admin' + Date.now(),
+    email: 'admin' + Date.now() + '@test.com',
     password: 'password',
   } as User);
 
@@ -43,21 +43,24 @@ async function verify() {
     password: 'password',
   } as User);
 
-  await em.persistAndFlush([company, bossUser, applicantUser]);
+  em.persist([company, adminUser, applicantUser]);
+  await em.flush();
 
-  // Assign Boss Role
-  const bossRole = new UserRole(bossUser, company, UserRoleEnum.BOSS);
-  await em.persistAndFlush(bossRole);
+  // Assign Admin Role
+  const adminRole = new UserRole(adminUser, company, UserRoleEnum.ADMIN);
+  em.persist(adminRole);
+  await em.flush();
 
-  // Create Push Token for Boss
+  // Create Push Token for Admin
   const pushToken = new PushToken();
   pushToken.token = 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]';
-  pushToken.user = bossUser;
-  await em.persistAndFlush(pushToken);
+  pushToken.user = adminUser;
+  em.persist(pushToken);
+  await em.flush();
 
   console.log('Test data created.');
   console.log(`Company ID: ${company.id}`);
-  console.log(`Boss ID: ${bossUser.id}`);
+  console.log(`Admin ID: ${adminUser.id}`);
   console.log(`Applicant ID: ${applicantUser.id}`);
 
   // Test 1: Request Join
@@ -85,7 +88,7 @@ async function verify() {
     const admitResult = await admitUserToCompany(
       null,
       { companyId: company.id, userId: applicantUser.id },
-      { em: em.fork(), currentUser: bossUser } as any
+      { em: em.fork(), currentUser: adminUser } as any
     );
     console.log('Result:', admitResult);
 

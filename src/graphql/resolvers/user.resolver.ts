@@ -24,13 +24,17 @@ import {
   UserProps,
 } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import {
+  chatsPermissions,
+  statsPermissions,
+  usersPermissions,
+  userWeightsPermissions,
+  workoutsPermissions,
+} from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
-export const getUsers = async (
-  _: any,
-  args: UserListProps,
-  context: ContextProps
-) => {
+const getUsers = async (_: any, args: UserListProps, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const { query, roleFilter, page, stateFilter, filterMe } = args;
@@ -49,7 +53,7 @@ export const getUsers = async (
   }
 };
 
-export const me = async (_: any, args: any, context: ContextProps) => {
+const me = async (_: any, args: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
@@ -62,11 +66,7 @@ export const me = async (_: any, args: any, context: ContextProps) => {
 /**
  * Find user by ID
  */
-export const findUser = async (
-  _: any,
-  args: IdProps,
-  context: ContextProps
-) => {
+const findUser = async (_: any, args: IdProps, context: ContextProps) => {
   try {
     const { em } = context;
     const { id } = args;
@@ -81,11 +81,7 @@ export const findUser = async (
 /**
  * Get user promotions
  */
-export const getPromotions = async (
-  _: any,
-  args: IdProps,
-  context: ContextProps
-) => {
+const getPromotions = async (_: any, args: IdProps, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
@@ -98,7 +94,7 @@ export const getPromotions = async (
 /**
  * Get conversation between users or forum messages
  */
-export const getConversation = async (
+const getConversation = async (
   _: any,
   args: GetConversationProps,
   context: ContextProps
@@ -124,11 +120,7 @@ export const getConversation = async (
 /**
  * Get admin statistics
  */
-export const getAdminStats = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
+const getAdminStats = async (_: any, args: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
@@ -141,7 +133,7 @@ export const getAdminStats = async (
 /**
  * Get training tasks for a user
  */
-export const getTrainingTasks = async (
+const getTrainingTasks = async (
   _: any,
   args: GetTrainingTaskProps,
   context: ContextProps
@@ -164,7 +156,7 @@ export const getTrainingTasks = async (
 /**
  * Get user weights
  */
-export const getUserWeights = async (
+const getUserWeights = async (
   _: any,
   args: GetUserWeightsProps,
   context: ContextProps
@@ -206,11 +198,7 @@ export const setActiveCompany = async (
 /**
  * Create a new user
  */
-export const createUser = async (
-  _: any,
-  args: UserProps,
-  context: ContextProps
-) => {
+const createUser = async (_: any, args: UserProps, context: ContextProps) => {
   try {
     const { user, company } = args;
     const { em } = context;
@@ -225,11 +213,7 @@ export const createUser = async (
 /**
  * Update user information
  */
-export const updateUser = async (
-  _: any,
-  args: UserProps,
-  context: ContextProps
-) => {
+const updateUser = async (_: any, args: UserProps, context: ContextProps) => {
   try {
     const { user } = args;
     const { em, currentUser } = context;
@@ -244,7 +228,7 @@ export const updateUser = async (
 /**
  * Update user profile picture
  */
-export const updateUserPicture = async (
+const updateUserPicture = async (
   _: any,
   args: UserPictureProps,
   context: ContextProps
@@ -263,7 +247,7 @@ export const updateUserPicture = async (
 /**
  * Send email verification
  */
-export const sendEmailVerification = async (
+const sendEmailVerification = async (
   _: any,
   args: any,
   context: ContextProps
@@ -281,7 +265,7 @@ export const sendEmailVerification = async (
 /**
  * Create a new message
  */
-export const createMessage = async (
+const createMessage = async (
   _: any,
   args: MessageProps,
   context: ContextProps
@@ -308,7 +292,7 @@ export const createMessage = async (
 /**
  * Fix a message (pin to top)
  */
-export const fixMessage = async (
+const fixMessage = async (
   _: any,
   args: FixMessageProps,
   context: ContextProps
@@ -331,7 +315,7 @@ export const fixMessage = async (
 /**
  * Unfix a message (unpin)
  */
-export const unfixMessage = async (
+const unfixMessage = async (
   _: any,
   args: UnfixMessageProps,
   context: ContextProps
@@ -350,7 +334,7 @@ export const unfixMessage = async (
 /**
  * Create a new training task
  */
-export const createTrainingTask = async (
+const createTrainingTask = async (
   _: any,
   args: CreateTrainingTaskProps,
   context: ContextProps
@@ -375,7 +359,7 @@ export const createTrainingTask = async (
 /**
  * Remove a training task
  */
-export const removeTrainingTasks = async (
+const removeTrainingTasks = async (
   _: any,
   args: RemoveTrainingTaskProps,
   context: ContextProps
@@ -394,7 +378,7 @@ export const removeTrainingTasks = async (
 /**
  * Add a new weight entry
  */
-export const addUserWeight = async (
+const addUserWeight = async (
   _: any,
   args: AddUserWeight,
   context: ContextProps
@@ -419,7 +403,7 @@ export const addUserWeight = async (
 /**
  * Remove a weight entry
  */
-export const removeUserWeights = async (
+const removeUserWeights = async (
   _: any,
   args: RemoveUserWeight,
   context: ContextProps
@@ -436,7 +420,7 @@ export const removeUserWeights = async (
 };
 
 // ===== SUBSCRIPTION RESOLVERS =====
-export const newMessage = {
+const newMessage = {
   subscribe: withFilter(
     () => myPubsub.asyncIterableIterator(MESSAGE_EVENT),
     (payload, variables, context) => {
@@ -450,7 +434,7 @@ export const newMessage = {
   ),
 };
 
-export const fixedMessages = {
+const fixedMessages = {
   subscribe: withFilter(
     () => myPubsub.asyncIterableIterator(FIXED_MESSAGE_EVENT),
     (payload, variables, context) => {
@@ -466,29 +450,50 @@ export const fixedMessages = {
 
 export const userResolvers: IResolvers = {
   Query: {
-    me,
-    findUser,
+    me: withPermissions(usersPermissions.READ, me),
+    findUser: withPermissions(usersPermissions.READ, findUser),
     // getAdminSchedules,
-    getConversation,
+    getConversation: withPermissions(chatsPermissions.READ, getConversation),
     sendEmailVerification,
-    getAdminStats,
-    getTrainingTasks,
-    getUserWeights,
-    getUsers,
+    getAdminStats: withPermissions(statsPermissions.READ, getAdminStats),
+    getTrainingTasks: withPermissions(
+      workoutsPermissions.READ,
+      getTrainingTasks
+    ),
+    getUserWeights: withPermissions(
+      userWeightsPermissions.READ,
+      getUserWeights
+    ),
+    getUsers: withPermissions(usersPermissions.READ, getUsers),
   },
   Mutation: {
-    setActiveCompany,
-    createUser,
-    updateUser,
-    updateUserPicture,
+    setActiveCompany: withPermissions(usersPermissions.READ_UPDATE, setActiveCompany),
+    createUser, //este metodo es publico, no requiere permisos
+    updateUser: withPermissions(usersPermissions.UPDATE, updateUser),
+    updateUserPicture: withPermissions(
+      usersPermissions.UPDATE,
+      updateUserPicture
+    ),
     // removeUser,
-    createMessage,
-    fixMessage,
-    unfixMessage,
-    createTrainingTask,
-    removeTrainingTasks,
-    addUserWeight,
-    removeUserWeights,
+    createMessage: withPermissions(chatsPermissions.CREATE, createMessage),
+    fixMessage: withPermissions(chatsPermissions.UPDATE, fixMessage),
+    unfixMessage: withPermissions(chatsPermissions.UPDATE, unfixMessage),
+    createTrainingTask: withPermissions(
+      workoutsPermissions.CREATE,
+      createTrainingTask
+    ),
+    removeTrainingTasks: withPermissions(
+      workoutsPermissions.DELETE,
+      removeTrainingTasks
+    ),
+    addUserWeight: withPermissions(
+      userWeightsPermissions.CREATE,
+      addUserWeight
+    ),
+    removeUserWeights: withPermissions(
+      userWeightsPermissions.DELETE,
+      removeUserWeights
+    ),
   },
   Subscription: {
     fixedMessages,

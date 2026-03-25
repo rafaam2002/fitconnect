@@ -8,6 +8,6 @@ export class PushToken extends BaseEntity {
   @Property()
   token!: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'cascade' })
   user!: User;
 }

@@ -1,6 +1,8 @@
 import { SubscriptionService } from '../../services/subscription.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { subcriptionsPermissions, usersPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
 
@@ -176,8 +178,8 @@ export const syncSubscriptionFromStripe = async (
 
 export const subscriptionResolvers = {
   Query: {
-    getSubscription,
-    listUserSubscriptions,
+    getSubscription: withPermissions(subcriptionsPermissions.READ, getSubscription),
+    listUserSubscriptions: withPermissions(usersPermissions.READ, listUserSubscriptions),
     getActiveSubscription,
   },
   Mutation: {

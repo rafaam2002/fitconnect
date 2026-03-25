@@ -13,7 +13,10 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { createPictureUrl, getPresignedUrl, } from '../utils/presigned-urls.util';
+import {
+  createPictureUrl,
+  getPresignedUrl,
+} from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
 import { SubscriptionStatus } from '../entities/Subscription';
@@ -305,7 +308,7 @@ export class UserService extends BaseService {
       if (error.code === 'EAUTH') {
         throw new Error(`Error sending verification email: ${error.message}`);
       }
-      throw new InternalServerError(`Error creating user: ${error.name}`);
+      throw new InternalServerError(`Error creating user: ${error?.message || error?.name || 'Unknown error'}`);
     }
   }
 

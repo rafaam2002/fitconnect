@@ -1,7 +1,8 @@
 import { CompanyService } from '../../services/company.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
-import { withAuth } from '../middlewares/auth';
+import { companiesPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ============= QUERY RESOLVERS =============
 
@@ -124,14 +125,14 @@ export const admitUserToCompany = async (
 
 const companyResolvers = {
   Query: {
-    getCompanies: withAuth([], getCompanies),
+    getCompanies: withPermissions(companiesPermissions.READ, getCompanies),
   },
   Mutation: {
-    updateCompany,
-    updateCompanyLogo,
-    createCompany,
-    requestJoinCompany,
-    admitUserToCompany,
+    updateCompany: withPermissions(companiesPermissions.UPDATE, updateCompany),
+    updateCompanyLogo: withPermissions(companiesPermissions.UPDATE, updateCompanyLogo),
+    createCompany: withPermissions(companiesPermissions.CREATE, createCompany),
+    requestJoinCompany: withPermissions(companiesPermissions.UPDATE, requestJoinCompany),
+    admitUserToCompany: withPermissions(companiesPermissions.UPDATE, admitUserToCompany),
   },
 };
 export default companyResolvers;

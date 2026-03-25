@@ -26,19 +26,8 @@ export class UserSeeder extends Seeder {
     try {
       const schedules = await em.find(Schedule, {}, { filters: false });
       const promotions = await em.find(Promotion, {}, { filters: false });
-      const companies = new CompanyFactory(em)
-        .make(3)
-        .map((company: Company) => {
-          company.scheduleOptions = em.create(ScheduleOptions, {
-            maxActiveReservations: 3,
-            sameDayBookingAllowed: true,
-            fullOpenHours: 2, // 0 means always full
-            maxAdvanceBookingDays: 3,
-            company,
-          });
+      const companies = new CompanyFactory(em).make(3);
 
-          return company;
-        });
       await em.persistAndFlush(companies);
       const createdCompanies: Company[] = await em.find(
         Company,
@@ -61,6 +50,7 @@ export class UserSeeder extends Seeder {
           isVerified: true,
           fullName: 'Rafa',
           companies: [createdCompanies[i]],
+          isSuperAdmin: true,
         });
 
         user.roles.add(

@@ -47,6 +47,6 @@ export const getArticles = async (
 
 export const articleResolvers = {
   Query: {
-    getArticles,
+    getArticles, //metodo publico
   },
 };

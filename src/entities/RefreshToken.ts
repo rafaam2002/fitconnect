@@ -5,7 +5,7 @@ import { User } from './User';
 
 @Entity()
 export class RefreshToken extends BaseEntity {
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'cascade' })
   user!: User;
 
   @Property({ type: 'text' })

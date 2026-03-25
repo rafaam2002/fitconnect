@@ -254,7 +254,9 @@
             "plans",
             "products",
             "user_weights",
-            "stats"
+            "stats",
+            "companies",
+            "subscriptions"
           ],
           "mappedType": "enum"
         },
@@ -1582,6 +1584,16 @@
         },
         "is_verified": {
           "name": "is_verified",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "is_admin_verified": {
+          "name": "is_admin_verified",
           "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
@@ -3104,6 +3116,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -3196,6 +3209,7 @@
             "id"
           ],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },

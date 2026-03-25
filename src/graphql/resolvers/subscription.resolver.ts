@@ -1,7 +1,10 @@
 import { SubscriptionService } from '../../services/subscription.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
-import { subcriptionsPermissions, usersPermissions } from '../../utils/permissions';
+import {
+  subcriptionsPermissions,
+  usersPermissions,
+} from '../../utils/permissions';
 import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
@@ -62,7 +65,7 @@ export const createSubscription = async (
   context: ContextProps
 ) => {
   try {
-    const { em,currentUser } = context;
+    const { em, currentUser } = context;
     const { subscription } = args;
     subscription.companyId = currentUser.activeCompanyId;
 
@@ -178,8 +181,14 @@ export const syncSubscriptionFromStripe = async (
 
 export const subscriptionResolvers = {
   Query: {
-    getSubscription: withPermissions(subcriptionsPermissions.READ, getSubscription),
-    listUserSubscriptions: withPermissions(usersPermissions.READ, listUserSubscriptions),
+    getSubscription: withPermissions(
+      subcriptionsPermissions.READ,
+      getSubscription
+    ),
+    listUserSubscriptions: withPermissions(
+      usersPermissions.READ,
+      listUserSubscriptions
+    ),
     getActiveSubscription,
   },
   Mutation: {

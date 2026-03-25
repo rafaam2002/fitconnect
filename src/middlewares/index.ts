@@ -23,7 +23,7 @@ export const middleware = async (
   const currentUser = await authenticateUser(em, authorization);
 
   if (currentUser?.isSuperAdmin) {
-    currentUser.permissionNames= ["*:*"]
+    currentUser.permissionNames = ['*:*'];
   }
 
   if (currentUser?.activeCompanyId) {

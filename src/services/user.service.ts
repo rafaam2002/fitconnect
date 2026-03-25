@@ -85,8 +85,8 @@ export class UserService extends BaseService {
       return createServiceResponse(200, 'Users found', true, {
         users: filteredUsers,
       });
-    } catch (error) {
-      throw new InternalServerError('Error fetching users');
+    } catch (e: any) {
+      throw new InternalServerError(`Error fetching users ${e.message}`);
     }
   }
 
@@ -308,7 +308,9 @@ export class UserService extends BaseService {
       if (error.code === 'EAUTH') {
         throw new Error(`Error sending verification email: ${error.message}`);
       }
-      throw new InternalServerError(`Error creating user: ${error?.message || error?.name || 'Unknown error'}`);
+      throw new InternalServerError(
+        `Error creating user: ${error?.message || error?.name || 'Unknown error'}`
+      );
     }
   }
 

@@ -1,7 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 
 import { PushToken } from '../entities/PushToken';
-import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
   createServiceResponse,
@@ -22,7 +21,7 @@ export class PushTokenService extends BaseService {
    * Registrar push token para notificaciones
    */
   public async registerToken(
-    currentUser: User,
+    currentUser: CurrentUser,
     token: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -36,7 +35,7 @@ export class PushTokenService extends BaseService {
       if (!existing) {
         const newToken = this.em.create(PushToken, {
           token,
-          user: currentUser,
+          user: currentUser.id,
         });
         this.em.persist(newToken);
         await this.em.flush();
@@ -45,8 +44,8 @@ export class PushTokenService extends BaseService {
       }
 
       return createServiceResponse(201, 'The token has been registered', true);
-    } catch (error: any) {
-      throw new InternalServerError('Error registering token');
+    } catch (e: any) {
+      throw new InternalServerError(`Error registering token ${e.message}`);
     }
   }
 
@@ -91,7 +90,7 @@ export class PushTokenService extends BaseService {
    * Remover push token
    */
   public async removePushToken(
-    currentUser: User,
+    currentUser: CurrentUser,
     token: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -100,7 +99,7 @@ export class PushTokenService extends BaseService {
     const pushTokenRepo = this.em.getRepository(PushToken);
     const pushToken = await pushTokenRepo.findOne({
       token,
-      user: currentUser,
+      user: currentUser.id,
     });
 
     if (!pushToken) {

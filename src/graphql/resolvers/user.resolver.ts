@@ -1,7 +1,11 @@
 import { IResolvers } from '@graphql-tools/utils';
 import { withFilter } from 'graphql-subscriptions';
 
-import { FIXED_MESSAGE_EVENT, MESSAGE_EVENT, myPubsub, } from '../../constants/subscriptions';
+import {
+  FIXED_MESSAGE_EVENT,
+  MESSAGE_EVENT,
+  myPubsub,
+} from '../../constants/subscriptions';
 import { MessageService } from '../../services/message.service';
 import { TrainingTaskService } from '../../services/training.task.service';
 import { UserService } from '../../services/user.service';
@@ -467,7 +471,10 @@ export const userResolvers: IResolvers = {
     getUsers: withPermissions(usersPermissions.READ, getUsers),
   },
   Mutation: {
-    setActiveCompany: withPermissions(usersPermissions.READ_UPDATE, setActiveCompany),
+    setActiveCompany: withPermissions(
+      usersPermissions.READ_UPDATE,
+      setActiveCompany
+    ),
     createUser, //este metodo es publico, no requiere permisos
     updateUser: withPermissions(usersPermissions.UPDATE, updateUser),
     updateUserPicture: withPermissions(

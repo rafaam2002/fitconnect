@@ -85,7 +85,10 @@ export const productResolvers = {
   },
   Mutation: {
     createProduct: withPermissions(productsPermissions.CREATE, createProduct),
-    updateProductPicture: withPermissions(productsPermissions.UPDATE, updateProductPicture),
+    updateProductPicture: withPermissions(
+      productsPermissions.UPDATE,
+      updateProductPicture
+    ),
     removeProduct: withPermissions(productsPermissions.DELETE, removeProduct),
   },
 };

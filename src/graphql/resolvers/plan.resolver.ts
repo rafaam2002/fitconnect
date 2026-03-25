@@ -85,7 +85,10 @@ export const removePlan = async (_: any, args: any, context: any) => {
 export const planResolvers = {
   Query: {
     getPlan: withPermissions(plansPermissions.READ, getPlan),
-    getPlanByStripeId: withPermissions(plansPermissions.READ, getPlanByStripeId),
+    getPlanByStripeId: withPermissions(
+      plansPermissions.READ,
+      getPlanByStripeId
+    ),
     listPlans: withPermissions(plansPermissions.READ, listPlans),
   },
 

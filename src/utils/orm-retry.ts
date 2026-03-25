@@ -1,7 +1,7 @@
 import {
+  Connection,
   EntityManager,
   IDatabaseDriver,
-  Connection,
   MikroORM,
 } from '@mikro-orm/core';
 
@@ -26,8 +26,10 @@ export function createRetryingEntityManager(
   const em = orm.em.fork();
 
   const handler = {
-    get(target: EntityManager, propKey: string | symbol, _: any) {
-      const original = target[propKey];
+    get(target: EntityManager, propKey: string | symbol) {
+      const original = (target as unknown as Record<string | symbol, unknown>)[
+        propKey
+      ];
 
       if (typeof original === 'function') {
         if (ASYNC_METHODS_TO_RETRY.includes(propKey as string)) {
@@ -43,7 +45,9 @@ export function createRetryingEntityManager(
                   `Mikro-ORM: Connection error on method '${String(propKey)}'. Retrying...`
                 );
                 const newEm = orm.em.fork();
-                const newMethod = newEm[propKey];
+                const newMethod = (
+                  newEm as unknown as Record<string | symbol, unknown>
+                )[propKey];
                 if (typeof newMethod === 'function') {
                   return await newMethod.apply(newEm, args);
                 }

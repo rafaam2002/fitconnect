@@ -1,7 +1,10 @@
 import nodemailer, { Transporter } from 'nodemailer';
 
 import { EmailConfig } from '../types/common.type';
-import { companyVerificationEmailHtml, templatesUtil, } from '../utils/templates.util';
+import {
+  companyVerificationEmailHtml,
+  templatesUtil,
+} from '../utils/templates.util';
 
 /**
  * Email Service - Handles all email operations

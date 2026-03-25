@@ -5,7 +5,6 @@ import { Seeder } from '@mikro-orm/seeder';
 import { Company } from '../entities/Company';
 import { Promotion } from '../entities/Promotion';
 import { Schedule } from '../entities/Schedule';
-import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { CompanyFactory } from '../factories/CompanyFactory';
@@ -28,7 +27,9 @@ export class UserSeeder extends Seeder {
       const promotions = await em.find(Promotion, {}, { filters: false });
       const companies = new CompanyFactory(em).make(3);
 
-      await em.persistAndFlush(companies);
+      em.persist(companies);
+      await em.flush();
+
       const createdCompanies: Company[] = await em.find(
         Company,
         {},

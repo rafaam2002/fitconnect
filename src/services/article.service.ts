@@ -126,7 +126,6 @@ export class ArticleService extends BaseService {
       }
     );
 
-
     return createServiceResponse(200, 'Articles fetched successfully', true, {
       articles,
     });
@@ -255,9 +254,9 @@ export class ArticleService extends BaseService {
   ): Promise<ExternalAPIResponse> {
     try {
       return await response.json();
-    } catch (error) {
+    } catch (e: any) {
       throw new ExternalAPIError(
-        'Invalid JSON response from external API',
+        `Invalid JSON response from external API ${e.message}`,
         this.apiName
       );
     }

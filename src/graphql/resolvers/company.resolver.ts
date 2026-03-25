@@ -129,10 +129,19 @@ const companyResolvers = {
   },
   Mutation: {
     updateCompany: withPermissions(companiesPermissions.UPDATE, updateCompany),
-    updateCompanyLogo: withPermissions(companiesPermissions.UPDATE, updateCompanyLogo),
+    updateCompanyLogo: withPermissions(
+      companiesPermissions.UPDATE,
+      updateCompanyLogo
+    ),
     createCompany: withPermissions(companiesPermissions.CREATE, createCompany),
-    requestJoinCompany: withPermissions(companiesPermissions.UPDATE, requestJoinCompany),
-    admitUserToCompany: withPermissions(companiesPermissions.UPDATE, admitUserToCompany),
+    requestJoinCompany: withPermissions(
+      companiesPermissions.UPDATE,
+      requestJoinCompany
+    ),
+    admitUserToCompany: withPermissions(
+      companiesPermissions.UPDATE,
+      admitUserToCompany
+    ),
   },
 };
 export default companyResolvers;

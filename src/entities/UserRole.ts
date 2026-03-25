@@ -21,7 +21,11 @@ export class UserRole extends BaseEntity {
   company!: Company;
 
   @Enum({
-    items: () => [UserRoleEnum.STANDARD, UserRoleEnum.ADMIN, UserRoleEnum.COACH],
+    items: () => [
+      UserRoleEnum.STANDARD,
+      UserRoleEnum.ADMIN,
+      UserRoleEnum.COACH,
+    ],
     default: UserRoleEnum.STANDARD,
   })
   role: UserRoleEnum = UserRoleEnum.STANDARD;

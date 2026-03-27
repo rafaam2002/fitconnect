@@ -316,6 +316,5 @@ export const paymentMethodResolvers = {
     markPaymentMethodAsExpired,
     validatePaymentMethod,
     cleanupExpiredPaymentMethods,
-    // syncPaymentMethodFromStripe
   },
 };

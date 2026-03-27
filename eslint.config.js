@@ -23,6 +23,10 @@ module.exports = [
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
+      'src/migrations/**/*',
+      'src/migrations/',
+      'src/graphql/schema/',
+      'src/utils/templates.util.ts',
     ],
   },
 
@@ -36,6 +40,7 @@ module.exports = [
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...globals.jest,
       },
       parser: typescriptParser,
       sourceType: 'module',
@@ -94,11 +99,16 @@ module.exports = [
       'prettier/prettier': 'error',
       'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-secrets/no-secrets': 'error',
+      'no-unused-vars': 'off',
       // '@typescript-eslint/explicit-function-return-type': 'warn',
       // '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_' },
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
       ],
       'import/order': [
         'error',

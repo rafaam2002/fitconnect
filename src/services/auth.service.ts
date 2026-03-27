@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { EntityManager } from '@mikro-orm/core';
 import bcrypt from 'bcrypt';
@@ -68,8 +68,8 @@ export interface UpdatePasswordInput {
  * ```
  */
 export class AuthService extends BaseService {
-  private permissionService: PermissionService;
-  private emailService: EmailService;
+  private readonly permissionService: PermissionService;
+  private readonly emailService: EmailService;
   private readonly jwtSecret: string;
   private readonly accessTokenExpiry: jwt.SignOptions['expiresIn'] = '1d';
   private readonly refreshTokenExpiry: number = 30 * 24 * 60 * 60 * 1000;
@@ -319,9 +319,6 @@ export class AuthService extends BaseService {
 
     console.log(`Reset token for ${email}: ${resetToken}`);
 
-    // TODO: Enviar email con resetToken
-    // await this.sendPasswordResetEmail(email, resetToken);
-
     return createServiceResponse(200, 'Password reset email sent', true);
   }
 
@@ -520,8 +517,8 @@ export class AuthService extends BaseService {
   public verifyToken(token: string): { id: string } {
     try {
       return jwt.verify(token, this.jwtSecret) as { id: string };
-    } catch (error) {
-      throw new UnauthorizedError('Invalid or expired token');
+    } catch (error: any) {
+      throw new UnauthorizedError(`Invalid or expired token ${error.message}`);
     }
   }
 
@@ -577,7 +574,8 @@ export class AuthService extends BaseService {
     });
 
     if (refreshToken) {
-      await this.em.removeAndFlush(refreshToken);
+      this.em.remove(refreshToken);
+      await this.em.flush();
     }
   }
 
@@ -586,96 +584,8 @@ export class AuthService extends BaseService {
    */
   public async revokeAllUserTokens(userId: string): Promise<void> {
     const tokens = await this.em.find(RefreshToken, { user: userId });
-    await this.em.removeAndFlush(tokens);
-  }
-
-  /**
-   * Buscar usuario por email o nickname
-   */
-  private async findUserByEmailOrNickname(
-    emailOrNickname: string,
-    populate: string[] = []
-  ): Promise<User | null> {
-    return await this.em.findOne(
-      User,
-      {
-        $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
-      },
-      {
-        populate: populate as any,
-        filters: false,
-      } as const
-    );
-  }
-
-  /**
-   * Buscar o crear usuario de Google
-   */
-  private async findOrCreateGoogleUser(
-    email: string,
-    name?: string
-  ): Promise<User> {
-    let user = await this.em.findOne(
-      User,
-      { email },
-      { populate: ['companies', 'companies.companyConfig'], filters: false }
-    );
-
-    if (!user) {
-      const newUser = this.em.create(User, {
-        email,
-        name,
-        nickname: email.split('@')[0],
-        provider: UserProviderType.GOOGLE,
-        isActive: true,
-        isBlocked: false,
-        isVerified: true,
-        fullName: name || '',
-      });
-      this.em.persist(newUser);
-      await this.em.flush();
-
-      // Volver a buscar para tener las relaciones cargadas
-      user = await this.em.findOne(
-        User,
-        { email },
-        { populate: ['companies'], filters: false }
-      );
-
-      if (!user) {
-        throw new InternalServerError('Failed to create user');
-      }
-    }
-
-    return user;
-  }
-
-  /**
-   * Validar que el usuario tiene acceso a la empresa
-   */
-  private async validateCompanyAccess(
-    user: User,
-    companyId: string
-  ): Promise<Company | null> {
-    const belongsToCompany = user.companies
-      .getItems()
-      .some(c => c.id === companyId);
-
-    if (!belongsToCompany) {
-      return null;
-    }
-
-    const company = await this.em.findOne(
-      Company,
-      { id: companyId },
-      { filters: false }
-    );
-
-    if (!company) {
-      return null;
-    }
-
-    return company;
+    this.em.remove(tokens);
+    await this.em.flush();
   }
 
   /**
@@ -777,7 +687,6 @@ export class AuthService extends BaseService {
         isInTrial: permissionsContext.isInTrial || false,
         trialEndsAt: permissionsContext.trialEndsAt || null,
       },
-      // TODO: Quitar esto en produccion
       permissions: debugPermissions, //permissionsContext.permissionNames,
     });
 
@@ -794,5 +703,94 @@ export class AuthService extends BaseService {
       },
       permissions: permissionsContext.permissionNames,
     });
+  }
+
+  /**
+   * Buscar usuario por email o nickname
+   */
+  private async findUserByEmailOrNickname(
+    emailOrNickname: string,
+    populate: string[] = []
+  ): Promise<User | null> {
+    return await this.em.findOne(
+      User,
+      {
+        $or: [{ email: emailOrNickname }, { nickname: emailOrNickname }],
+      },
+      {
+        populate: populate as any,
+        filters: false,
+      } as const
+    );
+  }
+
+  /**
+   * Buscar o crear usuario de Google
+   */
+  private async findOrCreateGoogleUser(
+    email: string,
+    name?: string
+  ): Promise<User> {
+    let user = await this.em.findOne(
+      User,
+      { email },
+      { populate: ['companies', 'companies.companyConfig'], filters: false }
+    );
+
+    if (!user) {
+      const newUser = this.em.create(User, {
+        email,
+        name,
+        nickname: email.split('@')[0],
+        provider: UserProviderType.GOOGLE,
+        isActive: true,
+        isBlocked: false,
+        isVerified: true,
+        fullName: name || '',
+      });
+      this.em.persist(newUser);
+      await this.em.flush();
+
+      // Volver a buscar para tener las relaciones cargadas
+      user = await this.em.findOne(
+        User,
+        { email },
+        { populate: ['companies'], filters: false }
+      );
+
+      if (!user) {
+        throw new InternalServerError('Failed to create user');
+      }
+    }
+
+    return user;
+  }
+
+  /**
+   * Validar que el usuario tiene acceso a la empresa
+   */
+  private async validateCompanyAccess(
+    user: User,
+    companyId: string
+  ): Promise<Company | null> {
+    const belongsToCompany = user.companies
+      .getItems()
+      .some(c => c.id === companyId);
+
+    if (!belongsToCompany) {
+      return null;
+    }
+
+    const company = await this.em.findOne(
+      Company,
+      { id: companyId },
+      { filters: false }
+    );
+
+    if (!company) {
+      return null;
+    }
+
+    return company;
   }
 }

@@ -61,7 +61,7 @@ const me = async (_: any, args: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
-    return await userService.getMe(currentUser!);
+    return await userService.getMe(currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -77,19 +77,6 @@ const findUser = async (_: any, args: IdProps, context: ContextProps) => {
     const userService = new UserService(em);
 
     return await userService.findUser(id);
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * Get user promotions
- */
-const getPromotions = async (_: any, args: IdProps, context: ContextProps) => {
-  try {
-    const { em, currentUser } = context;
-    const userService = new UserService(em);
-    return await userService.getPromotions(currentUser!);
   } catch (error) {
     return handleError(error);
   }
@@ -128,7 +115,7 @@ const getAdminStats = async (_: any, args: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
     const userService = new UserService(em);
-    return await userService.getAdminStats(em, currentUser!);
+    return await userService.getAdminStats(em, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -150,7 +137,7 @@ const getTrainingTasks = async (
     return await trainingTaskService.getTrainingTasks(
       userId!,
       dateRange,
-      currentUser!
+      currentUser
     );
   } catch (error) {
     return handleError(error);
@@ -260,7 +247,7 @@ const sendEmailVerification = async (
     const { em, currentUser } = context;
     const userService = new UserService(em);
 
-    return await userService.sendEmailVerification(currentUser!);
+    return await userService.sendEmailVerification(currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -309,7 +296,7 @@ const fixMessage = async (
     return await messageService.fixMessage(
       messageId,
       fixedEndDate,
-      currentUser!
+      currentUser
     );
   } catch (error) {
     return handleError(error);
@@ -329,7 +316,7 @@ const unfixMessage = async (
     const { em, currentUser } = context;
 
     const messageService = new MessageService(em);
-    return await messageService.unfixMessage(messageId, currentUser!);
+    return await messageService.unfixMessage(messageId, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -373,7 +360,7 @@ const removeTrainingTasks = async (
     const { em, currentUser } = context;
 
     const trainingTaskService = new TrainingTaskService(em);
-    return await trainingTaskService.removeTrainingTasks(ids, currentUser!);
+    return await trainingTaskService.removeTrainingTasks(ids, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -397,7 +384,7 @@ const addUserWeight = async (
       weight,
       date,
       userId,
-      currentUser!
+      currentUser
     );
   } catch (error) {
     return handleError(error);
@@ -417,7 +404,7 @@ const removeUserWeights = async (
     const { em, currentUser } = context;
 
     const userWeightService = new UserWeightService(em);
-    return await userWeightService.removeUserWeights(ids, currentUser!);
+    return await userWeightService.removeUserWeights(ids, currentUser);
   } catch (error) {
     return handleError(error);
   }

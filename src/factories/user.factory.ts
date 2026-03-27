@@ -1,15 +1,12 @@
 import { faker } from '@faker-js/faker';
 import { Factory } from '@mikro-orm/seeder';
 
-import { Schedule } from '../entities/Schedule';
 import { User } from '../entities/User';
 
 export class UserFactory extends Factory<User> {
   model = User;
 
   definition(): Partial<User> {
-    const userSchedules: Schedule[] = [];
-
     return {
       name: faker.person.firstName(),
       surname: faker.person.lastName(),

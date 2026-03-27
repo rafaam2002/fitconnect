@@ -15,12 +15,23 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import {
-  createDateWithTime,
-  createScheduleProgrammed,
-} from '../utils/schedules.util';
+import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
+
+export type createScheduleDataType = {
+  currentUser: CurrentUser;
+  title: string;
+  description: string;
+  startHour: string;
+  endHour: string;
+  days: number[];
+  maxUsers: number;
+  age: number | null | undefined;
+  admin: string;
+  type: ScheduleType;
+  repeat: boolean;
+};
 
 export class ScheduleService extends BaseService {
   constructor(em: EntityManager) {
@@ -179,7 +190,9 @@ export class ScheduleService extends BaseService {
         schedulesResume,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching schedules resume');
+      throw new InternalServerError(
+        `Error fetching schedules resume ${error.message}`
+      );
     }
   }
 
@@ -252,7 +265,9 @@ export class ScheduleService extends BaseService {
         schedulesResume,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching today schedules resume');
+      throw new InternalServerError(
+        `Error fetching today schedules resume ${error.message}`
+      );
     }
   }
 
@@ -281,7 +296,7 @@ export class ScheduleService extends BaseService {
         { populate: ['users', 'admin'] }
       );
 
-      const sortSchedules = schedules.sort((a, b) => {
+      const sortSchedules = [...schedules].sort((a, b) => {
         return moment(a.startDate).unix() - moment(b.startDate).unix();
       });
 
@@ -300,7 +315,9 @@ export class ScheduleService extends BaseService {
         schedules: sortSchedules,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching schedules range');
+      throw new InternalServerError(
+        `Error fetching schedules range ${error.message}`
+      );
     }
   }
 
@@ -334,7 +351,7 @@ export class ScheduleService extends BaseService {
         { populate: ['users', 'admin'] }
       );
 
-      const sortSchedules = schedules.sort((a, b) => {
+      const sortSchedules = [...schedules].sort((a, b) => {
         return moment(a.startDate).unix() - moment(b.startDate).unix();
       });
 
@@ -351,7 +368,9 @@ export class ScheduleService extends BaseService {
         scheduleOptions,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching schedules resume range');
+      throw new InternalServerError(
+        `Error fetching schedules resume range ${error.message}`
+      );
     }
   }
 
@@ -375,7 +394,9 @@ export class ScheduleService extends BaseService {
         scheduleOptions,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching schedule options');
+      throw new InternalServerError(
+        `Error fetching schedule options ${error.message}`
+      );
     }
   }
 
@@ -530,18 +551,21 @@ export class ScheduleService extends BaseService {
   }
 
   public async createSchedule(
-    currentUser: CurrentUser,
-    title: string,
-    description: string,
-    startHour: string,
-    endHour: string,
-    days: number[],
-    repeat: boolean = false,
-    maxUsers: number,
-    age: number | null | undefined,
-    admin: string,
-    type: ScheduleType = ScheduleType.STANDARD
+    scheduleData: createScheduleDataType
   ): Promise<ServiceResponse> {
+    const {
+      currentUser,
+      age,
+      repeat,
+      days,
+      title,
+      description,
+      startHour,
+      endHour,
+      maxUsers,
+      type,
+      admin,
+    } = scheduleData;
     if (!currentUser) {
       throw new UnauthorizedError();
     }
@@ -556,7 +580,7 @@ export class ScheduleService extends BaseService {
         const adminRef = tem.getReference(User, admin);
 
         if (repeat) {
-          const schedule = await createScheduleProgrammed(
+          await createScheduleProgrammed(
             {
               daysOfWeek: days,
               title,
@@ -825,7 +849,7 @@ export class ScheduleService extends BaseService {
 
       return createServiceResponse(200, 'Schedule created successfully', true);
     } catch (error: any) {
-      throw new InternalServerError('Error creating schedule');
+      throw new InternalServerError(`Error creating schedule ${error.message}`);
     }
   }
 
@@ -909,7 +933,8 @@ export class ScheduleService extends BaseService {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
-    await this.em.removeAndFlush(schedule);
+    this.em.remove(schedule);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Schedule removed successfully', true);
   }

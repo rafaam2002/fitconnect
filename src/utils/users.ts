@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import moment from 'moment';
 
 import { User } from '../entities/User';
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const setNotActiveUsers = async (
@@ -26,8 +27,7 @@ export const setNotActiveUsers = async (
 };
 
 export const generateTempPassword = (length: number = 6): string => {
-  const characters =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const characters = process.env.PASSWORD_KEY_ENTRY || '';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));

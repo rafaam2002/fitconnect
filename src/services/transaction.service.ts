@@ -398,7 +398,7 @@ export class TransactionService extends BaseService {
           0
         ),
         lastTransaction:
-          allTransactions.sort(
+          [...allTransactions].sort(
             (a: Transaction, b: Transaction) =>
               b.created_at.getTime() - a.created_at.getTime()
           )[0] || null,
@@ -408,7 +408,9 @@ export class TransactionService extends BaseService {
         summary,
       });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching user transactions summary');
+      throw new InternalServerError(
+        `Error fetching user transactions summary ${error.message}`
+      );
     }
   }
 
@@ -537,11 +539,20 @@ export class TransactionService extends BaseService {
       let paymentMethod: PaymentMethod | null = null;
       if (stripeCharge.payment_method) {
         paymentMethod = await this.em.findOne(PaymentMethod, {
-          stripePaymentMethodId: stripeCharge.payment_method as string,
+          stripePaymentMethodId: stripeCharge.payment_method,
         });
       }
 
-      if (!transaction) {
+      if (transaction) {
+        // Actualizar existente
+        transaction.status = this.mapStripeStatusToTransactionStatus(
+          stripeCharge.status
+        );
+        transaction.amountRefunded = stripeCharge.amount_refunded;
+        transaction.failureReason =
+          stripeCharge.failure_message ?? 'Failed transaction';
+        transaction.metadata = stripeCharge.metadata;
+      } else {
         // Crear nueva transacción
         transaction = this.em.create<Transaction>(Transaction, {
           stripeChargeId,
@@ -558,15 +569,6 @@ export class TransactionService extends BaseService {
           metadata: stripeCharge.metadata,
           company: stripeCustomer.user.activeCompanyId!,
         });
-      } else {
-        // Actualizar existente
-        transaction.status = this.mapStripeStatusToTransactionStatus(
-          stripeCharge.status
-        );
-        transaction.amountRefunded = stripeCharge.amount_refunded;
-        transaction.failureReason =
-          stripeCharge.failure_message ?? 'Failed transaction';
-        transaction.metadata = stripeCharge.metadata;
       }
 
       this.em.persist(transaction);

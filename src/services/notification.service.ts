@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { User } from '../entities/User';
 import { PushNotificationData } from '../types/common.type';
 import { sendPushNotification } from '../utils/notification.util';
+
 import { BaseService } from './base.service';
 
 /**
@@ -83,23 +84,6 @@ export class NotificationService extends BaseService {
 
     await this.sendToUserEntities(users, title, body, data);
   }
-
-  /**
-   * Send notification to premium users
-   */
-  // public async sendToPremiumUsers(
-  //   title: string,
-  //   body: string,
-  //   data?: PushNotificationData
-  // ): Promise<void> {
-  //   const users = await this.em.find(
-  //     User,
-  //     { roles: { role: UserRoleEnum.PREMIUM } },
-  //     { populate: ['pushTokens'] }
-  //   );
-
-  //   await this.sendToUserEntities(users, title, body, data);
-  // }
 
   /**
    * Helper: Send notification to user entities

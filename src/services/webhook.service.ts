@@ -23,12 +23,12 @@ import { SubscriptionService } from './subscription.service';
 import { TransactionService } from './transaction.service';
 
 export class WebhookService extends BaseService {
-  private customerService: CustomerService;
-  private paymentMethodService: PaymentMethodService;
-  private subscriptionService: SubscriptionService;
-  private transactionService: TransactionService;
-  private invoiceService: InvoiceService;
-  private planService: PlanService;
+  private readonly customerService: CustomerService;
+  private readonly paymentMethodService: PaymentMethodService;
+  private readonly subscriptionService: SubscriptionService;
+  private readonly transactionService: TransactionService;
+  private readonly invoiceService: InvoiceService;
+  private readonly planService: PlanService;
 
   constructor(em: EntityManager) {
     super(em);
@@ -208,7 +208,9 @@ export class WebhookService extends BaseService {
         }
       );
     } catch (error: any) {
-      throw new InternalServerError('Error fetching webhook statistics');
+      throw new InternalServerError(
+        `Error fetching webhook statistics ${error.message}`
+      );
     }
   }
 
@@ -234,7 +236,7 @@ export class WebhookService extends BaseService {
       event = this.stripe.webhooks.constructEvent(
         body,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (error: any) {
       console.error('Webhook signature verification failed:', error.message);
@@ -452,7 +454,8 @@ export class WebhookService extends BaseService {
     }
 
     try {
-      await this.em.removeAndFlush(eventLog);
+      this.em.remove(eventLog);
+      await this.em.flush();
 
       return createServiceResponse(
         200,
@@ -520,87 +523,73 @@ export class WebhookService extends BaseService {
     switch (event.type) {
       case 'customer.created':
       case 'customer.updated':
-        await this.handleCustomerManaged(event.data.object as Stripe.Customer);
+        await this.handleCustomerManaged(event.data.object);
         break;
 
       case 'customer.deleted':
-        await this.handleCustomerDeleted(event.data.object as Stripe.Customer);
+        await this.handleCustomerDeleted(event.data.object);
         break;
 
       case 'payment_method.attached':
       case 'payment_method.updated':
-        await this.handlePaymentMethodAttached(
-          (event.data.object as Stripe.PaymentMethod).id
-        );
+        await this.handlePaymentMethodAttached(event.data.object.id);
         break;
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await this.handleSubscriptionChanged(
-          event.data.object as Stripe.Subscription
-        );
+        await this.handleSubscriptionChanged(event.data.object);
         break;
 
       case 'customer.subscription.deleted':
-        await this.handleSubscriptionDeleted(
-          event.data.object as Stripe.Subscription
-        );
+        await this.handleSubscriptionDeleted(event.data.object);
         break;
 
       case 'invoice.created':
       case 'invoice.updated':
       case 'invoice.finalized':
-        await this.invoiceService.syncFromStripe(
-          (event.data.object as Stripe.Invoice).id
-        );
+        await this.invoiceService.syncFromStripe(event.data.object.id);
         break;
 
       case 'invoice.paid':
-        await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
+        await this.handleInvoicePaid(event.data.object);
         break;
 
       case 'invoice.payment_failed':
-        await this.handleInvoicePaymentFailed(
-          event.data.object as Stripe.Invoice
-        );
+        await this.handleInvoicePaymentFailed(event.data.object);
         break;
 
       case 'charge.succeeded':
       case 'charge.failed':
       case 'charge.refunded':
         await this.transactionService.syncTransactionFromStripe(
-          (event.data.object as Stripe.Charge).id
+          event.data.object.id
         );
         break;
 
       case 'payment_intent.succeeded':
       case 'payment_intent.payment_failed':
-        await this.handlePaymentIntent(
-          event.data.object as Stripe.PaymentIntent
-        );
+        await this.handlePaymentIntent(event.data.object);
         break;
 
       case 'payment_method.detached':
-        await this.handlePaymentMethodDetached(
-          event.data.object as Stripe.PaymentMethod
-        );
+        await this.handlePaymentMethodDetached(event.data.object);
         break;
 
       case 'product.updated':
-        await this.handlePlanManaged(event.data.object as Stripe.Product);
+        await this.handlePlanManaged(event.data.object);
         break;
 
       case 'product.deleted':
-        await this.handlePlanDeleted(event.data.object as Stripe.Product);
+        await this.handlePlanDeleted(event.data.object);
         break;
 
       case 'price.created':
       case 'price.updated':
-        await this.handlePriceManaged(event.data.object as Stripe.Price);
+        await this.handlePriceManaged(event.data.object);
         break;
 
       case 'price.deleted':
-        await this.handlePriceDeleted(event.data.object as Stripe.Price);
+        await this.handlePriceDeleted(event.data.object);
         break;
 
       default:
@@ -663,7 +652,7 @@ export class WebhookService extends BaseService {
     }
 
     console.log(
-      `Invoice paid and synced: ${invoice.id} for customer: ${invoice.customer}`
+      `Invoice paid and synced: ${invoice.id} for customer: ${invoice.customer as string}`
     );
   }
 
@@ -688,7 +677,7 @@ export class WebhookService extends BaseService {
     invoice: Stripe.Invoice
   ): Promise<void> {
     console.log(
-      `Invoice payment failed: ${invoice.id} for customer: ${invoice.customer}`
+      `Invoice payment failed: ${invoice.id} for customer: ${invoice.customer as string}`
     );
 
     // Sincronizar suscripción relacionada si existe

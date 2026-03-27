@@ -7,7 +7,6 @@ export class ProductFactory extends Factory<Product> {
   model = Product;
 
   definition(): Partial<Product> {
-    const productPictures = ['bucal1', 'bucal2', 'bucal3'];
     return {
       name: faker.person.firstName(),
       description:

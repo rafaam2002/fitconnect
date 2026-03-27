@@ -3,12 +3,12 @@ import cron from 'node-cron';
 
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { storeNews } from '../helpers/articles';
+import { ScheduleService } from '../services/schedule.service';
+import { SubscriptionService } from '../services/subscription.service';
 
 import { updatePictureUrls } from './presigned-urls.util';
 import { sendScheduleReminders } from './schedules.util';
 import { setNotActiveUsers } from './users';
-import { ScheduleService } from '../services/schedule.service';
-import { SubscriptionService } from '../services/subscription.service';
 
 export const cronFunctions = async (
   em: EntityManager<IDatabaseDriver<Connection>>

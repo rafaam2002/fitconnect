@@ -9,7 +9,6 @@ import {
 } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
-import { Company } from './Company';
 import { PaymentMethod } from './PaymentMethod';
 import { Subscription } from './Subscription';
 import { User } from './User';

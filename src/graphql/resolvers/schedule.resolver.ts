@@ -1,7 +1,10 @@
 import { IResolvers } from '@graphql-tools/utils';
 import dotenv from 'dotenv';
 
-import { ScheduleService } from '../../services/schedule.service';
+import {
+  createScheduleDataType,
+  ScheduleService,
+} from '../../services/schedule.service';
 import {
   AddScheduleProps,
   ChangeScheduleStatusProp,
@@ -20,8 +23,8 @@ import {
   updateScheduleOptionsProps,
 } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
-import { withPermissions } from '../middlewares/permissions';
 import { schedulesPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 dotenv.config();
 
@@ -225,33 +228,12 @@ export const createSchedule = async (
   try {
     const { em, currentUser } = context;
     const { schedule } = args;
-    const {
-      title,
-      description,
-      startHour,
-      endHour,
-      maxUsers,
-      days,
-      repeat,
-      age,
-      admin,
-      type,
-    } = schedule;
 
     const scheduleService = new ScheduleService(em);
-    return await scheduleService.createSchedule(
+    return await scheduleService.createSchedule({
+      ...schedule,
       currentUser,
-      title,
-      description,
-      startHour,
-      endHour,
-      days,
-      repeat,
-      maxUsers,
-      age,
-      admin,
-      type
-    );
+    } as createScheduleDataType);
   } catch (error: any) {
     return handleError(error);
   }

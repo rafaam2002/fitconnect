@@ -1,8 +1,8 @@
 import { EntityManager } from '@mikro-orm/core';
 
 import { BadRequestError } from '../utils/errors.util';
-import { authenticateUser } from './auth';
 
+import { authenticateUser } from './auth';
 import {
   filterPublicQueries,
   filterRefreshTokenQueries,

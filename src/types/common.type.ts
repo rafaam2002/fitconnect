@@ -3,6 +3,7 @@
  */
 
 import { Plan } from '../entities/Plan';
+
 import { SubscriptionStatus } from './enums';
 
 export interface ServiceResponse<T = any> {

@@ -15,7 +15,10 @@ export const authenticateUser = async (
     const token = authorization.substring(7);
 
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as any;
       const currentUser = await em.findOne(User, { id: decodedToken.id }, {
         filters: false,
         populate: ['companies'],

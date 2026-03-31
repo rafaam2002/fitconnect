@@ -79,7 +79,10 @@ const startServer = async () => {
   app.get('/auth/verify-email', async (req, res) => {
     const token = req.query.token as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as {
         id: string;
       };
 
@@ -124,7 +127,10 @@ const startServer = async () => {
     const token = req.query.token as string;
     const verify = req.query.verify as string;
 
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decodedToken = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as {
       id: string;
     };
 
@@ -180,7 +186,10 @@ const startServer = async () => {
   app.get('/auth/reset-password', async (req, res) => {
     const token = req.query.token as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as {
         id: string;
         email: string;
         password: string;

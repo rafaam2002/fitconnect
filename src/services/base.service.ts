@@ -7,7 +7,7 @@ export class BaseService {
 
   constructor(em: EntityManager) {
     this.em = em;
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
   }
 
   protected generateIdempotencyKey(

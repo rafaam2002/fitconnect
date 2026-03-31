@@ -131,7 +131,7 @@ export class PlanService extends BaseService {
     try {
       // Actualizar producto en Stripe
       if (input.name || input.description || input.metadata) {
-        await this.stripe.products.update(plan.stripeProductId!, {
+        await this.stripe.products.update(plan.stripeProductId as string, {
           name: input.name,
           description: input.description,
           metadata: input.metadata,

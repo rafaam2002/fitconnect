@@ -109,16 +109,21 @@ export class UserService extends BaseService {
     if (!user) {
       throw new NotFoundError('User');
     }
+    const activeCompany = user.companies
+      .getItems()
+      .find(c => c.id === user.activeCompanyId);
 
-    return user.activeCompanyId
-      ? await authService.buildAuthResponseWithPermissions(
-          user,
-          user.companies.getItems().find(c => c.id === user.activeCompanyId)!,
-          'Login successful'
-        )
-      : createServiceResponse(200, 'logging successfully', true, {
-          user,
-        });
+    if (activeCompany) {
+      return await authService.buildAuthResponseWithPermissions(
+        user,
+        activeCompany,
+        'Login successful'
+      );
+    }
+
+    return createServiceResponse(200, 'logging successfully', true, {
+      user,
+    });
   }
 
   public async setActiveCompany(

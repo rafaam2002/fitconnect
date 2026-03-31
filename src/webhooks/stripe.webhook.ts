@@ -126,9 +126,7 @@ export const stripeWebhookRouter: Router = express.Router();
 
 // Logging middleware para debugging
 stripeWebhookRouter.use((req, res, next) => {
-  console.log(
-    `[WEBHOOK] ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`
-  );
+  console.log(`[WEBHOOK] ${new Date().toISOString()} from ${req.ip}`);
   next();
 });
 

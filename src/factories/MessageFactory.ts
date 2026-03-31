@@ -9,7 +9,7 @@ import { randomSenderAndReceiver } from '../utils/factories.util';
 export class MessageFactory extends Factory<Message> {
   model = Message;
 
-  private users: User[];
+  private readonly users: User[];
 
   constructor(em: EntityManager, users: User[]) {
     super(em);

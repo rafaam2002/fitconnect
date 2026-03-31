@@ -7,7 +7,7 @@ import { User } from '../entities/User';
 
 export class PollVoteFactory extends Factory<PollVote> {
   model = PollVote;
-  private user: User;
+  private readonly user: User;
 
   constructor(em: EntityManager, user: User) {
     super(em);

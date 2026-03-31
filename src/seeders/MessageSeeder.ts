@@ -24,7 +24,8 @@ export class MessageSeeder extends Seeder {
         company: admin?.companies.getItems()[0].id, // no mapear posteriormente
         isForumMessage: true,
       });
-      await em.persistAndFlush(forumMessage);
+      em.persist(forumMessage);
+      await em.flush();
     });
   }
 }

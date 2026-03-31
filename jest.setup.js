@@ -1,7 +1,7 @@
 // Global test setup
-global.console = {
+globalThis.console = {
   ...console,
-  // Silenciar logs en tests
+
   log: jest.fn(),
   debug: jest.fn(),
   info: jest.fn(),

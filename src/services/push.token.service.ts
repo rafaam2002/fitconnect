@@ -32,14 +32,14 @@ export class PushTokenService extends BaseService {
       // Verificar si ya existe el token
       const existing = await this.em.findOne(PushToken, { token });
 
-      if (!existing) {
+      if (existing) {
+        await this.em.flush();
+      } else {
         const newToken = this.em.create(PushToken, {
           token,
           user: currentUser.id,
         });
         this.em.persist(newToken);
-        await this.em.flush();
-      } else {
         await this.em.flush();
       }
 
@@ -106,7 +106,8 @@ export class PushTokenService extends BaseService {
       throw new NotFoundError('Push token not found for the current user');
     }
 
-    await this.em.removeAndFlush(pushToken);
+    this.em.remove(pushToken);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Push token removed successfully', true);
   }

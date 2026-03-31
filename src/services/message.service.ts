@@ -24,7 +24,7 @@ import { NotificationService } from './notification.service';
  * Message Service - Handles messaging and conversations
  */
 export class MessageService extends BaseService {
-  private notificationService: NotificationService;
+  private readonly notificationService: NotificationService;
 
   constructor(em: EntityManager) {
     super(em);
@@ -115,12 +115,15 @@ export class MessageService extends BaseService {
       this.em.persist(newMessage);
       await this.em.flush();
 
-      await this.handleMessageNotifications(
-        newMessage,
-        receiver,
-        isForumMessage,
-        currentUser
-      );
+      if (isForumMessage) {
+        await this.handleForumMessageNotification(newMessage, currentUser);
+      } else if (receiver) {
+        await this.handleDirectMessageNotification(
+          newMessage,
+          receiver,
+          currentUser
+        );
+      }
 
       myPubsub.publish(MESSAGE_EVENT, { newMessage });
 
@@ -282,15 +285,15 @@ export class MessageService extends BaseService {
     isForumMessage: boolean,
     fields: string[] | any[]
   ): Promise<ServiceResponse> {
-    const filter = !isForumMessage
+    const filter = isForumMessage
       ? {
+          isForumMessage: true,
+        }
+      : {
           $or: [
             { sender: currentUser.id, receiver: otherUserId },
             { sender: otherUserId, receiver: currentUser.id },
           ],
-        }
-      : {
-          isForumMessage: true,
         };
 
     const messages = await this.em.find(Message, filter, {
@@ -325,37 +328,39 @@ export class MessageService extends BaseService {
     });
   }
 
-  private async handleMessageNotifications(
+  private async handleForumMessageNotification(
     message: Message,
-    receiver: User | null,
-    isForumMessage: boolean,
     currentUser: CurrentUser
   ): Promise<void> {
-    if (isForumMessage) {
-      const title = 'Nuevo mensaje en el foro';
-      const body = `${currentUser.nickname}: ${message.text}`;
-      const data = {
-        type: 'new_message',
-        messageId: message.id,
-        senderId: currentUser.id,
-      };
+    const title = 'Nuevo mensaje en el foro';
+    const body = `${currentUser.nickname}: ${message.text}`;
+    const data = {
+      type: 'new_message',
+      messageId: message.id,
+      senderId: currentUser.id,
+    };
 
-      await this.notificationService.sendToAllActiveUsers(
-        title,
-        body,
-        data,
-        currentUser.id
-      );
-    } else if (receiver) {
-      const title = `Nuevo mensaje de ${currentUser.nickname}`;
-      const body = message.text;
-      const data = {
-        type: 'new_message',
-        messageId: message.id,
-        senderId: currentUser.id,
-      };
+    await this.notificationService.sendToAllActiveUsers(
+      title,
+      body,
+      data,
+      currentUser.id
+    );
+  }
 
-      await this.notificationService.sendToUser(receiver.id, title, body, data);
-    }
+  private async handleDirectMessageNotification(
+    message: Message,
+    receiver: User,
+    currentUser: CurrentUser
+  ): Promise<void> {
+    const title = `Nuevo mensaje de ${currentUser.nickname}`;
+    const body = message.text;
+    const data = {
+      type: 'new_message',
+      messageId: message.id,
+      senderId: currentUser.id,
+    };
+
+    await this.notificationService.sendToUser(receiver.id, title, body, data);
   }
 }

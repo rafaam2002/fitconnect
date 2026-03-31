@@ -167,7 +167,8 @@ export const createAndPersistPictureUrl = async (
   url: string
 ): Promise<PictureUrl> => {
   const pictureUrl = createPictureUrl(em, item, url);
-  await em.persistAndFlush(pictureUrl);
+  em.persist(pictureUrl);
+  await em.flush();
   return pictureUrl;
 };
 
@@ -204,7 +205,8 @@ export const createPictureUrlsBatch = async (
     createPictureUrl(em, input, url)
   );
 
-  await em.persistAndFlush(pictureUrls);
+  em.persist(pictureUrls);
+  await em.flush();
   return pictureUrls;
 };
 

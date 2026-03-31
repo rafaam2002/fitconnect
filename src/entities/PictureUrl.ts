@@ -1,12 +1,14 @@
 import {
+  BeforeDelete,
+  BeforeUpdate,
   Entity,
+  EventArgs,
   ManyToOne,
   OneToOne,
   Property,
   t,
   Unique,
 } from '@mikro-orm/core';
-import { BeforeDelete, BeforeUpdate, EventArgs } from '@mikro-orm/core';
 
 import { deleteBucketPicture } from '../utils/s3client.util';
 
@@ -50,17 +52,16 @@ export class PictureUrl extends BaseEntity {
     this.url = picture.url;
     this.user = picture.user;
     this.companyLogo = picture.companyLogo;
-    // this.productPicture = picture.productPicture;
   }
 
   @BeforeUpdate()
   async deleteOldPicture(args: EventArgs<PictureUrl>) {
     const changeSet = args.changeSet;
-    if (changeSet && changeSet.payload.name) {
+    if (changeSet?.payload.name) {
       const originalEntity = args.em
         .getUnitOfWork()
         .getOriginalEntityData(this) as any;
-      if (originalEntity && originalEntity.name) {
+      if (originalEntity?.name) {
         try {
           await deleteBucketPicture(originalEntity.name);
         } catch (error) {

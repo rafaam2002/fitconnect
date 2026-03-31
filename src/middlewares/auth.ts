@@ -11,7 +11,7 @@ export const authenticateUser = async (
   em: EntityManager,
   authorization?: string
 ): Promise<CurrentUser | null> => {
-  if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+  if (authorization?.toLowerCase().startsWith('bearer ')) {
     const token = authorization.substring(7);
 
     try {

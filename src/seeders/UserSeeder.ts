@@ -19,9 +19,6 @@ export class UserSeeder extends Seeder {
     // This is the most direct way to prevent "No arguments provided for filter"
     // errors when the seeding context doesn't have filter parameters.
 
-    // em.setFilterParams('company', {});
-    // em.getFilterParams.dis
-
     try {
       const schedules = await em.find(Schedule, {}, { filters: false });
       const promotions = await em.find(Promotion, {}, { filters: false });
@@ -76,7 +73,8 @@ export class UserSeeder extends Seeder {
         { filters: false }
       );
 
-      await em.persistAndFlush(createdAdmins);
+      em.persist(createdAdmins);
+      await em.flush();
       let PollsCreated = false;
 
       new UserFactory(em)

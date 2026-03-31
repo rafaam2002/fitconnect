@@ -5,7 +5,7 @@ import {
   MikroORM,
 } from '@mikro-orm/core';
 
-const ASYNC_METHODS_TO_RETRY = [
+const ASYNC_METHODS_TO_RETRY = new Set([
   'find',
   'findOne',
   'findOneOrFail',
@@ -18,7 +18,7 @@ const ASYNC_METHODS_TO_RETRY = [
   'map',
   'populate',
   'count',
-];
+]);
 
 export function createRetryingEntityManager(
   orm: MikroORM
@@ -32,7 +32,7 @@ export function createRetryingEntityManager(
       ];
 
       if (typeof original === 'function') {
-        if (ASYNC_METHODS_TO_RETRY.includes(propKey as string)) {
+        if (ASYNC_METHODS_TO_RETRY.has(propKey as string)) {
           return async function (...args: any[]) {
             try {
               return await original.apply(target, args);

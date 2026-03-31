@@ -36,7 +36,7 @@ export const listPlans = async (_: any, args: any, context: ContextProps) => {
   const { em } = context;
   try {
     const planService = new PlanService(em);
-    const onlyActive = args.onlyActive !== undefined ? args.onlyActive : true;
+    const onlyActive = args.onlyActive === undefined ? true : args.onlyActive;
 
     return await planService.listPlans(onlyActive);
   } catch (error: any) {

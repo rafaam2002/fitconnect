@@ -138,7 +138,7 @@ export class InvoiceService extends BaseService {
 
     if (!user) {
       throw new Error(
-        `User not found for Stripe customer: ${stripeInvoice.customer}`
+        `User not found for Stripe customer: ${stripeInvoice.customer as string}`
       );
     }
     try {

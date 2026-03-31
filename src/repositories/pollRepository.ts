@@ -6,7 +6,7 @@ export class CustomPollRepository extends EntityRepository<Poll> {
   // Métodos personalizados...
   public async getPollsAndVotesByUser(
     userId: number | string
-  ): Promise<[Poll] | any> {
+  ): Promise<Poll[]> {
     return (
       this.createQueryBuilder('p')
         .select('p.*') // Selecciona todas las columnas de Poll

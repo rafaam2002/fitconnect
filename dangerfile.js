@@ -174,13 +174,13 @@ for (const serviceFile of serviceFiles) {
 
   if (isHotfix) {
     message('🚨 Este es un HOTFIX. Algunas validaciones están relajadas.');
-  } else {
-    // Aplicar reglas estrictas
-    if (totalChanges > MAX_PR_SIZE) {
-      fail(
-        `❌ PR demasiado grande (${totalChanges} líneas). Los no-hotfix deben ser < ${MAX_PR_SIZE}.`
-      );
-    }
+    return;
+  }
+
+  if (totalChanges > MAX_PR_SIZE) {
+    fail(
+      `❌ PR demasiado grande (${totalChanges} líneas). Los no-hotfix deben ser < ${MAX_PR_SIZE}.`
+    );
   }
 }
 
@@ -188,7 +188,7 @@ for (const serviceFile of serviceFiles) {
 const comments = await danger.github.api.issues.listComments({
   owner: danger.github.thisPR.owner,
   repo: danger.github.thisPR.repo,
-  issue_number: danger.github.thisPR.number,
+  issue_number: danger.github.thisPR.pull_number,
 });
 
 const codecovComment = comments.data.find(

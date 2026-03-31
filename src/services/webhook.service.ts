@@ -252,7 +252,7 @@ export class WebhookService extends BaseService {
       stripeEventId: event.id,
     });
 
-    if (existingLog && existingLog.status === WebhookEventStatus.PROCESSED) {
+    if (existingLog?.status === WebhookEventStatus.PROCESSED) {
       console.log(`Event ${event.id} already processed, skipping...`);
       return createServiceResponse(200, 'Webhook already processed', true);
     }

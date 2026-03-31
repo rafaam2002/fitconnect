@@ -19,7 +19,6 @@ export class ScheduleFactory extends Factory<Schedule> {
       moment(faker.date.past({ years: 1 })).toDate(), // Fecha de hasta 6 meses en el pasado
       moment(faker.date.soon({ days: 14 })).toDate(), // Fecha dentro de los próximos 14 días
     ]);
-    // const startDate = moment(faker.date.soon({ days: 14 })).toDate();
 
     const endDate = moment(startDate).add(1, 'hour').toDate(); // Añadir 1 hora a startDate
 

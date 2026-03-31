@@ -8,7 +8,7 @@ import { User } from '../entities/User';
 export class PollFactory extends Factory<Poll> {
   model = Poll;
 
-  private user;
+  private readonly user;
 
   constructor(em: EntityManager, user: User) {
     super(em);

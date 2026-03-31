@@ -271,4 +271,12 @@ type TransactionResponse implements BasicResponse {
     transaction: Transaction
     summary: JSON
 }
+
+type GlobalSystemStatsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    totalUsers:Int
+    totalCompanies: Int
+}
 `;

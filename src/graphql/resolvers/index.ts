@@ -14,6 +14,7 @@ import { subscriptionResolvers } from './subscription.resolver';
 import { pushTokenResolvers } from './token.resolver';
 import { transactionResolvers } from './transaction.resolver';
 import { userResolvers } from './user.resolver';
+import { superAdminResolvers } from './superadmin.resolver';
 
 const resolvers = merge(
   transactionResolvers,
@@ -29,7 +30,8 @@ const resolvers = merge(
   userResolvers,
   articleResolvers,
   companyResolvers,
-  scheduleResolvers
+  scheduleResolvers,
+  superAdminResolvers
 );
 
 export default resolvers;

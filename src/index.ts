@@ -282,7 +282,8 @@ const startServer = async () => {
         const em: EntityManager<IDatabaseDriver<Connection>> =
           createRetryingEntityManager(orm);
 
-        return await middleware(em, authorization, companyId);
+        // Fix: Pass empty string for query to match the middleware signature
+        return await middleware(em, '', authorization, companyId);
       },
     },
     wsServer

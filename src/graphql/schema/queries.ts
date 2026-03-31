@@ -84,5 +84,7 @@ type Query {
     #--------------Company---------
     getCompanies(companyId: ID, page: Int, query: String): CompanyResponse!
     
+    #--------------SuperAdmin Global---------
+    getGlobalSystemStats: GlobalSystemStatsResponse!
 }
 `;

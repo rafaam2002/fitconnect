@@ -38,7 +38,7 @@ export const authenticateUser = async (
       };
       if (currentUser?.activeCompanyId) {
         permissions = await permissionService.getLoginPermissionsContext(
-          decodedToken.id,
+          currentUser,
           currentUser.activeCompanyId
         );
       }

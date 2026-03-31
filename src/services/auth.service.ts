@@ -599,9 +599,10 @@ export class AuthService extends BaseService {
     // Obtener permisos del usuario en esta empresa
     const permissionsContext =
       await this.permissionService.getLoginPermissionsContext(
-        user.id,
+        user,
         company.id
       );
+    
 
     // Crear tokens con permisos incluidos
     const tokens = await this.createTokensPair(
@@ -614,6 +615,70 @@ export class AuthService extends BaseService {
     // Actualizar empresa activa
     user.activeCompanyId = company.id;
     await this.em.flush();
+
+     const debugPermissions = [
+       // 'users:create',
+       'users:read',
+       // 'users:update',
+       // 'users:delete',
+       'users:manage',
+       'schedules:create',
+       'schedules:read',
+       'schedules:update',
+       'schedules:delete',
+       'schedules:manage',
+       'payments:create',
+       'payments:read',
+       'payments:update',
+       'payments:delete',
+       'payments:manage',
+       'settings:create',
+       'settings:read',
+       'settings:update',
+       'settings:delete',
+       'settings:manage',
+       'promotions:create',
+       'promotions:read',
+       'promotions:update',
+       'promotions:delete',
+       'promotions:manage',
+       'chats:create',
+       'chats:read',
+       'chats:update',
+       'chats:delete',
+       'chats:manage',
+       'polls:create',
+       'polls:read',
+       'polls:update',
+       'polls:delete',
+       'polls:manage',
+       'workouts:create',
+       'workouts:read',
+       'workouts:update',
+       'workouts:delete',
+       'workouts:manage',
+       'user_weights:create',
+       'user_weights:read',
+       'user_weights:update',
+       'user_weights:delete',
+       'user_weights:manage',
+       'plans:create',
+       'plans:read',
+       'plans:update',
+       'plans:delete',
+       'plans:manage',
+       'products:create',
+       'products:read',
+       'products:update',
+       'products:delete',
+       'products:manage',
+       'stats:create',
+       'stats:read',
+       'stats:update',
+       'stats:delete',
+       'stats:manage',
+     ];
+
 
 
     // Agregar permisos y subscription al objeto user para retrocompatibilidad
@@ -639,7 +704,7 @@ export class AuthService extends BaseService {
         isInTrial: permissionsContext.isInTrial || false,
         trialEndsAt: permissionsContext.trialEndsAt || null,
       },
-      permissions: permissionsContext.permissionNames,
+      permissions: debugPermissions //permissionsContext.permissionNames,
     });
   }
 

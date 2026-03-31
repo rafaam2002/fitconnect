@@ -14,6 +14,7 @@ import {
 } from '../types/permissions';
 
 import { BaseService } from './base.service';
+import { User } from '../entities/User';
 
 interface CreatePermissionInput {
   module: PermissionModule;
@@ -221,10 +222,15 @@ export class PermissionService extends BaseService {
     return plan.planPermissions
       .getItems()
       .some(
-        pp =>
-          pp.isActive &&
-          pp.permission.isActive &&
-          pp.permission.name === permissionName
+        pp => {
+          if (!pp.isActive || !pp.permission.isActive) return false;
+          
+          if (pp.permission.name === permissionName) return true;
+          if (pp.permission.name === '*:*') return true;
+
+          const [module] = permissionName.split(':');
+          return pp.permission.name === `${module}:manage`;
+        }
       );
   }
 
@@ -290,7 +296,13 @@ export class PermissionService extends BaseService {
     );
     const userPermissionNames = userPermissions.map(p => p.name);
 
-    return permissionNames.every(name => userPermissionNames.includes(name));
+    return permissionNames.every(name => {
+      if (userPermissionNames.includes(name)) return true;
+      if (userPermissionNames.includes('*:*')) return true;
+
+      const [module] = name.split(':');
+      return userPermissionNames.includes(`${module}:manage`);
+    });
   }
 
   /**
@@ -307,7 +319,13 @@ export class PermissionService extends BaseService {
     );
     const userPermissionNames = userPermissions.map(p => p.name);
 
-    return permissionNames.some(name => userPermissionNames.includes(name));
+    return permissionNames.some(name => {
+      if (userPermissionNames.includes(name)) return true;
+      if (userPermissionNames.includes('*:*')) return true;
+
+      const [module] = name.split(':');
+      return userPermissionNames.includes(`${module}:manage`);
+    });
   }
 
   // ============= MÉTODOS ORIGINALES (RETROCOMPATIBILIDAD) =============
@@ -447,11 +465,23 @@ export class PermissionService extends BaseService {
    * Este es el método principal que usarás en la autenticación
    */
   async getLoginPermissionsContext(
-    userId: string,
+    user: User,
     companyId: string
   ): Promise<LoginPermissionsContext> {
+    
+    if (user.isSuperAdmin) {
+       return {
+         hasActiveSubscription: false,
+         plan: null,
+         permissions: [],
+         permissionNames: ["*:*"],
+         subscriptionStatus: null,
+         trialEndsAt: null,
+         renewsAt: null,
+       };
+    }
     const subscription = await this.getUserActiveSubscriptionInCompany(
-      userId,
+      user.id,
       companyId
     );
 
@@ -502,10 +532,10 @@ export class PermissionService extends BaseService {
    * Útil para incluir en el JWT token
    */
   async getLoginPermissionNames(
-    userId: string,
+    user: User,
     companyId: string
   ): Promise<string[]> {
-    const context = await this.getLoginPermissionsContext(userId, companyId);
+    const context = await this.getLoginPermissionsContext(user, companyId);
     return context.permissionNames;
   }
 

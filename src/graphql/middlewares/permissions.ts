@@ -16,8 +16,14 @@ export const withPermissions = (
     if (userPermissions.includes('*:*')) {
       return resolver(parent, args, context, info);
     }
+    
 
-    if (!requiredPermissions.every(p => userPermissions.includes(p))) {
+    if (!requiredPermissions.every(p => {
+      if (userPermissions.includes(p)) return true;
+      
+      const [module] = p.split(':');
+      return userPermissions.includes(`${module}:manage`);
+    })) {
       throw new ForbiddenError();
     }
 

@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 
+import { Article } from '../entities/Article';
 import { ServiceResponse } from '../types/common.type';
 import {
   BadRequestError,
@@ -11,7 +12,6 @@ import {
 } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
-import { Article } from '../entities/Article';
 
 // ============= INTERFACES =============
 
@@ -19,15 +19,6 @@ export interface GetArticlesInput {
   limit: number;
   offset: number;
 }
-
-// export interface Article {
-//   id: string;
-//   title: string;
-//   content: string;
-//   author?: string;
-//   publishedAt?: string;
-//   [key: string]: any; // Permitir campos adicionales de la API
-// }
 
 export interface ArticlesResponse {
   articles: Article[];
@@ -125,7 +116,6 @@ export class ArticleService extends BaseService {
         offset,
       }
     );
-
 
     return createServiceResponse(200, 'Articles fetched successfully', true, {
       articles,
@@ -255,9 +245,9 @@ export class ArticleService extends BaseService {
   ): Promise<ExternalAPIResponse> {
     try {
       return await response.json();
-    } catch (error) {
+    } catch (e: any) {
       throw new ExternalAPIError(
-        'Invalid JSON response from external API',
+        `Invalid JSON response from external API ${e.message}`,
         this.apiName
       );
     }

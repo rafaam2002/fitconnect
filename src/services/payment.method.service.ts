@@ -724,22 +724,22 @@ export class PaymentMethodService extends BaseService {
 
     let paymentMethod = await this.em.findOne(PaymentMethod, {
       stripeCustomer,
-      fingerprint: stripePaymentMethod!.card!.fingerprint,
+      fingerprint: stripePaymentMethod.card!.fingerprint,
       status: PaymentMethodStatus.ACTIVE,
     });
 
     const paymentMethodData =
       this.extractPaymentMethodData(stripePaymentMethod);
 
-    if (!paymentMethod) {
+    if (paymentMethod) {
+      // Actualizar existente
+      Object.assign(paymentMethod, paymentMethodData);
+    } else {
       // Crear nuevo
       paymentMethod = this.em.create(PaymentMethod, {
         ...paymentMethodData,
         stripeCustomer,
       });
-    } else {
-      // Actualizar existente
-      Object.assign(paymentMethod, paymentMethodData);
     }
 
     this.em.persist(paymentMethod);
@@ -794,8 +794,8 @@ export class PaymentMethodService extends BaseService {
       if (!stripePaymentMethod.customer) {
         errors.push('Payment method is not attached to a customer in Stripe');
       }
-    } catch (stripeError) {
-      errors.push('Payment method not found in Stripe');
+    } catch (stripeError: any) {
+      errors.push(`Payment method not found in Stripe ${stripeError.message}`);
     }
 
     const isValid = errors.length === 0;

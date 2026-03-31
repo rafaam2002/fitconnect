@@ -25,10 +25,6 @@ import { createRetryingEntityManager } from './utils/orm-retry';
 import { renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
-// const {
-//   ApolloServerPluginLandingPageLocalDefault,
-// } = require("apollo-server-core");
-
 dotenv.config();
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -319,6 +315,6 @@ const startServer = async () => {
   cronFunctions(createRetryingEntityManager(orm));
 
   storeNews(createRetryingEntityManager(orm), 3, [1, 2, 3, 4]); //limt = 3 free plan
-};;
+};
 
 startServer();

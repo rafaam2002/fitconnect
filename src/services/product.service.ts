@@ -22,7 +22,7 @@ import { BaseService } from './base.service';
 import { S3Service } from './s3.service';
 
 export class ProductService extends BaseService {
-  private s3Service: S3Service;
+  private readonly s3Service: S3Service;
 
   constructor(em: EntityManager) {
     super(em);
@@ -42,7 +42,7 @@ export class ProductService extends BaseService {
 
       return createServiceResponse(200, 'Products found', true, { products });
     } catch (error: any) {
-      throw new InternalServerError('Error fetching products');
+      throw new InternalServerError(`Error fetching products ${error.message}`);
     }
   }
 
@@ -170,14 +170,15 @@ export class ProductService extends BaseService {
 
     // Verificar si se encontraron todos los productos
     if (products.length !== ids.length) {
-      const foundIds = products.map((product: Product) => product.id);
-      const notFoundIds = ids.filter(id => !foundIds.includes(id));
+      const foundIds = new Set(products.map((product: Product) => product.id));
+      const notFoundIds = ids.filter(id => !foundIds.has(id));
       throw new NotFoundError(
         `Some products not found: ${notFoundIds.join(', ')}`
       );
     }
 
-    await this.em.removeAndFlush(products);
+    this.em.remove(products);
+    await this.em.flush();
 
     return createServiceResponse(
       200,

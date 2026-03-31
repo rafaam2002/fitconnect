@@ -21,22 +21,6 @@ const login = async (_: any, args: LoginProps, { em }: ContextProps) => {
   }
 };
 
-const loginWithCompany = async (_: any, args: any, { em }: ContextProps) => {
-  try {
-    const { emailOrNickname, password, companyId } = args;
-
-    const authService = new AuthService(em);
-
-    return await authService.loginWithCompany({
-      emailOrNickname,
-      password,
-      companyId,
-    });
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
 const loginWithId = async (_: any, args: any, { em }: ContextProps) => {
   try {
     const { id } = args;
@@ -55,35 +39,7 @@ const loginWithId = async (_: any, args: any, { em }: ContextProps) => {
   }
 };
 
-const me = async (_: any, __: any, { currentUser, em }: ContextProps) => {
-  try {
-    const authService = new AuthService(em);
-
-    return await authService.getCurrentUser(currentUser.id);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
 // ===== MUTATION RESOLVERS =====
-const selectCompany = async (
-  _: any,
-  args: any,
-  { currentUser, em }: ContextProps
-) => {
-  try {
-    const { companyId } = args;
-
-    const authService = new AuthService(em);
-
-    return await authService.selectCompany({
-      userId: currentUser.id,
-      companyId,
-    });
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
 
 const forgotPassword = async (
   _: any,

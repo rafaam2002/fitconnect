@@ -1,8 +1,8 @@
 import { EntityManager } from '@mikro-orm/core';
 
 import { BadRequestError } from '../utils/errors.util';
-import { authenticateUser } from './auth';
 
+import { authenticateUser } from './auth';
 import {
   filterPublicQueries,
   filterRefreshTokenQueries,
@@ -23,7 +23,7 @@ export const middleware = async (
   const currentUser = await authenticateUser(em, authorization);
 
   if (currentUser?.isSuperAdmin) {
-    currentUser.permissionNames= ["*:*"]
+    currentUser.permissionNames = ['*:*'];
   }
 
   if (currentUser?.activeCompanyId) {

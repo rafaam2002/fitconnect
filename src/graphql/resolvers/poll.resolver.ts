@@ -81,7 +81,7 @@ export const createOrChangePollVote = async (
       option
     );
   } catch (error: any) {
-    return handleError(error);  
+    return handleError(error);
   }
 };
 
@@ -126,7 +126,10 @@ export const pollResolvers = {
   },
   Mutation: {
     createPoll: withPermissions(pollsPermissions.CREATE, createPoll),
-    createOrChangePollVote: withPermissions(pollsPermissions.UPDATE, createOrChangePollVote),
+    createOrChangePollVote: withPermissions(
+      pollsPermissions.UPDATE,
+      createOrChangePollVote
+    ),
     deletePollVote: withPermissions(pollsPermissions.UPDATE, deletePollVote),
     removePolls: withPermissions(pollsPermissions.DELETE, removePolls),
   },

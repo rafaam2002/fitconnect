@@ -2,6 +2,7 @@ import { EntityManager, FilterQuery } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 
 import { Company } from '../entities/Company';
+import { SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
@@ -19,7 +20,6 @@ import {
 } from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
-import { SubscriptionStatus } from '../entities/Subscription';
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { CompanyService } from './company.service';
@@ -31,12 +31,12 @@ import { S3Service } from './s3.service';
  * User Service - Handles all user-related business logic
  */
 export class UserService extends BaseService {
-  private emailService: EmailService;
-  private customerService: CustomerService;
-  private authService: AuthService;
-  private companyService: CompanyService;
+  private readonly emailService: EmailService;
+  private readonly customerService: CustomerService;
+  private readonly authService: AuthService;
+  private readonly companyService: CompanyService;
 
-  private s3Service: S3Service;
+  private readonly s3Service: S3Service;
 
   constructor(em: EntityManager) {
     super(em);
@@ -85,8 +85,8 @@ export class UserService extends BaseService {
       return createServiceResponse(200, 'Users found', true, {
         users: filteredUsers,
       });
-    } catch (error) {
-      throw new InternalServerError('Error fetching users');
+    } catch (e: any) {
+      throw new InternalServerError(`Error fetching users ${e.message}`);
     }
   }
 
@@ -138,11 +138,6 @@ export class UserService extends BaseService {
       { id: currentUser.id },
       { refresh: true }
     );
-
-    // const userForCompanies = await userRepo.findOne(
-    //   { id: currentUser.id },
-    //   { filters: false }
-    // );
 
     if (!user) {
       throw new NotFoundError('User');
@@ -413,7 +408,15 @@ export class UserService extends BaseService {
 
     const url = await getPresignedUrl(pictureName);
 
-    if (!user.pictureUrl) {
+    if (user.pictureUrl) {
+      // Borrar imagen antigua de S3 antes de actualizar
+      if (user.pictureUrl.name) {
+        await this.s3Service.deleteObject(user.pictureUrl.name);
+      }
+
+      user.pictureUrl.name = pictureName;
+      user.pictureUrl.url = url;
+    } else {
       user.pictureUrl = createPictureUrl(
         this.em,
         {
@@ -423,14 +426,6 @@ export class UserService extends BaseService {
         },
         url
       );
-    } else {
-      // Borrar imagen antigua de S3 antes de actualizar
-      if (user.pictureUrl.name) {
-        await this.s3Service.deleteObject(user.pictureUrl.name);
-      }
-
-      user.pictureUrl.name = pictureName;
-      user.pictureUrl.url = url;
     }
 
     try {
@@ -497,7 +492,7 @@ export class UserService extends BaseService {
       ]);
 
     const pendingUsers = await this.em.count(User, {
-      pendingCompanies: { id: currentUser.activeCompanyId! },
+      pendingCompanies: { id: currentUser.activeCompanyId },
     });
 
     const stats = {

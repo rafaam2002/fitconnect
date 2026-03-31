@@ -2,13 +2,13 @@ import {
   BeforeCreate,
   BeforeUpdate,
   Entity,
-  EntityManager,
   EntityRepositoryType,
   ManyToOne,
   Property,
 } from '@mikro-orm/core';
 
 import { CustomPollRepository } from '../repositories/pollRepository';
+
 import { Poll } from './Poll';
 import { User } from './User';
 
@@ -25,7 +25,7 @@ export class PollVote {
   @Property()
   optionSelected!: number;
 
-  constructor(pollVote: PollVote, em: EntityManager) {
+  constructor(pollVote: PollVote) {
     this.poll = pollVote.poll;
     this.user = pollVote.user;
     this.optionSelected = pollVote.optionSelected;

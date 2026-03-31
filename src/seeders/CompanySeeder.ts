@@ -1,7 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
-import { Plan, PlanInterval } from '../entities/Plan';
 import { CompanyFactory } from '../factories/CompanyFactory';
 
 export class CompanySeeder extends Seeder {

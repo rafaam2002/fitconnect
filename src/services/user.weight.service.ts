@@ -4,7 +4,12 @@ import { User } from '../entities/User';
 import { UserWeight } from '../entities/UserWeight';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
-import { createServiceResponse, ForbiddenError, NotFoundError, UnauthorizedError, } from '../utils/errors.util';
+import {
+  createServiceResponse,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 

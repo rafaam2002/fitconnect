@@ -1,4 +1,3 @@
-import { User } from '../../entities/User';
 import { PushTokenService } from '../../services/push.token.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
@@ -17,7 +16,7 @@ export const registerToken = async (
     const { token } = args;
 
     const pushTokenService = new PushTokenService(em);
-    return await pushTokenService.registerToken(currentUser as User, token);
+    return await pushTokenService.registerToken(currentUser, token);
   } catch (error: any) {
     return handleError(error);
   }
@@ -55,7 +54,7 @@ export const removePushToken = async (
     const { token } = args;
 
     const pushTokenService = new PushTokenService(em);
-    return await pushTokenService.removePushToken(currentUser as User, token);
+    return await pushTokenService.removePushToken(currentUser, token);
   } catch (error: any) {
     return handleError(error);
   }

@@ -50,7 +50,7 @@ export const authenticateUser = async (
         // Make sure mandatory fields from CurrentUser are include
       };
 
-      return currentUserWithPermissions  as CurrentUser;
+      return currentUserWithPermissions as CurrentUser;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         throw new UnauthorizedError();

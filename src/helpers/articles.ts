@@ -21,7 +21,7 @@ export const storeNews = async (
 
       // Procesar cada respuesta y almacenar las noticias en la base de datos
       for (const response of responses) {
-        if (response && response.data) {
+        if (response?.data) {
           for (const newsItem of response.data) {
             // console.log(newsItem)
             const article = articleRepo.create({
@@ -32,7 +32,8 @@ export const storeNews = async (
               link: newsItem.url,
               image: newsItem.image_url,
             });
-            await em.persistAndFlush(article); // Guardar en la base de datos
+            em.persist(article);
+            await em.flush();
           }
         }
       }
@@ -46,7 +47,7 @@ const fetchBoxingNews = async (limit: number, page: number) => {
   try {
     const response = await axios.get('https://api.thenewsapi.com/v1/news/all', {
       params: {
-        api_token: '2Z7NKRiCCOlyW1vRW9051aBRqCC9TtoI3d5zSg2e',
+        api_token: process.env.ARTICLE_API_SECRET,
         categories: 'sports',
         sort: 'published_at_desc',
         language: 'es',

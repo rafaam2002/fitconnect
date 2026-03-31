@@ -74,24 +74,4 @@ export class Transaction extends BaseEntity {
 
   @Property({ type: 'json', nullable: true })
   metadata?: Record<string, any>;
-
-  /*private formattedAmount(): string {
-        return (this.amount / 100).toFixed(2);
-    }
-
-    private formattedAmountRefunded(): string {
-        return (this.amountRefunded / 100).toFixed(2);
-    }
-
-    private netAmount(): number {
-        return this.amount - this.amountRefunded;
-    }
-
-    private isSuccessful(): boolean {
-        return this.status === TransactionStatus.SUCCEEDED;
-    }
-
-    private isRefunded(): boolean {
-        return [TransactionStatus.REFUNDED, TransactionStatus.PARTIALLY_REFUNDED].includes(this.status);
-    }*/
 }

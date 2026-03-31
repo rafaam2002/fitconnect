@@ -4,7 +4,7 @@ import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import config from '../mikro-orm.config';
 import { CustomerService } from '../services/customer.service';
-import SubscriptionService from '../services/subscription.service';
+import { SubscriptionService } from '../services/subscription.service';
 
 async function reconcileWithStripe() {
   const orm = await MikroORM.init(config);
@@ -20,7 +20,7 @@ async function reconcileWithStripe() {
     try {
       await customerService.syncCustomerFromStripe(customer.stripeCustomerId);
       console.log(`✅ Synced customer: ${customer.stripeCustomerId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         `❌ Failed to sync customer ${customer.stripeCustomerId}:`,
         error.message
@@ -47,7 +47,7 @@ async function reconcileWithStripe() {
       console.log(
         `✅ Synced subscription: ${subscription.stripeSubscriptionId}`
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         `❌ Failed to sync subscription ${subscription.stripeSubscriptionId}:`,
         error.message

@@ -1,14 +1,10 @@
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
+import { Promotion } from '../entities/Promotion';
+
 export class PromotionSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    // const userRepo = em.getRepository(User);
-    // const users = await userRepo.find({
-    //   //role: { $in: [UserRoleEnum.ADMIN, UserRoleEnum.COACH] },
-    // }, {
-    //   filters: false,
-    // });
-    // new PromotionFactory(em, users).make(10);
+    await em.findAll(Promotion);
   }
 }

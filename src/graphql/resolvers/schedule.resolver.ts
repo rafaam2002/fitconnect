@@ -392,14 +392,8 @@ export const scheduleResolvers: IResolvers = {
       schedulesPermissions.READ,
       getTodaySchedulesResume
     ),
-    getSchedulesRange: withPermissions(
-      schedulesPermissions.READ,
-      getSchedulesRange
-    ),
-    getSchedulesResumeRange: withPermissions(
-      schedulesPermissions.READ,
-      getSchedulesResumeRange
-    ),
+    getSchedulesRange,
+    getSchedulesResumeRange,
     getScheduleOptions: withPermissions(
       schedulesPermissions.READ,
       getScheduleOptions
@@ -412,10 +406,7 @@ export const scheduleResolvers: IResolvers = {
       schedulesPermissions.READ,
       getMonthlySchedules
     ),
-    getUserSchedules: withPermissions(
-      schedulesPermissions.READ,
-      getUserSchedules
-    ),
+    getUserSchedules,
   },
   Mutation: {
     createSchedule: withPermissions(

@@ -28,9 +28,10 @@ import { EmailService } from './email.service';
 import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
-  newCompany: Company;
   newUser: User;
   newFirstForumMessage: Message;
+  newCompany: Company;
+
 }
 
 export class CompanyService extends BaseService {
@@ -479,7 +480,7 @@ export class CompanyService extends BaseService {
     const newCompany = em.create(Company, company);
 
     // Create UserRole as ADMIN for the creator
-    em.create(UserRole, {
+    const newUserRole = em.create(UserRole, {
       user,
       company: newCompany,
       role: UserRoleEnum.ADMIN,
@@ -494,10 +495,13 @@ export class CompanyService extends BaseService {
       isFixed: false,
     });
 
+    user.activeCompanyId = newCompany.id;
+    user.roles.add(newUserRole);
+
     return {
-      newCompany,
       newFirstForumMessage: firstForumMessage,
       newUser: user,
+      newCompany,
     };
   }
 }

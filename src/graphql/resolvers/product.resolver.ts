@@ -81,7 +81,7 @@ export const removeProduct = async (
 
 export const productResolvers = {
   Query: {
-    getProducts: withPermissions(productsPermissions.READ, getProducts),
+    getProducts,
   },
   Mutation: {
     createProduct: withPermissions(productsPermissions.CREATE, createProduct),

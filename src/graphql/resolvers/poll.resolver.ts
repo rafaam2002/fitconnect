@@ -121,7 +121,7 @@ export const removePolls = async (
 
 export const pollResolvers = {
   Query: {
-    getPolls: withPermissions(pollsPermissions.READ, getPolls),
+    getPolls,
     getAdminPolls: withPermissions(pollsPermissions.READ, getAdminPolls),
   },
   Mutation: {

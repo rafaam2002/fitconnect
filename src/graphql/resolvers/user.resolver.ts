@@ -450,7 +450,7 @@ const fixedMessages = {
 
 export const userResolvers: IResolvers = {
   Query: {
-    me: withPermissions(usersPermissions.READ, me),
+    me,
     findUser: withPermissions(usersPermissions.READ, findUser),
     // getAdminSchedules,
     getConversation: withPermissions(chatsPermissions.READ, getConversation),

@@ -260,25 +260,25 @@ export class UserService extends BaseService {
 
     try {
       if (role === UserRoleEnum.ADMIN) {
-        const {
-          newCompany,
-          newUser: adminUser,
-          newFirstForumMessage,
-        } = this.companyService.createAdminCompany(em, newUser, companyData);
+        const { newUser: adminUser, newFirstForumMessage } =
+          this.companyService.createAdminCompany(em, newUser, companyData);
 
-        this.em.persist([newCompany, newFirstForumMessage]);
-        await this.em.flush();
-
+        this.em.persist([newFirstForumMessage]);
         newUser = adminUser;
 
-        const companyToken = this.authService.generateCompanyVerificationToken(
-          newCompany.id
-        );
-        await this.emailService.sendCompanyVerificationEmail(
-          companyToken,
-          companyData,
-          newUser
-        );
+        if (newUser.activeCompanyId) {
+          const companyToken =
+            this.authService.generateCompanyVerificationToken(
+              newUser.activeCompanyId
+            );
+          await this.emailService.sendCompanyVerificationEmail(
+            companyToken,
+            companyData,
+            newUser
+          );
+        } else {
+          throw new Error('Company not created, activeCompanyId is null');
+        }
       }
 
       this.em.persist(newUser);
@@ -308,7 +308,9 @@ export class UserService extends BaseService {
       if (error.code === 'EAUTH') {
         throw new Error(`Error sending verification email: ${error.message}`);
       }
-      throw new InternalServerError(`Error creating user: ${error?.message || error?.name || 'Unknown error'}`);
+      throw new InternalServerError(
+        `Error creating user: ${error?.message || error?.name || 'Unknown error'}`
+      );
     }
   }
 

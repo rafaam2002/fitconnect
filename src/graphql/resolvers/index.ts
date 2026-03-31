@@ -11,10 +11,10 @@ import { productResolvers } from './product.resolver';
 import { s3Resolvers } from './s3.resolvers';
 import { scheduleResolvers } from './schedule.resolver';
 import { subscriptionResolvers } from './subscription.resolver';
+import { superAdminResolvers } from './superadmin.resolver';
 import { pushTokenResolvers } from './token.resolver';
 import { transactionResolvers } from './transaction.resolver';
 import { userResolvers } from './user.resolver';
-import { superAdminResolvers } from './superadmin.resolver';
 
 const resolvers = merge(
   transactionResolvers,

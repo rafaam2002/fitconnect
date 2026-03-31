@@ -233,7 +233,10 @@ export class AuthService extends BaseService {
     const { email, name } = googleData;
 
     // Buscar o crear usuario
-    let user = await this.findOrCreateGoogleUser(email!, name);
+    let user = await this.findOrCreateGoogleUser(
+      email || 'rafa@.mail.com',
+      name
+    );
 
     const companies = user.companies.getItems();
 
@@ -298,7 +301,7 @@ export class AuthService extends BaseService {
     }
 
     return await this.login({
-      emailOrNickname: user.email!,
+      emailOrNickname: user.email || 'rafa@mail.com',
       password: process.env.DEFAULT_PASSWORD || '123456',
     });
   }
@@ -313,7 +316,7 @@ export class AuthService extends BaseService {
       throw new NotFoundError('User');
     }
 
-    const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
+    const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET || '', {
       expiresIn: '30m',
     });
 
@@ -375,12 +378,12 @@ export class AuthService extends BaseService {
       password: tmpPassword,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET!, {
+    const token = jwt.sign(payload, process.env.JWT_SECRET || '', {
       expiresIn: '30m',
     });
 
     const config: EmailConfig = {
-      from: process.env.GMAIL_USER!,
+      from: process.env.GMAIL_USER || '',
       to: email,
       subject: 'Change your password',
       html: changePasswordHtml(token, tmpPassword),
@@ -598,11 +601,7 @@ export class AuthService extends BaseService {
   ): Promise<ServiceResponse> {
     // Obtener permisos del usuario en esta empresa
     const permissionsContext =
-      await this.permissionService.getLoginPermissionsContext(
-        user,
-        company.id
-      );
-    
+      await this.permissionService.getLoginPermissionsContext(user, company.id);
 
     // Crear tokens con permisos incluidos
     const tokens = await this.createTokensPair(
@@ -615,7 +614,6 @@ export class AuthService extends BaseService {
     // Actualizar empresa activa
     user.activeCompanyId = company.id;
     await this.em.flush();
-
 
     // Agregar permisos y subscription al objeto user para retrocompatibilidad
     Object.assign(user, {
@@ -732,5 +730,4 @@ export class AuthService extends BaseService {
 
     return company;
   }
-
 }

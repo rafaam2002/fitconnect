@@ -31,14 +31,13 @@ export interface AdminCompanyResponse {
   newUser: User;
   newFirstForumMessage: Message;
   newCompany: Company;
-
 }
 
 export class CompanyService extends BaseService {
-  private emailService: EmailService;
-  private authService: AuthService;
+  private readonly emailService: EmailService;
+  private readonly authService: AuthService;
 
-  private s3Service: S3Service;
+  private readonly s3Service: S3Service;
 
   constructor(em: EntityManager) {
     super(em);
@@ -208,9 +207,16 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('Company');
     }
 
-    //TODO: mirar esto, creo que no tiene sentido cuando no hay logo
-    if (!updateCompany.logo) {
-      updateCompany.logo = await createPictureUrl(
+    if (updateCompany.logo) {
+      // Borrar logo antiguo de S3
+      if (updateCompany.logo.name) {
+        await this.s3Service.deleteObject(updateCompany.logo.name);
+      }
+
+      updateCompany.logo.name = picture;
+      updateCompany.logo.url = await getPresignedUrl(picture);
+    } else {
+      updateCompany.logo = createPictureUrl(
         this.em,
         {
           id: companyId,
@@ -219,14 +225,6 @@ export class CompanyService extends BaseService {
         },
         await getPresignedUrl(picture)
       );
-    } else {
-      // Borrar logo antiguo de S3
-      if (updateCompany.logo.name) {
-        await this.s3Service.deleteObject(updateCompany.logo.name);
-      }
-
-      updateCompany.logo.name = picture;
-      updateCompany.logo.url = await getPresignedUrl(picture);
     }
 
     this.em.persist(updateCompany);
@@ -317,13 +315,13 @@ export class CompanyService extends BaseService {
     }
 
     // Verificar si ya es miembro
-    const isMember = await user.companies.contains(company);
+    const isMember = user.companies.contains(company);
     if (isMember) {
       throw new ConflictError('User is already a member of this company');
     }
 
     // Verificar si ya tiene solicitud pendiente
-    const isPending = await user.pendingCompanies.contains(company);
+    const isPending = user.pendingCompanies.contains(company);
     if (isPending) {
       throw new ConflictError('User request is already pending');
     }
@@ -345,7 +343,7 @@ export class CompanyService extends BaseService {
 
       for (const role of adminRoles) {
         const admin = role.user;
-        if (admin && admin.pushTokens) {
+        if (admin?.pushTokens) {
           for (const tokenEntity of admin.pushTokens) {
             await sendPushNotification(
               tokenEntity.token,
@@ -364,9 +362,8 @@ export class CompanyService extends BaseService {
     return createServiceResponse(200, 'Request sent successfully', true);
   }
 
-  /**
-   * Admitir usuario a la empresa (solo ADMIN)
-   */
+  // ============= MÉTODOS PRIVADOS =============
+
   public async admitUserToCompany(
     currentUser: CurrentUser,
     companyId: string,
@@ -376,98 +373,22 @@ export class CompanyService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    const company = await this.em.findOne(Company, { id: companyId });
-    if (!company) {
-      throw new NotFoundError('Company');
-    }
+    const company = await this.em.findOneOrFail(Company, { id: companyId });
 
-    // Verificar que el usuario actual es ADMIN de la empresa
-    const currentUserRole = await this.em.findOne(UserRole, {
-      user: currentUser.id,
-      company: company.id,
-      role: UserRoleEnum.ADMIN,
-    });
+    // Validaciones
+    await this.validateAdminPermission(currentUser.id, companyId);
+    await this.validateUserLimit(currentUser.id, companyId);
 
-    if (!currentUserRole) {
-      throw new ForbiddenError('You are not authorized to perform this action');
-    }
+    // Obtener usuario pendiente
+    const userToAdmit = await this.getPendingUser(userId, company);
 
-    const activeSubscription = await this.em.findOne(
-      Subscription,
-      {
-        user: currentUser.id,
-        company: company.id,
-        status: {
-          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-        },
-      },
-      { populate: ['plan'] }
-    );
-
-    if (activeSubscription?.plan?.metadata?.maxUsers) {
-      const maxUsers = activeSubscription.plan.metadata.maxUsers;
-
-      if (maxUsers !== 'unlimited') {
-        const maxUsersLimit = parseInt(maxUsers, 10);
-
-        if (!isNaN(maxUsersLimit)) {
-          const currentUsersCount = await this.em.count(UserRole, {
-            company: company.id,
-          });
-
-          if (currentUsersCount >= maxUsersLimit) {
-            throw new BadRequestError(
-              `User limit reached. Your plan allows a maximum of ${maxUsersLimit} users.`
-            );
-          }
-        }
-      }
-    }
-
-    const userToAdmit = await this.em.findOne(
-      User,
-      { id: userId },
-      { populate: ['pushTokens', 'pendingCompanies', 'companies'] }
-    );
-
-    if (!userToAdmit) {
-      throw new NotFoundError('User to admit not found');
-    }
-
-    // Verificar que el usuario está en la lista de pendientes
-    const isPending = userToAdmit.pendingCompanies.contains(company);
-    if (!isPending) {
-      throw new BadRequestError('User is not in the pending list');
-    }
-
-    // Mover de pendientes a miembros
+    // Admitir usuario
     userToAdmit.pendingCompanies.remove(company);
-
-    // Crear UserRole para el nuevo miembro (default STANDARD)
-    const newUserRole = this.em.create(UserRole, {
-      user: userToAdmit,
-      company: company,
-    });
-    this.em.persist(newUserRole);
-
+    this.em.persist(this.em.create(UserRole, { user: userToAdmit, company }));
     await this.em.flush();
 
-    // Enviar notificación al usuario admitido
-    try {
-      if (userToAdmit.pushTokens) {
-        for (const tokenEntity of userToAdmit.pushTokens) {
-          await sendPushNotification(
-            tokenEntity.token,
-            'Solicitud aceptada',
-            `Has sido aceptado en ${company.name}`,
-            { type: 'company_admission', companyId: company.id }
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Error sending push notifications:', error);
-      // No lanzar error - las notificaciones son secundarias
-    }
+    // Notificar (fire-and-forget)
+    this.notifyUserAdmission(userToAdmit, company.name, companyId);
 
     return createServiceResponse(200, 'User admitted successfully', true);
   }
@@ -503,5 +424,91 @@ export class CompanyService extends BaseService {
       newUser: user,
       newCompany,
     };
+  }
+
+  private async validateAdminPermission(
+    userId: string,
+    companyId: string
+  ): Promise<void> {
+    const userRole = await this.em.findOne(UserRole, {
+      user: userId,
+      company: companyId,
+      role: UserRoleEnum.ADMIN,
+    });
+
+    if (!userRole) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+  }
+
+  private async validateUserLimit(
+    userId: string,
+    companyId: string
+  ): Promise<void> {
+    const subscription = await this.em.findOne(
+      Subscription,
+      {
+        user: userId,
+        company: companyId,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      { populate: ['plan'] }
+    );
+
+    const maxUsers = subscription?.plan?.metadata?.maxUsers;
+    if (!maxUsers || maxUsers === 'unlimited') return;
+
+    const limit = Number.parseInt(maxUsers, 10);
+    if (Number.isNaN(limit)) return;
+
+    const currentCount = await this.em.count(UserRole, { company: companyId });
+
+    if (currentCount >= limit) {
+      throw new BadRequestError(
+        `User limit reached. Your plan allows a maximum of ${limit} users.`
+      );
+    }
+  }
+
+  private async getPendingUser(
+    userId: string,
+    company: Company
+  ): Promise<User> {
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { populate: ['pushTokens', 'pendingCompanies'] }
+    );
+
+    if (!user) {
+      throw new NotFoundError('User to admit not found');
+    }
+
+    if (!user.pendingCompanies.contains(company)) {
+      throw new BadRequestError('User is not in the pending list');
+    }
+
+    return user;
+  }
+
+  private async notifyUserAdmission(
+    user: User,
+    companyName: string,
+    companyId: string
+  ): Promise<void> {
+    if (!user.pushTokens?.length) return;
+
+    const notifications = user.pushTokens.map(token =>
+      sendPushNotification(
+        token.token,
+        'Solicitud aceptada',
+        `Has sido aceptado en ${companyName}`,
+        { type: 'company_admission', companyId }
+      ).catch(err => console.error('Push notification failed:', err))
+    );
+
+    await Promise.allSettled(notifications);
   }
 }

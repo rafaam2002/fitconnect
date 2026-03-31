@@ -8,13 +8,13 @@ import {
 import { Plan } from '../entities/Plan';
 import { PlanPermission } from '../entities/PlanPermission';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
+import { User } from '../entities/User';
 import {
   CompanyPermissionsContext,
   LoginPermissionsContext,
 } from '../types/permissions';
 
 import { BaseService } from './base.service';
-import { User } from '../entities/User';
 
 interface CreatePermissionInput {
   module: PermissionModule;
@@ -79,10 +79,8 @@ export class PermissionService extends BaseService {
     });
 
     if (permissions.length !== permissionNames.length) {
-      const foundNames = permissions.map(p => p.name);
-      const missing = permissionNames.filter(
-        name => !foundNames.includes(name)
-      );
+      const foundNames = new Set(permissions.map(p => p.name));
+      const missing = permissionNames.filter(name => !foundNames.has(name));
       console.warn(`Some permissions not found: ${missing.join(', ')}`);
     }
 
@@ -219,19 +217,15 @@ export class PermissionService extends BaseService {
     const plan = subscription.plan;
     await plan.planPermissions.init();
 
-    return plan.planPermissions
-      .getItems()
-      .some(
-        pp => {
-          if (!pp.isActive || !pp.permission.isActive) return false;
-          
-          if (pp.permission.name === permissionName) return true;
-          if (pp.permission.name === '*:*') return true;
+    return plan.planPermissions.getItems().some(pp => {
+      if (!pp.isActive || !pp.permission.isActive) return false;
 
-          const [module] = permissionName.split(':');
-          return pp.permission.name === `${module}:manage`;
-        }
-      );
+      if (pp.permission.name === permissionName) return true;
+      if (pp.permission.name === '*:*') return true;
+
+      const [module] = permissionName.split(':');
+      return pp.permission.name === `${module}:manage`;
+    });
   }
 
   /**
@@ -294,14 +288,14 @@ export class PermissionService extends BaseService {
       userId,
       companyId
     );
-    const userPermissionNames = userPermissions.map(p => p.name);
+    const userPermissionNames = new Set(userPermissions.map(p => p.name));
 
     return permissionNames.every(name => {
-      if (userPermissionNames.includes(name)) return true;
-      if (userPermissionNames.includes('*:*')) return true;
+      if (userPermissionNames.has(name)) return true;
+      if (userPermissionNames.has('*:*')) return true;
 
       const [module] = name.split(':');
-      return userPermissionNames.includes(`${module}:manage`);
+      return userPermissionNames.has(`${module}:manage`);
     });
   }
 
@@ -317,14 +311,14 @@ export class PermissionService extends BaseService {
       userId,
       companyId
     );
-    const userPermissionNames = userPermissions.map(p => p.name);
+    const userPermissionNames = new Set(userPermissions.map(p => p.name));
 
     return permissionNames.some(name => {
-      if (userPermissionNames.includes(name)) return true;
-      if (userPermissionNames.includes('*:*')) return true;
+      if (userPermissionNames.has(name)) return true;
+      if (userPermissionNames.has('*:*')) return true;
 
       const [module] = name.split(':');
-      return userPermissionNames.includes(`${module}:manage`);
+      return userPermissionNames.has(`${module}:manage`);
     });
   }
 
@@ -462,23 +456,22 @@ export class PermissionService extends BaseService {
 
   /**
    * Obtener información completa de permisos para el login
-   * Este es el método principal que usarás en la autenticación
+ sarás en la autenticación
    */
   async getLoginPermissionsContext(
     user: User,
     companyId: string
   ): Promise<LoginPermissionsContext> {
-    
     if (user.isSuperAdmin) {
-       return {
-         hasActiveSubscription: false,
-         plan: null,
-         permissions: [],
-         permissionNames: ["*:*"],
-         subscriptionStatus: null,
-         trialEndsAt: null,
-         renewsAt: null,
-       };
+      return {
+        hasActiveSubscription: false,
+        plan: null,
+        permissions: [],
+        permissionNames: ['*:*'],
+        subscriptionStatus: null,
+        trialEndsAt: null,
+        renewsAt: null,
+      };
     }
     const subscription = await this.getUserActiveSubscriptionInCompany(
       user.id,
@@ -498,7 +491,6 @@ export class PermissionService extends BaseService {
     }
 
     const plan = subscription.plan;
-    // await plan.planPermissions.init();
 
     const permissions = plan.planPermissions
       .getItems()

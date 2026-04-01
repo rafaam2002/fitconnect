@@ -1,5 +1,5 @@
-import { User } from '../../entities/User';
 import { Company } from '../../entities/Company';
+import { User } from '../../entities/User';
 import { ContextProps } from '../../types/resolvers';
 import { createServiceResponse } from '../../utils/errors.util';
 import { wrapWithGlobalContext } from '../middlewares/filters';
@@ -7,7 +7,7 @@ import { wrapWithGlobalContext } from '../middlewares/filters';
 const getGlobalSystemStats = async (_: any, __: any, context: ContextProps) => {
   const { em } = context;
 
-  // Since we are wrapped with wrapWithGlobalContext, 
+  // Since we are wrapped with wrapWithGlobalContext,
   // the companyContext filter is DISABLED here.
   // We will see data from ALL tenants.
 

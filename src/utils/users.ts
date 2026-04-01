@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
 import { OAuth2Client } from 'google-auth-library';
 import moment from 'moment';
@@ -14,7 +16,7 @@ export const setNotActiveUsers = async (
 
   const deadline = moment().subtract(1, 'month');
 
-  users.forEach(async user => {
+  for (const user of users) {
     if (!user.schedules || user.schedules.length === 0) user.isActive = false;
     else if (user.schedules && user.schedules.length > 0)
       user.schedules.getItems().forEach(schedule => {
@@ -23,14 +25,15 @@ export const setNotActiveUsers = async (
         }
       });
     else user.isActive = true;
-  });
+  }
 };
 
 export const generateTempPassword = (length: number = 6): string => {
   const characters = process.env.PASSWORD_KEY_ENTRY || '';
   let result = '';
   for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
+    const index = randomInt(0, characters.length);
+    result += characters.charAt(index);
   }
   return result;
 };

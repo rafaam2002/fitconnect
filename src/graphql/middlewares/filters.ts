@@ -15,7 +15,7 @@ export const withGlobalContext = (resolver: Function) => {
     }
 
     // Defensive check: Try to disable the tenant filter if available
-    const emAny = em as any;
+    const emAny = em;
     try {
       if (typeof emAny.getFilters === 'function') {
         emAny.getFilters().disable('companyContext');
@@ -32,7 +32,7 @@ export const withGlobalContext = (resolver: Function) => {
 };
 
 /**
- * Helper to wrap all resolvers (or a subset) in an object 
+ * Helper to wrap all resolvers (or a subset) in an object
  * with the global context logic.
  */
 export const wrapWithGlobalContext = (resolvers: any): any => {

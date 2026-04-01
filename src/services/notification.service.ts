@@ -29,7 +29,7 @@ export class NotificationService extends BaseService {
       { populate: ['pushTokens'] }
     );
 
-    if (!user || !user.pushTokens || user.pushTokens.length === 0) {
+    if (!user?.pushTokens || user.pushTokens.length === 0) {
       return;
     }
 

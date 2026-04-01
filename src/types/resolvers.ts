@@ -32,7 +32,7 @@ export type UpdateCompanyPictureProps = {
 };
 
 export type ContextProps = {
-  em: EntityManager | any;
+  em: EntityManager;
   currentUser: CurrentUser;
 };
 
@@ -203,7 +203,7 @@ export type GetMonthlyScheduleStats = {
 export type CreateTrainingTaskProps = {
   trainingTask: {
     content: string;
-    userId?: string | undefined;
+    userId?: string;
     date: string;
     repeat: boolean;
   };

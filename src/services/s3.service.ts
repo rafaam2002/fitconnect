@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import {
   DeleteObjectCommand,
@@ -11,9 +11,9 @@ import dotenv from 'dotenv';
 
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
+  createServiceResponse,
   InternalServerError,
   UnauthorizedError,
-  createServiceResponse,
 } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
@@ -36,8 +36,8 @@ export const s3 = new S3Client({
 });
 
 export class S3Service extends BaseService {
-  private s3Client: S3Client;
-  private bucketName: string;
+  private readonly s3Client: S3Client;
+  private readonly bucketName: string;
 
   constructor(em: EntityManager) {
     super(em);

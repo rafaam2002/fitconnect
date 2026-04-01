@@ -131,7 +131,7 @@ export class PlanService extends BaseService {
     try {
       // Actualizar producto en Stripe
       if (input.name || input.description || input.metadata) {
-        await this.stripe.products.update(plan.stripeProductId!, {
+        await this.stripe.products.update(plan.stripeProductId as string, {
           name: input.name,
           description: input.description,
           metadata: input.metadata,
@@ -184,7 +184,7 @@ export class PlanService extends BaseService {
   }
 
   async getPlanByStripeId(stripePriceId: string): Promise<ServiceResponse> {
-    const plan = this.em.findOne(Plan, { stripePriceId });
+    const plan = await this.em.findOne(Plan, { stripePriceId });
 
     if (!stripePriceId) {
       throw new BadRequestError('Stripe price Id is required');
@@ -209,7 +209,7 @@ export class PlanService extends BaseService {
       throw new BadRequestError('Stripe product Id is required');
     }
 
-    const plan = this.em.findOne(Plan, { stripeProductId });
+    const plan = await this.em.findOne(Plan, { stripeProductId });
 
     if (!plan) {
       throw new NotFoundError('Plan');
@@ -284,7 +284,16 @@ export class PlanService extends BaseService {
 
       let plan = await this.em.findOne(Plan, { stripePriceId });
 
-      if (!plan) {
+      if (plan) {
+        // Actualizar existente
+        plan.name = stripeProduct.name;
+        plan.description = stripeProduct.description || undefined;
+        plan.isActive = stripePrice.active;
+        plan.status = stripePrice.active
+          ? PlanStatus.ACTIVE
+          : PlanStatus.INACTIVE;
+        plan.metadata = stripeProduct.metadata;
+      } else {
         // Crear nuevo plan
         plan = this.em.create<Plan>(Plan, {
           stripePriceId: stripePrice.id,
@@ -301,15 +310,6 @@ export class PlanService extends BaseService {
           status: stripePrice.active ? PlanStatus.ACTIVE : PlanStatus.INACTIVE,
           metadata: stripeProduct.metadata,
         });
-      } else {
-        // Actualizar existente
-        plan.name = stripeProduct.name;
-        plan.description = stripeProduct.description || undefined;
-        plan.isActive = stripePrice.active;
-        plan.status = stripePrice.active
-          ? PlanStatus.ACTIVE
-          : PlanStatus.INACTIVE;
-        plan.metadata = stripeProduct.metadata;
       }
 
       this.em.persist(plan);

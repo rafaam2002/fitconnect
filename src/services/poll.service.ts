@@ -149,7 +149,8 @@ export class PollService extends BaseService {
       throw new NotFoundError('Poll vote');
     }
 
-    await this.em.removeAndFlush(pollVote);
+    this.em.remove(pollVote);
+    await this.em.flush();
 
     return createServiceResponse(200, 'Poll vote deleted successfully', true);
   }
@@ -180,8 +181,8 @@ export class PollService extends BaseService {
 
     // Verificar si se encontraron todas las encuestas
     if (polls.length !== ids.length) {
-      const foundIds = polls.map((poll: Poll) => poll.id);
-      const notFoundIds = ids.filter(id => !foundIds.includes(id));
+      const foundIds = new Set(polls.map((poll: Poll) => poll.id));
+      const notFoundIds = ids.filter(id => !foundIds.has(id));
       throw new NotFoundError(
         `Some polls not found: ${notFoundIds.join(', ')}`
       );
@@ -193,7 +194,8 @@ export class PollService extends BaseService {
     });
 
     // Eliminar encuestas
-    await this.em.removeAndFlush(polls);
+    this.em.remove(polls);
+    await this.em.flush();
 
     return createServiceResponse(
       200,
@@ -248,7 +250,6 @@ export class PollService extends BaseService {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
-    ``;
     const pollRepo = this.em.getRepository(Poll);
 
     // Si se especifica un pollId, buscar esa encuesta

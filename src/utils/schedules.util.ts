@@ -180,7 +180,7 @@ export const createScheduleInXWeeks = async (
     type: scheduleProgrammed.type,
     age: scheduleProgrammed.age,
     scheduleProgrammed,
-    company: scheduleProgrammed.company!,
+    company: scheduleProgrammed.company,
   });
 
   em.persist(newSchedule);

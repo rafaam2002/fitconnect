@@ -11,11 +11,14 @@ export const authenticateUser = async (
   em: EntityManager,
   authorization?: string
 ): Promise<CurrentUser | null> => {
-  if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+  if (authorization?.toLowerCase().startsWith('bearer ')) {
     const token = authorization.substring(7);
 
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as any;
       const currentUser = await em.findOne(User, { id: decodedToken.id }, {
         filters: false,
         populate: ['companies'],

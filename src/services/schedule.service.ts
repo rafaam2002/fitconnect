@@ -15,7 +15,10 @@ import {
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
-import { createDateWithTime, createScheduleProgrammed, } from '../utils/schedules.util';
+import {
+  createDateWithTime,
+  createScheduleProgrammed,
+} from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
 

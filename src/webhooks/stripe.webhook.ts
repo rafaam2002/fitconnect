@@ -1,9 +1,9 @@
 import express, {
-  Router,
-  Request,
-  Response,
   NextFunction,
+  Request,
   RequestHandler,
+  Response,
+  Router,
 } from 'express';
 import rateLimit from 'express-rate-limit';
 
@@ -64,27 +64,23 @@ const webhookValidation: RequestHandler = (
   // Agregar propiedades al request
   (req as StripeWebhookRequest).webhookSignature = signature as string;
   (req as StripeWebhookRequest).rawBody = req.body.toString();
-
-  console.log(
-    `[WEBHOOK] Received webhook with signature: ${signature.toString().substring(0, 20)}...`
-  );
   next();
 };
 
 // Handler principal del webhook
-const handleStripeWebhook: RequestHandler = async (
+const handleStripeWebhook = async (
   req: Request,
   res: Response
-) => {
+): Promise<void> => {
   const webhookReq = req as StripeWebhookRequest;
 
-  // Verificar que tenemos EntityManager
   if (!webhookReq.em) {
     console.error('EntityManager not found in request');
-    return res.status(500).json({
+    res.status(500).json({
       error: 'Database connection error',
       code: 'MISSING_ENTITY_MANAGER',
     });
+    return;
   }
 
   const webhookService = new WebhookService(webhookReq.em);
@@ -130,9 +126,7 @@ export const stripeWebhookRouter: Router = express.Router();
 
 // Logging middleware para debugging
 stripeWebhookRouter.use((req, res, next) => {
-  console.log(
-    `[WEBHOOK] ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`
-  );
+  console.log(`[WEBHOOK] ${new Date().toISOString()} from ${req.ip}`);
   next();
 });
 

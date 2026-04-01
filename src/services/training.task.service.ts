@@ -17,7 +17,7 @@ import { UserService } from './user.service';
  * Training Task Service - Handles training task operations
  */
 export class TrainingTaskService {
-  private notificationService: NotificationService;
+  private readonly notificationService: NotificationService;
 
   constructor(private readonly em: EntityManager) {
     this.notificationService = new NotificationService(em);

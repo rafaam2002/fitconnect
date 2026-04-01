@@ -138,7 +138,7 @@ export class InvoiceService extends BaseService {
 
     if (!user) {
       throw new Error(
-        `User not found for Stripe customer: ${stripeInvoice.customer}`
+        `User not found for Stripe customer: ${stripeInvoice.customer as string}`
       );
     }
     try {
@@ -166,7 +166,9 @@ export class InvoiceService extends BaseService {
 
       // Update invoice data
       invoice.invoiceNumber = stripeInvoice.number || undefined;
-      invoice.status = this.mapStripeStatusToEnum(stripeInvoice.status!);
+      invoice.status = this.mapStripeStatusToEnum(
+        stripeInvoice.status as InvoiceStatus
+      );
       invoice.subtotal = stripeInvoice.subtotal || 0;
       invoice.tax = stripeInvoice.tax || 0;
       invoice.total = stripeInvoice.total;

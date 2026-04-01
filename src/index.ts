@@ -1,4 +1,4 @@
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
@@ -28,7 +28,7 @@ import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 dotenv.config();
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
-const path = require('path');
+const path = require('node:path');
 
 const app = express();
 // ===== 1. MIDDLEWARE PARA INYECTAR EntityManager EN WEBHOOKS =====
@@ -79,7 +79,10 @@ const startServer = async () => {
   app.get('/auth/verify-email', async (req, res) => {
     const token = req.query.token as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as {
         id: string;
       };
 
@@ -94,7 +97,8 @@ const startServer = async () => {
           );
       }
       user.isVerified = true;
-      await em.persistAndFlush(user);
+      em.persist(user);
+      await em.flush();
       // lógica que valida y activa al usuario
       // Puedes devolver HTML, o redirigir a tu frontend:
       return res
@@ -123,7 +127,10 @@ const startServer = async () => {
     const token = req.query.token as string;
     const verify = req.query.verify as string;
 
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decodedToken = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as {
       id: string;
     };
 
@@ -138,7 +145,8 @@ const startServer = async () => {
     try {
       company.isValidated = verify === 'true';
 
-      await em.persistAndFlush(company);
+      em.persist(company);
+      await em.flush();
       // lógica que valida y activa la compañía
       // Puedes devolver HTML, o redirigir a tu frontend:
 
@@ -178,7 +186,10 @@ const startServer = async () => {
   app.get('/auth/reset-password', async (req, res) => {
     const token = req.query.token as string;
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as {
         id: string;
         email: string;
         password: string;
@@ -200,7 +211,8 @@ const startServer = async () => {
       }
       const saltRounds = 10;
       user.password = await bcrypt.hash(decodedToken.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
-      await em.persistAndFlush(user);
+      em.persist(user);
+      await em.flush();
 
       return res
         .status(200)
@@ -254,7 +266,6 @@ const startServer = async () => {
           return { em, currentUser: null };
         }
 
-        // 3. Todo lo demás requiere auth
         const authorization = req.headers.authorization || '';
         const companyId = req.headers['x-company-id'] as string;
         return await middleware(em, query, authorization, companyId);

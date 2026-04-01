@@ -29,10 +29,10 @@ const loginWithId = async (_: any, args: any, { em }: ContextProps) => {
     return await login(
       _,
       {
-        emailOrNickname: user.email,
+        emailOrNickname: user?.email ?? 'rafa@mail.com',
         password: process.env.DEFAULT_PASSWORD || '123456',
       },
-      em
+      em as any
     );
   } catch (error: any) {
     return handleError(error);

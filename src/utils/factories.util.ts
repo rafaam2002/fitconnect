@@ -1,11 +1,22 @@
+import { randomInt } from 'node:crypto';
+
 import { Poll } from '../entities/Poll';
 import { User } from '../entities/User';
 
-export const randomUser = (users: User[]) =>
-  users[Math.floor(Math.random() * users.length)];
+export const randomUser = (users: User[]) => {
+  if (users.length === 0) return undefined;
 
-export const randomPoll = (polls: Poll[]) =>
-  polls[Math.floor(Math.random() * polls.length)];
+  const index = randomInt(0, users.length);
+  return users[index];
+};
+
+export const randomPoll = (polls: Poll[]) => {
+  if (polls.length === 0) return undefined;
+
+  const index = randomInt(0, polls.length);
+
+  return polls[index];
+};
 
 export const randomSenderAndReceiver = (users: User[]) => {
   const sender = randomUser(users);
@@ -14,14 +25,4 @@ export const randomSenderAndReceiver = (users: User[]) => {
     receiver = randomUser(users);
   }
   return { sender, receiver };
-};
-
-export const randomUserAndPoll = (usersAndPolls: [User, Poll][]) => {
-  const index = Math.floor(Math.random() * usersAndPolls.length);
-  if (usersAndPolls.length === 0) {
-    throw new Error('No more users and polls aviable');
-  }
-  const userAndPull = usersAndPolls[index];
-  usersAndPolls.splice(index, 1);
-  return { user: userAndPull[0], poll: userAndPull[1] };
 };

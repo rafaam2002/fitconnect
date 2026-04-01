@@ -61,9 +61,9 @@ export default {
   clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
   dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,
   user: isLocal ? process.env.DB_USERNAME || 'postgres' : undefined,
-  password: isLocal ? process.env.DB_PASSWORD || 'Pececitos1$' : undefined,
+  password: isLocal ? process.env.DB_PASSWORD : undefined,
   host: isLocal ? process.env.DB_HOST || 'localhost' : undefined,
-  port: parseInt(process.env.DB_PORT || '5432'),
+  port: Number.parseInt(process.env.DB_PORT || '5432'),
   allowGlobalContext: true,
   driver: require('@mikro-orm/postgresql').PostgreSqlDriver,
   migrations: {

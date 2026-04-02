@@ -22,7 +22,7 @@ import { middleware } from './middlewares';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
-import { renderPage } from './utils/templates.util';
+import { deleteAccountHtml, renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
 dotenv.config();
@@ -242,6 +242,10 @@ const startServer = async () => {
       timestamp: new Date().toISOString(),
       service: 'GraphQL + Webhooks Server',
     });
+  });
+
+  app.get('/delete-account', (req, res) => {
+    res.status(200).send(deleteAccountHtml());
   });
 
   // ===== APOLLO SERVER =====

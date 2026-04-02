@@ -88,7 +88,7 @@ type Mutation {
     #----------------Company-------------------
     updateCompany(companyId: ID!, companyData: CompanyDataInput! scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
     updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
-    createCompany(company: CreateCompanyInput!): CompanyResponse!
+    createCompany(company: CreateCompanyInput!): MeResponse!
     requestJoinCompany(companyId: ID!): DefaultResponse!
     admitUserToCompany(companyId: ID!, userId: ID!): DefaultResponse!
 }

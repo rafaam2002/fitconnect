@@ -249,7 +249,7 @@ export class CompanyService extends BaseService {
     const user = await this.em.findOne(
       User,
       { id: currentUser.id },
-      { populate: ['companies'] }
+      { populate: ['companies'], filters: false }
     );
 
     if (!user) {
@@ -274,10 +274,27 @@ export class CompanyService extends BaseService {
       user
     );
 
-    return createServiceResponse(201, 'Company created successfully', true, {
-      company: newCompany,
-      user: newAdminUser,
+    this.em.setFilterParams('companyContext', {
+      companyId: newCompany.id,
     });
+
+    const refreshedUser = await this.em.findOneOrFail(
+      User,
+      { id: user.id },
+      { refresh: true, filters: false }
+    );
+
+    const refreshedCompany = await this.em.findOneOrFail(
+      Company,
+      { id: newCompany.id },
+      { populate: ['companyConfig'], filters: false }
+    );
+
+    return await this.authService.buildAuthResponseWithPermissions(
+      refreshedUser,
+      refreshedCompany,
+      'Company created successfully'
+    );
   }
 
   /**

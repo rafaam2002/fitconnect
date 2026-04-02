@@ -555,3 +555,40 @@ export const sendSubscriptionExpiryWarning = (expiryDate: string) => `
 </html>
 
 `;
+
+export const deleteAccountHtml = () => `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Borrar Cuenta - Fitconnect</title>
+        <style>
+          body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f9f9f9; }
+          .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; width: 90%; }
+          h1 { color: #333; margin-top: 0; text-align: center; }
+          p { color: #666; margin-bottom: 1rem; line-height: 1.5; }
+          ol { color: #444; padding-left: 1.5rem; }
+          li { margin-bottom: 0.5rem; }
+          strong { color: #000; }
+          .footer { margin-top: 2rem; font-size: 0.8rem; color: #999; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Eliminar cuenta permanentemente</h1>
+          <p>Si deseas borrar tu cuenta, sigue estos pasos dentro de la aplicación:</p>
+          <ol>
+            <li>Entra en la aplicación.</li>
+            <li>Dirígete a la sección de <strong>Ajustes</strong>.</li>
+            <li>Posteriormente, selecciona <strong>Editar perfil</strong>.</li>
+            <li>En el menú de <strong>Opciones adicionales</strong>, pulsa sobre <strong>Eliminar cuenta</strong>.</li>
+            <li>Confirma la acción para completar el proceso.</li>
+          </ol>
+          <p>Esta acción es irreversible y eliminará todos tus datos asociados.</p>
+          <div class="footer">
+            Este es un endpoint puramente informativo.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;

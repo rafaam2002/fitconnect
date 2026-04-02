@@ -1,7 +1,5 @@
 {
-  "namespaces": [
-    "public"
-  ],
+  "namespaces": ["public"],
   "name": "public",
   "tables": [
     {
@@ -71,9 +69,7 @@
       "indexes": [
         {
           "keyName": "article_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -160,9 +156,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "company_config_created_at_index",
           "constraint": false,
@@ -171,9 +165,7 @@
         },
         {
           "keyName": "company_config_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -267,13 +259,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "enumItems": [
-            "create",
-            "read",
-            "update",
-            "delete",
-            "manage"
-          ],
+          "enumItems": ["create", "read", "update", "delete", "manage"],
           "mappedType": "enum"
         },
         "is_active": {
@@ -291,9 +277,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "permission_created_at_index",
           "constraint": false,
@@ -301,9 +285,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "name"
-          ],
+          "columnNames": ["name"],
           "composite": false,
           "keyName": "permission_name_index",
           "constraint": false,
@@ -311,9 +293,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "name"
-          ],
+          "columnNames": ["name"],
           "composite": false,
           "keyName": "permission_name_unique",
           "constraint": true,
@@ -321,9 +301,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "module"
-          ],
+          "columnNames": ["module"],
           "composite": false,
           "keyName": "permission_module_index",
           "constraint": false,
@@ -332,9 +310,7 @@
         },
         {
           "keyName": "permission_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -441,9 +417,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "schedule_options_created_at_index",
           "constraint": false,
@@ -452,9 +426,7 @@
         },
         {
           "keyName": "schedule_options_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -577,9 +549,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "company_created_at_index",
           "constraint": false,
@@ -587,9 +557,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "logo_id"
-          ],
+          "columnNames": ["logo_id"],
           "composite": false,
           "keyName": "company_logo_id_unique",
           "constraint": true,
@@ -597,9 +565,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "schedule_options_id"
-          ],
+          "columnNames": ["schedule_options_id"],
           "composite": false,
           "keyName": "company_schedule_options_id_unique",
           "constraint": true,
@@ -607,9 +573,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "company_config_id"
-          ],
+          "columnNames": ["company_config_id"],
           "composite": false,
           "keyName": "company_company_config_id_unique",
           "constraint": true,
@@ -618,9 +582,7 @@
         },
         {
           "keyName": "company_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -631,39 +593,27 @@
       "foreignKeys": {
         "company_logo_id_foreign": {
           "constraintName": "company_logo_id_foreign",
-          "columnNames": [
-            "logo_id"
-          ],
+          "columnNames": ["logo_id"],
           "localTableName": "public.company",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.picture_url",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "company_schedule_options_id_foreign": {
           "constraintName": "company_schedule_options_id_foreign",
-          "columnNames": [
-            "schedule_options_id"
-          ],
+          "columnNames": ["schedule_options_id"],
           "localTableName": "public.company",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.schedule_options",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "company_company_config_id_foreign": {
           "constraintName": "company_company_config_id_foreign",
-          "columnNames": [
-            "company_config_id"
-          ],
+          "columnNames": ["company_config_id"],
           "localTableName": "public.company",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company_config",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -775,9 +725,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "promotion_created_at_index",
           "constraint": false,
@@ -786,9 +734,7 @@
         },
         {
           "keyName": "promotion_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -799,13 +745,9 @@
       "foreignKeys": {
         "promotion_company_id_foreign": {
           "constraintName": "promotion_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.promotion",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -887,9 +829,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "product_created_at_index",
           "constraint": false,
@@ -898,9 +838,7 @@
         },
         {
           "keyName": "product_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -911,13 +849,9 @@
       "foreignKeys": {
         "product_company_id_foreign": {
           "constraintName": "product_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.product",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -1021,12 +955,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "enumItems": [
-            "day",
-            "week",
-            "month",
-            "year"
-          ],
+          "enumItems": ["day", "week", "month", "year"],
           "mappedType": "enum"
         },
         "interval_count": {
@@ -1057,11 +986,7 @@
           "primary": false,
           "nullable": false,
           "default": "'active'",
-          "enumItems": [
-            "active",
-            "inactive",
-            "archived"
-          ],
+          "enumItems": ["active", "inactive", "archived"],
           "mappedType": "enum"
         },
         "is_active": {
@@ -1106,9 +1031,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "plan_created_at_index",
           "constraint": false,
@@ -1116,9 +1039,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_price_id"
-          ],
+          "columnNames": ["stripe_price_id"],
           "composite": false,
           "keyName": "plan_stripe_price_id_index",
           "constraint": false,
@@ -1126,9 +1047,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "status"
-          ],
+          "columnNames": ["status"],
           "composite": false,
           "keyName": "plan_status_index",
           "constraint": false,
@@ -1136,9 +1055,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "is_active"
-          ],
+          "columnNames": ["is_active"],
           "composite": false,
           "keyName": "plan_is_active_index",
           "constraint": false,
@@ -1147,9 +1064,7 @@
         },
         {
           "keyName": "plan_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -1160,13 +1075,9 @@
       "foreignKeys": {
         "plan_company_id_foreign": {
           "constraintName": "plan_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.plan",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -1247,9 +1158,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "plan_permission_created_at_index",
           "constraint": false,
@@ -1257,9 +1166,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "plan_id"
-          ],
+          "columnNames": ["plan_id"],
           "composite": false,
           "keyName": "plan_permission_plan_id_index",
           "constraint": false,
@@ -1267,9 +1174,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "permission_id"
-          ],
+          "columnNames": ["permission_id"],
           "composite": false,
           "keyName": "plan_permission_permission_id_index",
           "constraint": false,
@@ -1278,10 +1183,7 @@
         },
         {
           "keyName": "plan_permission_plan_id_permission_id_unique",
-          "columnNames": [
-            "plan_id",
-            "permission_id"
-          ],
+          "columnNames": ["plan_id", "permission_id"],
           "composite": true,
           "constraint": true,
           "primary": false,
@@ -1289,9 +1191,7 @@
         },
         {
           "keyName": "plan_permission_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -1302,25 +1202,17 @@
       "foreignKeys": {
         "plan_permission_plan_id_foreign": {
           "constraintName": "plan_permission_plan_id_foreign",
-          "columnNames": [
-            "plan_id"
-          ],
+          "columnNames": ["plan_id"],
           "localTableName": "public.plan_permission",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.plan",
           "updateRule": "cascade"
         },
         "plan_permission_permission_id_foreign": {
           "constraintName": "plan_permission_permission_id_foreign",
-          "columnNames": [
-            "permission_id"
-          ],
+          "columnNames": ["permission_id"],
           "localTableName": "public.plan_permission",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.permission",
           "updateRule": "cascade"
         }
@@ -1400,9 +1292,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "picture_url_created_at_index",
           "constraint": false,
@@ -1410,9 +1300,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "name"
-          ],
+          "columnNames": ["name"],
           "composite": false,
           "keyName": "picture_url_name_unique",
           "constraint": true,
@@ -1421,9 +1309,7 @@
         },
         {
           "keyName": "picture_url_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -1434,26 +1320,18 @@
       "foreignKeys": {
         "picture_url_product_id_foreign": {
           "constraintName": "picture_url_product_id_foreign",
-          "columnNames": [
-            "product_id"
-          ],
+          "columnNames": ["product_id"],
           "localTableName": "public.picture_url",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.product",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "picture_url_company_id_foreign": {
           "constraintName": "picture_url_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.picture_url",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -1646,9 +1524,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "user_created_at_index",
           "constraint": false,
@@ -1656,9 +1532,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "email"
-          ],
+          "columnNames": ["email"],
           "composite": false,
           "keyName": "user_email_index",
           "constraint": false,
@@ -1666,9 +1540,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "email"
-          ],
+          "columnNames": ["email"],
           "composite": false,
           "keyName": "user_email_unique",
           "constraint": true,
@@ -1676,9 +1548,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "nickname"
-          ],
+          "columnNames": ["nickname"],
           "composite": false,
           "keyName": "user_nickname_unique",
           "constraint": true,
@@ -1686,9 +1556,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "picture_url_id"
-          ],
+          "columnNames": ["picture_url_id"],
           "composite": false,
           "keyName": "user_picture_url_id_unique",
           "constraint": true,
@@ -1697,9 +1565,7 @@
         },
         {
           "keyName": "user_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -1710,13 +1576,9 @@
       "foreignKeys": {
         "user_picture_url_id_foreign": {
           "constraintName": "user_picture_url_id_foreign",
-          "columnNames": [
-            "picture_url_id"
-          ],
+          "columnNames": ["picture_url_id"],
           "localTableName": "public.user",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.picture_url",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -1807,9 +1669,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "training_task_created_at_index",
           "constraint": false,
@@ -1818,9 +1678,7 @@
         },
         {
           "keyName": "training_task_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -1831,26 +1689,18 @@
       "foreignKeys": {
         "training_task_user_id_foreign": {
           "constraintName": "training_task_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.training_task",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "training_task_company_id_foreign": {
           "constraintName": "training_task_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.training_task",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -1942,9 +1792,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "stripe_customer_created_at_index",
           "constraint": false,
@@ -1952,9 +1800,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_customer_id"
-          ],
+          "columnNames": ["stripe_customer_id"],
           "composite": false,
           "keyName": "stripe_customer_stripe_customer_id_index",
           "constraint": false,
@@ -1962,9 +1808,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_customer_id"
-          ],
+          "columnNames": ["stripe_customer_id"],
           "composite": false,
           "keyName": "stripe_customer_stripe_customer_id_unique",
           "constraint": true,
@@ -1972,9 +1816,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "composite": false,
           "keyName": "stripe_customer_user_id_index",
           "constraint": false,
@@ -1982,9 +1824,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "is_active"
-          ],
+          "columnNames": ["is_active"],
           "composite": false,
           "keyName": "stripe_customer_is_active_index",
           "constraint": false,
@@ -1993,9 +1833,7 @@
         },
         {
           "keyName": "stripe_customer_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -2006,13 +1844,9 @@
       "foreignKeys": {
         "stripe_customer_user_id_foreign": {
           "constraintName": "stripe_customer_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.stripe_customer",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         }
@@ -2076,11 +1910,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "enumItems": [
-            "card",
-            "sepa_debit",
-            "us_bank_account"
-          ],
+          "enumItems": ["card", "sepa_debit", "us_bank_account"],
           "mappedType": "enum"
         },
         "status": {
@@ -2091,11 +1921,7 @@
           "primary": false,
           "nullable": false,
           "default": "'active'",
-          "enumItems": [
-            "active",
-            "inactive",
-            "expired"
-          ],
+          "enumItems": ["active", "inactive", "expired"],
           "mappedType": "enum"
         },
         "brand": {
@@ -2180,9 +2006,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "payment_method_created_at_index",
           "constraint": false,
@@ -2190,9 +2014,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_payment_method_id"
-          ],
+          "columnNames": ["stripe_payment_method_id"],
           "composite": false,
           "keyName": "payment_method_stripe_payment_method_id_index",
           "constraint": false,
@@ -2200,9 +2022,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_payment_method_id"
-          ],
+          "columnNames": ["stripe_payment_method_id"],
           "composite": false,
           "keyName": "payment_method_stripe_payment_method_id_unique",
           "constraint": true,
@@ -2210,9 +2030,7 @@
           "unique": true
         },
         {
-          "columnNames": [
-            "stripe_customer_id"
-          ],
+          "columnNames": ["stripe_customer_id"],
           "composite": false,
           "keyName": "payment_method_stripe_customer_id_index",
           "constraint": false,
@@ -2220,9 +2038,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "brand"
-          ],
+          "columnNames": ["brand"],
           "composite": false,
           "keyName": "payment_method_brand_index",
           "constraint": false,
@@ -2230,9 +2046,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "last4"
-          ],
+          "columnNames": ["last4"],
           "composite": false,
           "keyName": "payment_method_last4_index",
           "constraint": false,
@@ -2240,9 +2054,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "expiry_month"
-          ],
+          "columnNames": ["expiry_month"],
           "composite": false,
           "keyName": "payment_method_expiry_month_index",
           "constraint": false,
@@ -2250,9 +2062,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "expiry_year"
-          ],
+          "columnNames": ["expiry_year"],
           "composite": false,
           "keyName": "payment_method_expiry_year_index",
           "constraint": false,
@@ -2260,9 +2070,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "fingerprint"
-          ],
+          "columnNames": ["fingerprint"],
           "composite": false,
           "keyName": "payment_method_fingerprint_index",
           "constraint": false,
@@ -2271,9 +2079,7 @@
         },
         {
           "keyName": "payment_method_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -2284,13 +2090,9 @@
       "foreignKeys": {
         "payment_method_stripe_customer_id_foreign": {
           "constraintName": "payment_method_stripe_customer_id_foreign",
-          "columnNames": [
-            "stripe_customer_id"
-          ],
+          "columnNames": ["stripe_customer_id"],
           "localTableName": "public.payment_method",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.stripe_customer",
           "updateRule": "cascade"
         }
@@ -2494,9 +2296,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "subscription_created_at_index",
           "constraint": false,
@@ -2504,9 +2304,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_subscription_id"
-          ],
+          "columnNames": ["stripe_subscription_id"],
           "composite": false,
           "keyName": "subscription_stripe_subscription_id_index",
           "constraint": false,
@@ -2514,9 +2312,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "composite": false,
           "keyName": "subscription_user_id_index",
           "constraint": false,
@@ -2524,9 +2320,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "status"
-          ],
+          "columnNames": ["status"],
           "composite": false,
           "keyName": "subscription_status_index",
           "constraint": false,
@@ -2534,9 +2328,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "current_period_end"
-          ],
+          "columnNames": ["current_period_end"],
           "composite": false,
           "keyName": "subscription_current_period_end_index",
           "constraint": false,
@@ -2544,9 +2336,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "composite": false,
           "keyName": "subscription_company_id_index",
           "constraint": false,
@@ -2555,9 +2345,7 @@
         },
         {
           "keyName": "subscription_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -2568,62 +2356,42 @@
       "foreignKeys": {
         "subscription_user_id_foreign": {
           "constraintName": "subscription_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.subscription",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "subscription_stripe_customer_id_foreign": {
           "constraintName": "subscription_stripe_customer_id_foreign",
-          "columnNames": [
-            "stripe_customer_id"
-          ],
+          "columnNames": ["stripe_customer_id"],
           "localTableName": "public.subscription",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.stripe_customer",
           "updateRule": "cascade"
         },
         "subscription_plan_id_foreign": {
           "constraintName": "subscription_plan_id_foreign",
-          "columnNames": [
-            "plan_id"
-          ],
+          "columnNames": ["plan_id"],
           "localTableName": "public.subscription",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.plan",
           "updateRule": "cascade"
         },
         "subscription_default_payment_method_id_foreign": {
           "constraintName": "subscription_default_payment_method_id_foreign",
-          "columnNames": [
-            "default_payment_method_id"
-          ],
+          "columnNames": ["default_payment_method_id"],
           "localTableName": "public.subscription",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.payment_method",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "subscription_company_id_foreign": {
           "constraintName": "subscription_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.subscription",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -2764,9 +2532,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "schedule_programmed_created_at_index",
           "constraint": false,
@@ -2775,9 +2541,7 @@
         },
         {
           "keyName": "schedule_programmed_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -2788,26 +2552,18 @@
       "foreignKeys": {
         "schedule_programmed_admin_id_foreign": {
           "constraintName": "schedule_programmed_admin_id_foreign",
-          "columnNames": [
-            "admin_id"
-          ],
+          "columnNames": ["admin_id"],
           "localTableName": "public.schedule_programmed",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "schedule_programmed_company_id_foreign": {
           "constraintName": "schedule_programmed_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.schedule_programmed",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -2958,9 +2714,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "schedule_created_at_index",
           "constraint": false,
@@ -2969,9 +2723,7 @@
         },
         {
           "keyName": "schedule_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -2982,37 +2734,25 @@
       "foreignKeys": {
         "schedule_company_id_foreign": {
           "constraintName": "schedule_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.schedule",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         },
         "schedule_admin_id_foreign": {
           "constraintName": "schedule_admin_id_foreign",
-          "columnNames": [
-            "admin_id"
-          ],
+          "columnNames": ["admin_id"],
           "localTableName": "public.schedule",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "schedule_schedule_programmed_id_foreign": {
           "constraintName": "schedule_schedule_programmed_id_foreign",
-          "columnNames": [
-            "schedule_programmed_id"
-          ],
+          "columnNames": ["schedule_programmed_id"],
           "localTableName": "public.schedule",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.schedule_programmed",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -3084,9 +2824,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "refresh_token_created_at_index",
           "constraint": false,
@@ -3095,9 +2833,7 @@
         },
         {
           "keyName": "refresh_token_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -3108,13 +2844,9 @@
       "foreignKeys": {
         "refresh_token_user_id_foreign": {
           "constraintName": "refresh_token_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.refresh_token",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -3177,9 +2909,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "push_token_created_at_index",
           "constraint": false,
@@ -3188,9 +2918,7 @@
         },
         {
           "keyName": "push_token_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -3201,13 +2929,9 @@
       "foreignKeys": {
         "push_token_user_id_foreign": {
           "constraintName": "push_token_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.push_token",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -3298,9 +3022,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "poll_created_at_index",
           "constraint": false,
@@ -3309,9 +3031,7 @@
         },
         {
           "keyName": "poll_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -3322,25 +3042,17 @@
       "foreignKeys": {
         "poll_admin_id_foreign": {
           "constraintName": "poll_admin_id_foreign",
-          "columnNames": [
-            "admin_id"
-          ],
+          "columnNames": ["admin_id"],
           "localTableName": "public.poll",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "poll_company_id_foreign": {
           "constraintName": "poll_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.poll",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -3382,10 +3094,7 @@
       "indexes": [
         {
           "keyName": "poll_vote_pkey",
-          "columnNames": [
-            "poll_id",
-            "user_id"
-          ],
+          "columnNames": ["poll_id", "user_id"],
           "composite": true,
           "constraint": true,
           "primary": true,
@@ -3396,26 +3105,18 @@
       "foreignKeys": {
         "poll_vote_poll_id_foreign": {
           "constraintName": "poll_vote_poll_id_foreign",
-          "columnNames": [
-            "poll_id"
-          ],
+          "columnNames": ["poll_id"],
           "localTableName": "public.poll_vote",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.poll",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "poll_vote_user_id_foreign": {
           "constraintName": "poll_vote_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.poll_vote",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -3533,9 +3234,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "message_created_at_index",
           "constraint": false,
@@ -3544,9 +3243,7 @@
         },
         {
           "keyName": "message_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -3557,51 +3254,35 @@
       "foreignKeys": {
         "message_fixed_admin_id_foreign": {
           "constraintName": "message_fixed_admin_id_foreign",
-          "columnNames": [
-            "fixed_admin_id"
-          ],
+          "columnNames": ["fixed_admin_id"],
           "localTableName": "public.message",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "message_sender_id_foreign": {
           "constraintName": "message_sender_id_foreign",
-          "columnNames": [
-            "sender_id"
-          ],
+          "columnNames": ["sender_id"],
           "localTableName": "public.message",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "message_receiver_id_foreign": {
           "constraintName": "message_receiver_id_foreign",
-          "columnNames": [
-            "receiver_id"
-          ],
+          "columnNames": ["receiver_id"],
           "localTableName": "public.message",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "message_company_id_foreign": {
           "constraintName": "message_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.message",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -3684,13 +3365,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "enumItems": [
-            "draft",
-            "open",
-            "paid",
-            "uncollectible",
-            "void"
-          ],
+          "enumItems": ["draft", "open", "paid", "uncollectible", "void"],
           "mappedType": "enum"
         },
         "subtotal": {
@@ -3833,9 +3508,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "invoice_created_at_index",
           "constraint": false,
@@ -3843,9 +3516,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_invoice_id"
-          ],
+          "columnNames": ["stripe_invoice_id"],
           "composite": false,
           "keyName": "invoice_stripe_invoice_id_index",
           "constraint": false,
@@ -3853,9 +3524,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "composite": false,
           "keyName": "invoice_user_id_index",
           "constraint": false,
@@ -3863,9 +3532,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "status"
-          ],
+          "columnNames": ["status"],
           "composite": false,
           "keyName": "invoice_status_index",
           "constraint": false,
@@ -3873,9 +3540,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "due_date"
-          ],
+          "columnNames": ["due_date"],
           "composite": false,
           "keyName": "invoice_due_date_index",
           "constraint": false,
@@ -3884,9 +3549,7 @@
         },
         {
           "keyName": "invoice_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -3897,38 +3560,26 @@
       "foreignKeys": {
         "invoice_user_id_foreign": {
           "constraintName": "invoice_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.invoice",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "invoice_subscription_id_foreign": {
           "constraintName": "invoice_subscription_id_foreign",
-          "columnNames": [
-            "subscription_id"
-          ],
+          "columnNames": ["subscription_id"],
           "localTableName": "public.invoice",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.subscription",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "invoice_company_id_foreign": {
           "constraintName": "invoice_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.invoice",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -4039,12 +3690,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "enumItems": [
-            "charge",
-            "refund",
-            "payment",
-            "subscription"
-          ],
+          "enumItems": ["charge", "refund", "payment", "subscription"],
           "mappedType": "enum"
         },
         "status": {
@@ -4126,9 +3772,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "transaction_created_at_index",
           "constraint": false,
@@ -4136,9 +3780,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_charge_id"
-          ],
+          "columnNames": ["stripe_charge_id"],
           "composite": false,
           "keyName": "transaction_stripe_charge_id_index",
           "constraint": false,
@@ -4146,9 +3788,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "composite": false,
           "keyName": "transaction_user_id_index",
           "constraint": false,
@@ -4156,9 +3796,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "invoice_id"
-          ],
+          "columnNames": ["invoice_id"],
           "composite": false,
           "keyName": "transaction_invoice_id_index",
           "constraint": false,
@@ -4166,9 +3804,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "type"
-          ],
+          "columnNames": ["type"],
           "composite": false,
           "keyName": "transaction_type_index",
           "constraint": false,
@@ -4176,9 +3812,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "status"
-          ],
+          "columnNames": ["status"],
           "composite": false,
           "keyName": "transaction_status_index",
           "constraint": false,
@@ -4187,9 +3821,7 @@
         },
         {
           "keyName": "transaction_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -4200,64 +3832,44 @@
       "foreignKeys": {
         "transaction_user_id_foreign": {
           "constraintName": "transaction_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.transaction",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "updateRule": "cascade"
         },
         "transaction_payment_method_id_foreign": {
           "constraintName": "transaction_payment_method_id_foreign",
-          "columnNames": [
-            "payment_method_id"
-          ],
+          "columnNames": ["payment_method_id"],
           "localTableName": "public.transaction",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.payment_method",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "transaction_subscription_id_foreign": {
           "constraintName": "transaction_subscription_id_foreign",
-          "columnNames": [
-            "subscription_id"
-          ],
+          "columnNames": ["subscription_id"],
           "localTableName": "public.transaction",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.subscription",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "transaction_company_id_foreign": {
           "constraintName": "transaction_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.transaction",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "transaction_invoice_id_foreign": {
           "constraintName": "transaction_invoice_id_foreign",
-          "columnNames": [
-            "invoice_id"
-          ],
+          "columnNames": ["invoice_id"],
           "localTableName": "public.transaction",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.invoice",
           "deleteRule": "set null",
           "updateRule": "cascade"
@@ -4291,10 +3903,7 @@
       "indexes": [
         {
           "keyName": "user_pending_companies_pkey",
-          "columnNames": [
-            "user_id",
-            "company_id"
-          ],
+          "columnNames": ["user_id", "company_id"],
           "composite": true,
           "constraint": true,
           "primary": true,
@@ -4305,26 +3914,18 @@
       "foreignKeys": {
         "user_pending_companies_user_id_foreign": {
           "constraintName": "user_pending_companies_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.user_pending_companies",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "user_pending_companies_company_id_foreign": {
           "constraintName": "user_pending_companies_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.user_pending_companies",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -4358,10 +3959,7 @@
       "indexes": [
         {
           "keyName": "user_promotions_pkey",
-          "columnNames": [
-            "user_id",
-            "promotion_id"
-          ],
+          "columnNames": ["user_id", "promotion_id"],
           "composite": true,
           "constraint": true,
           "primary": true,
@@ -4372,26 +3970,18 @@
       "foreignKeys": {
         "user_promotions_user_id_foreign": {
           "constraintName": "user_promotions_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.user_promotions",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "user_promotions_promotion_id_foreign": {
           "constraintName": "user_promotions_promotion_id_foreign",
-          "columnNames": [
-            "promotion_id"
-          ],
+          "columnNames": ["promotion_id"],
           "localTableName": "public.user_promotions",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.promotion",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -4425,10 +4015,7 @@
       "indexes": [
         {
           "keyName": "user_schedules_pkey",
-          "columnNames": [
-            "user_id",
-            "schedule_id"
-          ],
+          "columnNames": ["user_id", "schedule_id"],
           "composite": true,
           "constraint": true,
           "primary": true,
@@ -4439,26 +4026,18 @@
       "foreignKeys": {
         "user_schedules_user_id_foreign": {
           "constraintName": "user_schedules_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.user_schedules",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "user_schedules_schedule_id_foreign": {
           "constraintName": "user_schedules_schedule_id_foreign",
-          "columnNames": [
-            "schedule_id"
-          ],
+          "columnNames": ["schedule_id"],
           "localTableName": "public.user_schedules",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.schedule",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -4523,11 +4102,7 @@
           "primary": false,
           "nullable": false,
           "default": "'standard'",
-          "enumItems": [
-            "standard",
-            "admin",
-            "coach"
-          ],
+          "enumItems": ["standard", "admin", "coach"],
           "mappedType": "enum"
         }
       },
@@ -4535,9 +4110,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "user_role_created_at_index",
           "constraint": false,
@@ -4546,9 +4119,7 @@
         },
         {
           "keyName": "user_role_created_at_index",
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "constraint": false,
           "primary": false,
@@ -4556,10 +4127,7 @@
         },
         {
           "keyName": "user_role_user_id_company_id_unique",
-          "columnNames": [
-            "user_id",
-            "company_id"
-          ],
+          "columnNames": ["user_id", "company_id"],
           "composite": true,
           "constraint": true,
           "primary": false,
@@ -4567,9 +4135,7 @@
         },
         {
           "keyName": "user_role_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -4580,25 +4146,18 @@
       "foreignKeys": {
         "user_role_user_id_foreign": {
           "constraintName": "user_role_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.user_role",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "user_role_company_id_foreign": {
           "constraintName": "user_role_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.user_role",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "deleteRule": "cascade",
           "updateRule": "cascade"
@@ -4679,9 +4238,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "user_weight_created_at_index",
           "constraint": false,
@@ -4690,9 +4247,7 @@
         },
         {
           "keyName": "user_weight_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
@@ -4703,26 +4258,18 @@
       "foreignKeys": {
         "user_weight_user_id_foreign": {
           "constraintName": "user_weight_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
+          "columnNames": ["user_id"],
           "localTableName": "public.user_weight",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
           "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "user_weight_company_id_foreign": {
           "constraintName": "user_weight_company_id_foreign",
-          "columnNames": [
-            "company_id"
-          ],
+          "columnNames": ["company_id"],
           "localTableName": "public.user_weight",
-          "referencedColumnNames": [
-            "id"
-          ],
+          "referencedColumnNames": ["id"],
           "referencedTableName": "public.company",
           "updateRule": "cascade"
         }
@@ -4788,12 +4335,7 @@
           "primary": false,
           "nullable": false,
           "default": "'pending'",
-          "enumItems": [
-            "pending",
-            "processed",
-            "failed",
-            "ignored"
-          ],
+          "enumItems": ["pending", "processed", "failed", "ignored"],
           "mappedType": "enum"
         },
         "payload": {
@@ -4849,9 +4391,7 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": [
-            "created_at"
-          ],
+          "columnNames": ["created_at"],
           "composite": false,
           "keyName": "webhook_event_log_created_at_index",
           "constraint": false,
@@ -4859,9 +4399,7 @@
           "unique": false
         },
         {
-          "columnNames": [
-            "stripe_event_id"
-          ],
+          "columnNames": ["stripe_event_id"],
           "composite": false,
           "keyName": "webhook_event_log_stripe_event_id_index",
           "constraint": false,
@@ -4870,9 +4408,7 @@
         },
         {
           "keyName": "webhook_event_log_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,

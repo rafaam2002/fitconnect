@@ -14,7 +14,7 @@ import { User } from './User';
 @Entity()
 @Unique({ properties: ['user', 'company'] })
 export class UserRole extends BaseEntity {
-  @ManyToOne(() => User, { fieldName: 'user_id' })
+  @ManyToOne(() => User, { fieldName: 'user_id', deleteRule: 'cascade' })
   user!: User;
 
   @ManyToOne(() => Company, { fieldName: 'company_id', deleteRule: 'cascade' })

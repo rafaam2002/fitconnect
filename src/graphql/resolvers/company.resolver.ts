@@ -125,7 +125,7 @@ export const admitUserToCompany = async (
 
 const companyResolvers = {
   Query: {
-    getCompanies: withPermissions(companiesPermissions.READ, getCompanies),
+    getCompanies,
   },
   Mutation: {
     updateCompany: withPermissions(companiesPermissions.UPDATE, updateCompany),
@@ -133,11 +133,8 @@ const companyResolvers = {
       companiesPermissions.UPDATE,
       updateCompanyLogo
     ),
-    createCompany: withPermissions(companiesPermissions.CREATE, createCompany),
-    requestJoinCompany: withPermissions(
-      companiesPermissions.UPDATE,
-      requestJoinCompany
-    ),
+    createCompany,
+    requestJoinCompany,
     admitUserToCompany: withPermissions(
       companiesPermissions.UPDATE,
       admitUserToCompany

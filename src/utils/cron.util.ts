@@ -99,7 +99,7 @@ export const cronFunctions = async (
     }
   );
 
-  cron.schedule('0/10 * * * * *', async () => {
+  cron.schedule('0 12 * * *', async () => {
     console.log('📅 Chequeando las suscripciones a punto de expirar.');
     try {
       const subscriptionService = new SubscriptionService(em.fork());

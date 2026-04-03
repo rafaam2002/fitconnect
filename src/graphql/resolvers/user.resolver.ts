@@ -463,11 +463,8 @@ export const userResolvers: IResolvers = {
       setActiveCompany
     ),
     createUser, //este metodo es publico, no requiere permisos
-    updateUser: withPermissions(usersPermissions.UPDATE, updateUser),
-    updateUserPicture: withPermissions(
-      usersPermissions.UPDATE,
-      updateUserPicture
-    ),
+    updateUser,
+    updateUserPicture,
     // removeUser,
     createMessage: withPermissions(chatsPermissions.CREATE, createMessage),
     fixMessage: withPermissions(chatsPermissions.UPDATE, fixMessage),

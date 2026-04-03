@@ -1206,6 +1206,7 @@
           "localTableName": "public.plan_permission",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.plan",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "plan_permission_permission_id_foreign": {

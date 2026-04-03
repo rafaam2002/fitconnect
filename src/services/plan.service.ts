@@ -223,14 +223,22 @@ export class PlanService extends BaseService {
     );
   }
 
-  async listPlans(onlyActive: boolean = true): Promise<ServiceResponse> {
+  async listPlans(
+    onlyActive: boolean = true,
+    showGlobal: boolean = false
+  ): Promise<ServiceResponse> {
     const where: FilterQuery<Plan> = onlyActive
       ? { status: PlanStatus.ACTIVE }
       : {};
 
+    if (showGlobal) {
+      where.company = null;
+    }
+
     const plans = await this.em.find<Plan>(Plan, where, {
       orderBy: { amount: QueryOrder.ASC },
       populate: ['subscriptions'] as any,
+      filters: !showGlobal,
     });
 
     return createServiceResponse(200, 'Plans has been fetched', true, {

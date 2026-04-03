@@ -394,7 +394,9 @@ export class CompanyService extends BaseService {
 
     // Validaciones
     await this.validateAdminPermission(currentUser.id, companyId);
-    await this.validateUserLimit(currentUser.id, companyId);
+
+    if (!currentUser.isSuperAdmin)
+      await this.validateUserLimit(currentUser.id, companyId);
 
     // Obtener usuario pendiente
     const userToAdmit = await this.getPendingUser(userId, company);

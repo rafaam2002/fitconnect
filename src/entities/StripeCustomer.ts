@@ -20,7 +20,7 @@ export class StripeCustomer extends BaseEntity {
   @Unique()
   stripeCustomerId!: string; // cus_xxxxx
 
-  @ManyToOne(() => User, { eager: true })
+  @ManyToOne(() => User, { eager: true, deleteRule: 'cascade' })
   @Index()
   user!: User;
 

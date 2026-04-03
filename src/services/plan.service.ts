@@ -99,7 +99,7 @@ export class PlanService extends BaseService {
         trialPeriodDays,
         features,
         metadata,
-        company: companyId!,
+        company: companyId,
         status: PlanStatus.ACTIVE,
       });
 

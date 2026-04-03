@@ -8,7 +8,7 @@ import { Plan } from './Plan';
 @Index()
 @Unique({ properties: ['plan', 'permission'] })
 export class PlanPermission extends BaseEntity {
-  @ManyToOne(() => Plan, { eager: false })
+  @ManyToOne(() => Plan, { eager: false, deleteRule: 'cascade' })
   @Index()
   plan!: Plan;
 

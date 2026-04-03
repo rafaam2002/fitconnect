@@ -1848,6 +1848,7 @@
           "localTableName": "public.stripe_customer",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -3199,7 +3200,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "uuid"
         },
         "receiver_id": {
@@ -3267,6 +3268,7 @@
           "localTableName": "public.message",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "message_receiver_id_foreign": {

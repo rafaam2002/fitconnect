@@ -33,11 +33,11 @@ export class Message extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   fixedAdmin?: User;
 
-  @ManyToOne(() => User)
-  sender: User;
+  @ManyToOne(() => User, { nullable: true, deleteRule: 'set null' })
+  sender?: User | null;
 
   // Relación ManyToOne con User (receiver)
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, deleteRule: 'set null' })
   receiver?: User | null;
 
   @Property()
@@ -60,7 +60,7 @@ export class Message extends BaseEntity {
   @BeforeCreate()
   @BeforeUpdate()
   validate() {
-    if (this.sender === this.receiver) {
+    if (this.sender && this.receiver && this.sender === this.receiver) {
       throw new Error('Sender and receiver can not be the same.');
     }
   }

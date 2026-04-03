@@ -1063,6 +1063,14 @@
           "unique": false
         },
         {
+          "keyName": "plan_name_company_id_unique",
+          "columnNames": ["name", "company_id"],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
           "keyName": "plan_pkey",
           "columnNames": ["id"],
           "composite": false,

@@ -579,9 +579,9 @@ export const deleteAccountHtml = () => `
           <p>Si deseas borrar tu cuenta, sigue estos pasos dentro de la aplicación:</p>
           <ol>
             <li>Entra en la aplicación.</li>
-            <li>Dirígete a la sección de <strong>Ajustes</strong>.</li>
-            <li>Posteriormente, selecciona <strong>Editar perfil</strong>.</li>
-            <li>En el menú de <strong>Opciones adicionales</strong>, pulsa sobre <strong>Eliminar cuenta</strong>.</li>
+            <li>Dirígete a la página de <strong>Ajustes</strong>.</li>
+            <li>Posteriormente, desplazate al final de la página</li>
+            <li>En la sección de <strong>Zona de Peligro</strong>, pulsa sobre <strong>Eliminar cuenta</strong>.</li>
             <li>Confirma la acción para completar el proceso.</li>
           </ol>
           <p>Esta acción es irreversible y eliminará todos tus datos asociados.</p>

@@ -288,6 +288,7 @@ export class PollService extends BaseService {
           'admin.id',
           'admin.nickname',
           'pollVotes.user.id',
+          'pollVotes.user.nickname',
           'pollVotes.user.pictureUrl',
           'pollVotes.optionSelected',
         ],

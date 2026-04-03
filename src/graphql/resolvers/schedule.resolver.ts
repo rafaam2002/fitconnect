@@ -361,7 +361,7 @@ export const updateScheduleOptions = async (
 
 export const scheduleResolvers: IResolvers = {
   Query: {
-    getSchedules: withPermissions(schedulesPermissions.READ, getSchedules),
+    getSchedules,
     getSchedulesFromToday: withPermissions(
       schedulesPermissions.READ,
       getSchedulesFromToday

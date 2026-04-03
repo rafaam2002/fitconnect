@@ -600,4 +600,33 @@ export class UserService extends BaseService {
 
     return where;
   }
+
+  public async deleteUser(
+    userId: string,
+    currentUser: CurrentUser
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.id !== userId) {
+      throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
+    }
+
+    const user = await this.em.findOne(User, { id: userId });
+
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    try {
+      this.em.remove(user);
+      await this.em.flush();
+
+      return createServiceResponse(200, 'User deleted successfully', true);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new Error('Error deleting user');
+    }
+  }
 }

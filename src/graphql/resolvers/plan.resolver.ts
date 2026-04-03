@@ -37,23 +37,26 @@ export const listPlans = async (_: any, args: any, context: ContextProps) => {
   try {
     const planService = new PlanService(em);
     const onlyActive = args.onlyActive === undefined ? true : args.onlyActive;
+    const showGlobal = args.showGlobal === undefined ? false : args.showGlobal;
 
-    return await planService.listPlans(onlyActive);
+    return await planService.listPlans(onlyActive, showGlobal);
   } catch (error: any) {
     return handleError(error);
   }
 };
-
 // ===== MUTATION RESOLVERS =====
 
 export const createPlan = async (_: any, args: any, context: ContextProps) => {
   const { em, currentUser } = context;
   try {
     const planService = new PlanService(em);
+    const companyId = currentUser.isSuperAdmin
+      ? null
+      : currentUser.activeCompanyId;
 
     return await planService.createPlan({
       ...args.plan,
-      companyId: currentUser.activeCompanyId,
+      companyId,
     });
   } catch (error: any) {
     return handleError(error);
@@ -89,7 +92,7 @@ export const planResolvers = {
       plansPermissions.READ,
       getPlanByStripeId
     ),
-    listPlans: withPermissions(plansPermissions.READ, listPlans),
+    listPlans,
   },
 
   Mutation: {

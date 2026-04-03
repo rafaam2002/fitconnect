@@ -236,6 +236,20 @@ const updateUserPicture = async (
 };
 
 /**
+ * Permanently delete user account
+ */
+const deleteUser = async (_: any, args: IdProps, context: ContextProps) => {
+  try {
+    const { id } = args;
+    const { em, currentUser } = context;
+    const userService = new UserService(em);
+    return await userService.deleteUser(id, currentUser);
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+/**
  * Send email verification
  */
 const sendEmailVerification = async (
@@ -465,6 +479,7 @@ export const userResolvers: IResolvers = {
     createUser, //este metodo es publico, no requiere permisos
     updateUser,
     updateUserPicture,
+    deleteUser,
     // removeUser,
     createMessage: withPermissions(chatsPermissions.CREATE, createMessage),
     fixMessage: withPermissions(chatsPermissions.UPDATE, fixMessage),

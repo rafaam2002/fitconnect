@@ -7,6 +7,7 @@ type Mutation {
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!
     updateUserPicture(picture: String!, userId: String!): UserResponse!
+    deleteUser(id: ID!): DefaultResponse!
     loginWithGoogle(id_token: String!): LoginResponse!
     sendChangePasswordEmail(email: String!): DefaultResponse!
 

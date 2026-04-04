@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
@@ -28,6 +29,7 @@ export enum PlanStatus {
 }
 
 @Entity()
+@Unique({ properties: ['name', 'company'] })
 @Filter({
   name: 'companyContext',
   cond: args => ({ company: args.companyId }),

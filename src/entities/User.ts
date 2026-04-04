@@ -153,7 +153,9 @@ export class User extends BaseEntity {
   @OneToMany(() => PollVote, PollVote => PollVote.user, { lazy: true })
   pollVotes = new Collection<PollVote>(this);
 
-  @OneToMany(() => Subscription, subscription => subscription.user)
+  @OneToMany(() => Subscription, subscription => subscription.user, {
+    orphanRemoval: true,
+  })
   subscriptions = new Collection<Subscription>(this);
 
   @OneToMany(() => Transaction, transaction => transaction.user)

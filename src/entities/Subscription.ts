@@ -34,7 +34,7 @@ export class Subscription extends BaseEntity {
   @Index()
   stripeSubscriptionId!: string; // sub_xxxxx
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'cascade' })
   @Index()
   user!: User;
 

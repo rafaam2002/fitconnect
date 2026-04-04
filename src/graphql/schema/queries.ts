@@ -33,7 +33,7 @@ type Query {
     getAdminPolls(id: ID): PollResponse!
 
     #----------------- Plan --------------
-    listPlans(onlyActive: Boolean): PlanResponse!
+    listPlans(onlyActive: Boolean, showGlobal: Boolean): PlanResponse!
     getPlanByStripeId(stripePriceId: ID): PlanResponse!
     getPlan(planId: ID): PlanResponse!
 

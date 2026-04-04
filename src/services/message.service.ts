@@ -158,7 +158,7 @@ export class MessageService extends BaseService {
 
     if (
       currentUser.contextRole !== UserRoleEnum.ADMIN &&
-      message.sender.id !== currentUser.id
+      message.sender?.id !== currentUser.id
     ) {
       throw new ForbiddenError();
     }

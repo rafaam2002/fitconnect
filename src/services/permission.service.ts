@@ -190,6 +190,7 @@ export class PermissionService extends BaseService {
           'plan',
           'plan.planPermissions',
           'plan.planPermissions.permission',
+          'plan.name',
         ],
         filters: false,
       }

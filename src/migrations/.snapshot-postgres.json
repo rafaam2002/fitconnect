@@ -1063,6 +1063,14 @@
           "unique": false
         },
         {
+          "keyName": "plan_name_company_id_unique",
+          "columnNames": ["name", "company_id"],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
           "keyName": "plan_pkey",
           "columnNames": ["id"],
           "composite": false,
@@ -1206,6 +1214,7 @@
           "localTableName": "public.plan_permission",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.plan",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "plan_permission_permission_id_foreign": {
@@ -1848,6 +1857,7 @@
           "localTableName": "public.stripe_customer",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -2360,6 +2370,7 @@
           "localTableName": "public.subscription",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "subscription_stripe_customer_id_foreign": {
@@ -3199,7 +3210,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "uuid"
         },
         "receiver_id": {
@@ -3267,6 +3278,7 @@
           "localTableName": "public.message",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "message_receiver_id_foreign": {

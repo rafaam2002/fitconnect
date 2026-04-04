@@ -1,4 +1,4 @@
-// import './sentry/instrument';
+import './sentry/instrument';
 
 import { createServer } from 'node:http';
 
@@ -7,6 +7,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
+import * as Sentry from '@sentry/node';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -250,6 +251,10 @@ const startServer = async () => {
     res.status(200).send(deleteAccountHtml());
   });
 
+  // app.get('/test-sentry', (req, res) => {
+  //   throw new Error('¡HOLA SENTRY! Si ves esto, la conexión funciona.');
+  // });
+
   // ===== APOLLO SERVER =====
   await apolloServer.start();
   app.use(
@@ -307,6 +312,8 @@ const startServer = async () => {
   );
 
   // ===== MANEJO DE ERRORES GLOBALES =====
+  Sentry.setupExpressErrorHandler(app);
+
   app.use((error: any, req: any, res: any, _: any) => {
     console.error('Global error handler:', error);
     if (req.path.startsWith('/webhooks')) {

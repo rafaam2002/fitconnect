@@ -22,6 +22,7 @@ import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { storeNews } from './helpers/articles';
 import { middleware } from './middlewares';
+import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
@@ -29,6 +30,11 @@ import { deleteAccountHtml, renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
 dotenv.config();
+
+export interface MyContext {
+  em: EntityManager;
+  currentUser: CurrentUser | null;
+}
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 const path = require('node:path');
@@ -44,11 +50,30 @@ const injectEntityManager = (orm: any) => {
 
 const httpServer = createServer(app);
 
-const apolloServer = new ApolloServer({
+const apolloServer = new ApolloServer<MyContext>({
   schema,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     //ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+    {
+      async requestDidStart() {
+        return {
+          async didEncounterErrors(ctx) {
+            for (const error of ctx.errors) {
+              Sentry.withScope(scope => {
+                if (ctx.contextValue?.currentUser) {
+                  scope.setUser({
+                    id: ctx.contextValue.currentUser.id,
+                    email: ctx.contextValue.currentUser.email,
+                  });
+                }
+                Sentry.captureException(error);
+              });
+            }
+          },
+        };
+      },
+    },
   ],
   csrfPrevention: true,
   cache: 'bounded',
@@ -261,7 +286,13 @@ const startServer = async () => {
     '/',
     cors<cors.CorsRequest>({
       origin: '*', // O tus dominios permitidos
-      allowedHeaders: ['x-company-id', 'content-type', 'authorization'],
+      allowedHeaders: [
+        'x-company-id',
+        'content-type',
+        'authorization',
+        'sentry-trace',
+        'baggage',
+      ],
     }),
     express.json(), // Asegúrate de que esté aquí si no es global
     expressMiddleware(apolloServer, {

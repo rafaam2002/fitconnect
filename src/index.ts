@@ -1,4 +1,4 @@
-import './sentry/instrument';
+// import './sentry/instrument';
 
 import { createServer } from 'node:http';
 

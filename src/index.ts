@@ -1,3 +1,5 @@
+import './sentry/instrument';
+
 import { createServer } from 'node:http';
 
 import { ApolloServer } from '@apollo/server';

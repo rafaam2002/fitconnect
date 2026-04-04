@@ -2370,6 +2370,7 @@
           "localTableName": "public.subscription",
           "referencedColumnNames": ["id"],
           "referencedTableName": "public.user",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "subscription_stripe_customer_id_foreign": {

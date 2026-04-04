@@ -109,9 +109,11 @@ export class UserService extends BaseService {
     if (!user) {
       throw new NotFoundError('User');
     }
-    const activeCompany = user.companies
-      .getItems()
-      .find(c => c.id === user.activeCompanyId);
+
+    const userCompanies = user.companies.getItems();
+    const activeCompany = user.activeCompanyId
+      ? userCompanies.find(c => c.id === user.activeCompanyId)
+      : userCompanies[0];
 
     if (activeCompany) {
       return await authService.buildAuthResponseWithPermissions(
@@ -600,7 +602,6 @@ export class UserService extends BaseService {
 
     return where;
   }
-
   public async deleteUser(
     userId: string,
     currentUser: CurrentUser

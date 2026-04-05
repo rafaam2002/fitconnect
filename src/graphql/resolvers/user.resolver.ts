@@ -472,10 +472,7 @@ export const userResolvers: IResolvers = {
     getUsers: withPermissions(usersPermissions.READ, getUsers),
   },
   Mutation: {
-    setActiveCompany: withPermissions(
-      usersPermissions.READ_UPDATE,
-      setActiveCompany
-    ),
+    setActiveCompany,
     createUser, //este metodo es publico, no requiere permisos
     updateUser,
     updateUserPicture,

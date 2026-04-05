@@ -1,3 +1,5 @@
+import './sentry/instrument';
+
 import { createServer } from 'node:http';
 
 import { ApolloServer } from '@apollo/server';
@@ -5,6 +7,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
+import * as Sentry from '@sentry/node';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -19,6 +22,7 @@ import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { storeNews } from './helpers/articles';
 import { middleware } from './middlewares';
+import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
@@ -26,6 +30,11 @@ import { deleteAccountHtml, renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
 dotenv.config();
+
+export interface MyContext {
+  em: EntityManager;
+  currentUser: CurrentUser | null;
+}
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 const path = require('node:path');
@@ -41,11 +50,30 @@ const injectEntityManager = (orm: any) => {
 
 const httpServer = createServer(app);
 
-const apolloServer = new ApolloServer({
+const apolloServer = new ApolloServer<MyContext>({
   schema,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     //ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+    {
+      async requestDidStart() {
+        return {
+          async didEncounterErrors(ctx) {
+            for (const error of ctx.errors) {
+              Sentry.withScope(scope => {
+                if (ctx.contextValue?.currentUser) {
+                  scope.setUser({
+                    id: ctx.contextValue.currentUser.id,
+                    email: ctx.contextValue.currentUser.email,
+                  });
+                }
+                Sentry.captureException(error);
+              });
+            }
+          },
+        };
+      },
+    },
   ],
   csrfPrevention: true,
   cache: 'bounded',
@@ -248,13 +276,23 @@ const startServer = async () => {
     res.status(200).send(deleteAccountHtml());
   });
 
+  // app.get('/test-sentry', (req, res) => {
+  //   throw new Error('¡HOLA SENTRY! Si ves esto, la conexión funciona.');
+  // });
+
   // ===== APOLLO SERVER =====
   await apolloServer.start();
   app.use(
     '/',
     cors<cors.CorsRequest>({
       origin: '*', // O tus dominios permitidos
-      allowedHeaders: ['x-company-id', 'content-type', 'authorization'],
+      allowedHeaders: [
+        'x-company-id',
+        'content-type',
+        'authorization',
+        'sentry-trace',
+        'baggage',
+      ],
     }),
     express.json(), // Asegúrate de que esté aquí si no es global
     expressMiddleware(apolloServer, {
@@ -305,6 +343,8 @@ const startServer = async () => {
   );
 
   // ===== MANEJO DE ERRORES GLOBALES =====
+  Sentry.setupExpressErrorHandler(app);
+
   app.use((error: any, req: any, res: any, _: any) => {
     console.error('Global error handler:', error);
     if (req.path.startsWith('/webhooks')) {

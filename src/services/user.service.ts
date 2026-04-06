@@ -614,7 +614,11 @@ export class UserService extends BaseService {
       throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
     }
 
-    const user = await this.em.findOne(User, { id: userId });
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { filters: false }
+    );
 
     if (!user) {
       throw new NotFoundError('User');

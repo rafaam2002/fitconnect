@@ -2,6 +2,22 @@ import { GraphQLError } from 'graphql';
 
 import { ServiceResponse } from '../types/common.type';
 
+export const VAL_ERRORS = {
+  SCHEDULE_NOT_AVAILABLE: 'Schedule is not available for booking',
+  SCHEDULE_ALREADY_PASSED: 'Schedule has already passed',
+  SCHEDULE_FULL: 'Schedule is full',
+  MAX_ACTIVE_RESERVATIONS_REACHED: 'Maximum active reservations reached',
+  SAME_DAY_BOOKING_NOT_ALLOWED: 'Booking for the same day is not permitted',
+  ADVANCE_BOOKING_OUTSIDE_WINDOW:
+    'Schedule is outside the advance booking window',
+  USER_ALREADY_IN_SCHEDULE: 'User is already registered for this schedule',
+} as const;
+
+export const NOT_FND_ERRORS = {
+  SCHEDULE: 'Schedule not found',
+  USER: 'User not found',
+} as const;
+
 /**
  * Creates a standardized service response
  */

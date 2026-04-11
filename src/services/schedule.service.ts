@@ -7,12 +7,14 @@ import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 import {
-  BadRequestError,
   createServiceResponse,
   ForbiddenError,
   InternalServerError,
   NotFoundError,
   UnauthorizedError,
+  ValidationError,
+  VAL_ERRORS,
+  NOT_FND_ERRORS,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
 import {
@@ -683,7 +685,7 @@ export class ScheduleService extends BaseService {
     );
 
     if (!user) {
-      throw new NotFoundError('User');
+      throw new NotFoundError(NOT_FND_ERRORS.USER);
     }
 
     const scheduleRepo = this.em.getRepository(Schedule);
@@ -693,7 +695,7 @@ export class ScheduleService extends BaseService {
     );
 
     if (!schedule) {
-      throw new NotFoundError('Schedule');
+      throw new NotFoundError(NOT_FND_ERRORS.SCHEDULE);
     }
 
     const scheduleOptions = await this.em.findOne(ScheduleOptions, {
@@ -731,20 +733,42 @@ export class ScheduleService extends BaseService {
       moment(Number(schedule.startDate)).isAfter(maxAdvanceDate) &&
       !scheduleOptions?.sameDayBookingAllowed;
 
-    const disabled =
-      (isStateDisabled ||
-        isFull ||
-        isHourDisabled ||
-        (!isBooked &&
-          (maxBookings || maxBookingsToday || isAdvanceBookingDisabled))) &&
-      !(isAdmin || isUserCoachOfEvent);
+    const {
+      SCHEDULE_NOT_AVAILABLE,
+      SCHEDULE_ALREADY_PASSED,
+      SCHEDULE_FULL,
+      MAX_ACTIVE_RESERVATIONS_REACHED,
+      SAME_DAY_BOOKING_NOT_ALLOWED,
+      ADVANCE_BOOKING_OUTSIDE_WINDOW,
+      USER_ALREADY_IN_SCHEDULE,
+    } = VAL_ERRORS;
 
-    if (disabled) {
-      throw new BadRequestError('Schedule is not available for booking');
+    if (!(isAdmin || isUserCoachOfEvent)) {
+      if (isStateDisabled) {
+        throw new ValidationError(SCHEDULE_NOT_AVAILABLE);
+      }
+      if (isHourDisabled) {
+        throw new ValidationError(SCHEDULE_ALREADY_PASSED);
+      }
+      if (isFull) {
+        throw new ValidationError(SCHEDULE_FULL);
+      }
+
+      if (!isBooked) {
+        if (maxBookings) {
+          throw new ValidationError(MAX_ACTIVE_RESERVATIONS_REACHED);
+        }
+        if (maxBookingsToday) {
+          throw new ValidationError(SAME_DAY_BOOKING_NOT_ALLOWED);
+        }
+        if (isAdvanceBookingDisabled) {
+          throw new ValidationError(ADVANCE_BOOKING_OUTSIDE_WINDOW);
+        }
+      }
     }
 
     if (schedule.users.contains(user)) {
-      throw new BadRequestError('User already in schedule');
+      throw new ValidationError(USER_ALREADY_IN_SCHEDULE);
     }
 
     schedule.users.add(user);
@@ -963,7 +987,7 @@ export class ScheduleService extends BaseService {
     try {
       const scheduleOptionsRepo = this.em.getRepository(ScheduleOptions);
       let scheduleOptions = await scheduleOptionsRepo.findOne({
-        id: { $ne: null },
+        company: currentUser.activeCompanyId,
       });
 
       scheduleOptions ??= this.em.create(

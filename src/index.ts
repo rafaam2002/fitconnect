@@ -8,7 +8,6 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
 import * as Sentry from '@sentry/node';
-import bcrypt from 'bcrypt';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -22,6 +21,7 @@ import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { storeNews } from './helpers/articles';
 import { middleware } from './middlewares';
+import { AuthService } from './services/auth.service';
 import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
@@ -213,55 +213,17 @@ const startServer = async () => {
 
   app.get('/auth/reset-password', async (req, res) => {
     const token = req.query.token as string;
-    try {
-      const decodedToken = jwt.verify(
-        token,
-        process.env.JWT_SECRET as string
-      ) as {
-        id: string;
-        email: string;
-        password: string;
-      };
+    const em = createRetryingEntityManager(orm);
+    const authService = new AuthService(em);
+    const htmlResponse = await authService.resetRandomPassword(token);
 
-      const em: EntityManager<IDatabaseDriver<Connection>> =
-        createRetryingEntityManager(orm);
-      const user = await em.findOne(User, { email: decodedToken.email });
-      if (!user) {
-        return res
-          .status(400)
-          .send(
-            renderPage(
-              'Cambio de contraseña fallido',
-              'Usuario no encontrado',
-              false
-            )
-          );
-      }
-      const saltRounds = 10;
-      user.password = await bcrypt.hash(decodedToken.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
-      em.persist(user);
-      await em.flush();
-
-      return res
-        .status(200)
-        .send(
-          renderPage(
-            '¡Cambio de contraseña completado!',
-            'Podrás iniciar sesión con tu nueva contraseña temporal. Por favor, cámbiala en los ajustes de tu cuenta.',
-            true
-          )
-        );
-    } catch (err: any) {
-      return res
-        .status(400)
-        .send(
-          renderPage(
-            'Verificación fallida',
-            `Token inválido o caducado. ${err.message}`,
-            false
-          )
-        );
-    }
+    // If htmlResponse contains "Cambio de contraseña completado" or "¡Correo verificado!", it's a success
+    // Actually, renderPage returns HTML. We can check if it was successful by looking at the title or just always returning 200/400.
+    // In the original, it returned 200 for success and 400 for errors.
+    const isSuccess = htmlResponse.includes(
+      '¡Cambio de contraseña completado!'
+    );
+    return res.status(isSuccess ? 200 : 400).send(htmlResponse);
   });
 
   app.get('/health', (req, res) => {

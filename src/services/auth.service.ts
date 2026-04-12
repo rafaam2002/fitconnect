@@ -16,6 +16,7 @@ import {
   InternalServerError,
   NotFoundError,
   UnauthorizedError,
+  VAL_ERRORS,
   ValidationError,
 } from '../utils/errors.util';
 import { changePasswordHtml, renderPage } from '../utils/templates.util';
@@ -344,7 +345,7 @@ export class AuthService extends BaseService {
     const user = await this.em.findOne(
       User,
       { id: userId },
-      { populate: ['password'] }
+      { populate: ['password'], filters: false }
     );
 
     if (!user) {
@@ -357,7 +358,7 @@ export class AuthService extends BaseService {
     );
 
     if (!passwordCorrect) {
-      throw new ValidationError('Current password is incorrect');
+      throw new ValidationError(VAL_ERRORS.INCORRECT_PASSWORD);
     }
 
     user.password = await bcrypt.hash(newPassword, 10);

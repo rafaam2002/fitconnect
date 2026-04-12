@@ -18,7 +18,7 @@ import {
   UnauthorizedError,
   ValidationError,
 } from '../utils/errors.util';
-import { changePasswordHtml } from '../utils/templates.util';
+import { changePasswordHtml, renderPage } from '../utils/templates.util';
 import { generateTempPassword, verifyGoogleToken } from '../utils/users';
 import { ChangePasswordSchema } from '../validation/schemas';
 
@@ -640,6 +640,47 @@ export class AuthService extends BaseService {
       },
       permissions: permissionsContext.permissionNames,
     });
+  }
+
+  public async resetRandomPassword(token: string): Promise<string> {
+    try {
+      const decodedToken = jwt.verify(token, this.jwtSecret) as {
+        id: string;
+        email: string;
+        password: string;
+      };
+
+      const user = await this.em.findOne(
+        User,
+        { email: decodedToken.email },
+        { filters: false }
+      );
+
+      if (!user) {
+        return renderPage(
+          'Cambio de contraseña fallido',
+          'Usuario no encontrado',
+          false
+        );
+      }
+
+      const saltRounds = 10;
+      user.password = await bcrypt.hash(decodedToken.password, saltRounds); // Aseguramos que la contraseña se hashee correctamente
+      this.em.persist(user);
+      await this.em.flush();
+
+      return renderPage(
+        '¡Cambio de contraseña completado!',
+        'Podrás iniciar sesión con tu nueva contraseña temporal. Por favor, cámbiala en los ajustes de tu cuenta.',
+        true
+      );
+    } catch (err: any) {
+      return renderPage(
+        'Verificación fallida',
+        `Token inválido o caducado. ${err.message}`,
+        false
+      );
+    }
   }
 
   /**

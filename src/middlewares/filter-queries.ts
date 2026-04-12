@@ -8,6 +8,7 @@ export const filterPublicQueries = (em: EntityManager, query: string) => {
     'forgotPassword',
     'verifyEmail',
     'loginWithGoogle',
+    'sendChangePasswordEmail',
   ]; // ...tus ops
 
   if (publicOperations.some(op => query.includes(op))) {

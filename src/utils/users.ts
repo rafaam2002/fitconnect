@@ -29,7 +29,7 @@ export const setNotActiveUsers = async (
 };
 
 export const generateTempPassword = (length: number = 6): string => {
-  const characters = process.env.PASSWORD_KEY_ENTRY || '';
+  const characters = process.env.PASSWORD_KEY_ENTRY || 'asdfasdfqweqwe12341234';
   let result = '';
   for (let i = 0; i < length; i++) {
     const index = randomInt(0, characters.length);

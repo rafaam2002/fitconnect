@@ -53,7 +53,7 @@ export class Schedule extends BaseEntity {
   @ManyToMany(() => User, user => user.schedules)
   users = new Collection<User>(this);
 
-  @ManyToMany(() => User, user => user.waitListSchedules)
+  @ManyToMany(() => User, user => user.waitListSchedules, { fixedOrder: true })
   waitListUsers = new Collection<User>(this);
 
   @ManyToOne(() => User)

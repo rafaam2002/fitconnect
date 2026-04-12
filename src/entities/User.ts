@@ -132,6 +132,7 @@ export class User extends BaseEntity {
 
   @ManyToMany(() => Schedule, (schedule: Schedule) => schedule.waitListUsers, {
     owner: true,
+    fixedOrder: true,
   })
   waitListSchedules = new Collection<Schedule>(this);
 

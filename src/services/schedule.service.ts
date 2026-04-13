@@ -128,7 +128,7 @@ export class ScheduleService extends BaseService {
     }
 
     const schedules = await scheduleRepo.find(filter, {
-      populate: ['admin', 'users'],
+      populate: ['admin', 'users', 'waitListUsers'],
       orderBy: { startDate: 'ASC' },
     });
 

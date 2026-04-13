@@ -128,7 +128,7 @@ export class ScheduleService extends BaseService {
     }
 
     const schedules = await scheduleRepo.find(filter, {
-      populate: ['admin', 'users'],
+      populate: ['admin', 'users', 'waitListUsers'],
       orderBy: { startDate: 'ASC' },
     });
 
@@ -681,7 +681,7 @@ export class ScheduleService extends BaseService {
     const user = await this.em.findOne(
       User,
       { id: currentUser.id },
-      { populate: ['schedules'] }
+      { populate: ['schedules', 'waitListSchedules'] }
     );
 
     if (!user) {
@@ -691,7 +691,7 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['users', 'admin'] }
+      { populate: ['users', 'admin', 'waitListUsers'] }
     );
 
     if (!schedule) {
@@ -707,23 +707,34 @@ export class ScheduleService extends BaseService {
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
     const isFull = schedule.users.length >= schedule.maxUsers;
     const isBooked = user.schedules.getItems().some(s => s.id === schedule.id);
+    const isWaitListed = user.waitListSchedules
+      .getItems()
+      .some(s => s.id === schedule.id);
     const isAdmin = currentUser.contextRole === UserRoleEnum.ADMIN;
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
-    const maxBookings =
-      user.schedules.length >=
+    const isMaxUserBookingsReached =
+      user.schedules.length + user.waitListSchedules.length >=
       (scheduleOptions?.maxActiveReservations || Infinity);
-    const maxBookingsToday =
+    const isMaxUserBookingsTodayReached =
       !scheduleOptions?.sameDayBookingAllowed &&
-      user.schedules
+      (user.schedules
         .getItems()
         .some(s =>
           moment(Number(s.startDate)).isSame(
             moment(Number(schedule.startDate)),
             'day'
           )
-        );
+        ) ||
+        user.waitListSchedules
+          .getItems()
+          .some(s =>
+            moment(Number(s.startDate)).isSame(
+              moment(Number(schedule.startDate)),
+              'day'
+            )
+          ));
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')
@@ -736,7 +747,6 @@ export class ScheduleService extends BaseService {
     const {
       SCHEDULE_NOT_AVAILABLE,
       SCHEDULE_ALREADY_PASSED,
-      SCHEDULE_FULL,
       MAX_ACTIVE_RESERVATIONS_REACHED,
       SAME_DAY_BOOKING_NOT_ALLOWED,
       ADVANCE_BOOKING_OUTSIDE_WINDOW,
@@ -750,15 +760,12 @@ export class ScheduleService extends BaseService {
       if (isHourDisabled) {
         throw new ValidationError(SCHEDULE_ALREADY_PASSED);
       }
-      if (isFull) {
-        throw new ValidationError(SCHEDULE_FULL);
-      }
 
-      if (!isBooked) {
-        if (maxBookings) {
+      if (!isBooked && !isWaitListed) {
+        if (isMaxUserBookingsReached) {
           throw new ValidationError(MAX_ACTIVE_RESERVATIONS_REACHED);
         }
-        if (maxBookingsToday) {
+        if (isMaxUserBookingsTodayReached) {
           throw new ValidationError(SAME_DAY_BOOKING_NOT_ALLOWED);
         }
         if (isAdvanceBookingDisabled) {
@@ -767,15 +774,25 @@ export class ScheduleService extends BaseService {
       }
     }
 
-    if (schedule.users.contains(user)) {
+    if (
+      schedule.users.contains(user) ||
+      schedule.waitListUsers.contains(user)
+    ) {
       throw new ValidationError(USER_ALREADY_IN_SCHEDULE);
     }
 
-    schedule.users.add(user);
+    let message = 'User added to schedule';
+    if (isFull) {
+      schedule.waitListUsers.add(user);
+      message = 'User added to waitlist';
+    } else {
+      schedule.users.add(user);
+    }
+
     this.em.persist(schedule);
     await this.em.flush();
 
-    return createServiceResponse(200, 'User added to schedule', true, {
+    return createServiceResponse(200, message, true, {
       schedule,
     });
   }
@@ -795,7 +812,14 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['users', 'admin'] }
+      {
+        populate: [
+          'users',
+          'admin',
+          'waitListUsers',
+          'waitListUsers.pushTokens',
+        ],
+      }
     );
 
     if (!schedule) {
@@ -827,15 +851,29 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError('User');
     }
 
-    if (!schedule.users.contains(user)) {
-      throw new ForbiddenError('User not in schedule');
+    let message = 'User removed from schedule';
+
+    if (schedule.users.contains(user)) {
+      schedule.users.remove(user);
+
+      // Si hay gente en la waitlist, meter al primero
+      if (schedule.waitListUsers.length > 0) {
+        const nextUser = schedule.waitListUsers.getItems()[0];
+        schedule.waitListUsers.remove(nextUser);
+        schedule.users.add(nextUser);
+        await this.sendWaitlistPromotionNotification(schedule, nextUser);
+      }
+    } else if (schedule.waitListUsers.contains(user)) {
+      schedule.waitListUsers.remove(user);
+      message = 'User removed from waitlist';
+    } else {
+      throw new ForbiddenError('User not in schedule or waitlist');
     }
 
-    schedule.users.remove(user);
     this.em.persist(schedule);
     await this.em.flush();
 
-    return createServiceResponse(200, 'User removed from schedule', true, {
+    return createServiceResponse(200, message, true, {
       schedule,
     });
   }
@@ -1084,6 +1122,31 @@ export class ScheduleService extends BaseService {
   }
 
   // ============= MÉTODOS PRIVADOS =============
+
+  /**
+   * Enviar notificaciones de promoción de waitlist
+   */
+  private async sendWaitlistPromotionNotification(
+    schedule: Schedule,
+    user: User
+  ): Promise<void> {
+    try {
+      const title = '¡Tienes plaza!';
+      const body = `Has sido movido de la lista de espera al horario "${schedule.title}".`;
+      const data = {
+        type: 'schedule_waitlist_promotion',
+        scheduleId: schedule.id,
+      };
+
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach(pushToken => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    } catch (error) {
+      console.error('Error sending waitlist promotion notification:', error);
+    }
+  }
 
   /**
    * Enviar notificaciones de cancelación de schedule

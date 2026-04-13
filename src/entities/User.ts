@@ -130,6 +130,12 @@ export class User extends BaseEntity {
   })
   schedules = new Collection<Schedule>(this);
 
+  @ManyToMany({
+    entity: () => Schedule,
+    mappedBy: 'waitListUsers',
+  })
+  waitListSchedules = new Collection<Schedule>(this);
+
   @ManyToMany(() => Promotion, promotion => promotion.users, {
     owner: true,
   })

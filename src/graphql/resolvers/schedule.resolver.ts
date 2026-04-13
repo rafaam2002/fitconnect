@@ -376,10 +376,7 @@ export const scheduleResolvers: IResolvers = {
     ),
     getSchedulesRange,
     getSchedulesResumeRange,
-    getScheduleOptions: withPermissions(
-      schedulesPermissions.READ,
-      getScheduleOptions
-    ),
+    getScheduleOptions: getScheduleOptions,
     getSchedulesStats: withPermissions(
       schedulesPermissions.READ,
       getSchedulesStats

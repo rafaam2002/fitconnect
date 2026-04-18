@@ -37,20 +37,22 @@ export type createScheduleDataType = {
   admin: string;
   type: ScheduleType;
   repeat: boolean;
+  date?: string;
 };
 
 export type updateScheduleDataType = {
   currentUser: CurrentUser;
-  scheduleId: string;
+  id: string;
   title?: string;
   description?: string;
-  startDate?: string;
-  endDate?: string;
   maxUsers?: number;
   age?: number | null;
   admin?: string;
   type?: ScheduleType;
   state?: ScheduleState;
+  date?: string;
+  startHour?: string;
+  endHour?: string;
 };
 
 export class ScheduleService extends BaseService {
@@ -585,6 +587,7 @@ export class ScheduleService extends BaseService {
       maxUsers,
       type,
       admin,
+      date,
     } = scheduleData;
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -617,53 +620,49 @@ export class ScheduleService extends BaseService {
 
           return createServiceResponse(200, 'Schedule created', true);
         } else {
-          const now = moment();
-          const schedules: Schedule[] = [];
-
-          for (const day of days) {
-            // Moment days: 0=Sunday, 1=Monday...6=Saturday
-            const momentDay = day;
-            const [startH, startM] = startHour.split(':').map(Number);
-            const [endH, endM] = endHour.split(':').map(Number);
-
-            const startDate = moment().day(momentDay).set({
-              hour: startH,
-              minute: startM,
-              second: 0,
-              millisecond: 0,
-            });
-
-            if (startDate.isBefore(now)) {
-              startDate.add(7, 'days');
-            }
-
-            const endDate = startDate.clone().set({
-              hour: endH,
-              minute: endM,
-            });
-
-            const newSchedule = tem.create(Schedule, {
-              title,
-              description,
-              age: finalAge,
-              type,
-              startDate: startDate.toDate(),
-              endDate: endDate.toDate(),
-              maxUsers,
-              state: ScheduleState.AVAILABLE,
-              admin: adminRef,
-              company: currentUser.activeCompanyId!,
-            });
-
-            tem.persist(newSchedule);
-            schedules.push(newSchedule);
+          if (!date) {
+            throw new ValidationError(
+              'Date is required for non-repeating schedules'
+            );
           }
+
+          const schedules: Schedule[] = [];
+          const [startH, startM] = startHour.split(':').map(Number);
+          const [endH, endM] = endHour.split(':').map(Number);
+
+          const startDate = moment(date).set({
+            hour: startH,
+            minute: startM,
+            second: 0,
+            millisecond: 0,
+          });
+
+          const endDate = startDate.clone().set({
+            hour: endH,
+            minute: endM,
+          });
+
+          const newSchedule = tem.create(Schedule, {
+            title,
+            description,
+            age: finalAge,
+            type,
+            startDate: startDate.toDate(),
+            endDate: endDate.toDate(),
+            maxUsers,
+            state: ScheduleState.AVAILABLE,
+            admin: adminRef,
+            company: currentUser.activeCompanyId!,
+          });
+
+          tem.persist(newSchedule);
+          schedules.push(newSchedule);
 
           await tem.flush();
 
           return createServiceResponse(
             200,
-            'Schedules created successfully',
+            'Schedule created successfully',
             true,
             {
               schedules,
@@ -687,16 +686,17 @@ export class ScheduleService extends BaseService {
   ): Promise<ServiceResponse> {
     const {
       currentUser,
-      scheduleId,
+      id,
       title,
       description,
-      startDate,
-      endDate,
       maxUsers,
       age,
       admin,
       type,
       state,
+      date,
+      startHour,
+      endHour,
     } = scheduleData;
 
     if (!currentUser) {
@@ -711,7 +711,7 @@ export class ScheduleService extends BaseService {
       try {
         const scheduleRepo = tem.getRepository(Schedule);
         const schedule = await scheduleRepo.findOne(
-          { id: scheduleId },
+          { id: id },
           { populate: ['admin'] }
         );
 
@@ -729,8 +729,30 @@ export class ScheduleService extends BaseService {
 
         if (title !== undefined) schedule.title = title;
         if (description !== undefined) schedule.description = description;
-        if (startDate !== undefined) schedule.startDate = new Date(startDate);
-        if (endDate !== undefined) schedule.endDate = new Date(endDate);
+
+        if (date || startHour || endHour) {
+          const baseDate = date ? moment(date) : moment(schedule.startDate);
+
+          if (date || startHour) {
+            const timeStr =
+              startHour || moment(schedule.startDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.startDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+
+          if (date || endHour) {
+            const timeStr = endHour || moment(schedule.endDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.endDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+        }
+
         if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
         if (type !== undefined) schedule.type = type;
         if (state !== undefined) schedule.state = state;

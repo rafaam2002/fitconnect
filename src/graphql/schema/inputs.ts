@@ -70,10 +70,9 @@ input UpdateScheduleInput {
     type: ScheduleType,
     startHour: String,
     endHour: String,
-    days: [Int],
-    repeat: Boolean,
     maxUsers: Int,
     admin: ID,
+    date: String,
 }
 
 input CreateUserInput {
@@ -105,6 +104,7 @@ input CreateScheduleInput {
     repeat: Boolean,
     maxUsers: Int!,
     admin: ID!,
+    date: String,
 }
 
 input UpdateScheduleOptionsInput {

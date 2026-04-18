@@ -15,6 +15,7 @@ import {
   ValidationError,
   VAL_ERRORS,
   NOT_FND_ERRORS,
+  FORBIDDEN_ERRORS,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
 import {
@@ -36,6 +37,20 @@ export type createScheduleDataType = {
   admin: string;
   type: ScheduleType;
   repeat: boolean;
+};
+
+export type updateScheduleDataType = {
+  currentUser: CurrentUser;
+  scheduleId: string;
+  title?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  maxUsers?: number;
+  age?: number | null;
+  admin?: string;
+  type?: ScheduleType;
+  state?: ScheduleState;
 };
 
 export class ScheduleService extends BaseService {
@@ -298,7 +313,7 @@ export class ScheduleService extends BaseService {
         {
           startDate: { $gte: startOfDay, $lte: endOfDay },
         },
-        { populate: ['users', 'admin'] }
+        { populate: ['users', 'admin', 'waitListUsers'] }
       );
 
       const sortSchedules = [...schedules].sort((a, b) => {
@@ -663,6 +678,90 @@ export class ScheduleService extends BaseService {
           throw error;
         }
         throw new InternalServerError('Error creating schedule');
+      }
+    });
+  }
+
+  public async updateSchedule(
+    scheduleData: updateScheduleDataType
+  ): Promise<ServiceResponse> {
+    const {
+      currentUser,
+      scheduleId,
+      title,
+      description,
+      startDate,
+      endDate,
+      maxUsers,
+      age,
+      admin,
+      type,
+      state,
+    } = scheduleData;
+
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      try {
+        const scheduleRepo = tem.getRepository(Schedule);
+        const schedule = await scheduleRepo.findOne(
+          { id: scheduleId },
+          { populate: ['admin'] }
+        );
+
+        if (!schedule) {
+          throw new NotFoundError('Schedule');
+        }
+
+        // Solo el admin o el propio coach pueden editar
+        if (
+          currentUser.contextRole !== UserRoleEnum.ADMIN &&
+          schedule.admin.id !== currentUser.id
+        ) {
+          throw new ForbiddenError(FORBIDDEN_ERRORS.NOT_AUTHORIZED);
+        }
+
+        if (title !== undefined) schedule.title = title;
+        if (description !== undefined) schedule.description = description;
+        if (startDate !== undefined) schedule.startDate = new Date(startDate);
+        if (endDate !== undefined) schedule.endDate = new Date(endDate);
+        if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
+        if (type !== undefined) schedule.type = type;
+        if (state !== undefined) schedule.state = state;
+
+        if (age !== undefined) {
+          schedule.age = age && age > 0 ? age : null;
+        }
+
+        if (admin !== undefined) {
+          schedule.admin = tem.getReference(User, admin);
+        }
+
+        await tem.flush();
+
+        return createServiceResponse(
+          200,
+          'Schedule updated successfully',
+          true,
+          {
+            schedule,
+          }
+        );
+      } catch (error: any) {
+        if (
+          error instanceof ForbiddenError ||
+          error instanceof UnauthorizedError ||
+          error instanceof NotFoundError
+        ) {
+          throw error;
+        }
+        throw new InternalServerError('Error updating schedule');
       }
     });
   }

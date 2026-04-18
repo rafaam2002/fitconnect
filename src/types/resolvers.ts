@@ -70,6 +70,21 @@ export type RemoveScheduleProps = {
   scheduleId: string;
 };
 
+export type UpdateScheduleProps = {
+  schedule: {
+    scheduleId: string;
+    title?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    maxUsers?: number;
+    age?: number | null;
+    admin?: string;
+    type?: ScheduleType;
+    state?: ScheduleState;
+  };
+};
+
 export type updateScheduleOptionsProps = {
   scheduleOptions: {
     maxActiveReservations: number;

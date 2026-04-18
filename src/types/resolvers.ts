@@ -87,6 +87,29 @@ export type UpdateScheduleProps = {
   };
 };
 
+export type UpdateScheduleProgrammedProps = {
+  scheduleProgrammed: {
+    id: string;
+    daysOfWeek?: number[];
+    startHour?: string;
+    endHour?: string;
+    maxUsers?: number;
+    admin?: string;
+    title?: string;
+    description?: string;
+    type?: ScheduleType;
+    age?: number | null;
+  };
+};
+
+export type RemoveScheduleProgrammedProps = {
+  id: string;
+};
+
+export type GetScheduleProgrammedProps = {
+  id?: string;
+};
+
 export type updateScheduleOptionsProps = {
   scheduleOptions: {
     maxActiveReservations: number;

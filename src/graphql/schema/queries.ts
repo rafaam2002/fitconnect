@@ -27,6 +27,7 @@ type Query {
     getSchedulesStats(month: Int!): SchedulesStatsResponse!
     getMonthlySchedules(month: Int!,startHour: String!): ScheduleResponse!
     getUserSchedules(userId: ID, past: Boolean): ScheduleResponse!
+    getSchedulesProgrammed(id: ID): ScheduleProgrammedResponse!
 
     #----------------- Poll --------------
     getPolls(pollId: ID, filter: PollFilter): PollResponse!

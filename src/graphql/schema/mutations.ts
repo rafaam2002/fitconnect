@@ -23,7 +23,8 @@ type Mutation {
     createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
     addUserToSchedule(scheduleId: ID!): ScheduleResponse!
     removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!
-    updateScheduleOptions(scheduleOptions: UpdateScheduleOptionsInput!): ScheduleOptionsResponse! 
+    updateScheduleOptions(scheduleOptions: UpdateScheduleOptionsInput!): ScheduleOptionsResponse!
+    updateSchedule(schedule: UpdateScheduleInput!): ScheduleResponse!
 
     #------------------Poll---------------------
     createPoll(poll: CreatePollInput!): PollResponse!

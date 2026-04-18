@@ -58,6 +58,7 @@ export type ScheduleProps = {
     repeat: boolean;
     maxUsers: number;
     admin: string;
+    date?: string;
   };
 };
 
@@ -68,6 +69,22 @@ export type RemoveUserSheduleProps = {
 
 export type RemoveScheduleProps = {
   scheduleId: string;
+};
+
+export type UpdateScheduleProps = {
+  schedule: {
+    id: string;
+    title?: string;
+    description?: string;
+    maxUsers?: number;
+    age?: number | null;
+    admin?: string;
+    type?: ScheduleType;
+    state?: ScheduleState;
+    date?: string;
+    startHour?: string;
+    endHour?: string;
+  };
 };
 
 export type updateScheduleOptionsProps = {

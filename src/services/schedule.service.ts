@@ -15,6 +15,7 @@ import {
   ValidationError,
   VAL_ERRORS,
   NOT_FND_ERRORS,
+  FORBIDDEN_ERRORS,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
 import {
@@ -36,6 +37,22 @@ export type createScheduleDataType = {
   admin: string;
   type: ScheduleType;
   repeat: boolean;
+  date?: string;
+};
+
+export type updateScheduleDataType = {
+  currentUser: CurrentUser;
+  id: string;
+  title?: string;
+  description?: string;
+  maxUsers?: number;
+  age?: number | null;
+  admin?: string;
+  type?: ScheduleType;
+  state?: ScheduleState;
+  date?: string;
+  startHour?: string;
+  endHour?: string;
 };
 
 export class ScheduleService extends BaseService {
@@ -298,7 +315,7 @@ export class ScheduleService extends BaseService {
         {
           startDate: { $gte: startOfDay, $lte: endOfDay },
         },
-        { populate: ['users', 'admin'] }
+        { populate: ['users', 'admin', 'waitListUsers'] }
       );
 
       const sortSchedules = [...schedules].sort((a, b) => {
@@ -570,6 +587,7 @@ export class ScheduleService extends BaseService {
       maxUsers,
       type,
       admin,
+      date,
     } = scheduleData;
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -602,53 +620,49 @@ export class ScheduleService extends BaseService {
 
           return createServiceResponse(200, 'Schedule created', true);
         } else {
-          const now = moment();
-          const schedules: Schedule[] = [];
-
-          for (const day of days) {
-            // Moment days: 0=Sunday, 1=Monday...6=Saturday
-            const momentDay = day;
-            const [startH, startM] = startHour.split(':').map(Number);
-            const [endH, endM] = endHour.split(':').map(Number);
-
-            const startDate = moment().day(momentDay).set({
-              hour: startH,
-              minute: startM,
-              second: 0,
-              millisecond: 0,
-            });
-
-            if (startDate.isBefore(now)) {
-              startDate.add(7, 'days');
-            }
-
-            const endDate = startDate.clone().set({
-              hour: endH,
-              minute: endM,
-            });
-
-            const newSchedule = tem.create(Schedule, {
-              title,
-              description,
-              age: finalAge,
-              type,
-              startDate: startDate.toDate(),
-              endDate: endDate.toDate(),
-              maxUsers,
-              state: ScheduleState.AVAILABLE,
-              admin: adminRef,
-              company: currentUser.activeCompanyId!,
-            });
-
-            tem.persist(newSchedule);
-            schedules.push(newSchedule);
+          if (!date) {
+            throw new ValidationError(
+              'Date is required for non-repeating schedules'
+            );
           }
+
+          const schedules: Schedule[] = [];
+          const [startH, startM] = startHour.split(':').map(Number);
+          const [endH, endM] = endHour.split(':').map(Number);
+
+          const startDate = moment(date).set({
+            hour: startH,
+            minute: startM,
+            second: 0,
+            millisecond: 0,
+          });
+
+          const endDate = startDate.clone().set({
+            hour: endH,
+            minute: endM,
+          });
+
+          const newSchedule = tem.create(Schedule, {
+            title,
+            description,
+            age: finalAge,
+            type,
+            startDate: startDate.toDate(),
+            endDate: endDate.toDate(),
+            maxUsers,
+            state: ScheduleState.AVAILABLE,
+            admin: adminRef,
+            company: currentUser.activeCompanyId!,
+          });
+
+          tem.persist(newSchedule);
+          schedules.push(newSchedule);
 
           await tem.flush();
 
           return createServiceResponse(
             200,
-            'Schedules created successfully',
+            'Schedule created successfully',
             true,
             {
               schedules,
@@ -663,6 +677,113 @@ export class ScheduleService extends BaseService {
           throw error;
         }
         throw new InternalServerError('Error creating schedule');
+      }
+    });
+  }
+
+  public async updateSchedule(
+    scheduleData: updateScheduleDataType
+  ): Promise<ServiceResponse> {
+    const {
+      currentUser,
+      id,
+      title,
+      description,
+      maxUsers,
+      age,
+      admin,
+      type,
+      state,
+      date,
+      startHour,
+      endHour,
+    } = scheduleData;
+
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      try {
+        const scheduleRepo = tem.getRepository(Schedule);
+        const schedule = await scheduleRepo.findOne(
+          { id: id },
+          { populate: ['admin'] }
+        );
+
+        if (!schedule) {
+          throw new NotFoundError('Schedule');
+        }
+
+        // Solo el admin o el propio coach pueden editar
+        if (
+          currentUser.contextRole !== UserRoleEnum.ADMIN &&
+          schedule.admin.id !== currentUser.id
+        ) {
+          throw new ForbiddenError(FORBIDDEN_ERRORS.NOT_AUTHORIZED);
+        }
+
+        if (title !== undefined) schedule.title = title;
+        if (description !== undefined) schedule.description = description;
+
+        if (date || startHour || endHour) {
+          const baseDate = date ? moment(date) : moment(schedule.startDate);
+
+          if (date || startHour) {
+            const timeStr =
+              startHour || moment(schedule.startDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.startDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+
+          if (date || endHour) {
+            const timeStr = endHour || moment(schedule.endDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.endDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+        }
+
+        if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
+        if (type !== undefined) schedule.type = type;
+        if (state !== undefined) schedule.state = state;
+
+        if (age !== undefined) {
+          schedule.age = age && age > 0 ? age : null;
+        }
+
+        if (admin !== undefined) {
+          schedule.admin = tem.getReference(User, admin);
+        }
+
+        await tem.flush();
+
+        return createServiceResponse(
+          200,
+          'Schedule updated successfully',
+          true,
+          {
+            schedule,
+          }
+        );
+      } catch (error: any) {
+        if (
+          error instanceof ForbiddenError ||
+          error instanceof UnauthorizedError ||
+          error instanceof NotFoundError
+        ) {
+          throw error;
+        }
+        throw new InternalServerError('Error updating schedule');
       }
     });
   }

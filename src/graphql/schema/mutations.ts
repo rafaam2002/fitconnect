@@ -10,6 +10,10 @@ type Mutation {
     deleteUser(id: ID!): DefaultResponse!
     loginWithGoogle(id_token: String!): LoginResponse!
     sendChangePasswordEmail(email: String!): DefaultResponse!
+    sendTestNotification: DefaultResponse!
+
+    #------------------Permission-----------------
+    syncPermissions: DefaultResponse!
 
     #------------------Message-----------------
     createMessage(message: CreateMessageInput!): MessageResponse!

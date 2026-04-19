@@ -424,6 +424,35 @@ export class PermissionService extends BaseService {
   }
 
   /**
+   * Sincronizar permisos faltantes en la base de datos basándose en los enums
+   * Solo crea los que no existen, no modifica los existentes
+   */
+  async syncMissingPermissions(): Promise<void> {
+    const modules = Object.values(PermissionModule) as PermissionModule[];
+    const actions = Object.values(PermissionAction) as PermissionAction[];
+
+    for (const module of modules) {
+      for (const action of actions) {
+        const name = Permission.generateName(module, action);
+        const exists = await this.em.count(Permission, { name });
+
+        if (exists === 0) {
+          const permission = this.em.create<Permission>(Permission, {
+            name,
+            module,
+            action,
+            description: `${action} permission for ${module} module`,
+          });
+          this.em.persist(permission);
+        }
+      }
+    }
+
+    await this.em.flush();
+    console.log('Missing permissions synchronized successfully');
+  }
+
+  /**
    * Desactivar un permiso (soft delete)
    */
   async deactivatePermission(permissionId: string): Promise<void> {

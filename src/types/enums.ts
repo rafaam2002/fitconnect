@@ -82,5 +82,4 @@ export enum UserRoleEnum {
   STANDARD = 'standard',
   ADMIN = 'admin',
   COACH = 'coach',
-  SUPER_ADMIN = 'super_admin',
 }

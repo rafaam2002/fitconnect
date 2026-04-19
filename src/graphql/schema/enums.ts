@@ -34,7 +34,6 @@ enum PaymentType {
 enum ScheduleState {
     available
     cancelled
-    full
 }
 
 enum SubscriptionStatus{

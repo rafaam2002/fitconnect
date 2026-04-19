@@ -10,16 +10,19 @@ import {
   ChangeScheduleStatusProp,
   ContextProps,
   GetMonthlyScheduleStats,
+  GetScheduleProgrammedProps,
   GetScheduleProps,
   GetScheduleRangeProps,
   GetUserSchedulesProps,
-  IdProps,
+  RemoveScheduleProgrammedProps,
   RemoveScheduleProps,
   RemoveUserSheduleProps,
   ScheduleDevelopmentProps,
   ScheduleProps,
   ScheduleResumeRange,
   ScheduleStatsProps,
+  UpdateScheduleProgrammedProps,
+  UpdateScheduleProps,
   updateScheduleOptionsProps,
 } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
@@ -50,7 +53,7 @@ export const getSchedules = async (
   }
 };
 
-export const getUserSchedules = async (
+const getUserSchedules = async (
   _: any,
   args: GetUserSchedulesProps,
   context: ContextProps
@@ -66,7 +69,7 @@ export const getUserSchedules = async (
   }
 };
 
-export const getSchedulesFromToday = async (
+const getSchedulesFromToday = async (
   _: any,
   __: any,
   context: ContextProps
@@ -81,11 +84,7 @@ export const getSchedulesFromToday = async (
   }
 };
 
-export const getSchedulesResume = async (
-  _: any,
-  __: any,
-  context: ContextProps
-) => {
+const getSchedulesResume = async (_: any, __: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
 
@@ -96,22 +95,22 @@ export const getSchedulesResume = async (
   }
 };
 
-export const getAdminSchedules = async (
-  _: any,
-  __: IdProps,
-  context: ContextProps
-) => {
-  try {
-    const { em, currentUser } = context;
+// const getAdminSchedules = async (
+//   _: any,
+//   __: IdProps,
+//   context: ContextProps
+// ) => {
+//   try {
+//     const { em, currentUser } = context;
 
-    const scheduleService = new ScheduleService(em);
-    return await scheduleService.getAdminSchedules(currentUser);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
+//     const scheduleService = new ScheduleService(em);
+//     return await scheduleService.getAdminSchedules(currentUser);
+//   } catch (error: any) {
+//     return handleError(error);
+//   }
+// };
 
-export const getTodaySchedulesResume = async (
+const getTodaySchedulesResume = async (
   _: any,
   __: any,
   context: ContextProps
@@ -126,7 +125,7 @@ export const getTodaySchedulesResume = async (
   }
 };
 
-export const getSchedulesRange = async (
+const getSchedulesRange = async (
   _: any,
   args: GetScheduleRangeProps,
   context: ContextProps
@@ -147,7 +146,7 @@ export const getSchedulesRange = async (
   }
 };
 
-export const getSchedulesResumeRange = async (
+const getSchedulesResumeRange = async (
   _: any,
   args: ScheduleResumeRange,
   context: ContextProps
@@ -167,11 +166,7 @@ export const getSchedulesResumeRange = async (
   }
 };
 
-export const getScheduleOptions = async (
-  _: any,
-  __: any,
-  context: ContextProps
-) => {
+const getScheduleOptions = async (_: any, __: any, context: ContextProps) => {
   try {
     const { em, currentUser } = context;
 
@@ -182,7 +177,7 @@ export const getScheduleOptions = async (
   }
 };
 
-export const getSchedulesStats = async (
+const getSchedulesStats = async (
   _: any,
   args: ScheduleStatsProps,
   context: ContextProps
@@ -198,7 +193,7 @@ export const getSchedulesStats = async (
   }
 };
 
-export const getMonthlySchedules = async (
+const getMonthlySchedules = async (
   _: any,
   args: GetMonthlyScheduleStats,
   context: ContextProps
@@ -218,9 +213,25 @@ export const getMonthlySchedules = async (
   }
 };
 
+const getSchedulesProgrammed = async (
+  _: any,
+  args: GetScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { id } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.getSchedulesProgrammed(currentUser, id);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 // ===== MUTATION RESOLVERS =====
 
-export const createSchedule = async (
+const createSchedule = async (
   _: any,
   args: ScheduleProps,
   context: ContextProps
@@ -239,7 +250,61 @@ export const createSchedule = async (
   }
 };
 
-export const addUserToSchedule = async (
+const updateSchedule = async (
+  _: any,
+  args: UpdateScheduleProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { schedule } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.updateSchedule({
+      ...schedule,
+      currentUser,
+    });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+const updateScheduleProgrammed = async (
+  _: any,
+  args: UpdateScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { scheduleProgrammed } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.updateScheduleProgrammed({
+      ...scheduleProgrammed,
+      currentUser,
+    });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+const removeScheduleProgrammed = async (
+  _: any,
+  args: RemoveScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { id } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.deleteScheduleProgrammed(currentUser, id);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+const addUserToSchedule = async (
   _: any,
   args: AddScheduleProps,
   context: ContextProps
@@ -255,7 +320,7 @@ export const addUserToSchedule = async (
   }
 };
 
-export const removeUserFromSchedule = async (
+const removeUserFromSchedule = async (
   _: any,
   args: RemoveUserSheduleProps,
   context: ContextProps
@@ -275,7 +340,7 @@ export const removeUserFromSchedule = async (
   }
 };
 
-export const createScheduleDevelopment = async (
+const createScheduleDevelopment = async (
   _: any,
   args: ScheduleDevelopmentProps,
   context: ContextProps
@@ -299,7 +364,7 @@ export const createScheduleDevelopment = async (
   }
 };
 
-export const changeScheduleStatus = async (
+const changeScheduleStatus = async (
   _: any,
   args: ChangeScheduleStatusProp,
   context: ContextProps
@@ -315,7 +380,7 @@ export const changeScheduleStatus = async (
   }
 };
 
-export const removeSchedule = async (
+const removeSchedule = async (
   _: any,
   args: RemoveScheduleProps,
   context: ContextProps
@@ -331,7 +396,7 @@ export const removeSchedule = async (
   }
 };
 
-export const updateScheduleOptions = async (
+const updateScheduleOptions = async (
   _: any,
   args: updateScheduleOptionsProps,
   context: ContextProps
@@ -376,10 +441,7 @@ export const scheduleResolvers: IResolvers = {
     ),
     getSchedulesRange,
     getSchedulesResumeRange,
-    getScheduleOptions: withPermissions(
-      schedulesPermissions.READ,
-      getScheduleOptions
-    ),
+    getScheduleOptions: getScheduleOptions,
     getSchedulesStats: withPermissions(
       schedulesPermissions.READ,
       getSchedulesStats
@@ -389,11 +451,27 @@ export const scheduleResolvers: IResolvers = {
       getMonthlySchedules
     ),
     getUserSchedules,
+    getSchedulesProgrammed: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesProgrammed
+    ),
   },
   Mutation: {
     createSchedule: withPermissions(
       schedulesPermissions.CREATE,
       createSchedule
+    ),
+    updateSchedule: withPermissions(
+      schedulesPermissions.UPDATE,
+      updateSchedule
+    ),
+    updateScheduleProgrammed: withPermissions(
+      schedulesPermissions.UPDATE,
+      updateScheduleProgrammed
+    ),
+    removeScheduleProgrammed: withPermissions(
+      schedulesPermissions.DELETE,
+      removeScheduleProgrammed
     ),
     addUserToSchedule: withPermissions(
       schedulesPermissions.READ,

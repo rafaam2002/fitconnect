@@ -62,6 +62,32 @@ input ScheduleOptionsInput {
     minBookingsRequired: Int,
 }
 
+input UpdateScheduleInput {
+    id: ID!,
+    title: String,
+    description: String,
+    age: Int,
+    type: ScheduleType,
+    startHour: String,
+    endHour: String,
+    maxUsers: Int,
+    admin: ID,
+    date: String,
+}
+
+input UpdateScheduleProgrammedInput {
+    id: ID!,
+    daysOfWeek: [Int],
+    startHour: String,
+    endHour: String,
+    maxUsers: Int,
+    admin: ID,
+    title: String,
+    description: String,
+    type: ScheduleType,
+    age: Int
+}
+
 input CreateUserInput {
     email: String!,
     nickname: String!,
@@ -91,6 +117,7 @@ input CreateScheduleInput {
     repeat: Boolean,
     maxUsers: Int!,
     admin: ID!,
+    date: String,
 }
 
 input UpdateScheduleOptionsInput {

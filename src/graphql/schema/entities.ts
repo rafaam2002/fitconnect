@@ -1,5 +1,6 @@
 export const graphqlEntities = `
 scalar JSON
+scalar DateTime
 
 type PictureUrl {
     id: ID!
@@ -78,10 +79,11 @@ type Schedule {
     title: String!
     age: Int
     users: [User]
+    waitListUsers: [User]
     created_at: String!
     updated_at: String!
-    startDate: String!
-    endDate: String!
+    startDate: DateTime!
+    endDate: DateTime!
     maxUsers: Int!
     admin: User!
     state: ScheduleState!

@@ -102,6 +102,7 @@ type ScheduleProgrammedResponse implements BasicResponse{
     success: Boolean!
     message: String!
     scheduleProgrammed: ScheduleProgrammed
+    schedulesProgrammed: [ScheduleProgrammed]
 }
 
 type LoginResponse implements BasicResponse{

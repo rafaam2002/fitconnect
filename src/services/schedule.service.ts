@@ -3,9 +3,11 @@ import moment from 'moment';
 
 import { Schedule } from '../entities/Schedule';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
+import { UpdateScheduleProgrammedProps } from '../types/resolvers';
 import {
   createServiceResponse,
   ForbiddenError,
@@ -15,10 +17,12 @@ import {
   ValidationError,
   VAL_ERRORS,
   NOT_FND_ERRORS,
+  FORBIDDEN_ERRORS,
 } from '../utils/errors.util';
 import { sendPushNotification } from '../utils/notification.util';
 import {
   createDateWithTime,
+  createInitialSchedules,
   createScheduleProgrammed,
 } from '../utils/schedules.util';
 
@@ -36,6 +40,22 @@ export type createScheduleDataType = {
   admin: string;
   type: ScheduleType;
   repeat: boolean;
+  date?: string;
+};
+
+export type updateScheduleDataType = {
+  currentUser: CurrentUser;
+  id: string;
+  title?: string;
+  description?: string;
+  maxUsers?: number;
+  age?: number | null;
+  admin?: string;
+  type?: ScheduleType;
+  state?: ScheduleState;
+  date?: string;
+  startHour?: string;
+  endHour?: string;
 };
 
 export class ScheduleService extends BaseService {
@@ -128,7 +148,7 @@ export class ScheduleService extends BaseService {
     }
 
     const schedules = await scheduleRepo.find(filter, {
-      populate: ['admin', 'users'],
+      populate: ['admin', 'users', 'waitListUsers'],
       orderBy: { startDate: 'ASC' },
     });
 
@@ -298,7 +318,7 @@ export class ScheduleService extends BaseService {
         {
           startDate: { $gte: startOfDay, $lte: endOfDay },
         },
-        { populate: ['users', 'admin'] }
+        { populate: ['users', 'admin', 'waitListUsers'] }
       );
 
       const sortSchedules = [...schedules].sort((a, b) => {
@@ -570,6 +590,7 @@ export class ScheduleService extends BaseService {
       maxUsers,
       type,
       admin,
+      date,
     } = scheduleData;
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -602,53 +623,49 @@ export class ScheduleService extends BaseService {
 
           return createServiceResponse(200, 'Schedule created', true);
         } else {
-          const now = moment();
-          const schedules: Schedule[] = [];
-
-          for (const day of days) {
-            // Moment days: 0=Sunday, 1=Monday...6=Saturday
-            const momentDay = day;
-            const [startH, startM] = startHour.split(':').map(Number);
-            const [endH, endM] = endHour.split(':').map(Number);
-
-            const startDate = moment().day(momentDay).set({
-              hour: startH,
-              minute: startM,
-              second: 0,
-              millisecond: 0,
-            });
-
-            if (startDate.isBefore(now)) {
-              startDate.add(7, 'days');
-            }
-
-            const endDate = startDate.clone().set({
-              hour: endH,
-              minute: endM,
-            });
-
-            const newSchedule = tem.create(Schedule, {
-              title,
-              description,
-              age: finalAge,
-              type,
-              startDate: startDate.toDate(),
-              endDate: endDate.toDate(),
-              maxUsers,
-              state: ScheduleState.AVAILABLE,
-              admin: adminRef,
-              company: currentUser.activeCompanyId!,
-            });
-
-            tem.persist(newSchedule);
-            schedules.push(newSchedule);
+          if (!date) {
+            throw new ValidationError(
+              'Date is required for non-repeating schedules'
+            );
           }
+
+          const schedules: Schedule[] = [];
+          const [startH, startM] = startHour.split(':').map(Number);
+          const [endH, endM] = endHour.split(':').map(Number);
+
+          const startDate = moment(date).set({
+            hour: startH,
+            minute: startM,
+            second: 0,
+            millisecond: 0,
+          });
+
+          const endDate = startDate.clone().set({
+            hour: endH,
+            minute: endM,
+          });
+
+          const newSchedule = tem.create(Schedule, {
+            title,
+            description,
+            age: finalAge,
+            type,
+            startDate: startDate.toDate(),
+            endDate: endDate.toDate(),
+            maxUsers,
+            state: ScheduleState.AVAILABLE,
+            admin: adminRef,
+            company: currentUser.activeCompanyId!,
+          });
+
+          tem.persist(newSchedule);
+          schedules.push(newSchedule);
 
           await tem.flush();
 
           return createServiceResponse(
             200,
-            'Schedules created successfully',
+            'Schedule created successfully',
             true,
             {
               schedules,
@@ -668,6 +685,325 @@ export class ScheduleService extends BaseService {
   }
 
   /**
+   * Obtener schedules programados
+   */
+  public async getSchedulesProgrammed(
+    currentUser: CurrentUser,
+    id?: string
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    const scheduleProgrammedRepo = this.em.getRepository(ScheduleProgrammed);
+
+    if (id) {
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['admin'] }
+      );
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+      return createServiceResponse(200, 'Schedule programmed found', true, {
+        scheduleProgrammed,
+      });
+    }
+
+    const schedulesProgrammed = await scheduleProgrammedRepo.findAll({
+      populate: ['admin'],
+    });
+    return createServiceResponse(200, 'Schedules programmed found', true, {
+      schedulesProgrammed,
+    });
+  }
+
+  /**
+   * Eliminar schedule programado
+   */
+  public async deleteScheduleProgrammed(
+    currentUser: CurrentUser,
+    id: string
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['schedules'] }
+      );
+
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+
+      const now = new Date();
+
+      // Separar horarios pasados y futuros
+      const schedules = scheduleProgrammed.schedules.getItems();
+      const futureSchedules = schedules.filter(s => s.startDate > now);
+      const pastSchedules = schedules.filter(s => s.startDate <= now);
+
+      // Eliminar horarios futuros
+      for (const futureSchedule of futureSchedules) {
+        tem.remove(futureSchedule);
+      }
+
+      // Desvincular horarios pasados
+      for (const pastSchedule of pastSchedules) {
+        pastSchedule.scheduleProgrammed = undefined;
+      }
+
+      // Eliminar el schedule programado
+      tem.remove(scheduleProgrammed);
+
+      await tem.flush();
+
+      return createServiceResponse(
+        200,
+        'Schedule programmed deleted successfully',
+        true
+      );
+    });
+  }
+
+  /**
+   * Actualizar schedule programado
+   */
+  public async updateScheduleProgrammed(
+    data: UpdateScheduleProgrammedProps['scheduleProgrammed'] & {
+      currentUser: CurrentUser;
+    }
+  ): Promise<ServiceResponse> {
+    const { currentUser, id, ...updateData } = data;
+
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['schedules'] }
+      );
+
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+
+      const daysChanged =
+        updateData.daysOfWeek !== undefined &&
+        JSON.stringify(updateData.daysOfWeek) !==
+          JSON.stringify(scheduleProgrammed.daysOfWeek);
+
+      // Actualizar metadata
+      if (updateData.daysOfWeek !== undefined)
+        scheduleProgrammed.daysOfWeek = updateData.daysOfWeek;
+      if (updateData.startHour !== undefined)
+        scheduleProgrammed.startHour = updateData.startHour;
+      if (updateData.endHour !== undefined)
+        scheduleProgrammed.endHour = updateData.endHour;
+      if (updateData.maxUsers !== undefined)
+        scheduleProgrammed.maxUsers = updateData.maxUsers;
+      if (updateData.title !== undefined)
+        scheduleProgrammed.title = updateData.title;
+      if (updateData.description !== undefined)
+        scheduleProgrammed.description = updateData.description;
+      if (updateData.type !== undefined)
+        scheduleProgrammed.type = updateData.type;
+      if (updateData.age !== undefined) scheduleProgrammed.age = updateData.age;
+      if (updateData.admin !== undefined)
+        scheduleProgrammed.admin = tem.getReference(User, updateData.admin);
+
+      const now = new Date();
+      const futureSchedules = scheduleProgrammed.schedules
+        .getItems()
+        .filter(s => s.startDate > now);
+
+      if (daysChanged) {
+        // Si los días han cambiado, eliminar futuros y recrear
+        for (const futureSchedule of futureSchedules) {
+          tem.remove(futureSchedule);
+        }
+        await createInitialSchedules(scheduleProgrammed, tem);
+      } else {
+        // Si no han cambiado los días, actualizar los existentes futuros
+        for (const futureSchedule of futureSchedules) {
+          if (updateData.title !== undefined)
+            futureSchedule.title = updateData.title;
+          if (updateData.description !== undefined)
+            futureSchedule.description = updateData.description;
+          if (updateData.maxUsers !== undefined)
+            futureSchedule.maxUsers = updateData.maxUsers;
+          if (updateData.type !== undefined)
+            futureSchedule.type = updateData.type;
+          if (updateData.age !== undefined) futureSchedule.age = updateData.age;
+          if (updateData.admin !== undefined)
+            futureSchedule.admin = tem.getReference(User, updateData.admin);
+
+          if (
+            updateData.startHour !== undefined ||
+            updateData.endHour !== undefined
+          ) {
+            const baseDate = moment(futureSchedule.startDate);
+            const [sH, sM] = (
+              updateData.startHour || scheduleProgrammed.startHour
+            )
+              .split(':')
+              .map(Number);
+            const [eH, eM] = (updateData.endHour || scheduleProgrammed.endHour)
+              .split(':')
+              .map(Number);
+
+            futureSchedule.startDate = baseDate
+              .clone()
+              .set({ hour: sH, minute: sM, second: 0, millisecond: 0 })
+              .toDate();
+            futureSchedule.endDate = baseDate
+              .clone()
+              .set({ hour: eH, minute: eM, second: 0, millisecond: 0 })
+              .toDate();
+          }
+        }
+      }
+
+      await tem.flush();
+
+      return createServiceResponse(
+        200,
+        'Schedule programmed updated successfully',
+        true,
+        {
+          scheduleProgrammed,
+        }
+      );
+    });
+  }
+
+  public async updateSchedule(
+    scheduleData: updateScheduleDataType
+  ): Promise<ServiceResponse> {
+    const {
+      currentUser,
+      id,
+      title,
+      description,
+      maxUsers,
+      age,
+      admin,
+      type,
+      state,
+      date,
+      startHour,
+      endHour,
+    } = scheduleData;
+
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      try {
+        const scheduleRepo = tem.getRepository(Schedule);
+        const schedule = await scheduleRepo.findOne(
+          { id: id },
+          { populate: ['admin'] }
+        );
+
+        if (!schedule) {
+          throw new NotFoundError('Schedule');
+        }
+
+        // Solo el admin o el propio coach pueden editar
+        if (
+          currentUser.contextRole !== UserRoleEnum.ADMIN &&
+          schedule.admin.id !== currentUser.id
+        ) {
+          throw new ForbiddenError(FORBIDDEN_ERRORS.NOT_AUTHORIZED);
+        }
+
+        if (title !== undefined) schedule.title = title;
+        if (description !== undefined) schedule.description = description;
+
+        if (date || startHour || endHour) {
+          const baseDate = date ? moment(date) : moment(schedule.startDate);
+
+          if (date || startHour) {
+            const timeStr =
+              startHour || moment(schedule.startDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.startDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+
+          if (date || endHour) {
+            const timeStr = endHour || moment(schedule.endDate).format('HH:mm');
+            const [h, m] = timeStr.split(':').map(Number);
+            schedule.endDate = baseDate
+              .clone()
+              .set({ hour: h, minute: m, second: 0, millisecond: 0 })
+              .toDate();
+          }
+        }
+
+        if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
+        if (type !== undefined) schedule.type = type;
+        if (state !== undefined) schedule.state = state;
+
+        if (age !== undefined) {
+          schedule.age = age && age > 0 ? age : null;
+        }
+
+        if (admin !== undefined) {
+          schedule.admin = tem.getReference(User, admin);
+        }
+
+        await tem.flush();
+
+        return createServiceResponse(
+          200,
+          'Schedule updated successfully',
+          true,
+          {
+            schedule,
+          }
+        );
+      } catch (error: any) {
+        if (
+          error instanceof ForbiddenError ||
+          error instanceof UnauthorizedError ||
+          error instanceof NotFoundError
+        ) {
+          throw error;
+        }
+        throw new InternalServerError('Error updating schedule');
+      }
+    });
+  }
+
+  /**
    * Agregar usuario a schedule
    */
   public async addUserToSchedule(
@@ -681,7 +1017,7 @@ export class ScheduleService extends BaseService {
     const user = await this.em.findOne(
       User,
       { id: currentUser.id },
-      { populate: ['schedules'] }
+      { populate: ['schedules', 'waitListSchedules'] }
     );
 
     if (!user) {
@@ -691,7 +1027,7 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['users', 'admin'] }
+      { populate: ['users', 'admin', 'waitListUsers'] }
     );
 
     if (!schedule) {
@@ -707,23 +1043,34 @@ export class ScheduleService extends BaseService {
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
     const isFull = schedule.users.length >= schedule.maxUsers;
     const isBooked = user.schedules.getItems().some(s => s.id === schedule.id);
+    const isWaitListed = user.waitListSchedules
+      .getItems()
+      .some(s => s.id === schedule.id);
     const isAdmin = currentUser.contextRole === UserRoleEnum.ADMIN;
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
-    const maxBookings =
-      user.schedules.length >=
+    const isMaxUserBookingsReached =
+      user.schedules.length + user.waitListSchedules.length >=
       (scheduleOptions?.maxActiveReservations || Infinity);
-    const maxBookingsToday =
+    const isMaxUserBookingsTodayReached =
       !scheduleOptions?.sameDayBookingAllowed &&
-      user.schedules
+      (user.schedules
         .getItems()
         .some(s =>
           moment(Number(s.startDate)).isSame(
             moment(Number(schedule.startDate)),
             'day'
           )
-        );
+        ) ||
+        user.waitListSchedules
+          .getItems()
+          .some(s =>
+            moment(Number(s.startDate)).isSame(
+              moment(Number(schedule.startDate)),
+              'day'
+            )
+          ));
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')
@@ -736,7 +1083,6 @@ export class ScheduleService extends BaseService {
     const {
       SCHEDULE_NOT_AVAILABLE,
       SCHEDULE_ALREADY_PASSED,
-      SCHEDULE_FULL,
       MAX_ACTIVE_RESERVATIONS_REACHED,
       SAME_DAY_BOOKING_NOT_ALLOWED,
       ADVANCE_BOOKING_OUTSIDE_WINDOW,
@@ -750,15 +1096,12 @@ export class ScheduleService extends BaseService {
       if (isHourDisabled) {
         throw new ValidationError(SCHEDULE_ALREADY_PASSED);
       }
-      if (isFull) {
-        throw new ValidationError(SCHEDULE_FULL);
-      }
 
-      if (!isBooked) {
-        if (maxBookings) {
+      if (!isBooked && !isWaitListed) {
+        if (isMaxUserBookingsReached) {
           throw new ValidationError(MAX_ACTIVE_RESERVATIONS_REACHED);
         }
-        if (maxBookingsToday) {
+        if (isMaxUserBookingsTodayReached) {
           throw new ValidationError(SAME_DAY_BOOKING_NOT_ALLOWED);
         }
         if (isAdvanceBookingDisabled) {
@@ -767,15 +1110,25 @@ export class ScheduleService extends BaseService {
       }
     }
 
-    if (schedule.users.contains(user)) {
+    if (
+      schedule.users.contains(user) ||
+      schedule.waitListUsers.contains(user)
+    ) {
       throw new ValidationError(USER_ALREADY_IN_SCHEDULE);
     }
 
-    schedule.users.add(user);
+    let message = 'User added to schedule';
+    if (isFull) {
+      schedule.waitListUsers.add(user);
+      message = 'User added to waitlist';
+    } else {
+      schedule.users.add(user);
+    }
+
     this.em.persist(schedule);
     await this.em.flush();
 
-    return createServiceResponse(200, 'User added to schedule', true, {
+    return createServiceResponse(200, message, true, {
       schedule,
     });
   }
@@ -795,7 +1148,14 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['users', 'admin'] }
+      {
+        populate: [
+          'users',
+          'admin',
+          'waitListUsers',
+          'waitListUsers.pushTokens',
+        ],
+      }
     );
 
     if (!schedule) {
@@ -827,15 +1187,29 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError('User');
     }
 
-    if (!schedule.users.contains(user)) {
-      throw new ForbiddenError('User not in schedule');
+    let message = 'User removed from schedule';
+
+    if (schedule.users.contains(user)) {
+      schedule.users.remove(user);
+
+      // Si hay gente en la waitlist, meter al primero
+      if (schedule.waitListUsers.length > 0) {
+        const nextUser = schedule.waitListUsers.getItems()[0];
+        schedule.waitListUsers.remove(nextUser);
+        schedule.users.add(nextUser);
+        await this.sendWaitlistPromotionNotification(schedule, nextUser);
+      }
+    } else if (schedule.waitListUsers.contains(user)) {
+      schedule.waitListUsers.remove(user);
+      message = 'User removed from waitlist';
+    } else {
+      throw new ForbiddenError('User not in schedule or waitlist');
     }
 
-    schedule.users.remove(user);
     this.em.persist(schedule);
     await this.em.flush();
 
-    return createServiceResponse(200, 'User removed from schedule', true, {
+    return createServiceResponse(200, message, true, {
       schedule,
     });
   }
@@ -1084,6 +1458,31 @@ export class ScheduleService extends BaseService {
   }
 
   // ============= MÉTODOS PRIVADOS =============
+
+  /**
+   * Enviar notificaciones de promoción de waitlist
+   */
+  private async sendWaitlistPromotionNotification(
+    schedule: Schedule,
+    user: User
+  ): Promise<void> {
+    try {
+      const title = '¡Tienes plaza!';
+      const body = `Has sido movido de la lista de espera al horario "${schedule.title}".`;
+      const data = {
+        type: 'schedule_waitlist_promotion',
+        scheduleId: schedule.id,
+      };
+
+      if (user.pushTokens && user.pushTokens.length > 0) {
+        user.pushTokens.getItems().forEach(pushToken => {
+          sendPushNotification(pushToken.token, title, body, data);
+        });
+      }
+    } catch (error) {
+      console.error('Error sending waitlist promotion notification:', error);
+    }
+  }
 
   /**
    * Enviar notificaciones de cancelación de schedule

@@ -11,11 +11,21 @@ export const VAL_ERRORS = {
   ADVANCE_BOOKING_OUTSIDE_WINDOW:
     'Schedule is outside the advance booking window',
   USER_ALREADY_IN_SCHEDULE: 'User is already registered for this schedule',
+  INCORRECT_PASSWORD: 'Current password is incorrect',
 } as const;
 
 export const NOT_FND_ERRORS = {
   SCHEDULE: 'Schedule not found',
   USER: 'User not found',
+} as const;
+
+export const FORBIDDEN_ERRORS = {
+  NOT_AUTHORIZED: 'You are not authorized to perform this action',
+} as const;
+
+export const BAD_REQUEST_ERRORS = {
+  USER_LOGGED_IN_TWO_COMPANIES:
+    'User is logged in two companies at the same time',
 } as const;
 
 /**
@@ -76,9 +86,7 @@ export class UnauthorizedError extends AppError {
  * 403 - Forbidden Error (usuario autenticado pero sin permisos)
  */
 export class ForbiddenError extends AppError {
-  constructor(
-    message: string = 'You are not authorized to perform this action'
-  ) {
+  constructor(message: string = FORBIDDEN_ERRORS.NOT_AUTHORIZED) {
     super(message, 403, 'FORBIDDEN');
     Object.setPrototypeOf(this, ForbiddenError.prototype);
   }

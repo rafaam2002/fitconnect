@@ -5,6 +5,7 @@ import { authResolvers } from './auth.resolver';
 import companyResolvers from './company.resolver';
 import { customerResolvers } from './customer.resolver';
 import { paymentMethodResolvers } from './payment-method.resolver';
+import { permissionResolvers } from './permission.resolver';
 import { planResolvers } from './plan.resolver';
 import { pollResolvers } from './poll.resolver';
 import { productResolvers } from './product.resolver';
@@ -27,6 +28,7 @@ const resolvers = merge(
   planResolvers,
   customerResolvers,
   paymentMethodResolvers,
+  permissionResolvers,
   userResolvers,
   articleResolvers,
   companyResolvers,

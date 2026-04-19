@@ -7,6 +7,7 @@ import {
   myPubsub,
 } from '../../constants/subscriptions';
 import { MessageService } from '../../services/message.service';
+import { NotificationService } from '../../services/notification.service';
 import { TrainingTaskService } from '../../services/training.task.service';
 import { UserService } from '../../services/user.service';
 import { UserWeightService } from '../../services/user.weight.service';
@@ -268,6 +269,34 @@ const sendEmailVerification = async (
 };
 
 /**
+ * Send a test notification to a specific user
+ */
+const sendTestNotification = async (
+  _: any,
+  args: any,
+  context: ContextProps
+) => {
+  try {
+    const { em } = context;
+    const notificationService = new NotificationService(em);
+
+    await notificationService.sendToUser(
+      '0a7fcee9-64d1-4875-9a49-11c3778457df',
+      'Push Test',
+      'This is a test notification'
+    );
+
+    return {
+      code: '200',
+      message: 'Notification sent',
+      success: true,
+    };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+/**
  * Create a new message
  */
 const createMessage = async (
@@ -477,6 +506,7 @@ export const userResolvers: IResolvers = {
     updateUser,
     updateUserPicture,
     deleteUser,
+    sendTestNotification,
     // removeUser,
     createMessage: withPermissions(chatsPermissions.CREATE, createMessage),
     fixMessage: withPermissions(chatsPermissions.UPDATE, fixMessage),

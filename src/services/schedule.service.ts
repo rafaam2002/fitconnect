@@ -141,7 +141,9 @@ export class ScheduleService extends BaseService {
     }
 
     const scheduleRepo = this.em.getRepository(Schedule);
-    const filter: any = { users: targetUserId };
+    const filter: any = {
+      $or: [{ users: targetUserId }, { waitListUsers: targetUserId }],
+    };
 
     if (!past) {
       filter.startDate = { $gte: new Date() };

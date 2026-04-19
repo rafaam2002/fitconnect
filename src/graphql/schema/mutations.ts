@@ -25,6 +25,8 @@ type Mutation {
     removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!
     updateScheduleOptions(scheduleOptions: UpdateScheduleOptionsInput!): ScheduleOptionsResponse!
     updateSchedule(schedule: UpdateScheduleInput!): ScheduleResponse!
+    updateScheduleProgrammed(scheduleProgrammed: UpdateScheduleProgrammedInput!): ScheduleProgrammedResponse!
+    removeScheduleProgrammed(id: ID!): ScheduleProgrammedResponse!
 
     #------------------Poll---------------------
     createPoll(poll: CreatePollInput!): PollResponse!

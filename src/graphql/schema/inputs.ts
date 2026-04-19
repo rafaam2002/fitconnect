@@ -75,6 +75,19 @@ input UpdateScheduleInput {
     date: String,
 }
 
+input UpdateScheduleProgrammedInput {
+    id: ID!,
+    daysOfWeek: [Int],
+    startHour: String,
+    endHour: String,
+    maxUsers: Int,
+    admin: ID,
+    title: String,
+    description: String,
+    type: ScheduleType,
+    age: Int
+}
+
 input CreateUserInput {
     email: String!,
     nickname: String!,

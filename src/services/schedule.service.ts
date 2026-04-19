@@ -3,9 +3,11 @@ import moment from 'moment';
 
 import { Schedule } from '../entities/Schedule';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
+import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
+import { UpdateScheduleProgrammedProps } from '../types/resolvers';
 import {
   createServiceResponse,
   ForbiddenError,
@@ -20,6 +22,7 @@ import {
 import { sendPushNotification } from '../utils/notification.util';
 import {
   createDateWithTime,
+  createInitialSchedules,
   createScheduleProgrammed,
 } from '../utils/schedules.util';
 
@@ -678,6 +681,218 @@ export class ScheduleService extends BaseService {
         }
         throw new InternalServerError('Error creating schedule');
       }
+    });
+  }
+
+  /**
+   * Obtener schedules programados
+   */
+  public async getSchedulesProgrammed(
+    currentUser: CurrentUser,
+    id?: string
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    const scheduleProgrammedRepo = this.em.getRepository(ScheduleProgrammed);
+
+    if (id) {
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['admin'] }
+      );
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+      return createServiceResponse(200, 'Schedule programmed found', true, {
+        scheduleProgrammed,
+      });
+    }
+
+    const schedulesProgrammed = await scheduleProgrammedRepo.findAll({
+      populate: ['admin'],
+    });
+    return createServiceResponse(200, 'Schedules programmed found', true, {
+      schedulesProgrammed,
+    });
+  }
+
+  /**
+   * Eliminar schedule programado
+   */
+  public async deleteScheduleProgrammed(
+    currentUser: CurrentUser,
+    id: string
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['schedules'] }
+      );
+
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+
+      const now = new Date();
+
+      // Separar horarios pasados y futuros
+      const schedules = scheduleProgrammed.schedules.getItems();
+      const futureSchedules = schedules.filter(s => s.startDate > now);
+      const pastSchedules = schedules.filter(s => s.startDate <= now);
+
+      // Eliminar horarios futuros
+      for (const futureSchedule of futureSchedules) {
+        tem.remove(futureSchedule);
+      }
+
+      // Desvincular horarios pasados
+      for (const pastSchedule of pastSchedules) {
+        pastSchedule.scheduleProgrammed = undefined;
+      }
+
+      // Eliminar el schedule programado
+      tem.remove(scheduleProgrammed);
+
+      await tem.flush();
+
+      return createServiceResponse(
+        200,
+        'Schedule programmed deleted successfully',
+        true
+      );
+    });
+  }
+
+  /**
+   * Actualizar schedule programado
+   */
+  public async updateScheduleProgrammed(
+    data: UpdateScheduleProgrammedProps['scheduleProgrammed'] & {
+      currentUser: CurrentUser;
+    }
+  ): Promise<ServiceResponse> {
+    const { currentUser, id, ...updateData } = data;
+
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
+      throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    return await this.em.transactional(async tem => {
+      const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
+      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+        { id },
+        { populate: ['schedules'] }
+      );
+
+      if (!scheduleProgrammed) {
+        throw new NotFoundError('ScheduleProgrammed');
+      }
+
+      const daysChanged =
+        updateData.daysOfWeek !== undefined &&
+        JSON.stringify(updateData.daysOfWeek) !==
+          JSON.stringify(scheduleProgrammed.daysOfWeek);
+
+      // Actualizar metadata
+      if (updateData.daysOfWeek !== undefined)
+        scheduleProgrammed.daysOfWeek = updateData.daysOfWeek;
+      if (updateData.startHour !== undefined)
+        scheduleProgrammed.startHour = updateData.startHour;
+      if (updateData.endHour !== undefined)
+        scheduleProgrammed.endHour = updateData.endHour;
+      if (updateData.maxUsers !== undefined)
+        scheduleProgrammed.maxUsers = updateData.maxUsers;
+      if (updateData.title !== undefined)
+        scheduleProgrammed.title = updateData.title;
+      if (updateData.description !== undefined)
+        scheduleProgrammed.description = updateData.description;
+      if (updateData.type !== undefined)
+        scheduleProgrammed.type = updateData.type;
+      if (updateData.age !== undefined) scheduleProgrammed.age = updateData.age;
+      if (updateData.admin !== undefined)
+        scheduleProgrammed.admin = tem.getReference(User, updateData.admin);
+
+      const now = new Date();
+      const futureSchedules = scheduleProgrammed.schedules
+        .getItems()
+        .filter(s => s.startDate > now);
+
+      if (daysChanged) {
+        // Si los días han cambiado, eliminar futuros y recrear
+        for (const futureSchedule of futureSchedules) {
+          tem.remove(futureSchedule);
+        }
+        await createInitialSchedules(scheduleProgrammed, tem);
+      } else {
+        // Si no han cambiado los días, actualizar los existentes futuros
+        for (const futureSchedule of futureSchedules) {
+          if (updateData.title !== undefined)
+            futureSchedule.title = updateData.title;
+          if (updateData.description !== undefined)
+            futureSchedule.description = updateData.description;
+          if (updateData.maxUsers !== undefined)
+            futureSchedule.maxUsers = updateData.maxUsers;
+          if (updateData.type !== undefined)
+            futureSchedule.type = updateData.type;
+          if (updateData.age !== undefined) futureSchedule.age = updateData.age;
+          if (updateData.admin !== undefined)
+            futureSchedule.admin = tem.getReference(User, updateData.admin);
+
+          if (
+            updateData.startHour !== undefined ||
+            updateData.endHour !== undefined
+          ) {
+            const baseDate = moment(futureSchedule.startDate);
+            const [sH, sM] = (
+              updateData.startHour || scheduleProgrammed.startHour
+            )
+              .split(':')
+              .map(Number);
+            const [eH, eM] = (updateData.endHour || scheduleProgrammed.endHour)
+              .split(':')
+              .map(Number);
+
+            futureSchedule.startDate = baseDate
+              .clone()
+              .set({ hour: sH, minute: sM, second: 0, millisecond: 0 })
+              .toDate();
+            futureSchedule.endDate = baseDate
+              .clone()
+              .set({ hour: eH, minute: eM, second: 0, millisecond: 0 })
+              .toDate();
+          }
+        }
+      }
+
+      await tem.flush();
+
+      return createServiceResponse(
+        200,
+        'Schedule programmed updated successfully',
+        true,
+        {
+          scheduleProgrammed,
+        }
+      );
     });
   }
 

@@ -95,7 +95,7 @@ export const createScheduleProgrammed = async (
 /**
  * Crear schedules iniciales para los próximos días programados
  */
-const createInitialSchedules = async (
+export const createInitialSchedules = async (
   scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
 ): Promise<void> => {

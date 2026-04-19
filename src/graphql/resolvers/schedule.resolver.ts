@@ -10,15 +10,18 @@ import {
   ChangeScheduleStatusProp,
   ContextProps,
   GetMonthlyScheduleStats,
+  GetScheduleProgrammedProps,
   GetScheduleProps,
   GetScheduleRangeProps,
   GetUserSchedulesProps,
+  RemoveScheduleProgrammedProps,
   RemoveScheduleProps,
   RemoveUserSheduleProps,
   ScheduleDevelopmentProps,
   ScheduleProps,
   ScheduleResumeRange,
   ScheduleStatsProps,
+  UpdateScheduleProgrammedProps,
   UpdateScheduleProps,
   updateScheduleOptionsProps,
 } from '../../types/resolvers';
@@ -210,6 +213,22 @@ const getMonthlySchedules = async (
   }
 };
 
+const getSchedulesProgrammed = async (
+  _: any,
+  args: GetScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { id } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.getSchedulesProgrammed(currentUser, id);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 // ===== MUTATION RESOLVERS =====
 
 const createSchedule = async (
@@ -245,6 +264,41 @@ const updateSchedule = async (
       ...schedule,
       currentUser,
     });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+const updateScheduleProgrammed = async (
+  _: any,
+  args: UpdateScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { scheduleProgrammed } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.updateScheduleProgrammed({
+      ...scheduleProgrammed,
+      currentUser,
+    });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
+const removeScheduleProgrammed = async (
+  _: any,
+  args: RemoveScheduleProgrammedProps,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const { id } = args;
+
+    const scheduleService = new ScheduleService(em);
+    return await scheduleService.deleteScheduleProgrammed(currentUser, id);
   } catch (error: any) {
     return handleError(error);
   }
@@ -397,6 +451,10 @@ export const scheduleResolvers: IResolvers = {
       getMonthlySchedules
     ),
     getUserSchedules,
+    getSchedulesProgrammed: withPermissions(
+      schedulesPermissions.READ,
+      getSchedulesProgrammed
+    ),
   },
   Mutation: {
     createSchedule: withPermissions(
@@ -406,6 +464,14 @@ export const scheduleResolvers: IResolvers = {
     updateSchedule: withPermissions(
       schedulesPermissions.UPDATE,
       updateSchedule
+    ),
+    updateScheduleProgrammed: withPermissions(
+      schedulesPermissions.UPDATE,
+      updateScheduleProgrammed
+    ),
+    removeScheduleProgrammed: withPermissions(
+      schedulesPermissions.DELETE,
+      removeScheduleProgrammed
     ),
     addUserToSchedule: withPermissions(
       schedulesPermissions.READ,

@@ -725,11 +725,11 @@ export class ScheduleService extends BaseService {
   }
 
   /**
-   * Eliminar schedule programado
+   * Eliminar schedules programados
    */
-  public async deleteScheduleProgrammed(
+  public async deleteSchedulesProgrammed(
     currentUser: CurrentUser,
-    id: string
+    ids: string[]
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -741,40 +741,42 @@ export class ScheduleService extends BaseService {
 
     return await this.em.transactional(async tem => {
       const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
-      const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
-        { id },
-        { populate: ['schedules'] }
-      );
-
-      if (!scheduleProgrammed) {
-        throw new NotFoundError('ScheduleProgrammed');
-      }
-
       const now = new Date();
 
-      // Separar horarios pasados y futuros
-      const schedules = scheduleProgrammed.schedules.getItems();
-      const futureSchedules = schedules.filter(s => s.startDate > now);
-      const pastSchedules = schedules.filter(s => s.startDate <= now);
+      for (const id of ids) {
+        const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
+          { id },
+          { populate: ['schedules'] }
+        );
 
-      // Eliminar horarios futuros
-      for (const futureSchedule of futureSchedules) {
-        tem.remove(futureSchedule);
+        if (!scheduleProgrammed) {
+          continue; // O podrías lanzar error, pero en lote suele ser mejor continuar si no existe
+        }
+
+        // Separar horarios pasados y futuros
+        const schedules = scheduleProgrammed.schedules.getItems();
+        const futureSchedules = schedules.filter(s => s.startDate > now);
+        const pastSchedules = schedules.filter(s => s.startDate <= now);
+
+        // Eliminar horarios futuros
+        for (const futureSchedule of futureSchedules) {
+          tem.remove(futureSchedule);
+        }
+
+        // Desvincular horarios pasados
+        for (const pastSchedule of pastSchedules) {
+          pastSchedule.scheduleProgrammed = undefined;
+        }
+
+        // Eliminar el schedule programado
+        tem.remove(scheduleProgrammed);
       }
-
-      // Desvincular horarios pasados
-      for (const pastSchedule of pastSchedules) {
-        pastSchedule.scheduleProgrammed = undefined;
-      }
-
-      // Eliminar el schedule programado
-      tem.remove(scheduleProgrammed);
 
       await tem.flush();
 
       return createServiceResponse(
         200,
-        'Schedule programmed deleted successfully',
+        'Schedules programmed deleted successfully',
         true
       );
     });

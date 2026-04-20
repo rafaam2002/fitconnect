@@ -30,7 +30,7 @@ type Mutation {
     updateScheduleOptions(scheduleOptions: UpdateScheduleOptionsInput!): ScheduleOptionsResponse!
     updateSchedule(schedule: UpdateScheduleInput!): ScheduleResponse!
     updateScheduleProgrammed(scheduleProgrammed: UpdateScheduleProgrammedInput!): ScheduleProgrammedResponse!
-    removeScheduleProgrammed(id: ID!): ScheduleProgrammedResponse!
+    deleteScheduleProgrammed(ids: [ID]!): ScheduleProgrammedResponse!
 
     #------------------Poll---------------------
     createPoll(poll: CreatePollInput!): PollResponse!

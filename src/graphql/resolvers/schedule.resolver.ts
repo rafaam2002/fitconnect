@@ -10,11 +10,11 @@ import {
   ChangeScheduleStatusProp,
   ContextProps,
   GetMonthlyScheduleStats,
+  DeleteScheduleProgrammedProps,
   GetScheduleProgrammedProps,
   GetScheduleProps,
   GetScheduleRangeProps,
   GetUserSchedulesProps,
-  RemoveScheduleProgrammedProps,
   RemoveScheduleProps,
   RemoveUserSheduleProps,
   ScheduleDevelopmentProps,
@@ -288,17 +288,17 @@ const updateScheduleProgrammed = async (
   }
 };
 
-const removeScheduleProgrammed = async (
+const deleteScheduleProgrammed = async (
   _: any,
-  args: RemoveScheduleProgrammedProps,
+  args: DeleteScheduleProgrammedProps,
   context: ContextProps
 ) => {
   try {
     const { em, currentUser } = context;
-    const { id } = args;
+    const { ids } = args;
 
     const scheduleService = new ScheduleService(em);
-    return await scheduleService.deleteScheduleProgrammed(currentUser, id);
+    return await scheduleService.deleteSchedulesProgrammed(currentUser, ids);
   } catch (error: any) {
     return handleError(error);
   }
@@ -469,9 +469,9 @@ export const scheduleResolvers: IResolvers = {
       schedulesPermissions.UPDATE,
       updateScheduleProgrammed
     ),
-    removeScheduleProgrammed: withPermissions(
+    deleteScheduleProgrammed: withPermissions(
       schedulesPermissions.DELETE,
-      removeScheduleProgrammed
+      deleteScheduleProgrammed
     ),
     addUserToSchedule: withPermissions(
       schedulesPermissions.READ,

@@ -102,8 +102,8 @@ export type UpdateScheduleProgrammedProps = {
   };
 };
 
-export type RemoveScheduleProgrammedProps = {
-  id: string;
+export type DeleteScheduleProgrammedProps = {
+  ids: string[];
 };
 
 export type GetScheduleProgrammedProps = {

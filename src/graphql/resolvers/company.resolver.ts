@@ -108,13 +108,14 @@ export const admitUserToCompany = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { companyId, userId } = args;
+    const { companyId, userId, role } = args;
 
     const companyService = new CompanyService(em);
     return await companyService.admitUserToCompany(
       currentUser,
       companyId,
-      userId
+      userId,
+      role
     );
   } catch (error: any) {
     return handleError(error);

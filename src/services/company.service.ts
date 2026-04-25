@@ -384,7 +384,8 @@ export class CompanyService extends BaseService {
   public async admitUserToCompany(
     currentUser: CurrentUser,
     companyId: string,
-    userId: string
+    userId: string,
+    role?: UserRoleEnum
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -403,7 +404,13 @@ export class CompanyService extends BaseService {
 
     // Admitir usuario
     userToAdmit.pendingCompanies.remove(company);
-    this.em.persist(this.em.create(UserRole, { user: userToAdmit, company }));
+    this.em.persist(
+      this.em.create(UserRole, {
+        user: userToAdmit,
+        company,
+        role: role || UserRoleEnum.STANDARD,
+      })
+    );
     await this.em.flush();
 
     // Notificar (fire-and-forget)

@@ -98,7 +98,7 @@ type Mutation {
     updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!
     createCompany(company: CreateCompanyInput!): MeResponse!
     requestJoinCompany(companyId: ID!): DefaultResponse!
-    admitUserToCompany(companyId: ID!, userId: ID!): DefaultResponse!
+    admitUserToCompany(companyId: ID!, userId: ID!, role: UserRoleEnum): DefaultResponse!
 }
 
 `;

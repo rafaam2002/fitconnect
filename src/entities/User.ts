@@ -214,13 +214,10 @@ export class User extends BaseEntity {
     if (this.isSuperAdmin) {
       return UserRoleEnum.ADMIN;
     }
-    if (!this.roles.isInitialized() || !this.activeCompanyId) {
+    if (!this.roles.isInitialized()) {
       return null;
     }
-    return (
-      this.roles.find(role => role.company.id === this.activeCompanyId)?.role ??
-      null
-    );
+    return this.roles[0]?.role ?? null;
   }
 
   // get contextPlan(): Plan | null {

@@ -24,6 +24,7 @@ import {
   RemoveTrainingTaskProps,
   RemoveUserWeight,
   UnfixMessageProps,
+  UpdateUserProps,
   UserListProps,
   UserPictureProps,
   UserProps,
@@ -205,7 +206,11 @@ const createUser = async (_: any, args: UserProps, context: ContextProps) => {
 /**
  * Update user information
  */
-const updateUser = async (_: any, args: UserProps, context: ContextProps) => {
+const updateUser = async (
+  _: any,
+  args: { user: UpdateUserProps },
+  context: ContextProps
+) => {
   try {
     const { user } = args;
     const { em, currentUser } = context;

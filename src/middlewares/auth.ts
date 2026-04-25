@@ -9,7 +9,8 @@ import { UnauthorizedError } from '../utils/errors.util';
 
 export const authenticateUser = async (
   em: EntityManager,
-  authorization?: string
+  authorization?: string,
+  companyId?: string
 ): Promise<CurrentUser | null> => {
   if (authorization?.toLowerCase().startsWith('bearer ')) {
     const token = authorization.substring(7);
@@ -20,7 +21,7 @@ export const authenticateUser = async (
         process.env.JWT_SECRET as string
       ) as any;
       const currentUser = await em.findOne(User, { id: decodedToken.id }, {
-        filters: false,
+        filters: !!companyId,
         populate: ['companies'],
       } as any);
 

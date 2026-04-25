@@ -281,7 +281,11 @@ export class CompanyService extends BaseService {
     const refreshedUser = await this.em.findOneOrFail(
       User,
       { id: user.id },
-      { refresh: true, filters: false }
+      {
+        refresh: true,
+        filters: false,
+        populate: ['companies', 'companies.companyConfig'],
+      }
     );
 
     const refreshedCompany = await this.em.findOneOrFail(

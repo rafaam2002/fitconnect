@@ -42,6 +42,7 @@ export enum UserStatus {
   name: 'companyContext',
   cond: args => ({
     $or: [
+      // { roles: { company: args.companyId } },
       { companies: { id: args.companyId } },
       { pendingCompanies: { id: args.companyId } },
     ],

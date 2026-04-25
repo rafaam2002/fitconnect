@@ -6,6 +6,7 @@ import { SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
+import { UpdateUserProps } from '../types/resolvers';
 import {
   BadRequestError,
   createServiceResponse,
@@ -102,7 +103,7 @@ export class UserService extends BaseService {
       { id: currentUser.id },
       {
         populate: ['companies', 'companies.companyConfig'],
-        filters: false,
+        filters: !!currentUser.activeCompanyId,
       }
     );
 
@@ -317,7 +318,7 @@ export class UserService extends BaseService {
   }
 
   public async updateUser(
-    userUpdates: User,
+    userUpdates: UpdateUserProps,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -331,7 +332,13 @@ export class UserService extends BaseService {
       throw new ForbiddenError();
     }
 
-    const user = await this.em.findOne(User, { id: userUpdates.id });
+    const user = await this.em.findOne(
+      User,
+      { id: userUpdates.id },
+      {
+        populate: ['companies'],
+      }
+    );
 
     if (!user) {
       throw new NotFoundError('User');
@@ -369,6 +376,9 @@ export class UserService extends BaseService {
       isActive: userUpdates.isActive ?? user.isActive,
       isBlocked: userUpdates.isBlocked ?? user.isBlocked,
     });
+    if (user.roles.isInitialized() && userUpdates.role) {
+      user.roles[0].role = userUpdates.role;
+    }
 
     try {
       this.em.persist(user);

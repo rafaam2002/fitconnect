@@ -73,10 +73,15 @@ export class UserService extends BaseService {
     );
     const userRepo = this.em.getRepository(User);
 
+    const isPendingSearch = stateFilter === 'pending';
+
     try {
       const users =
         Object.keys(where).length > 0
-          ? await userRepo.find(where, pagination)
+          ? await userRepo.find(where, {
+              ...pagination,
+              filters: isPendingSearch ? { companyContext: false } : true,
+            })
           : await userRepo.findAll(pagination);
 
       const filteredUsers = filterMe
@@ -171,6 +176,7 @@ export class UserService extends BaseService {
 
   public async findUser(
     id: string,
+    currentUser: CurrentUser,
     options?: {
       includePermissions?: boolean;
     }
@@ -188,6 +194,10 @@ export class UserService extends BaseService {
               },
             }
           : {}),
+        $or: [
+          { companies: { id: currentUser.activeCompanyId } },
+          { pendingCompanies: { id: currentUser.activeCompanyId } },
+        ],
       },
       {
         populate: [
@@ -201,6 +211,7 @@ export class UserService extends BaseService {
               ]
             : []) as any[]),
         ],
+        filters: { companyContext: false },
       }
     );
 
@@ -496,21 +507,26 @@ export class UserService extends BaseService {
       .join('user_role as ur', 'u.id', 'ur.user_id')
       .where('ur.company_id', currentUser.activeCompanyId)
       .select([
-        knex.raw('COUNT(u.id) as totalusers'),
+        knex.raw('COUNT(DISTINCT u.id) as totalusers'), // DISTINCT por si acaso hay duplicados por joins
         knex.raw(
-          'COUNT(CASE WHEN u.is_blocked = true THEN 1 END) as blockedusers'
+          'COUNT(DISTINCT CASE WHEN u.is_blocked = true THEN u.id END) as blockedusers'
         ),
         knex.raw(
-          'COUNT(CASE WHEN u.is_active = false THEN 1 END) as notactiveusers'
+          'COUNT(DISTINCT CASE WHEN u.is_active = false THEN u.id END) as notactiveusers'
         ),
         knex.raw(
-          "COUNT(CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as newusers"
+          "COUNT(DISTINCT CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN u.id END) as newusers"
+        ),
+        // Subconsulta para los pendientes
+        knex.raw(
+          `(
+          SELECT COUNT(*) 
+          FROM user_pending_companies 
+          WHERE company_id = ?
+        ) as pendingusers`,
+          [currentUser.activeCompanyId ?? null] // Esto asegura que nunca sea undefined
         ),
       ]);
-
-    const pendingUsers = await this.em.count(User, {
-      pendingCompanies: { id: currentUser.activeCompanyId },
-    });
 
     const stats = {
       users: {
@@ -518,7 +534,7 @@ export class UserService extends BaseService {
         blockedUsers: result[0].blockedusers,
         notActiveUsers: result[0].notactiveusers,
         newUsers: result[0].newusers,
-        pendingUsers,
+        pendingUsers: result[0].pendingusers,
       },
       schedules: 0,
       polls: 0,

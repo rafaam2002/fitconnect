@@ -44,7 +44,7 @@ export enum UserStatus {
     $or: [
       // { roles: { company: args.companyId } },
       { companies: { id: args.companyId } },
-      { pendingCompanies: { id: args.companyId } },
+      // { pendingCompanies: { id: args.companyId } },
     ],
   }),
   default: true,

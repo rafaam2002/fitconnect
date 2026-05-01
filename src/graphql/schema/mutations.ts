@@ -9,6 +9,7 @@ type Mutation {
     updateUserPicture(picture: String!, userId: String!): UserResponse!
     deleteUser(id: ID!): DefaultResponse!
     loginWithGoogle(id_token: String!): LoginResponse!
+    loginWithApple(idToken: String!, user: String): LoginResponse!
     sendChangePasswordEmail(email: String!): DefaultResponse!
     sendTestNotification: DefaultResponse!
 

@@ -96,6 +96,10 @@ export class User extends BaseEntity {
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;
 
+  @Property({ type: t.string, nullable: true, unique: true })
+  @Index()
+  appleId?: string | null;
+
   @ManyToMany({
     entity: () => Company,
     inversedBy: (company: Company) => company.users,

@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
 import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 import moment from 'moment';
 
 import { User } from '../entities/User';
@@ -37,6 +38,30 @@ export const generateTempPassword = (length: number = 6): string => {
   }
   return result;
 };
+
+export function decodeAppleToken(idToken: string): {
+  appleId: string;
+  email?: string;
+} | null {
+  try {
+    // Apple tokens are verified client-side by the native SDK.
+    // We decode to extract the stable `sub` (Apple User ID) and email.
+    const payload = jwt.decode(idToken) as {
+      sub?: string;
+      email?: string;
+    } | null;
+
+    if (!payload?.sub) return null;
+
+    return {
+      appleId: payload.sub,
+      email: payload.email,
+    };
+  } catch (error) {
+    console.error('Apple token decode failed:', error);
+    return null;
+  }
+}
 
 export async function verifyGoogleToken(idToken: string) {
   try {

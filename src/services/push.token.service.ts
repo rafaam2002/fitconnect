@@ -30,7 +30,15 @@ export class PushTokenService extends BaseService {
 
     try {
       // Verificar si ya existe el token
-      const existing = await this.em.findOne(PushToken, { token });
+      const existing = await this.em.findOne(
+        PushToken,
+        { token },
+        {
+          filters: {
+            companyContext: false,
+          },
+        }
+      );
 
       if (existing) {
         await this.em.flush();

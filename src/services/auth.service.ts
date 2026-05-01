@@ -20,7 +20,11 @@ import {
   ValidationError,
 } from '../utils/errors.util';
 import { changePasswordHtml, renderPage } from '../utils/templates.util';
-import { generateTempPassword, verifyGoogleToken } from '../utils/users';
+import {
+  decodeAppleToken,
+  generateTempPassword,
+  verifyGoogleToken,
+} from '../utils/users';
 import { ChangePasswordSchema } from '../validation/schemas';
 
 import { BaseService } from './base.service';
@@ -42,6 +46,12 @@ export interface LoginWithCompanyInput {
 
 export interface GoogleLoginInput {
   id_token: string;
+}
+
+export interface AppleLoginInput {
+  idToken: string;
+  /** JSON stringified AppleAuthentication.AppleAuthenticationFullName — only present on first login */
+  user?: string;
 }
 
 export interface SelectCompanyInput {
@@ -283,6 +293,75 @@ export class AuthService extends BaseService {
           'Login successful'
         )
       : createServiceResponse(200, 'logging successfully', true, data);
+  }
+
+  /**
+   * Login con Apple
+   */
+  async loginWithApple(input: AppleLoginInput): Promise<ServiceResponse> {
+    const { idToken, user: userJson } = input;
+
+    const appleData = decodeAppleToken(idToken);
+    if (!appleData) {
+      throw new UnauthorizedError('Invalid Apple token');
+    }
+
+    const { appleId, email } = appleData;
+
+    // fullName solo llega en el primer login — parsearlo si viene
+    let name: string | undefined;
+    let surname: string | undefined;
+    if (userJson) {
+      try {
+        const fullName = JSON.parse(userJson);
+        name = fullName.givenName ?? undefined;
+        surname = fullName.familyName ?? undefined;
+      } catch {
+        // userJson malformado — ignorar
+      }
+    }
+
+    const user = await this.findOrCreateAppleUser({
+      appleId,
+      email,
+      name,
+      surname,
+    });
+    const companies = user.companies.getItems();
+
+    if (companies.length === 0) {
+      const tokens = await this.createTokensPair(user);
+      return createServiceResponse(
+        200,
+        'User logged in but has no companies',
+        true,
+        {
+          user,
+          companies: [],
+          tokens,
+        }
+      );
+    }
+
+    if (!user.activeCompanyId && companies.length > 0) {
+      user.activeCompanyId = companies[0].id;
+      this.em.persist(user);
+      await this.em.flush();
+    }
+
+    const activeCompany = companies.find(c => c.id === user.activeCompanyId);
+
+    return activeCompany
+      ? await this.buildAuthResponseWithPermissions(
+          user,
+          activeCompany,
+          'Login successful'
+        )
+      : createServiceResponse(200, 'logging successfully', true, {
+          user,
+          companies,
+          tokens: await this.createTokensPair(user),
+        });
   }
 
   /**
@@ -701,6 +780,82 @@ export class AuthService extends BaseService {
         filters: false,
       } as const
     );
+  }
+
+  /**
+   * Buscar o crear usuario de Apple.
+   * Lookup order: appleId → email → create new
+   */
+  private async findOrCreateAppleUser({
+    appleId,
+    email,
+    name,
+    surname,
+  }: {
+    appleId: string;
+    email?: string;
+    name?: string;
+    surname?: string;
+  }): Promise<User> {
+    const populate = ['companies', 'companies.companyConfig'] as const;
+
+    // 1. Buscar por appleId (logins posteriores al primero)
+    let user = await this.em.findOne(
+      User,
+      { appleId },
+      { populate, filters: false }
+    );
+
+    // 2. Buscar por email (el usuario puede venir de registro normal o Google)
+    if (!user && email) {
+      user = await this.em.findOne(
+        User,
+        { email },
+        { populate, filters: false }
+      );
+      if (user) {
+        // Vincular cuenta Apple al usuario existente
+        user.appleId = appleId;
+        if (name && !user.name) user.name = name;
+        if (surname && !user.surname) user.surname = surname;
+        await this.em.flush();
+      }
+    }
+
+    // 3. Crear usuario nuevo
+    if (!user) {
+      const nickname = email
+        ? email.split('@')[0]
+        : appleId.replace('.', '').slice(0, 12);
+
+      const newUser = this.em.create(User, {
+        email: email ?? `${appleId}@privaterelay.appleid.com`,
+        name,
+        surname,
+        nickname,
+        provider: UserProviderType.APPLE,
+        appleId,
+        isActive: true,
+        isBlocked: false,
+        isVerified: true,
+      });
+      this.em.persist(newUser);
+      await this.em.flush();
+
+      user = await this.em.findOne(
+        User,
+        { appleId },
+        { populate, filters: false }
+      );
+      if (!user) throw new InternalServerError('Failed to create Apple user');
+    } else if (name || surname) {
+      // Primer login de un usuario ya existente — actualizar nombre si llegó
+      if (name && !user.name) user.name = name;
+      if (surname && !user.surname) user.surname = surname;
+      await this.em.flush();
+    }
+
+    return user;
   }
 
   /**

@@ -57,7 +57,8 @@ export class User extends BaseEntity {
     | 'isAdminVerified'
     | 'created_at'
     | 'updated_at'
-    | 'isSuperAdmin';
+    | 'isSuperAdmin'
+    | 'fullName';
 
   @Property({ type: t.string, nullable: true })
   name?: string | null;
@@ -95,6 +96,10 @@ export class User extends BaseEntity {
 
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;
+
+  @Property({ type: t.string, nullable: true, unique: true })
+  @Index()
+  appleId?: string | null;
 
   @ManyToMany({
     entity: () => Company,

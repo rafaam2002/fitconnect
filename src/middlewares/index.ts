@@ -14,13 +14,19 @@ export const middleware = async (
   authorization?: string,
   companyId?: string
 ) => {
+  if (companyId) {
+    em.setFilterParams('companyContext', {
+      companyId: companyId,
+    });
+  }
+
   const publicContext = filterPublicQueries(em, query);
   if (publicContext) return publicContext;
 
   const refreshContext = filterRefreshTokenQueries(em, query, companyId);
   if (refreshContext) return refreshContext;
 
-  const currentUser = await authenticateUser(em, authorization);
+  const currentUser = await authenticateUser(em, authorization, companyId);
 
   if (currentUser?.isSuperAdmin) {
     currentUser.permissionNames = ['*:*'];
@@ -32,9 +38,6 @@ export const middleware = async (
         'User is logged in two companies at the same time'
       );
     }
-    em.setFilterParams('companyContext', {
-      companyId: currentUser.activeCompanyId,
-    });
   }
 
   return { em, currentUser };

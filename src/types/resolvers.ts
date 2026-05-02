@@ -71,6 +71,18 @@ export type RemoveScheduleProps = {
   scheduleId: string;
 };
 
+export type UpdateUserProps = {
+  id: string;
+  name?: string;
+  surname?: string;
+  nickname?: string;
+  email?: string;
+  phoneNumber?: string;
+  isActive?: boolean;
+  isBlocked?: boolean;
+  role?: UserRoleEnum;
+};
+
 export type UpdateScheduleProps = {
   schedule: {
     id: string;

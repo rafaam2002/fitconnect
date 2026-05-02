@@ -24,6 +24,7 @@ import {
   RemoveTrainingTaskProps,
   RemoveUserWeight,
   UnfixMessageProps,
+  UpdateUserProps,
   UserListProps,
   UserPictureProps,
   UserProps,
@@ -73,11 +74,11 @@ const me = async (_: any, args: any, context: ContextProps) => {
  */
 const findUser = async (_: any, args: IdProps, context: ContextProps) => {
   try {
-    const { em } = context;
+    const { em, currentUser } = context;
     const { id } = args;
     const userService = new UserService(em);
 
-    return await userService.findUser(id);
+    return await userService.findUser(id, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -205,7 +206,11 @@ const createUser = async (_: any, args: UserProps, context: ContextProps) => {
 /**
  * Update user information
  */
-const updateUser = async (_: any, args: UserProps, context: ContextProps) => {
+const updateUser = async (
+  _: any,
+  args: { user: UpdateUserProps },
+  context: ContextProps
+) => {
   try {
     const { user } = args;
     const { em, currentUser } = context;

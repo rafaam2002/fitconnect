@@ -67,6 +67,7 @@ type User {
     isVerified: Boolean
     companies: [Company]
     contextRole: UserRoleEnum
+    isSuperAdmin: Boolean
     activeCompanyId: ID
     isPending: Boolean
     subscription: JSON

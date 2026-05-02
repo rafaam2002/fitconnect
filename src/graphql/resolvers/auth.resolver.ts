@@ -92,6 +92,16 @@ const loginWithGoogle = async (_: any, args: any, { em }: ContextProps) => {
   }
 };
 
+const loginWithApple = async (_: any, args: any, { em }: ContextProps) => {
+  try {
+    const { idToken, user } = args;
+    const authService = new AuthService(em);
+    return await authService.loginWithApple({ idToken, user });
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 const refreshAccessToken = async (
   _: any,
   { inputToken }: { inputToken: string },
@@ -114,6 +124,7 @@ export const authResolvers = {
     forgotPassword,
     updatePassword,
     loginWithGoogle,
+    loginWithApple,
     sendChangePasswordEmail,
     refreshAccessToken,
   },

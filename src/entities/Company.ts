@@ -16,11 +16,11 @@ import { ScheduleOptions } from './ScheduleOptions';
 import { User } from './User';
 
 @Entity()
-@Filter({
-  name: 'validatedCompanies',
-  cond: () => ({ isValidated: true }),
-  default: true,
-})
+// @Filter({
+//   name: 'validatedCompanies',
+//   cond: () => ({ isValidated: true }),
+//   default: true,
+// })
 @Filter({
   name: 'companyContext',
   cond: args => ({ id: args.companyId }),

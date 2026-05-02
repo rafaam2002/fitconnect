@@ -42,8 +42,9 @@ export enum UserStatus {
   name: 'companyContext',
   cond: args => ({
     $or: [
+      // { roles: { company: args.companyId } },
       { companies: { id: args.companyId } },
-      { pendingCompanies: { id: args.companyId } },
+      // { pendingCompanies: { id: args.companyId } },
     ],
   }),
   default: true,
@@ -56,7 +57,8 @@ export class User extends BaseEntity {
     | 'isAdminVerified'
     | 'created_at'
     | 'updated_at'
-    | 'isSuperAdmin';
+    | 'isSuperAdmin'
+    | 'fullName';
 
   @Property({ type: t.string, nullable: true })
   name?: string | null;
@@ -94,6 +96,10 @@ export class User extends BaseEntity {
 
   @Property({ type: t.string, nullable: true })
   provider?: UserProviderType = UserProviderType.LOCAL;
+
+  @Property({ type: t.string, nullable: true, unique: true })
+  @Index()
+  appleId?: string | null;
 
   @ManyToMany({
     entity: () => Company,
@@ -214,13 +220,10 @@ export class User extends BaseEntity {
     if (this.isSuperAdmin) {
       return UserRoleEnum.ADMIN;
     }
-    if (!this.roles.isInitialized() || !this.activeCompanyId) {
+    if (!this.roles.isInitialized()) {
       return null;
     }
-    return (
-      this.roles.find(role => role.company.id === this.activeCompanyId)?.role ??
-      null
-    );
+    return this.roles[0]?.role ?? null;
   }
 
   // get contextPlan(): Plan | null {

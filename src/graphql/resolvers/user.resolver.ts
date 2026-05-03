@@ -513,7 +513,7 @@ export const userResolvers: IResolvers = {
     deleteUser,
     sendTestNotification,
     // removeUser,
-    createMessage: withPermissions(chatsPermissions.CREATE, createMessage),
+    createMessage,
     fixMessage: withPermissions(chatsPermissions.UPDATE, fixMessage),
     unfixMessage: withPermissions(chatsPermissions.UPDATE, unfixMessage),
     createTrainingTask: withPermissions(

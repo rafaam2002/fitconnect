@@ -30,7 +30,7 @@ export class Company extends BaseEntity {
   @Property({ length: 100 })
   name!: string;
 
-  @Property({ nullable: true })
+  @Property({ unique: true })
   code: string;
 
   @Property()

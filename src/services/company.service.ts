@@ -306,15 +306,20 @@ export class CompanyService extends BaseService {
    */
   public async requestJoinCompany(
     currentUser: CurrentUser,
-    companyId: string
+    companyId?: string,
+    companyCode?: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
 
+    if (!companyId && !companyCode) {
+      throw new BadRequestError('Company ID or company code is required');
+    }
+
     const company = await this.em.findOne(
       Company,
-      { id: companyId },
+      { id: companyId, code: companyCode },
       { filters: false }
     );
 

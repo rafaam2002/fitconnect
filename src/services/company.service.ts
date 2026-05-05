@@ -309,6 +309,10 @@ export class CompanyService extends BaseService {
     companyId?: string,
     companyCode?: string
   ): Promise<ServiceResponse> {
+    this.em.setFilterParams('companyContext', {
+      companyId: null,
+    });
+
     if (!currentUser) {
       throw new UnauthorizedError();
     }
@@ -319,7 +323,7 @@ export class CompanyService extends BaseService {
 
     const company = await this.em.findOne(
       Company,
-      { id: companyId, code: companyCode },
+      { $or: [{ id: companyId }, { code: companyCode }] },
       { filters: false }
     );
 

@@ -13,7 +13,8 @@ export class CompanyConfig extends BaseEntity {
     | 'pollsEnabled'
     | 'productsEnabled'
     | 'chatEnabled'
-    | 'trainingEnabled';
+    | 'trainingEnabled'
+    | 'autoAcceptUsers';
 
   @Property({ default: true })
   pollsEnabled: boolean = true;
@@ -26,6 +27,9 @@ export class CompanyConfig extends BaseEntity {
 
   @Property({ default: true })
   trainingEnabled: boolean = true;
+
+  @Property({ default: true })
+  autoAcceptUsers: boolean = true;
 
   @OneToOne(() => Company, company => company.companyConfig)
   company: Company;

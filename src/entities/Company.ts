@@ -30,6 +30,9 @@ export class Company extends BaseEntity {
   @Property({ length: 100 })
   name!: string;
 
+  @Property({ unique: true })
+  code: string;
+
   @Property()
   phoneNumber: string;
 
@@ -79,6 +82,7 @@ export class Company extends BaseEntity {
   constructor(company: Partial<Company>) {
     super();
     this.name = company.name || '';
+    this.code = company.code || '';
     this.address = company.address || '';
     this.phoneNumber = company.phoneNumber || '';
     this.email = company.email || '';

@@ -1439,11 +1439,35 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
         }
       },
       "name": "company",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": ["code"],
+          "composite": false,
+          "constraint": true,
+          "keyName": "company_code_unique",
+          "unique": true,
+          "primary": false
+        },
         {
           "columnNames": ["company_config_id"],
           "composite": false,
@@ -1686,6 +1710,22 @@
         },
         "training_enabled": {
           "name": "training_enabled",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "auto_accept_users": {
+          "name": "auto_accept_users",
           "type": "bool",
           "unsigned": false,
           "autoincrement": false,

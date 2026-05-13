@@ -244,7 +244,7 @@ export class AuthService extends BaseService {
     const { email, name } = googleData;
 
     // Buscar o crear usuario
-    let user = await this.findOrCreateGoogleUser(
+    const { user, isNewUser } = await this.findOrCreateGoogleUser(
       email || 'rafa@.mail.com',
       name
     );
@@ -263,6 +263,7 @@ export class AuthService extends BaseService {
           user,
           companies: [],
           tokens,
+          isNewUser,
         }
       );
     }
@@ -281,6 +282,7 @@ export class AuthService extends BaseService {
       user,
       companies,
       tokens,
+      isNewUser,
     };
 
     const activeCompany = companies.find(c => c.id === user.activeCompanyId);
@@ -321,7 +323,7 @@ export class AuthService extends BaseService {
       }
     }
 
-    const user = await this.findOrCreateAppleUser({
+    const { user, isNewUser } = await this.findOrCreateAppleUser({
       appleId,
       email,
       name,
@@ -339,6 +341,7 @@ export class AuthService extends BaseService {
           user,
           companies: [],
           tokens,
+          isNewUser,
         }
       );
     }
@@ -796,7 +799,8 @@ export class AuthService extends BaseService {
     email?: string;
     name?: string;
     surname?: string;
-  }): Promise<User> {
+  }): Promise<{ user: User; isNewUser: boolean }> {
+    let isNewUser = false;
     const populate = ['companies', 'companies.companyConfig'] as const;
 
     // 1. Buscar por appleId (logins posteriores al primero)
@@ -824,6 +828,7 @@ export class AuthService extends BaseService {
 
     // 3. Crear usuario nuevo
     if (!user) {
+      isNewUser = true;
       const nickname = email
         ? email.split('@')[0]
         : appleId.replace('.', '').slice(0, 12);
@@ -855,7 +860,10 @@ export class AuthService extends BaseService {
       await this.em.flush();
     }
 
-    return user;
+    return {
+      user,
+      isNewUser,
+    };
   }
 
   /**
@@ -864,7 +872,8 @@ export class AuthService extends BaseService {
   private async findOrCreateGoogleUser(
     email: string,
     name?: string
-  ): Promise<User> {
+  ): Promise<{ user: User; isNewUser: boolean }> {
+    let isNewUser = false;
     let user = await this.em.findOne(
       User,
       { email },
@@ -872,6 +881,7 @@ export class AuthService extends BaseService {
     );
 
     if (!user) {
+      isNewUser = true;
       const newUser = this.em.create(User, {
         email,
         name,
@@ -897,7 +907,7 @@ export class AuthService extends BaseService {
       }
     }
 
-    return user;
+    return { user, isNewUser };
   }
 
   /**

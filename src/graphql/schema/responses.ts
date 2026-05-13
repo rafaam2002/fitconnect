@@ -110,6 +110,7 @@ type LoginResponse implements BasicResponse{
     success: Boolean!
     message: String!
     user: User
+    isNewUser: Boolean
     companies: [Company]
     tokens: Tokens
 }

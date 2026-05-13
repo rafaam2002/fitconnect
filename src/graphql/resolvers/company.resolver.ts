@@ -92,10 +92,14 @@ export const requestJoinCompany = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { companyId } = args;
+    const { companyId, companyCode } = args;
 
     const companyService = new CompanyService(em);
-    return await companyService.requestJoinCompany(currentUser, companyId);
+    return await companyService.requestJoinCompany(
+      currentUser,
+      companyId,
+      companyCode
+    );
   } catch (error: any) {
     return handleError(error);
   }

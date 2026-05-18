@@ -317,6 +317,7 @@ export class UserService extends BaseService {
       return createServiceResponse(200, 'User created successfully', true, {
         user: newUser,
         tokens,
+        isNewUser: true,
       });
     } catch (error: any) {
       if (error.code === 'EAUTH') {

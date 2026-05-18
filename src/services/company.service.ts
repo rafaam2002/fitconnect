@@ -306,16 +306,25 @@ export class CompanyService extends BaseService {
    */
   public async requestJoinCompany(
     currentUser: CurrentUser,
-    companyId: string
+    companyId?: string,
+    companyCode?: string
   ): Promise<ServiceResponse> {
+    this.em.setFilterParams('companyContext', {
+      companyId: null,
+    });
+
     if (!currentUser) {
       throw new UnauthorizedError();
     }
 
+    if (!companyId && !companyCode) {
+      throw new BadRequestError('Company ID or company code is required');
+    }
+
     const company = await this.em.findOne(
       Company,
-      { id: companyId },
-      { filters: false }
+      { $or: [{ id: companyId }, { code: companyCode }] },
+      { filters: false, populate: ['companyConfig'] }
     );
 
     if (!company) {
@@ -347,8 +356,18 @@ export class CompanyService extends BaseService {
       throw new ConflictError('User request is already pending');
     }
 
+    if (company.companyConfig?.autoAcceptUsers)
+      return await this.admitUserToCompany(
+        currentUser,
+        company.id,
+        user.id,
+        UserRoleEnum.STANDARD,
+        false,
+        true
+      );
+
     user.pendingCompanies.add(company);
-    this.em.persist(user);
+
     await this.em.flush();
 
     // Enviar notificaciones a los ADMIN
@@ -389,7 +408,9 @@ export class CompanyService extends BaseService {
     currentUser: CurrentUser,
     companyId: string,
     userId: string,
-    role?: UserRoleEnum
+    role?: UserRoleEnum,
+    sendNotification: boolean = true,
+    isAutoAccept: boolean = false
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -398,13 +419,21 @@ export class CompanyService extends BaseService {
     const company = await this.em.findOneOrFail(Company, { id: companyId });
 
     // Validaciones
-    await this.validateAdminPermission(currentUser.id, companyId);
+    if (!isAutoAccept) {
+      await this.validateAdminPermission(currentUser.id, companyId);
+    }
 
     if (!currentUser.isSuperAdmin)
       await this.validateUserLimit(currentUser.id, companyId);
 
-    // Obtener usuario pendiente
-    const userToAdmit = await this.getPendingUser(userId, company);
+    // Obtener usuario
+    const userToAdmit = isAutoAccept
+      ? await this.em.findOneOrFail(
+          User,
+          { id: userId },
+          { populate: ['pushTokens', 'pendingCompanies'] }
+        )
+      : await this.getPendingUser(userId, company);
 
     // Admitir usuario
     userToAdmit.pendingCompanies.remove(company);
@@ -418,7 +447,8 @@ export class CompanyService extends BaseService {
     await this.em.flush();
 
     // Notificar (fire-and-forget)
-    this.notifyUserAdmission(userToAdmit, company.name, companyId);
+    if (sendNotification)
+      this.notifyUserAdmission(userToAdmit, company.name, companyId);
 
     return createServiceResponse(200, 'User admitted successfully', true);
   }

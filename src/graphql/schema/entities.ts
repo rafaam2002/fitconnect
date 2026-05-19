@@ -43,6 +43,7 @@ type Product {
 type Company {
     id: ID!
     name: String!
+    code: String
     phoneNumber: String!
     email: String!
     address: String!

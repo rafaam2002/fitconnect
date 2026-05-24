@@ -39,6 +39,47 @@ export class PermissionService extends BaseService {
   }
 
   /**
+   * Obtener la suscripción activa de administrador para una empresa (compartida)
+   */
+  async getCompanyActiveAdminSubscription(
+    companyId: string
+  ): Promise<Subscription | null> {
+    const adminRoles = await this.em.find(
+      UserRole,
+      {
+        company: companyId,
+        role: UserRoleEnum.ADMIN,
+      },
+      { fields: ['user'] as any }
+    );
+
+    const adminUserIds = adminRoles.map(r => r.user.id);
+    if (adminUserIds.length === 0) {
+      return null;
+    }
+
+    return await this.em.findOne(
+      Subscription,
+      {
+        company: companyId,
+        user: { $in: adminUserIds },
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      {
+        populate: [
+          'plan',
+          'plan.planPermissions',
+          'plan.planPermissions.permission',
+          'plan.name',
+        ],
+        filters: false,
+      }
+    );
+  }
+
+  /**
    * Crear o actualizar un permiso
    */
   async createPermission(input: CreatePermissionInput): Promise<Permission> {
@@ -230,6 +271,27 @@ export class PermissionService extends BaseService {
       return this.coachPermissionNames.includes(`${module}:manage`);
     }
 
+    if (userRole?.role === UserRoleEnum.ADMIN) {
+      const adminSubscription =
+        await this.getCompanyActiveAdminSubscription(companyId);
+      if (!adminSubscription) {
+        return false;
+      }
+
+      const plan = adminSubscription.plan;
+      await plan.planPermissions.init();
+
+      return plan.planPermissions.getItems().some(pp => {
+        if (!pp.isActive || !pp.permission.isActive) return false;
+
+        if (pp.permission.name === permissionName) return true;
+        if (pp.permission.name === '*:*') return true;
+
+        const [module] = permissionName.split(':');
+        return pp.permission.name === `${module}:manage`;
+      });
+    }
+
     const subscription = await this.getUserActiveSubscriptionInCompany(
       userId,
       companyId
@@ -270,6 +332,22 @@ export class PermissionService extends BaseService {
         name: { $in: this.coachPermissionNames },
         isActive: true,
       });
+    }
+
+    if (userRole?.role === UserRoleEnum.ADMIN) {
+      const adminSubscription =
+        await this.getCompanyActiveAdminSubscription(companyId);
+      if (!adminSubscription) {
+        return [];
+      }
+
+      const plan = adminSubscription.plan;
+      await plan.planPermissions.init();
+
+      return plan.planPermissions
+        .getItems()
+        .filter(pp => pp.isActive && pp.permission.isActive)
+        .map(pp => pp.permission);
     }
 
     const subscription = await this.getUserActiveSubscriptionInCompany(
@@ -579,6 +657,50 @@ export class PermissionService extends BaseService {
       };
     }
 
+    if (userRole?.role === UserRoleEnum.ADMIN) {
+      const adminSubscription =
+        await this.getCompanyActiveAdminSubscription(companyId);
+
+      if (!adminSubscription) {
+        return {
+          hasActiveSubscription: false,
+          plan: null,
+          permissions: [],
+          permissionNames: [],
+          subscriptionStatus: null,
+          trialEndsAt: null,
+          renewsAt: null,
+        };
+      }
+
+      const plan = adminSubscription.plan;
+      const permissions = plan.planPermissions
+        .getItems()
+        .filter(pp => pp.isActive && pp.permission.isActive)
+        .map(pp => pp.permission);
+
+      const permissionNames = permissions.map(p => p.name);
+
+      return {
+        hasActiveSubscription: true,
+        plan: {
+          id: plan.id,
+          name: plan.name,
+          stripePriceId: plan.stripePriceId,
+          amount: plan.amount,
+          currency: plan.currency,
+          interval: plan.interval,
+        },
+        permissions,
+        permissionNames,
+        subscriptionStatus: adminSubscription.status,
+        subscriptionId: adminSubscription.id,
+        trialEndsAt: adminSubscription.trialEnd,
+        renewsAt: adminSubscription.currentPeriodEnd,
+        isInTrial: adminSubscription.isInTrial,
+      };
+    }
+
     const subscription = await this.getUserActiveSubscriptionInCompany(
       user.id,
       companyId
@@ -701,6 +823,51 @@ export class PermissionService extends BaseService {
         isInTrial: false,
         trialEndsAt: undefined,
         renewsAt: undefined,
+      });
+    }
+
+    // Buscar empresas donde el usuario tenga rol de ADMIN
+    const adminRoles = await this.em.find(
+      UserRole,
+      { user: userId, role: UserRoleEnum.ADMIN },
+      { populate: ['company'] }
+    );
+
+    for (const adminRole of adminRoles) {
+      const company = adminRole.company;
+      if (companiesContext.some(c => c.companyId === company.id)) {
+        continue;
+      }
+
+      const adminSubscription = await this.getCompanyActiveAdminSubscription(
+        company.id
+      );
+      if (!adminSubscription) {
+        continue; // Si no hay suscripción activa de administrador, no tiene acceso a esa empresa
+      }
+
+      const plan = adminSubscription.plan;
+      await plan.planPermissions.init();
+
+      const permissions = plan.planPermissions
+        .getItems()
+        .filter(pp => pp.isActive && pp.permission.isActive)
+        .map(pp => pp.permission);
+
+      companiesContext.push({
+        companyId: company.id,
+        companyName: company.name,
+        plan: {
+          id: plan.id,
+          name: plan.name,
+          amount: plan.amount,
+          currency: plan.currency,
+        },
+        permissions: permissions.map(p => p.name),
+        subscriptionStatus: adminSubscription.status,
+        isInTrial: adminSubscription.isInTrial,
+        trialEndsAt: adminSubscription.trialEnd,
+        renewsAt: adminSubscription.currentPeriodEnd,
       });
     }
 

@@ -9,6 +9,8 @@ import { Plan } from '../entities/Plan';
 import { PlanPermission } from '../entities/PlanPermission';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
+import { UserRoleEnum, Currency } from '../types/enums';
 import {
   CompanyPermissionsContext,
   LoginPermissionsContext,
@@ -23,6 +25,15 @@ interface CreatePermissionInput {
 }
 
 export class PermissionService extends BaseService {
+  public readonly coachPermissionNames = [
+    'schedules:manage',
+    'workouts:manage',
+    'chats:manage',
+    'polls:manage',
+    'user_weights:manage',
+    'users:read',
+  ];
+
   constructor(em: EntityManager) {
     super(em);
   }
@@ -206,6 +217,19 @@ export class PermissionService extends BaseService {
     permissionName: string,
     companyId: string
   ): Promise<boolean> {
+    const userRole = await this.em.findOne(UserRole, {
+      user: userId,
+      company: companyId,
+    });
+
+    if (userRole?.role === UserRoleEnum.COACH) {
+      if (this.coachPermissionNames.includes(permissionName)) return true;
+      if (this.coachPermissionNames.includes('*:*')) return true;
+
+      const [module] = permissionName.split(':');
+      return this.coachPermissionNames.includes(`${module}:manage`);
+    }
+
     const subscription = await this.getUserActiveSubscriptionInCompany(
       userId,
       companyId
@@ -236,6 +260,18 @@ export class PermissionService extends BaseService {
     userId: string,
     companyId: string
   ): Promise<Permission[]> {
+    const userRole = await this.em.findOne(UserRole, {
+      user: userId,
+      company: companyId,
+    });
+
+    if (userRole?.role === UserRoleEnum.COACH) {
+      return await this.em.find(Permission, {
+        name: { $in: this.coachPermissionNames },
+        isActive: true,
+      });
+    }
+
     const subscription = await this.getUserActiveSubscriptionInCompany(
       userId,
       companyId
@@ -503,6 +539,46 @@ export class PermissionService extends BaseService {
         renewsAt: null,
       };
     }
+
+    const userRole = await this.em.findOne(
+      UserRole,
+      {
+        user: user.id,
+        company: companyId,
+      },
+      {
+        filters: {
+          companyContext: false,
+        },
+      }
+    );
+
+    if (userRole?.role === UserRoleEnum.COACH) {
+      const permissions = await this.em.find(Permission, {
+        name: { $in: this.coachPermissionNames },
+        isActive: true,
+      });
+
+      return {
+        hasActiveSubscription: true,
+        plan: {
+          id: 'coach-free-plan',
+          name: 'Plan de Entrenador',
+          stripePriceId: '',
+          amount: 0,
+          currency: Currency.EUR,
+          interval: 'lifetime',
+        } as any,
+        permissions,
+        permissionNames: this.coachPermissionNames,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionId: 'coach-free-sub',
+        trialEndsAt: null,
+        renewsAt: null,
+        isInTrial: false,
+      };
+    }
+
     const subscription = await this.getUserActiveSubscriptionInCompany(
       user.id,
       companyId
@@ -595,6 +671,36 @@ export class PermissionService extends BaseService {
         isInTrial: subscription.isInTrial,
         trialEndsAt: subscription.trialEnd,
         renewsAt: subscription.currentPeriodEnd,
+      });
+    }
+
+    // Buscar empresas donde el usuario tenga rol de COACH
+    const coachRoles = await this.em.find(
+      UserRole,
+      { user: userId, role: UserRoleEnum.COACH },
+      { populate: ['company'] }
+    );
+
+    for (const coachRole of coachRoles) {
+      const company = coachRole.company;
+      if (companiesContext.some(c => c.companyId === company.id)) {
+        continue;
+      }
+
+      companiesContext.push({
+        companyId: company.id,
+        companyName: company.name,
+        plan: {
+          id: 'coach-free-plan',
+          name: 'Plan de Entrenador',
+          amount: 0,
+          currency: Currency.EUR,
+        } as any,
+        permissions: this.coachPermissionNames,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        isInTrial: false,
+        trialEndsAt: undefined,
+        renewsAt: undefined,
       });
     }
 

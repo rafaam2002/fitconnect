@@ -94,7 +94,7 @@ type Schedule {
 
 type ScheduleResume {
     id: ID!
-    startDate: String!
+    startDate: DateTime!
     maxUsers: Int!
     state: ScheduleState!
     ocupancy: Int!

@@ -356,15 +356,29 @@ export class CompanyService extends BaseService {
       throw new ConflictError('User request is already pending');
     }
 
-    if (company.companyConfig?.autoAcceptUsers)
+    if (company.companyConfig?.autoAcceptUsers) {
+      //a partir de aqui el contexto es el de la compañia destino
+      this.em.setFilterParams('companyContext', {
+        companyId: company.id,
+      });
+
+      const adminUser = await this.em.findOne(User, {
+        roles: {
+          role: UserRoleEnum.ADMIN,
+        },
+      });
+      if (!adminUser) {
+        throw new NotFoundError('User');
+      }
       return await this.admitUserToCompany(
-        currentUser,
+        adminUser as unknown as CurrentUser,
         company.id,
         user.id,
         UserRoleEnum.STANDARD,
         false,
         true
       );
+    }
 
     user.pendingCompanies.add(company);
 
@@ -431,7 +445,10 @@ export class CompanyService extends BaseService {
       ? await this.em.findOneOrFail(
           User,
           { id: userId },
-          { populate: ['pushTokens', 'pendingCompanies'] }
+          {
+            populate: ['pushTokens', 'pendingCompanies'],
+            filters: { companyContext: false },
+          }
         )
       : await this.getPendingUser(userId, company);
 

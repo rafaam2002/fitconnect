@@ -212,19 +212,28 @@ export class UserService extends BaseService {
               ]
             : []) as any[]),
         ],
-        filters: { companyContext: false },
+        filters: { companyContext: false }, //no se filtra porque debe traer usuarios pendientes (que no entran en el filtro)
       }
     );
+
+    //debido a que no se filtra por companyContext, hay que asegurarse de que los roles solo incluyan los de la empresa activa (si es que tiene)
+    if (user?.roles && typeof user.roles.set === 'function') {
+      user.roles.set(
+        user.roles
+          .getItems()
+          .filter(role => role.company.id === currentUser.activeCompanyId)
+      );
+    }
 
     if (!user) {
       throw new NotFoundError('User');
     }
+    Object.assign(user, {
+      isPending: user.pendingCompanies.length > 0,
+    });
 
     return createServiceResponse(200, 'User found', true, {
-      user: {
-        ...user,
-        isPending: user.pendingCompanies.length > 0,
-      },
+      user,
     });
   }
 

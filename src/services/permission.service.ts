@@ -50,7 +50,12 @@ export class PermissionService extends BaseService {
         company: companyId,
         role: UserRoleEnum.ADMIN,
       },
-      { fields: ['user'] as any }
+      {
+        fields: ['user'] as any,
+        filters: {
+          companyContext: false,
+        },
+      }
     );
 
     const adminUserIds = adminRoles.map(r => r.user.id);

@@ -43,6 +43,7 @@ input CompanyDataInput {
     address: String,
     phoneNumber: String,
     email: String,
+    code: String,
     companyConfig: CompanyConfigInput
 }
 

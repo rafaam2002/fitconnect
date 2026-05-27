@@ -43,6 +43,7 @@ type Product {
 type Company {
     id: ID!
     name: String!
+    code: String
     phoneNumber: String!
     email: String!
     address: String!
@@ -93,7 +94,7 @@ type Schedule {
 
 type ScheduleResume {
     id: ID!
-    startDate: String!
+    startDate: DateTime!
     maxUsers: Int!
     state: ScheduleState!
     ocupancy: Int!

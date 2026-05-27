@@ -143,14 +143,15 @@ export class UserService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    this.em.setFilterParams('companyContext', {
-      companyId: companyId,
-    });
+    // if (!currentUser.isSuperAdmin)
+    //   this.em.setFilterParams('companyContext', {
+    //     companyId: companyId,
+    //   });
 
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
-      { refresh: true }
+      { refresh: true, filters: { companyContext: false } }
     );
 
     if (!user) {
@@ -159,14 +160,41 @@ export class UserService extends BaseService {
 
     user.activeCompanyId = companyId;
     this.em.persist(user);
-    await this.em.flush();
 
     const companyRepo = this.em.getRepository(Company);
 
     const company = await companyRepo.findOne(
       { id: companyId },
-      { populate: ['companyConfig'] }
+      {
+        populate: ['companyConfig'],
+        filters: {
+          companyContext: false,
+        },
+      }
     );
+
+    console.log(
+      '🚀 ~ UserService ~ setActiveCompany ~ user.roles.toArray():',
+      user.roles.toArray()
+    );
+    console.log('🚀 ~ UserService ~ setActiveCompany ~ companyId:', companyId);
+    if (
+      user.isSuperAdmin &&
+      !user.roles.toArray().some(r => {
+        const companyIdInRole =
+          typeof r.company === 'string' ? r.company : r.company?.id;
+        return companyIdInRole === companyId;
+      })
+    ) {
+      this.em.persist(
+        this.em.create(UserRole, {
+          user: user,
+          company,
+          role: UserRoleEnum.ADMIN,
+        })
+      );
+    }
+    await this.em.flush();
 
     return await this.authService.buildAuthResponseWithPermissions(
       user,

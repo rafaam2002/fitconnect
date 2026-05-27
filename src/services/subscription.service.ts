@@ -631,7 +631,11 @@ export class SubscriptionService extends BaseService {
   }
 
   private async getActivePlanOrFail(planId: string): Promise<Plan> {
-    const plan = await this.em.findOne(Plan, { id: planId, isActive: true });
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId, isActive: true },
+      { filters: { companyContext: false } }
+    );
     if (!plan) {
       throw new NotFoundError('Plan not found or inactive');
     }

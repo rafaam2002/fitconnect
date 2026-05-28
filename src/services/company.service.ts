@@ -535,14 +535,14 @@ export class CompanyService extends BaseService {
     );
 
     const maxUsers = subscription?.plan?.metadata?.maxUsers;
-    if (!maxUsers || maxUsers === 'unlimited') return;
+    if (!maxUsers || maxUsers === 'unlimited' || maxUsers === 0) return;
 
     const limit = Number.parseInt(maxUsers, 10);
     if (Number.isNaN(limit)) return;
 
     const currentCount = await this.em.count(UserRole, { company: companyId });
 
-    if (currentCount >= limit) {
+    if (currentCount >= limit && limit !== 0) {
       throw new BadRequestError(
         `User limit reached. Your plan allows a maximum of ${limit} users.`
       );

@@ -50,9 +50,6 @@ export const createPlan = async (_: any, args: any, context: ContextProps) => {
   const { em, currentUser } = context;
   try {
     const planService = new PlanService(em);
-    // const companyId = currentUser.isSuperAdmin
-    //   ? null
-    //   : currentUser.activeCompanyId;
     const companyId = currentUser.activeCompanyId;
 
     return await planService.createPlan({

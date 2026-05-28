@@ -29,6 +29,7 @@ build
 # misc
 .vscode
 .eslintcache
+.antigravitycli/
 
 # database dumps
 remote_dump.sql

@@ -4,6 +4,7 @@ import { SqlEntityManager } from '@mikro-orm/postgresql';
 import { Company } from '../entities/Company';
 import { SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import { UpdateUserProps } from '../types/resolvers';
@@ -142,14 +143,10 @@ export class UserService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    this.em.setFilterParams('companyContext', {
-      companyId: companyId,
-    });
-
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
-      { refresh: true }
+      { refresh: true, filters: { companyContext: false } }
     );
 
     if (!user) {
@@ -158,14 +155,41 @@ export class UserService extends BaseService {
 
     user.activeCompanyId = companyId;
     this.em.persist(user);
-    await this.em.flush();
 
     const companyRepo = this.em.getRepository(Company);
 
     const company = await companyRepo.findOne(
       { id: companyId },
-      { populate: ['companyConfig'] }
+      {
+        populate: ['companyConfig'],
+        filters: {
+          companyContext: false,
+        },
+      }
     );
+
+    console.log(
+      '🚀 ~ UserService ~ setActiveCompany ~ user.roles.toArray():',
+      user.roles.toArray()
+    );
+    console.log('🚀 ~ UserService ~ setActiveCompany ~ companyId:', companyId);
+    if (
+      user.isSuperAdmin &&
+      !user.roles.toArray().some(r => {
+        const companyIdInRole =
+          typeof r.company === 'string' ? r.company : r.company?.id;
+        return companyIdInRole === companyId;
+      })
+    ) {
+      this.em.persist(
+        this.em.create(UserRole, {
+          user: user,
+          company,
+          role: UserRoleEnum.ADMIN,
+        })
+      );
+    }
+    await this.em.flush();
 
     return await this.authService.buildAuthResponseWithPermissions(
       user,
@@ -211,19 +235,28 @@ export class UserService extends BaseService {
               ]
             : []) as any[]),
         ],
-        filters: { companyContext: false },
+        filters: { companyContext: false }, //no se filtra porque debe traer usuarios pendientes (que no entran en el filtro)
       }
     );
+
+    //debido a que no se filtra por companyContext, hay que asegurarse de que los roles solo incluyan los de la empresa activa (si es que tiene)
+    if (user?.roles && typeof user.roles.set === 'function') {
+      user.roles.set(
+        user.roles
+          .getItems()
+          .filter(role => role.company.id === currentUser.activeCompanyId)
+      );
+    }
 
     if (!user) {
       throw new NotFoundError('User');
     }
+    Object.assign(user, {
+      isPending: user.pendingCompanies.length > 0,
+    });
 
     return createServiceResponse(200, 'User found', true, {
-      user: {
-        ...user,
-        isPending: user.pendingCompanies.length > 0,
-      },
+      user,
     });
   }
 
@@ -388,8 +421,25 @@ export class UserService extends BaseService {
       isActive: userUpdates.isActive ?? user.isActive,
       isBlocked: userUpdates.isBlocked ?? user.isBlocked,
     });
-    if (user.roles.isInitialized() && userUpdates.role) {
-      user.roles[0].role = userUpdates.role;
+    if (userUpdates.role) {
+      if (user.roles.length > 0) {
+        user.roles[0].role = userUpdates.role;
+      } else {
+        const activeCompanyId = currentUser.activeCompanyId;
+        if (activeCompanyId) {
+          const company = await this.em.findOne(Company, {
+            id: activeCompanyId,
+          });
+          if (company) {
+            const newUserRole = this.em.create(UserRole, {
+              user,
+              company,
+              role: userUpdates.role,
+            });
+            user.roles.add(newUserRole);
+          }
+        }
+      }
     }
 
     try {
@@ -581,6 +631,39 @@ export class UserService extends BaseService {
     return users;
   }
 
+  public async deleteUser(
+    userId: string,
+    currentUser: CurrentUser
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    if (currentUser.id !== userId) {
+      throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
+    }
+
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { filters: false }
+    );
+
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    try {
+      this.em.remove(user);
+      await this.em.flush();
+
+      return createServiceResponse(200, 'User deleted successfully', true);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new Error('Error deleting user');
+    }
+  }
+
   private buildUserFilter(
     query?: string,
     roleFilter?: string[],
@@ -628,37 +711,5 @@ export class UserService extends BaseService {
     }
 
     return where;
-  }
-  public async deleteUser(
-    userId: string,
-    currentUser: CurrentUser
-  ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
-
-    if (currentUser.id !== userId) {
-      throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
-    }
-
-    const user = await this.em.findOne(
-      User,
-      { id: userId },
-      { filters: false }
-    );
-
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-
-    try {
-      this.em.remove(user);
-      await this.em.flush();
-
-      return createServiceResponse(200, 'User deleted successfully', true);
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      throw new Error('Error deleting user');
-    }
   }
 }

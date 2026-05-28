@@ -20,6 +20,7 @@ export const middleware = async (
     });
   }
 
+  //no requieren currentUser
   const publicContext = filterPublicQueries(em, query);
   if (publicContext) return publicContext;
 

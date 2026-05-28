@@ -109,7 +109,7 @@ export class UserService extends BaseService {
       { id: currentUser.id },
       {
         populate: ['companies', 'companies.companyConfig'],
-        filters: !!currentUser.activeCompanyId,
+        filters: false, //!!currentUser.activeCompanyId,
       }
     );
 
@@ -146,7 +146,11 @@ export class UserService extends BaseService {
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
-      { refresh: true, filters: { companyContext: false } }
+      {
+        refresh: true,
+        filters: false,
+        populate: ['companies', 'companies.companyConfig'],
+      }
     );
 
     if (!user) {
@@ -168,11 +172,6 @@ export class UserService extends BaseService {
       }
     );
 
-    console.log(
-      '🚀 ~ UserService ~ setActiveCompany ~ user.roles.toArray():',
-      user.roles.toArray()
-    );
-    console.log('🚀 ~ UserService ~ setActiveCompany ~ companyId:', companyId);
     if (
       user.isSuperAdmin &&
       !user.roles.toArray().some(r => {

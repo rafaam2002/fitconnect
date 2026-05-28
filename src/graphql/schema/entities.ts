@@ -182,6 +182,7 @@ type Plan {
     isActive: Boolean!
     features: [String]!
     subscriptions: [Subscription]
+    metadata: JSON
 }
 
 type Notification {

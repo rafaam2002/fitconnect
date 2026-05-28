@@ -8,6 +8,7 @@ import { Plan } from '../entities/Plan';
 import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
 import { EmailConfig, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
@@ -71,7 +72,7 @@ export class SubscriptionService extends BaseService {
     try {
       // Obtener entidades requeridas
       const user = await this.getUserOrFail(input.userId);
-      const plan = await this.getActivePlanOrFail(input.planId);
+      const plan = await this.getActivePlanOrFail(input.planId, input.userId);
       const stripeCustomer = await this.getOrCreateAdminStripeCustomer(user);
 
       // Validaciones de negocio
@@ -538,9 +539,13 @@ export class SubscriptionService extends BaseService {
       const plan = await this.getPlanByPriceIdOrFail(priceId);
 
       // Buscar o crear suscripción
-      let subscription = await this.em.findOne(Subscription, {
-        stripeSubscriptionId,
-      });
+      let subscription = await this.em.findOne(
+        Subscription,
+        {
+          stripeSubscriptionId,
+        },
+        { filters: false }
+      );
       const mappedData = this.mapStripeSubscriptionData(stripeSub);
 
       if (subscription) {
@@ -630,8 +635,23 @@ export class SubscriptionService extends BaseService {
     return user;
   }
 
-  private async getActivePlanOrFail(planId: string): Promise<Plan> {
-    const plan = await this.em.findOne(Plan, { id: planId, isActive: true });
+  private async getActivePlanOrFail(
+    planId: string,
+    userId: string
+  ): Promise<Plan> {
+    const user = await this.em.findOne(User, { id: userId });
+    let query = undefined;
+
+    if (user?.roles.exists((u: UserRole) => u.role === UserRoleEnum.ADMIN)) {
+      query = { filters: false };
+    }
+
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId, isActive: true },
+      query
+    );
+
     if (!plan) {
       throw new NotFoundError('Plan not found or inactive');
     }
@@ -682,9 +702,7 @@ export class SubscriptionService extends BaseService {
     });
 
     if (existing) {
-      throw new ConflictError(
-        'User already has an active subscription to this plan'
-      );
+      throw new ConflictError('El usuario ya tiene un plan activo');
     }
   }
 
@@ -785,7 +803,10 @@ export class SubscriptionService extends BaseService {
     const customer = await this.em.findOne(
       StripeCustomer,
       { stripeCustomerId: customerId },
-      { populate: ['user'] as any }
+      {
+        populate: ['user'] as any,
+        filters: false,
+      }
     );
 
     if (!customer) {
@@ -796,7 +817,11 @@ export class SubscriptionService extends BaseService {
   }
 
   private async getPlanByPriceIdOrFail(priceId: string): Promise<Plan> {
-    const plan = await this.em.findOne(Plan, { stripePriceId: priceId });
+    const plan = await this.em.findOne(
+      Plan,
+      { stripePriceId: priceId },
+      { filters: false }
+    );
 
     if (!plan) {
       throw new NotFoundError('Plan not found in database');

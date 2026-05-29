@@ -444,13 +444,15 @@ export class UserService extends BaseService {
     try {
       this.em.persist(user);
       await this.em.flush();
-      const stripeData = {
-        stripeCustomerId: user.stripeCustomerId!,
-        email: user.email,
-        name: user.name ?? user.email,
-        phoneNumber: user.phoneNumber,
-      };
-      await this.customerService.updateCustomer(stripeData);
+      if (user.stripeCustomerId) {
+        const stripeData = {
+          stripeCustomerId: user.stripeCustomerId,
+          email: user.email,
+          name: user.name ?? user.email,
+          phoneNumber: user.phoneNumber,
+        };
+        await this.customerService.updateCustomer(stripeData);
+      }
 
       return createServiceResponse(200, 'User updated successfully', true, {
         user,

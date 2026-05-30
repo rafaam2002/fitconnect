@@ -24,7 +24,7 @@ async function runSendPush() {
     const user = await em.findOne(
       User,
       { id: userId },
-      { populate: ['pushTokens'] }
+      { populate: ['pushTokens'], filters: false }
     );
 
     if (!user) {

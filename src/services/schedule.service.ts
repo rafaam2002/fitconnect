@@ -1435,10 +1435,23 @@ export class ScheduleService extends BaseService {
         if (!options) continue;
 
         const cutoffMinutes = options.bookingCutoffMinutes || 0;
+        console.log(
+          '🚀 ~ ScheduleService ~ cutOffSchedules ~ cutoffMinutes:',
+          cutoffMinutes
+        );
         const minBookings = options.minBookingsRequired || 0;
+        console.log(
+          '🚀 ~ ScheduleService ~ cutOffSchedules ~ minBookings:',
+          minBookings
+        );
 
         // Si no hay requisitos de reserva o el tiempo de corte es 0 (deshabilitado), saltamos
-        if (minBookings <= 0 || cutoffMinutes <= 0) continue;
+        if (minBookings <= 0 || cutoffMinutes <= 0) {
+          console.log(
+            `Skipping schedule ${schedule.id} - No cutoff or min bookings set`
+          );
+          continue;
+        }
 
         const cutoffTime = moment(schedule.startDate).subtract(
           cutoffMinutes,
@@ -1449,6 +1462,9 @@ export class ScheduleService extends BaseService {
           now.isSameOrAfter(cutoffTime) &&
           schedule.users.length < minBookings
         ) {
+          console.log(
+            `Cutting off schedule ${schedule.id} - Only ${schedule.users.length} bookings`
+          );
           schedule.state = ScheduleState.CANCELLED;
           cancelledSchedules.push(schedule);
         }
@@ -1456,6 +1472,10 @@ export class ScheduleService extends BaseService {
 
       if (cancelledSchedules.length > 0) {
         await this.em.flush();
+
+        console.log(
+          `Cancelled ${cancelledSchedules.length} schedules due to cutoff criteria.`
+        );
 
         // Enviar notificaciones
         for (const schedule of cancelledSchedules) {

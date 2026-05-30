@@ -195,6 +195,11 @@ export type ChangeScheduleStatusProp = {
   scheduleId: string;
 };
 
+export type PlanFilterInput = {
+  id: string;
+  condition: 'with' | 'without';
+};
+
 export type UserListProps = {
   query: string;
   roleFilter?: UserRoleEnum[] | null;
@@ -207,6 +212,7 @@ export type UserListProps = {
     | null;
   page: number;
   filterMe?: boolean;
+  planFilter?: PlanFilterInput | null;
 };
 
 export type GetPollProps = { pollId: string; filter: { since: string } };

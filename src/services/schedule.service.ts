@@ -1425,6 +1425,12 @@ export class ScheduleService extends BaseService {
       const cancelledSchedules: Schedule[] = [];
 
       for (const schedule of schedules) {
+        console.log(
+          `Evaluating schedule ${schedule.id} - ${schedule.title} at ${schedule.startDate}`
+        );
+      }
+
+      for (const schedule of schedules) {
         const options = schedule.company?.scheduleOptions;
         if (!options) continue;
 

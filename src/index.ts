@@ -13,6 +13,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import { useServer } from 'graphql-ws/use/ws';
 import jwt from 'jsonwebtoken';
+import moment from 'moment-timezone';
 import { WebSocketServer } from 'ws';
 
 import { Company } from './entities/Company';
@@ -30,6 +31,8 @@ import { deleteAccountHtml, renderPage } from './utils/templates.util';
 import { stripeWebhookRouter } from './webhooks/stripe.webhook';
 
 dotenv.config();
+
+moment.tz.setDefault('Europe/Madrid');
 
 export interface MyContext {
   em: EntityManager;

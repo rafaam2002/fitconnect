@@ -266,4 +266,9 @@ input RefundTransactionInput {
     reason: String
     metadata: JSON
 }
+
+input PlanFilterInput {
+    id: ID!
+    condition: PlanFilterConditionEnum!
+}
 `;

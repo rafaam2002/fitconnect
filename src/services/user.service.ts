@@ -2,12 +2,12 @@ import { EntityManager, FilterQuery } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 
 import { Company } from '../entities/Company';
-import { SubscriptionStatus } from '../entities/Subscription';
+import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
-import { UpdateUserProps } from '../types/resolvers';
+import { UpdateUserProps, PlanFilterInput } from '../types/resolvers';
 import {
   BadRequestError,
   createServiceResponse,
@@ -55,7 +55,8 @@ export class UserService extends BaseService {
     roleFilter?: string[],
     stateFilter?: string,
     page: number = 0,
-    filterMe: boolean = true
+    filterMe: boolean = true,
+    planFilter?: PlanFilterInput
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -66,11 +67,12 @@ export class UserService extends BaseService {
       offset: page * 50,
     };
 
-    const where = this.buildUserFilter(
+    const where = await this.buildUserFilter(
       query,
       roleFilter,
       stateFilter,
-      currentUser
+      currentUser,
+      planFilter
     );
     const userRepo = this.em.getRepository(User);
 
@@ -665,12 +667,13 @@ export class UserService extends BaseService {
     }
   }
 
-  private buildUserFilter(
+  private async buildUserFilter(
     query?: string,
     roleFilter?: string[],
     stateFilter?: string,
-    currentUser?: CurrentUser
-  ): FilterQuery<User> {
+    currentUser?: CurrentUser,
+    planFilter?: PlanFilterInput
+  ): Promise<FilterQuery<User>> {
     const where: FilterQuery<User> = {};
 
     if (query) {
@@ -708,6 +711,31 @@ export class UserService extends BaseService {
             where.pendingCompanies = { id: currentUser.activeCompanyId };
           }
           break;
+      }
+    }
+
+    if (planFilter) {
+      if (planFilter.condition === 'with') {
+        where.subscriptions = {
+          plan: planFilter.id,
+          status: {
+            $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+        };
+      } else {
+        const activeSubUsers = await this.em.getRepository(Subscription).find(
+          {
+            plan: planFilter.id,
+            status: {
+              $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+            },
+          },
+          { fields: ['user.id'] }
+        );
+        const activeUserIds = activeSubUsers.map(sub => sub.user.id);
+        if (activeUserIds.length > 0) {
+          where.id = { $nin: activeUserIds };
+        }
       }
     }
 

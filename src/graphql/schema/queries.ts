@@ -5,7 +5,7 @@ type Query {
     loginWithId(id: ID!): LoginResponse!
 
     # ----------------- User -----------------
-    getUsers(query: String, page: Int, roleFilter: [UserRoleEnum], stateFilter: String, filterMe: Boolean): UserResponse!
+    getUsers(query: String, page: Int, roleFilter: [UserRoleEnum], stateFilter: String, filterMe: Boolean, planFilter: PlanFilterInput): UserResponse!
     me: MeResponse,
     findUser(id: ID!): UserResponse!
     #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)

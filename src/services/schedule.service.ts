@@ -1425,25 +1425,12 @@ export class ScheduleService extends BaseService {
       const cancelledSchedules: Schedule[] = [];
 
       for (const schedule of schedules) {
-        console.log(
-          `Evaluating schedule ${schedule.id} - ${schedule.title} at ${schedule.startDate}`
-        );
-      }
-
-      for (const schedule of schedules) {
         const options = schedule.company?.scheduleOptions;
         if (!options) continue;
 
         const cutoffMinutes = options.bookingCutoffMinutes || 0;
-        console.log(
-          '🚀 ~ ScheduleService ~ cutOffSchedules ~ cutoffMinutes:',
-          cutoffMinutes
-        );
+
         const minBookings = options.minBookingsRequired || 0;
-        console.log(
-          '🚀 ~ ScheduleService ~ cutOffSchedules ~ minBookings:',
-          minBookings
-        );
 
         // Si no hay requisitos de reserva o el tiempo de corte es 0 (deshabilitado), saltamos
         if (minBookings <= 0 || cutoffMinutes <= 0) {
@@ -1529,6 +1516,7 @@ export class ScheduleService extends BaseService {
       };
 
       schedule.users.getItems().forEach(user => {
+        console.log('pushTokens for user', user.id, user.pushTokens.getItems());
         if (user.pushTokens && user.pushTokens.length > 0) {
           user.pushTokens.getItems().forEach(pushToken => {
             sendPushNotification(pushToken.token, title, body, data);

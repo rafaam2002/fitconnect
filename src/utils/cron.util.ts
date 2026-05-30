@@ -82,17 +82,17 @@ export const cronFunctions = async (
   cron.schedule(
     '*/30 * * * *', // Every 30 minutes
     async () => {
-      console.log('🚀 Iniciando tarea de recordatorios de horarios...');
+      console.log('🚀 Iniciando tarea de eliminacion de horarios vacios...');
       try {
         const scheduleService = new ScheduleService(em.fork());
         await scheduleService.cutOffSchedules();
       } catch (error) {
         console.error(
-          'Error al ejecutar la tarea de recordatorios de horarios:',
+          'Error al ejecutar la tarea de eliminacion de horarios vacios:',
           error
         );
       }
-      console.log('✅ Tarea de recordatorios de horarios completada.');
+      console.log('✅ Tarea de eliminacion de horarios vacios completada.');
     },
     {
       timezone: 'Europe/Madrid',

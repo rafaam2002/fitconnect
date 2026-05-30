@@ -107,4 +107,9 @@ enum TransactionType {
     payment
     subscription
 }
+
+enum PlanFilterConditionEnum {
+    with
+    without
+}
 `;

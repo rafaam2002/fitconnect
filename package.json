@@ -8,8 +8,6 @@
     "start": "node dist/index.js",
     "dev": "nodemon --watch dist --watch .env dist/index.js",
     "reconcile": "tsx src/scripts/reconcile.ts",
-    "cutoff-schedules": "tsx src/scripts/cutoff-schedules.ts",
-    "send-test-push": "tsx src/scripts/send-test-push.ts",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "format": "prettier --write \"src/**/*.{js,ts}\"",

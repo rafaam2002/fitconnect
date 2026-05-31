@@ -242,7 +242,10 @@ export class MessageService extends BaseService {
         [currentUser.id, currentUser.id, currentUser.id]
       );
 
-    const otherUserIds = rawUserIds.map(row => row.otheruser);
+    // Filter out null / undefined values from otherUserIds, as the forum is queried separately
+    const otherUserIds = rawUserIds
+      .map(row => row.otheruser)
+      .filter(id => id !== null && id !== undefined);
 
     const conversationPromises = otherUserIds.map(otherId => {
       return messageRepo.find(
@@ -250,7 +253,6 @@ export class MessageService extends BaseService {
           $or: [
             { sender: currentUser.id, receiver: otherId },
             { sender: otherId, receiver: currentUser.id },
-            { isForumMessage: true },
           ],
         },
         {
@@ -262,10 +264,26 @@ export class MessageService extends BaseService {
       );
     });
 
-    const conversationsGrouped = await Promise.all(conversationPromises);
+    // Always query the forum messages as a separate conversation
+    const forumPromise = messageRepo.find(
+      { isForumMessage: true },
+      {
+        orderBy: { created_at: 'DESC' },
+        populate: ['sender', 'receiver'],
+        limit,
+        fields,
+      }
+    );
 
-    conversationsGrouped.sort((a, b) => {
-      if (!a.length || !b.length) return b.length - a.length;
+    const conversationsGrouped = await Promise.all([
+      forumPromise,
+      ...conversationPromises,
+    ]);
+
+    // Filter out empty conversations (e.g. if the forum has no messages yet)
+    const activeConversations = conversationsGrouped.filter(c => c.length > 0);
+
+    activeConversations.sort((a, b) => {
       return (
         new Date(b[0].created_at).getTime() -
         new Date(a[0].created_at).getTime()
@@ -273,7 +291,7 @@ export class MessageService extends BaseService {
     });
 
     return createServiceResponse(200, 'Conversations found', true, {
-      conversations: conversationsGrouped,
+      conversations: activeConversations,
     });
   }
 

@@ -48,6 +48,19 @@ type SchedulesStatsResponse implements BasicResponse {
     stats: [[SchedulesStats]]!
 } 
 
+type SubscriptionsStats {
+    planId: String!
+    planName: String!
+    count: Int!
+}
+
+type SubscriptionsStatsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    stats: [SubscriptionsStats]!
+}
+
 type ArticleResponse implements BasicResponse {
     code: String!
     success: Boolean!

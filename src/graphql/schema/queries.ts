@@ -73,6 +73,7 @@ type Query {
     getSubscription(subscriptionId: ID!): SubscriptionResponse!
     listUserSubscriptions(userId: ID!): SubscriptionResponse!
     getActiveSubscription(userId: ID!): SubscriptionResponse!
+    getSubscriptionsStats: SubscriptionsStatsResponse!
     
     #--------------Transactions---------
     getTransaction(transactionId: ID!): TransactionResponse!

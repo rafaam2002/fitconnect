@@ -1464,8 +1464,12 @@ export class ScheduleService extends BaseService {
           `Cancelled ${cancelledSchedules.length} schedules due to cutoff criteria.`
         );
 
+        const cancelledSchedulesWithUsers = schedules.filter(s =>
+          cancelledSchedules.includes(s)
+        );
+
         // Enviar notificaciones
-        for (const schedule of cancelledSchedules) {
+        for (const schedule of cancelledSchedulesWithUsers) {
           await this.sendScheduleCancellationNotifications(schedule);
         }
       }
@@ -1516,7 +1520,6 @@ export class ScheduleService extends BaseService {
       };
 
       schedule.users.getItems().forEach(user => {
-        console.log('pushTokens for user', user.id, user.pushTokens.getItems());
         if (user.pushTokens && user.pushTokens.length > 0) {
           user.pushTokens.getItems().forEach(pushToken => {
             sendPushNotification(pushToken.token, title, body, data);

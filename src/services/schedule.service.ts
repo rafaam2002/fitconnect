@@ -445,42 +445,10 @@ export class ScheduleService extends BaseService {
     try {
       const ScheduleRepo = this.em.getRepository(Schedule);
 
-      // Mes actual
+      // Rangos de fechas
       const startOfMonth = moment().month(month).startOf('month').toDate();
       const endOfMonth = moment().month(month).endOf('month').toDate();
 
-      const schedulesFirstMonth = await ScheduleRepo.find(
-        {
-          startDate: { $gte: startOfMonth, $lte: endOfMonth },
-        },
-        { fields: ['maxUsers', 'startDate', 'users'] }
-      );
-
-      const groupedSchedulesFirstMonth = schedulesFirstMonth.reduce(
-        (acc, schedule) => {
-          const dayAndTime = moment(schedule.startDate).format('ddd HH:mm');
-          if (!acc[dayAndTime]) {
-            acc[dayAndTime] = [];
-          }
-          acc[dayAndTime].push(schedule);
-          return acc;
-        },
-        {} as Record<string, typeof schedulesFirstMonth>
-      );
-
-      const schedulesSummaryFirstMonth = Object.entries(
-        groupedSchedulesFirstMonth
-      ).map(([dayAndTime, group]: [string, any]) => {
-        const totalRatio = group.reduce(
-          (sum: number, schedule: any) =>
-            sum + schedule.users.length / schedule.maxUsers,
-          0
-        );
-        const averageRatio = (totalRatio / group.length) * 100;
-        return { dayAndTime, ratio: averageRatio };
-      });
-
-      // Mes pasado
       const startPastMonth = moment()
         .month(month - 1)
         .startOf('month')
@@ -490,39 +458,53 @@ export class ScheduleService extends BaseService {
         .endOf('month')
         .toDate();
 
-      const schedulesPastMonth = await ScheduleRepo.find(
-        {
-          startDate: { $gte: startPastMonth, $lte: endPastMonth },
-        },
-        { fields: ['maxUsers', 'startDate', 'users'] }
-      );
+      // Consultas concurrentes en paralelo con selección optimizada de fields (solo users.id)
+      const [schedulesFirstMonth, schedulesPastMonth] = await Promise.all([
+        ScheduleRepo.find(
+          { startDate: { $gte: startOfMonth, $lte: endOfMonth } },
+          { fields: ['maxUsers', 'startDate', 'users.id'] }
+        ),
+        ScheduleRepo.find(
+          { startDate: { $gte: startPastMonth, $lte: endPastMonth } },
+          { fields: ['maxUsers', 'startDate', 'users.id'] }
+        ),
+      ]);
 
-      const groupedSchedulesPastMonth = schedulesPastMonth.reduce(
-        (acc, schedule) => {
+      // Helper para procesar las estadísticas de forma lineal O(N) sin duplicar lógica
+      const processStats = (schedules: typeof schedulesFirstMonth) => {
+        const grouped = new Map<
+          string,
+          { totalRatio: number; count: number }
+        >();
+
+        for (const schedule of schedules) {
           const dayAndTime = moment(schedule.startDate).format('ddd HH:mm');
-          if (!acc[dayAndTime]) {
-            acc[dayAndTime] = [];
-          }
-          acc[dayAndTime].push(schedule);
-          return acc;
-        },
-        {} as Record<string, typeof schedulesPastMonth>
-      );
+          const ratio = schedule.users.length / schedule.maxUsers;
 
-      const schedulesSummaryPastMonth = Object.entries(
-        groupedSchedulesPastMonth
-      ).map(([dayAndTime, group]: [string, any]) => {
-        const totalRatio = group.reduce(
-          (sum: number, schedule: any) =>
-            sum + schedule.users.length / schedule.maxUsers,
-          0
-        );
-        const averageRatio = (totalRatio / group.length) * 100;
-        return { dayAndTime, ratio: averageRatio };
-      });
+          const existing = grouped.get(dayAndTime);
+          if (existing) {
+            existing.totalRatio += ratio;
+            existing.count += 1;
+          } else {
+            grouped.set(dayAndTime, { totalRatio: ratio, count: 1 });
+          }
+        }
+
+        const summary = [];
+        for (const [dayAndTime, data] of grouped) {
+          summary.push({
+            dayAndTime,
+            ratio: (data.totalRatio / data.count) * 100,
+          });
+        }
+        return summary;
+      };
 
       return createServiceResponse(200, 'Schedules found', true, {
-        stats: [schedulesSummaryFirstMonth, schedulesSummaryPastMonth],
+        stats: [
+          processStats(schedulesFirstMonth),
+          processStats(schedulesPastMonth),
+        ],
       });
     } catch (error: any) {
       if (

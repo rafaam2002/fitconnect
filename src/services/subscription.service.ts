@@ -8,7 +8,11 @@ import { Plan } from '../entities/Plan';
 import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
-import { EmailConfig, ServiceResponse } from '../types/common.type';
+import {
+  CurrentUser,
+  EmailConfig,
+  ServiceResponse,
+} from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
@@ -16,6 +20,7 @@ import {
   createServiceResponse,
   InternalServerError,
   NotFoundError,
+  UnauthorizedError,
 } from '../utils/errors.util';
 import { sendSubscriptionExpiryWarning } from '../utils/templates.util';
 
@@ -830,6 +835,69 @@ export class SubscriptionService extends BaseService {
       quantity: item?.quantity || 1,
       metadata: stripeSub.metadata,
     };
+  }
+
+  /**
+   * Obtener estadísticas de suscripciones activas del mes calendario actual agrupadas por plan
+   */
+  public async getSubscriptionsStats(
+    currentUser: CurrentUser
+  ): Promise<ServiceResponse> {
+    if (!currentUser) {
+      throw new UnauthorizedError();
+    }
+
+    try {
+      const SubscriptionRepo = this.em.getRepository(Subscription);
+
+      // Rango de fechas para el mes calendario actual
+      const startOfMonth = moment().startOf('month').toDate();
+      const endOfMonth = moment().endOf('month').toDate();
+
+      // Consultar suscripciones activas creadas en el mes actual, seleccionando solo plan.id y plan.name
+      const subscriptions = await SubscriptionRepo.find(
+        {
+          status: SubscriptionStatus.ACTIVE,
+          created_at: { $gte: startOfMonth, $lte: endOfMonth },
+        },
+        { fields: ['plan.id', 'plan.name'] }
+      );
+
+      // Agrupar en un Map por plan para eficiencia O(N)
+      const grouped = new Map<string, { planName: string; count: number }>();
+
+      for (const sub of subscriptions) {
+        const plan = sub.plan;
+        if (!plan) continue;
+
+        const existing = grouped.get(plan.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          grouped.set(plan.id, { planName: plan.name, count: 1 });
+        }
+      }
+
+      const stats = Array.from(grouped.entries()).map(([planId, data]) => ({
+        planId,
+        planName: data.planName,
+        count: data.count,
+      }));
+
+      return createServiceResponse(
+        200,
+        'Subscription stats calculated successfully',
+        true,
+        {
+          stats,
+        }
+      );
+    } catch (error: any) {
+      if (error instanceof UnauthorizedError) {
+        throw error;
+      }
+      throw new InternalServerError('Error calculating subscription stats');
+    }
   }
 
   private async notifyUser(subscription: Subscription): Promise<void> {

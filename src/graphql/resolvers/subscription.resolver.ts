@@ -177,6 +177,21 @@ export const syncSubscriptionFromStripe = async (
   }
 };
 
+export const getSubscriptionsStats = async (
+  _: any,
+  __: any,
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+
+    const subscriptionService = new SubscriptionService(em);
+    return await subscriptionService.getSubscriptionsStats(currentUser);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 // ===== EXPORT RESOLVERS OBJECT =====
 
 export const subscriptionResolvers = {
@@ -190,6 +205,10 @@ export const subscriptionResolvers = {
       listUserSubscriptions
     ),
     getActiveSubscription,
+    getSubscriptionsStats: withPermissions(
+      subcriptionsPermissions.CREATE_UPDATE_DELETE,
+      getSubscriptionsStats
+    ),
   },
   Mutation: {
     createSubscription,

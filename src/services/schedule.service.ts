@@ -1399,6 +1399,8 @@ export class ScheduleService extends BaseService {
             'company',
             'company.scheduleOptions',
             'users.pushTokens',
+            'admin',
+            'admin.pushTokens',
           ],
           filters: false,
         }
@@ -1452,7 +1454,10 @@ export class ScheduleService extends BaseService {
 
         // Enviar notificaciones
         for (const schedule of cancelledSchedulesWithUsers) {
-          await this.sendScheduleCancellationNotifications(schedule);
+          await this.sendScheduleCancellationNotifications(
+            schedule,
+            'No se ha alcanzado el número mínimo de reservas.'
+          );
         }
       }
     } catch (error) {
@@ -1491,17 +1496,18 @@ export class ScheduleService extends BaseService {
    * Enviar notificaciones de cancelación de schedule
    */
   private async sendScheduleCancellationNotifications(
-    schedule: Schedule
+    schedule: Schedule,
+    description?: string
   ): Promise<void> {
     try {
       const title = 'Horario cancelado';
-      const body = `El horario "${schedule.title}" ha sido cancelado.`;
+      const body = `El horario "${schedule.title}" ha sido cancelado. ${description}`;
       const data = {
         type: 'schedule_cancelled',
         scheduleId: schedule.id,
       };
 
-      schedule.users.getItems().forEach(user => {
+      [...schedule.users.getItems(), schedule.admin].forEach(user => {
         if (user.pushTokens && user.pushTokens.length > 0) {
           user.pushTokens.getItems().forEach(pushToken => {
             sendPushNotification(pushToken.token, title, body, data);

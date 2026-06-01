@@ -2,6 +2,7 @@ import { SubscriptionService } from '../../services/subscription.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
 import {
+  plansPermissions,
   subcriptionsPermissions,
   usersPermissions,
 } from '../../utils/permissions';
@@ -206,7 +207,7 @@ export const subscriptionResolvers = {
     ),
     getActiveSubscription,
     getSubscriptionsStats: withPermissions(
-      subcriptionsPermissions.CREATE_UPDATE_DELETE,
+      plansPermissions.CREATE_UPDATE_DELETE,
       getSubscriptionsStats
     ),
   },

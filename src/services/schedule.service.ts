@@ -1024,6 +1024,14 @@ export class ScheduleService extends BaseService {
       id: { $ne: null },
     });
 
+    const availableUserSchedules = user.schedules
+      .getItems()
+      .filter(s => s.state === ScheduleState.AVAILABLE);
+
+    const availableUserWaitListSchedules = user.waitListSchedules
+      .getItems()
+      .filter(s => s.state === ScheduleState.AVAILABLE);
+
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
@@ -1036,27 +1044,25 @@ export class ScheduleService extends BaseService {
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
+
     const isMaxUserBookingsReached =
-      user.schedules.length + user.waitListSchedules.length >=
+      availableUserSchedules.length + availableUserWaitListSchedules.length >=
       (scheduleOptions?.maxActiveReservations || Infinity);
+
     const isMaxUserBookingsTodayReached =
       !scheduleOptions?.sameDayBookingAllowed &&
-      (user.schedules
-        .getItems()
-        .some(s =>
+      (availableUserSchedules.some(s =>
+        moment(Number(s.startDate)).isSame(
+          moment(Number(schedule.startDate)),
+          'day'
+        )
+      ) ||
+        availableUserWaitListSchedules.some(s =>
           moment(Number(s.startDate)).isSame(
             moment(Number(schedule.startDate)),
             'day'
           )
-        ) ||
-        user.waitListSchedules
-          .getItems()
-          .some(s =>
-            moment(Number(s.startDate)).isSame(
-              moment(Number(schedule.startDate)),
-              'day'
-            )
-          ));
+        ));
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')

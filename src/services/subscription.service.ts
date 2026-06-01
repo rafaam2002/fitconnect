@@ -851,14 +851,14 @@ export class SubscriptionService extends BaseService {
       const SubscriptionRepo = this.em.getRepository(Subscription);
 
       // Rango de fechas para el mes calendario actual
-      const startOfMonth = moment().startOf('month').toDate();
-      const endOfMonth = moment().endOf('month').toDate();
+      // const startOfMonth = moment().startOf('month').toDate();
+      // const endOfMonth = moment().endOf('month').toDate();
 
       // Consultar suscripciones activas creadas en el mes actual, seleccionando solo plan.id y plan.name
       const subscriptions = await SubscriptionRepo.find(
         {
           status: SubscriptionStatus.ACTIVE,
-          created_at: { $gte: startOfMonth, $lte: endOfMonth },
+          // created_at: { $gte: startOfMonth, $lte: endOfMonth },
         },
         { fields: ['plan.id', 'plan.name'] }
       );

@@ -1024,6 +1024,14 @@ export class ScheduleService extends BaseService {
       id: { $ne: null },
     });
 
+    const availableUserSchedules = user.schedules
+      .getItems()
+      .filter(s => s.state === ScheduleState.AVAILABLE);
+
+    const availableUserWaitListSchedules = user.waitListSchedules
+      .getItems()
+      .filter(s => s.state === ScheduleState.AVAILABLE);
+
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
@@ -1036,27 +1044,25 @@ export class ScheduleService extends BaseService {
     const isUserCoachOfEvent =
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
+
     const isMaxUserBookingsReached =
-      user.schedules.length + user.waitListSchedules.length >=
+      availableUserSchedules.length + availableUserWaitListSchedules.length >=
       (scheduleOptions?.maxActiveReservations || Infinity);
+
     const isMaxUserBookingsTodayReached =
       !scheduleOptions?.sameDayBookingAllowed &&
-      (user.schedules
-        .getItems()
-        .some(s =>
+      (availableUserSchedules.some(s =>
+        moment(Number(s.startDate)).isSame(
+          moment(Number(schedule.startDate)),
+          'day'
+        )
+      ) ||
+        availableUserWaitListSchedules.some(s =>
           moment(Number(s.startDate)).isSame(
             moment(Number(schedule.startDate)),
             'day'
           )
-        ) ||
-        user.waitListSchedules
-          .getItems()
-          .some(s =>
-            moment(Number(s.startDate)).isSame(
-              moment(Number(schedule.startDate)),
-              'day'
-            )
-          ));
+        ));
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')
@@ -1399,6 +1405,8 @@ export class ScheduleService extends BaseService {
             'company',
             'company.scheduleOptions',
             'users.pushTokens',
+            'admin',
+            'admin.pushTokens',
           ],
           filters: false,
         }
@@ -1452,7 +1460,10 @@ export class ScheduleService extends BaseService {
 
         // Enviar notificaciones
         for (const schedule of cancelledSchedulesWithUsers) {
-          await this.sendScheduleCancellationNotifications(schedule);
+          await this.sendScheduleCancellationNotifications(
+            schedule,
+            'No se ha alcanzado el número mínimo de reservas.'
+          );
         }
       }
     } catch (error) {
@@ -1491,17 +1502,18 @@ export class ScheduleService extends BaseService {
    * Enviar notificaciones de cancelación de schedule
    */
   private async sendScheduleCancellationNotifications(
-    schedule: Schedule
+    schedule: Schedule,
+    description?: string
   ): Promise<void> {
     try {
       const title = 'Horario cancelado';
-      const body = `El horario "${schedule.title}" ha sido cancelado.`;
+      const body = `El horario "${schedule.title}" ha sido cancelado. ${description}`;
       const data = {
         type: 'schedule_cancelled',
         scheduleId: schedule.id,
       };
 
-      schedule.users.getItems().forEach(user => {
+      [...schedule.users.getItems(), schedule.admin].forEach(user => {
         if (user.pushTokens && user.pushTokens.length > 0) {
           user.pushTokens.getItems().forEach(pushToken => {
             sendPushNotification(pushToken.token, title, body, data);

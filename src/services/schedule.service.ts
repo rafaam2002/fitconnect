@@ -81,7 +81,7 @@ export class ScheduleService extends BaseService {
     if (scheduleId) {
       const schedule = await scheduleRepo.findOne(
         { id: scheduleId },
-        { populate: ['admin', 'users'] }
+        { populate: ['admin', 'users', 'waitListUsers'] }
       );
 
       if (!schedule) {
@@ -101,7 +101,7 @@ export class ScheduleService extends BaseService {
 
       const schedules = await scheduleRepo.find(
         { id: { $in: schedulesIds } },
-        { populate: ['admin', 'users'] }
+        { populate: ['admin', 'users', 'waitListUsers'] }
       );
 
       if (!schedules || schedules.length === 0) {
@@ -113,7 +113,7 @@ export class ScheduleService extends BaseService {
 
     // Todos los schedules
     const schedules = await scheduleRepo.findAll({
-      populate: ['admin', 'users'],
+      populate: ['admin', 'users', 'waitListUsers'],
     });
 
     return createServiceResponse(200, 'Schedules found', true, { schedules });

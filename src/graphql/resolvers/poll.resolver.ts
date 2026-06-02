@@ -126,11 +126,8 @@ export const pollResolvers = {
   },
   Mutation: {
     createPoll: withPermissions(pollsPermissions.CREATE, createPoll),
-    createOrChangePollVote: withPermissions(
-      pollsPermissions.UPDATE,
-      createOrChangePollVote
-    ),
-    deletePollVote: withPermissions(pollsPermissions.UPDATE, deletePollVote),
+    createOrChangePollVote,
+    deletePollVote,
     removePolls: withPermissions(pollsPermissions.DELETE, removePolls),
   },
 };

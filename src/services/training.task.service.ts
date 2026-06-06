@@ -24,6 +24,7 @@ export class TrainingTaskService {
   public async getTrainingTasks(
     userId: string,
     dateRange: [string, string],
+    onlyGlobal: boolean = false,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) {
@@ -34,9 +35,11 @@ export class TrainingTaskService {
       TrainingTask,
       {
         $and: [
-          {
-            $or: [{ user: userId }, { user: null }],
-          },
+          onlyGlobal
+            ? { user: null }
+            : {
+                $or: [{ user: userId }, { user: null }],
+              },
           {
             $or: [
               { date: { $gte: dateRange[0], $lte: dateRange[1] } },

@@ -134,12 +134,13 @@ const getTrainingTasks = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { userId, dateRange } = args;
+    const { userId, dateRange, onlyGlobal } = args;
 
     const trainingTaskService = new TrainingTaskService(em);
     return await trainingTaskService.getTrainingTasks(
       userId!,
       dateRange,
+      onlyGlobal,
       currentUser
     );
   } catch (error) {

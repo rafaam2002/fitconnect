@@ -2,10 +2,8 @@ import { EntityManager } from '@mikro-orm/core';
 
 import { TrainingTask } from '../entities/TraningITask';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
-import { UserRoleEnum } from '../types/enums';
 import {
   createServiceResponse,
-  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
@@ -66,10 +64,6 @@ export class TrainingTaskService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
-      throw new ForbiddenError();
-    }
-
     const newTrainingTask = this.em.create(TrainingTask, {
       content,
       user: userId!,
@@ -104,10 +98,6 @@ export class TrainingTaskService {
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
-    }
-
-    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
-      throw new ForbiddenError();
     }
 
     const trainingTaskRepo = this.em.getRepository(TrainingTask);

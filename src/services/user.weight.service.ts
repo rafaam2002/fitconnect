@@ -30,10 +30,6 @@ export class UserWeightService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
-      throw new ForbiddenError();
-    }
-
     const user = await this.em.findOne(
       User,
       { id: userId },
@@ -57,10 +53,6 @@ export class UserWeightService extends BaseService {
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
-    }
-
-    if (currentUser.contextRole === UserRoleEnum.STANDARD) {
-      throw new ForbiddenError();
     }
 
     const userWeight = this.em.create(UserWeight, {

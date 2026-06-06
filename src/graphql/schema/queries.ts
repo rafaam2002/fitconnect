@@ -48,7 +48,7 @@ type Query {
     getAdminStats: AdminStatsResponse!
 
     #---------------TrainingTask----------
-    getTrainingTasks(userId: String,dateRange: [String]! ): TrainingTaskResponse!
+    getTrainingTasks(userId: String,dateRange: [String]!, onlyGlobal: Boolean ): TrainingTaskResponse!
 
     #-------------------UserWeight--------
     getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!

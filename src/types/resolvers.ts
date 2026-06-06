@@ -270,6 +270,7 @@ export type CreateTrainingTaskProps = {
 export type GetTrainingTaskProps = {
   userId?: string | null;
   dateRange: [string, string];
+  onlyGlobal?: boolean;
 };
 
 export type RemoveTrainingTaskProps = {

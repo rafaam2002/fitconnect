@@ -16557,19 +16557,19 @@
         },
         "weight": {
           "name": "weight",
-          "type": "int4",
+          "type": "float4",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "unique": false,
           "length": null,
-          "precision": 32,
-          "scale": 0,
+          "precision": 24,
+          "scale": null,
           "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "integer"
+          "mappedType": "float"
         },
         "date": {
           "name": "date",

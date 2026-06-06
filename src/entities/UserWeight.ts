@@ -11,7 +11,7 @@ import { User } from './User';
   default: true,
 })
 export class UserWeight extends BaseEntity {
-  @Property()
+  @Property({ type: t.float })
   weight!: number;
 
   @Property({ type: t.string })

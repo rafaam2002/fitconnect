@@ -46,10 +46,13 @@ export class ArticleService extends BaseService {
 
     // Obtener URL de la API desde variables de entorno
     this.apiBaseUrl =
-      process.env.ARTICLES_API_URL || 'https://api.example.com/articles';
+      process.env.ARTICLE_API_SECRET || 'https://api.example.com/articles';
 
-    if (!process.env.ARTICLES_API_URL) {
-      console.warn('ARTICLES_API_URL not set, using default:', this.apiBaseUrl);
+    if (!process.env.ARTICLE_API_SECRET) {
+      console.warn(
+        'ARTICLE_API_SECRET not set, using default:',
+        this.apiBaseUrl
+      );
     }
   }
 

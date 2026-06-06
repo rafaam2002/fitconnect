@@ -9,38 +9,40 @@ export const storeNews = async (
   pages: number[]
 ) => {
   const articleRepo = em.getRepository(Article);
-  const existingArticles = await articleRepo.findAll({ filters: false });
-  if (existingArticles.length === 0) {
-    try {
-      // Realizar todas las peticiones en paralelo
-      const responses = await axios.all(
-        pages.map(page => fetchBoxingNews(limit, page))
-      );
 
-      // Obtener el repositorio de artículos
+  try {
+    // Realizar todas las peticiones en paralelo
+    const responses = await axios.all(
+      pages.map(page => fetchBoxingNews(limit, page))
+    );
 
-      // Procesar cada respuesta y almacenar las noticias en la base de datos
-      for (const response of responses) {
-        if (response?.data) {
-          for (const newsItem of response.data) {
-            // console.log(newsItem)
-            const article = articleRepo.create({
-              id: newsItem.uuid,
-              title: newsItem.title,
-              description: newsItem.description,
-              publishedAt: newsItem.published_at,
-              link: newsItem.url,
-              image: newsItem.image_url,
-            });
+    // Obtener el repositorio de artículos
+
+    // Procesar cada respuesta y almacenar las noticias en la base de datos
+    for (const response of responses) {
+      if (response?.data) {
+        for (const newsItem of response.data) {
+          // console.log(newsItem)
+          const article = articleRepo.create({
+            id: newsItem.uuid,
+            title: newsItem.title,
+            description: newsItem.description,
+            publishedAt: newsItem.published_at,
+            link: newsItem.url,
+            image: newsItem.image_url,
+          });
+          try {
             em.persist(article);
             await em.flush();
+          } catch (error) {
+            console.error('Error al crear el artículo:', error);
           }
         }
       }
-      console.log('Noticias guardadas correctamente.');
-    } catch (error) {
-      console.error('Error al almacenar las noticias:', error);
     }
+    console.log('Noticias guardadas correctamente.');
+  } catch (error) {
+    console.error('Error al almacenar las noticias:', error);
   }
 };
 const fetchBoxingNews = async (limit: number, page: number) => {
@@ -49,7 +51,7 @@ const fetchBoxingNews = async (limit: number, page: number) => {
       params: {
         api_token: process.env.ARTICLE_API_SECRET,
         categories: 'sports',
-        sort: 'published_at_desc',
+        sort: 'published_at',
         language: 'es',
         search: 'boxeo',
         limit,

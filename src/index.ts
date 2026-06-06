@@ -20,7 +20,6 @@ import { Company } from './entities/Company';
 import { User } from './entities/User';
 import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
-import { storeNews } from './helpers/articles';
 import { middleware } from './middlewares';
 import { AuthService } from './services/auth.service';
 import { CurrentUser } from './types/common.type';
@@ -334,8 +333,6 @@ const startServer = async () => {
   });
 
   cronFunctions(createRetryingEntityManager(orm));
-
-  storeNews(createRetryingEntityManager(orm), 3, [1, 2, 3, 4]); //limt = 3 free plan
 };
 
 startServer();

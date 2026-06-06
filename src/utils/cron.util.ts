@@ -21,7 +21,6 @@ export const cronFunctions = async (
       try {
         await Promise.all([
           storeNews(em, 3, [1, 2, 3, 4]),
-          // scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed(), //se ejecuta en domingo
           updatePictureUrls(em),
           setNotActiveUsers(em),
         ]);

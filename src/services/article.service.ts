@@ -114,6 +114,7 @@ export class ArticleService extends BaseService {
       {
         limit,
         offset,
+        orderBy: { publishedAt: 'desc' },
         filters: false,
       }
     );

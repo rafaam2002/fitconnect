@@ -145,7 +145,9 @@ export const createScheduleInXWeeks = async (
   em: EntityManager
 ): Promise<void> => {
   if (!scheduleProgrammed.admin) {
-    console.log('scheduleProgrammed sin admin...');
+    console.warn(
+      `[createScheduleInXWeeks] scheduleProgrammed sin admin (ID: ${scheduleProgrammed.id}, Title: "${scheduleProgrammed.title}")`
+    );
     return;
   }
 

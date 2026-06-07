@@ -144,6 +144,11 @@ export const createScheduleInXWeeks = async (
   scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
 ): Promise<void> => {
+  if (!scheduleProgrammed.admin) {
+    console.log('scheduleProgrammed sin admin...');
+    return;
+  }
+
   const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
   const startDate = now.clone().add(daysToAdd, 'days');
   const endDate = now.clone().add(daysToAdd, 'days');
@@ -169,12 +174,25 @@ export const createScheduleInXWeeks = async (
     millisecond: 0,
   });
 
+  const existingSchedule = await em.findOne(
+    Schedule,
+    {
+      startDate: startDate.toDate(),
+      scheduleProgrammed,
+    },
+    { filters: false }
+  );
+
+  if (existingSchedule) {
+    return;
+  }
+
   const newSchedule = em.create<Schedule>(Schedule, {
     startDate: startDate.toDate(),
     endDate: endDate.toDate(),
     maxUsers: scheduleProgrammed.maxUsers,
     state: ScheduleState.AVAILABLE,
-    admin: scheduleProgrammed.admin!,
+    admin: scheduleProgrammed.admin,
     title: scheduleProgrammed.title,
     description: scheduleProgrammed.description,
     type: scheduleProgrammed.type,

@@ -22,6 +22,9 @@ export const updatePictureUrls = async (em: EntityManager): Promise<void> => {
     // Actualizar URLs de productos
     await updateProductPictureUrls(em);
 
+    // Actualizar URLs de empresas (logos y fotos)
+    await updateCompanyUrls(em);
+
     console.log('✅ Picture URLs updated successfully');
   } catch (error) {
     console.error('❌ Error updating picture URLs:', error);
@@ -104,6 +107,59 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
   await em.flush();
 
   console.log(`✅ Updated ${allPictures.length} product picture URLs`);
+};
+
+/**
+ * Actualizar URLs de imágenes de empresas (logos y fotos)
+ */
+export const updateCompanyUrls = async (em: EntityManager): Promise<void> => {
+  const companyRepo = em.getRepository(Company);
+
+  const companies = await companyRepo.find(
+    {
+      $or: [{ logo: { $ne: null } }, { pictures: { $ne: null } }],
+    },
+    {
+      filters: false,
+      populate: ['logo', 'pictures'],
+    }
+  );
+
+  if (companies.length === 0) {
+    console.log('No companies with pictures/logos to update');
+    return;
+  }
+
+  // Coleccionar todas las PictureUrl a actualizar
+  const picturesToUpdate: PictureUrl[] = [];
+
+  for (const company of companies) {
+    if (company.logo) {
+      picturesToUpdate.push(company.logo);
+    }
+    if (company.pictures) {
+      picturesToUpdate.push(...company.pictures.getItems());
+    }
+  }
+
+  if (picturesToUpdate.length === 0) {
+    console.log('No company pictures or logos to update');
+    return;
+  }
+
+  // Generar presigned URLs en paralelo
+  const urlPromises = picturesToUpdate.map(async picture => {
+    picture.url = await getPresignedUrl(picture.name);
+  });
+
+  await Promise.all(urlPromises);
+
+  // Flush una sola vez al final
+  await em.flush();
+
+  console.log(
+    `✅ Updated ${picturesToUpdate.length} company picture/logo URLs`
+  );
 };
 
 /**

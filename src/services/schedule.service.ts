@@ -1340,7 +1340,10 @@ export class ScheduleService extends BaseService {
     maxActiveReservations: number,
     maxAdvanceBookingDays: number,
     sameDayBookingAllowed: boolean,
-    fullOpenHours: number
+    fullOpenHours: number,
+    bookingCutoffMinutes: number,
+    minBookingsRequired: number,
+    quotaWarningThresholds: number[]
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -1365,6 +1368,9 @@ export class ScheduleService extends BaseService {
       scheduleOptions.maxAdvanceBookingDays = maxAdvanceBookingDays;
       scheduleOptions.sameDayBookingAllowed = sameDayBookingAllowed;
       scheduleOptions.fullOpenHours = fullOpenHours;
+      scheduleOptions.bookingCutoffMinutes = bookingCutoffMinutes;
+      scheduleOptions.minBookingsRequired = minBookingsRequired;
+      scheduleOptions.quotaWarningThresholds = quotaWarningThresholds;
 
       this.em.persist(scheduleOptions);
       await this.em.flush();
@@ -1468,6 +1474,81 @@ export class ScheduleService extends BaseService {
       }
     } catch (error) {
       console.error('Error in cutOffSchedules:', error);
+    }
+  }
+
+  public async checkQuotaThresholds(): Promise<void> {
+    try {
+      const now = moment().toDate();
+      const scheduleRepo = this.em.getRepository(Schedule);
+      const schedules = await scheduleRepo.find(
+        {
+          state: ScheduleState.AVAILABLE,
+          startDate: { $gte: now },
+        },
+        {
+          populate: [
+            'users',
+            'company',
+            'company.scheduleOptions',
+            'admin',
+            'admin.pushTokens',
+          ],
+          filters: false,
+        }
+      );
+
+      for (const schedule of schedules) {
+        const options = schedule.company?.scheduleOptions;
+        if (!options) continue;
+
+        const thresholds = options.quotaWarningThresholds || [];
+        if (thresholds.length === 0 || schedule.maxUsers <= 0) continue;
+
+        const currentOcupancy =
+          (schedule.users.length / schedule.maxUsers) * 100;
+        const notified = schedule.notifiedQuotaThresholds || [];
+        const newNotified: number[] = [...notified];
+        let hasNewNotification = false;
+
+        for (const threshold of thresholds) {
+          if (currentOcupancy >= threshold && !notified.includes(threshold)) {
+            const title = 'Alerta de Ocupación';
+            const body = `El horario "${schedule.title}" ha alcanzado el ${threshold}% de ocupación (${schedule.users.length}/${schedule.maxUsers}).`;
+
+            const admin = schedule.admin;
+            if (admin) {
+              await admin.pushTokens.init();
+              for (const pushToken of admin.pushTokens) {
+                try {
+                  await sendPushNotification(pushToken.token, title, body, {
+                    scheduleId: schedule.id,
+                    threshold,
+                    type: 'QUOTA_WARNING',
+                  });
+                } catch (err) {
+                  console.error(
+                    `Error sending push notification to admin:`,
+                    err
+                  );
+                }
+              }
+            }
+
+            newNotified.push(threshold);
+            hasNewNotification = true;
+          }
+        }
+
+        if (hasNewNotification) {
+          schedule.notifiedQuotaThresholds = newNotified;
+          this.em.persist(schedule);
+        }
+      }
+
+      await this.em.flush();
+    } catch (error) {
+      console.error('Error in checkQuotaThresholds:', error);
     }
   }
 

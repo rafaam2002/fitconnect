@@ -409,6 +409,9 @@ const updateScheduleOptions = async (
       maxAdvanceBookingDays,
       sameDayBookingAllowed,
       fullOpenHours,
+      bookingCutoffMinutes,
+      minBookingsRequired,
+      quotaWarningThresholds,
     } = scheduleOptions;
 
     const scheduleService = new ScheduleService(em);
@@ -417,7 +420,10 @@ const updateScheduleOptions = async (
       maxActiveReservations,
       maxAdvanceBookingDays,
       sameDayBookingAllowed,
-      fullOpenHours
+      fullOpenHours,
+      bookingCutoffMinutes,
+      minBookingsRequired,
+      quotaWarningThresholds
     );
   } catch (error: any) {
     return handleError(error);

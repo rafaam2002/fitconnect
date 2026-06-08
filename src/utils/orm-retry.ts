@@ -32,7 +32,9 @@ function wrapWithProxy(
   // This prevents errors like "No arguments provided for filter..." on nested queries or relations.
   if (disableTenantFilter && typeof (em as any).addFilter === 'function') {
     try {
-      (em as any).addFilter('companyContext', {}, undefined, false);
+      // Overwrite the filter globally with a dummy condition active by default.
+      // This overrides and bypasses the entity-level filters of the same name.
+      (em as any).addFilter('companyContext', {}, undefined, true);
     } catch (e) {
       console.warn('Could not disable companyContext via addFilter:', e);
     }
@@ -80,6 +82,7 @@ function wrapWithProxy(
             'nativeDelete',
             'findAndCount',
             'findByCursor',
+            'populate',
           ].includes(propKey as string);
           const isIndex3 = ['nativeUpdate'].includes(propKey as string);
 

@@ -1,6 +1,7 @@
 import { EntityManager } from '@mikro-orm/core';
 
 import { PushToken } from '../entities/PushToken';
+import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
   createServiceResponse,
@@ -41,6 +42,9 @@ export class PushTokenService extends BaseService {
       );
 
       if (existing) {
+        if (existing.user.id !== currentUser.id) {
+          existing.user = this.em.getReference(User, currentUser.id);
+        }
         await this.em.flush();
       } else {
         const newToken = this.em.create(PushToken, {

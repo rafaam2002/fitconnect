@@ -1,6 +1,6 @@
 import { MikroORM } from '@mikro-orm/core';
 
-import { StripeCustomer } from '../entities/StripeCustomer';
+import { Customer } from '../entities/Customer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import config from '../mikro-orm.config';
 import { CustomerService } from '../services/customer.service';
@@ -14,15 +14,15 @@ async function reconcileWithStripe() {
   const subscriptionService = new SubscriptionService(em);
 
   // Reconciliar customers
-  const customers = await em.find(StripeCustomer, { isActive: true });
+  const customers = await em.find(Customer, { isActive: true });
 
   for (const customer of customers) {
     try {
-      await customerService.syncCustomerFromStripe(customer.stripeCustomerId);
-      console.log(`✅ Synced customer: ${customer.stripeCustomerId}`);
+      await customerService.syncCustomerFromStripe(customer.customerId);
+      console.log(`✅ Synced customer: ${customer.customerId}`);
     } catch (error: any) {
       console.error(
-        `❌ Failed to sync customer ${customer.stripeCustomerId}:`,
+        `❌ Failed to sync customer ${customer.customerId}:`,
         error.message
       );
     }

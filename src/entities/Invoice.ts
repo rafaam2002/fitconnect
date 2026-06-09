@@ -24,10 +24,6 @@ export enum InvoiceStatus {
 
 @Entity()
 export class Invoice extends BaseEntity {
-  @Property({ length: 100 })
-  @Index()
-  stripeInvoiceId!: string; // in_xxxxx
-
   @Property({ length: 50, nullable: true })
   invoiceNumber?: string;
 

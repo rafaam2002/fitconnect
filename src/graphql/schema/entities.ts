@@ -266,11 +266,11 @@ type Card {
     status: PaymentMethodStatus
 }
 
-type StripeCustomer {
+type Customer {
     id: ID!
     created_at: String!
     updated_at: String!
-    stripeCustomerId: String!
+    customerId: String!
     user: User
     isActive: Boolean
     defaultCurrency: Currency
@@ -278,7 +278,7 @@ type StripeCustomer {
 
 type PaymentMethod {
     id: ID!
-    stripeCustomer: StripeCustomer!
+    customer: Customer!
     type: PaymentMethodType
     status: PaymentMethodStatus
     brand: String

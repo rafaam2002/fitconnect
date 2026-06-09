@@ -25,13 +25,6 @@ export enum TransactionStatus {
 
 @Entity()
 export class Transaction extends BaseEntity {
-  @Property({ length: 100, nullable: true })
-  @Index()
-  stripeChargeId?: string; // ch_xxxxx
-
-  @Property({ length: 100, nullable: true })
-  stripePaymentIntentId?: string; // pi_xxxxx
-
   @ManyToOne(() => User)
   @Index()
   user!: User;

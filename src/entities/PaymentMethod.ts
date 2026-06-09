@@ -1,14 +1,7 @@
-import {
-  Entity,
-  Enum,
-  Index,
-  ManyToOne,
-  Property,
-  Unique,
-} from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, Property } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
-import { StripeCustomer } from './StripeCustomer';
+import { Customer } from './Customer';
 
 export enum PaymentMethodType {
   CARD = 'card',
@@ -24,14 +17,9 @@ export enum PaymentMethodStatus {
 
 @Entity()
 export class PaymentMethod extends BaseEntity {
-  @Property({ length: 100 })
+  @ManyToOne(() => Customer)
   @Index()
-  @Unique()
-  stripePaymentMethodId!: string;
-
-  @ManyToOne(() => StripeCustomer)
-  @Index()
-  stripeCustomer!: StripeCustomer;
+  customer!: Customer;
 
   @Enum(() => PaymentMethodType)
   type!: PaymentMethodType;
@@ -66,8 +54,8 @@ export class PaymentMethod extends BaseEntity {
   @Property({ type: 'boolean', default: false })
   isDefault: boolean = false;
 
-  @Property({ type: 'json', nullable: true })
-  metadata?: Record<string, unknown>;
+  @Property({ length: 200, nullable: true })
+  externalToken?: string;
 
   get displayName(): string {
     if (this.type === PaymentMethodType.CARD && this.brand && this.last4) {

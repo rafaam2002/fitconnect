@@ -73,20 +73,20 @@ type Mutation {
     refreshAccessToken(inputToken: String!): LoginResponse!
     
     #-----------------PaymentMethod------------
-    createSetupIntent(stripeCustomerId: String!, usage: String): SetupIntentResponse!
+    createSetupIntent(customerId: String!, usage: String): SetupIntentResponse!
     confirmSetupIntent(setupIntentId: String!, setAsDefault: Boolean): PaymentMethodResponse!
     attachPaymentMethod(input: AttachPaymentMethodInput!): AttachPaymentMethodResponse!
     removePaymentMethod(paymentId: ID!): PaymentMethodResponse!
     setDefaultPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     updatePaymentMethodMetadata(paymentMethodId: ID!, metadata: JSON): PaymentMethodResponse!
     markPaymentMethodAsExpired(paymentMethodId: ID!): PaymentMethodResponse!
-    cleanupExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
+    cleanupExpiredPaymentMethods(customerId: ID!): PaymentMethodResponse!
     validatePaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     
-    #----------------StripeCustomer-------------
-    createCustomer(customer: CreateCustomerInput!): StripeCustomerResponse!
-    updateCustomer(customer: UpdateCustomerInput!): StripeCustomerResponse!
-    deactivateCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
+    #----------------Customer-------------
+    createCustomer(customer: CreateCustomerInput!): CustomerResponse!
+    updateCustomer(customer: UpdateCustomerInput!): CustomerResponse!
+    deactivateCustomer(customerId: ID!): CustomerResponse!
     
     #----------------Transactions---------------
     createCharge(input: CreateChargeInput!): TransactionResponse!

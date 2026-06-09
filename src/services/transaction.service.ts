@@ -1,7 +1,7 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
 
+import { Customer } from '../entities/Customer';
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
-import { StripeCustomer } from '../entities/StripeCustomer';
 import {
   Transaction,
   TransactionStatus,
@@ -64,7 +64,7 @@ export class TransactionService extends BaseService {
           status: PaymentMethodStatus.ACTIVE,
         },
         {
-          populate: ['stripeCustomer'],
+          populate: ['customer'],
         }
       );
 
@@ -84,7 +84,7 @@ export class TransactionService extends BaseService {
           amount: input.amount,
           currency: input.currency || 'eur',
           payment_method: input.paymentMethodId,
-          customer: paymentMethod?.stripeCustomer.stripeCustomerId,
+          customer: paymentMethod?.customer.customerId,
           description: input.description,
           confirm: !!input.paymentMethodId,
           metadata: {
@@ -520,17 +520,17 @@ export class TransactionService extends BaseService {
     });
 
     // Buscar usuario por customer ID
-    const stripeCustomer = await this.em.findOne<StripeCustomer>(
-      StripeCustomer,
+    const customer = await this.em.findOne<Customer>(
+      Customer,
       {
-        stripeCustomerId: stripeCharge.customer as string,
+        customerId: stripeCharge.customer as string,
       },
       {
         populate: ['user'] as any,
       }
     );
 
-    if (!stripeCustomer) {
+    if (!customer) {
       throw new NotFoundError('Stripe customer not found for this charge');
     }
 
@@ -557,7 +557,7 @@ export class TransactionService extends BaseService {
         transaction = this.em.create<Transaction>(Transaction, {
           stripeChargeId,
           stripePaymentIntentId: stripeCharge.payment_intent as string,
-          user: stripeCustomer.user,
+          user: customer.user,
           paymentMethod,
           type: TransactionType.CHARGE,
           status: this.mapStripeStatusToTransactionStatus(stripeCharge.status),
@@ -567,7 +567,7 @@ export class TransactionService extends BaseService {
           description: stripeCharge.description,
           failureReason: stripeCharge.failure_message,
           metadata: stripeCharge.metadata,
-          company: stripeCustomer.user.activeCompanyId!,
+          company: customer.user.activeCompanyId!,
         });
       }
 

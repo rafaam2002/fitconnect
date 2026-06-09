@@ -240,12 +240,12 @@ type CardResponse implements BasicResponse {
     cards: [Card]
 }
 
-type StripeCustomerResponse implements BasicResponse {
+type CustomerResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    customers: [StripeCustomer]
-    customer: StripeCustomer
+    customers: [Customer]
+    customer: Customer
 }
 
 type PaymentMethodResponse implements BasicResponse {

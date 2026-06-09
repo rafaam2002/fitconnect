@@ -27,10 +27,10 @@ export const listPaymentMethods = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId } = args;
+    const { customerId } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.listPaymentMethods(stripeCustomerId);
+    return await paymentMethodService.listPaymentMethods(customerId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -59,10 +59,10 @@ export const getDefaultPaymentMethod = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId } = args;
+    const { customerId } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getDefaultPaymentMethod(stripeCustomerId);
+    return await paymentMethodService.getDefaultPaymentMethod(customerId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -91,12 +91,10 @@ export const getExpiredPaymentMethods = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId } = args;
+    const { customerId } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getExpiredPaymentMethods(
-      stripeCustomerId
-    );
+    return await paymentMethodService.getExpiredPaymentMethods(customerId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -109,10 +107,10 @@ export const getPaymentMethodsStats = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId } = args;
+    const { customerId } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getPaymentMethodsStats(stripeCustomerId);
+    return await paymentMethodService.getPaymentMethodsStats(customerId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -126,11 +124,11 @@ export const createSetupIntent = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId, usage, metadata } = args;
+    const { customerId, usage, metadata } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
     return await paymentMethodService.createSetupIntent({
-      stripeCustomerId,
+      customerId,
       usage: usage || 'on_session',
       metadata: metadata || {},
     });
@@ -250,12 +248,10 @@ export const cleanupExpiredPaymentMethods = async (
 ) => {
   try {
     const { em } = context;
-    const { stripeCustomerId } = args;
+    const { customerId } = args;
 
     const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.cleanupExpiredPaymentMethods(
-      stripeCustomerId
-    );
+    return await paymentMethodService.cleanupExpiredPaymentMethods(customerId);
   } catch (error: any) {
     return handleError(error);
   }

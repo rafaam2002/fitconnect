@@ -624,7 +624,7 @@ export class WebhookService extends BaseService {
   private async handleCustomerDeleted(
     customer: Stripe.Customer
   ): Promise<void> {
-    const existingCustomer = await this.customerService.findByStripeCustomerId(
+    const existingCustomer = await this.customerService.findByCustomerId(
       customer.id
     );
     if (existingCustomer) {

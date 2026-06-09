@@ -7,7 +7,7 @@ import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
-import { UpdateUserProps, PlanFilterInput } from '../types/resolvers';
+import { PlanFilterInput, UpdateUserProps } from '../types/resolvers';
 import {
   BadRequestError,
   createServiceResponse,
@@ -446,9 +446,9 @@ export class UserService extends BaseService {
     try {
       this.em.persist(user);
       await this.em.flush();
-      if (user.stripeCustomerId) {
+      if (user.customer) {
         const stripeData = {
-          stripeCustomerId: user.stripeCustomerId,
+          customerId: user.customer,
           email: user.email,
           name: user.name ?? user.email,
           phoneNumber: user.phoneNumber,

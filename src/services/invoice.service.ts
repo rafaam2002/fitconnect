@@ -125,14 +125,14 @@ export class InvoiceService extends BaseService {
     // Find or get user by Stripe customer ID
     if (typeof stripeInvoice.customer === 'string') {
       user = await this.em.findOne(User, {
-        stripeCustomerId: stripeInvoice.customer,
+        id: stripeInvoice.customer,
       });
     } else if (
       stripeInvoice.customer &&
       typeof stripeInvoice.customer === 'object'
     ) {
       user = await this.em.findOne(User, {
-        stripeCustomerId: stripeInvoice.customer.id,
+        id: stripeInvoice.customer.id,
       });
     }
 

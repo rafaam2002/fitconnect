@@ -3,9 +3,9 @@ import { EntityManager as EM } from '@mikro-orm/postgresql';
 import moment from 'moment';
 import Stripe from 'stripe';
 
+import { Customer } from '../entities/Customer';
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Plan } from '../entities/Plan';
-import { StripeCustomer } from '../entities/StripeCustomer';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import {
@@ -77,18 +77,18 @@ export class SubscriptionService extends BaseService {
       // Obtener entidades requeridas
       const user = await this.getUserOrFail(input.userId);
       const plan = await this.getActivePlanOrFail(input.planId);
-      const stripeCustomer = await this.getOrCreateAdminStripeCustomer(user);
+      const customer = await this.getOrCreateAdminCustomer(user);
 
       // Validaciones de negocio
       await this.validateNoDuplicateSubscription(user, plan);
       const paymentMethod = await this.getPaymentMethodIfProvided(
         input.paymentMethodId,
-        stripeCustomer
+        customer
       );
 
       // Crear en Stripe
       const stripeSubData = this.buildStripeSubscriptionData(
-        stripeCustomer,
+        customer,
         plan,
         user,
         input,
@@ -106,7 +106,7 @@ export class SubscriptionService extends BaseService {
       const subscription = this.createSubscriptionEntity(
         stripeSub,
         user,
-        stripeCustomer,
+        customer,
         plan,
         paymentMethod,
         input.companyId
@@ -156,7 +156,7 @@ export class SubscriptionService extends BaseService {
         id: input.subscriptionId,
       },
       {
-        populate: ['user', 'plan', 'stripeCustomer'],
+        populate: ['user', 'plan', 'customer'],
       }
     );
 
@@ -209,7 +209,7 @@ export class SubscriptionService extends BaseService {
     if (input.paymentMethodId) {
       const paymentMethod = await this.em.findOne(PaymentMethod, {
         stripePaymentMethodId: input.paymentMethodId,
-        stripeCustomer: subscription.stripeCustomer,
+        customer: subscription.customer,
         status: PaymentMethodStatus.ACTIVE,
       });
 
@@ -439,7 +439,7 @@ export class SubscriptionService extends BaseService {
       Subscription,
       { id: subscriptionId },
       {
-        populate: ['user', 'plan', 'stripeCustomer', 'defaultPaymentMethod'],
+        populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'],
       }
     );
 
@@ -537,7 +537,7 @@ export class SubscriptionService extends BaseService {
       const priceId = stripeSub.items.data[0].price.id;
 
       // Obtener dependencias
-      const stripeCustomer = await this.getStripeCustomerOrFail(
+      const customer = await this.getCustomerOrFail(
         stripeSub.customer as string
       );
       const plan = await this.getPlanByPriceIdOrFail(priceId);
@@ -553,8 +553,8 @@ export class SubscriptionService extends BaseService {
       } else {
         subscription = this.em.create(Subscription, {
           stripeSubscriptionId,
-          user: stripeCustomer.user,
-          stripeCustomer,
+          user: customer.user,
+          customer,
           plan,
           ...mappedData,
         } as Subscription);
@@ -609,232 +609,6 @@ export class SubscriptionService extends BaseService {
     await Promise.allSettled(
       expiringSubscriptions.map(subscription => this.notifyUser(subscription))
     );
-  }
-
-  private validateCreateSubscriptionInput(
-    input: CreateSubscriptionInput
-  ): void {
-    if (!input.userId || !input.planId || !input.companyId) {
-      throw new BadRequestError('User ID, Plan ID and Company ID are required');
-    }
-
-    if (input.quantity && input.quantity <= 0) {
-      throw new BadRequestError('Quantity must be greater than 0');
-    }
-
-    if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
-      throw new BadRequestError('Trial period days cannot be negative');
-    }
-  }
-
-  private async getUserOrFail(userId: string): Promise<User> {
-    const user = await this.em.findOne(User, { id: userId });
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-    return user;
-  }
-
-  private async getActivePlanOrFail(planId: string): Promise<Plan> {
-    const plan = await this.em.findOne(
-      Plan,
-      { id: planId, isActive: true },
-      { filters: { companyContext: false } }
-    );
-    if (!plan) {
-      throw new NotFoundError('Plan not found or inactive');
-    }
-    return plan;
-  }
-
-  private async getOrCreateAdminStripeCustomer(
-    user: User
-  ): Promise<StripeCustomer> {
-    const sqlEm = this.em as unknown as EM;
-
-    let stripeCustomer = await sqlEm
-      .createQueryBuilder(StripeCustomer, 'sc')
-      .join('sc.user', 'u')
-      .join('u.roles', 'r')
-      .join('sc.paymentMethods', 'pm')
-      .where({ 'r.role': UserRoleEnum.ADMIN })
-      .getSingleResult();
-
-    if (stripeCustomer) {
-      await this.em.populate(stripeCustomer, [
-        'paymentMethods',
-        'user',
-        'user.roles',
-      ]);
-      return stripeCustomer;
-    }
-
-    await this.customerService.createCustomer({
-      userId: user.id,
-      email: user.email,
-      name: user.name || 'Usuario',
-      phone: user.phoneNumber || '+34 1234 45 67 89',
-    });
-
-    // Re-fetch después de crear
-    return this.getOrCreateAdminStripeCustomer(user);
-  }
-
-  private async validateNoDuplicateSubscription(
-    user: User,
-    plan: Plan
-  ): Promise<void> {
-    const existing = await this.em.findOne(Subscription, {
-      user,
-      plan,
-      status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
-    });
-
-    if (existing) {
-      throw new ConflictError(
-        'User already has an active subscription to this plan'
-      );
-    }
-  }
-
-  private async getPaymentMethodIfProvided(
-    paymentMethodId: string | undefined,
-    stripeCustomer: StripeCustomer
-  ): Promise<PaymentMethod | null> {
-    if (!paymentMethodId) return null;
-
-    const paymentMethod = await this.em.findOne(PaymentMethod, {
-      stripePaymentMethodId: paymentMethodId,
-      stripeCustomer,
-      status: PaymentMethodStatus.ACTIVE,
-    });
-
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method not found or inactive');
-    }
-
-    return paymentMethod;
-  }
-
-  private buildStripeSubscriptionData(
-    stripeCustomer: StripeCustomer,
-    plan: Plan,
-    user: User,
-    input: CreateSubscriptionInput,
-    paymentMethod: PaymentMethod | null
-  ): Stripe.SubscriptionCreateParams {
-    const data: Stripe.SubscriptionCreateParams = {
-      customer: stripeCustomer.stripeCustomerId,
-      default_payment_method:
-        paymentMethod?.stripePaymentMethodId ??
-        stripeCustomer.paymentMethods[0]?.stripePaymentMethodId,
-      items: [{ price: plan.stripePriceId, quantity: input.quantity || 1 }],
-      metadata: {
-        userId: user.id,
-        planId: plan.id,
-        ...input.metadata,
-      },
-    };
-
-    if (input.trialPeriodDays === undefined) return data;
-
-    if (input.trialPeriodDays > 0) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + input.trialPeriodDays);
-      data.trial_end = Math.floor(trialEnd.getTime() / 1000);
-    } else {
-      data.trial_period_days = 0;
-    }
-
-    return data;
-  }
-
-  private createSubscriptionEntity(
-    stripeSub: Stripe.Subscription,
-    user: User,
-    stripeCustomer: StripeCustomer,
-    plan: Plan,
-    paymentMethod: PaymentMethod | null,
-    companyId: string
-  ): Subscription {
-    return this.em.create(Subscription, {
-      stripeSubscriptionId: stripeSub.id,
-      user,
-      stripeCustomer,
-      plan,
-      defaultPaymentMethod: paymentMethod,
-      company: companyId,
-      status: stripeSub.status as SubscriptionStatus,
-      currentPeriodStart: this.stripeTimestampToDate(
-        stripeSub.current_period_start
-      )!,
-      currentPeriodEnd: this.stripeTimestampToDate(
-        stripeSub.current_period_end
-      )!,
-      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
-      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
-      quantity: stripeSub.items.data[0]?.quantity || 1,
-      metadata: stripeSub.metadata,
-      isInTrial: false,
-      isPastDue: false,
-    });
-  }
-
-  // ============= HELPERS =============
-
-  private stripeTimestampToDate(
-    timestamp: number | null | undefined
-  ): Date | undefined {
-    return timestamp ? new Date(timestamp * 1000) : undefined;
-  }
-
-  private async getStripeCustomerOrFail(
-    customerId: string
-  ): Promise<StripeCustomer> {
-    const customer = await this.em.findOne(
-      StripeCustomer,
-      { stripeCustomerId: customerId },
-      { populate: ['user'] as any }
-    );
-
-    if (!customer) {
-      throw new NotFoundError('Stripe customer not found in database');
-    }
-
-    return customer;
-  }
-
-  private async getPlanByPriceIdOrFail(priceId: string): Promise<Plan> {
-    const plan = await this.em.findOne(Plan, { stripePriceId: priceId });
-
-    if (!plan) {
-      throw new NotFoundError('Plan not found in database');
-    }
-
-    return plan;
-  }
-
-  private mapStripeSubscriptionData(
-    stripeSub: Stripe.Subscription
-  ): Partial<Subscription> {
-    const item = stripeSub.items.data[0];
-
-    return {
-      status: stripeSub.status as SubscriptionStatus,
-      currentPeriodStart: this.stripeTimestampToDate(
-        stripeSub.current_period_start
-      )!,
-      currentPeriodEnd: this.stripeTimestampToDate(
-        stripeSub.current_period_end
-      )!,
-      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
-      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
-      canceledAt: this.stripeTimestampToDate(stripeSub.canceled_at),
-      cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-      endedAt: this.stripeTimestampToDate(stripeSub.ended_at),
-      quantity: item?.quantity || 1,
-      metadata: stripeSub.metadata,
-    };
   }
 
   /**
@@ -898,6 +672,228 @@ export class SubscriptionService extends BaseService {
       }
       throw new InternalServerError('Error calculating subscription stats');
     }
+  }
+
+  private validateCreateSubscriptionInput(
+    input: CreateSubscriptionInput
+  ): void {
+    if (!input.userId || !input.planId || !input.companyId) {
+      throw new BadRequestError('User ID, Plan ID and Company ID are required');
+    }
+
+    if (input.quantity && input.quantity <= 0) {
+      throw new BadRequestError('Quantity must be greater than 0');
+    }
+
+    if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
+      throw new BadRequestError('Trial period days cannot be negative');
+    }
+  }
+
+  private async getUserOrFail(userId: string): Promise<User> {
+    const user = await this.em.findOne(User, { id: userId });
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+    return user;
+  }
+
+  private async getActivePlanOrFail(planId: string): Promise<Plan> {
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId, isActive: true },
+      { filters: { companyContext: false } }
+    );
+    if (!plan) {
+      throw new NotFoundError('Plan not found or inactive');
+    }
+    return plan;
+  }
+
+  private async getOrCreateAdminCustomer(user: User): Promise<Customer> {
+    const sqlEm = this.em as unknown as EM;
+
+    let customer = await sqlEm
+      .createQueryBuilder(Customer, 'sc')
+      .join('sc.user', 'u')
+      .join('u.roles', 'r')
+      .join('sc.paymentMethods', 'pm')
+      .where({ 'r.role': UserRoleEnum.ADMIN })
+      .getSingleResult();
+
+    if (customer) {
+      await this.em.populate(customer, [
+        'paymentMethods',
+        'user',
+        'user.roles',
+      ]);
+      return customer;
+    }
+
+    await this.customerService.createCustomer({
+      userId: user.id,
+      email: user.email,
+      name: user.name || 'Usuario',
+      phone: user.phoneNumber || '+34 1234 45 67 89',
+    });
+
+    // Re-fetch después de crear
+    return this.getOrCreateAdminCustomer(user);
+  }
+
+  private async validateNoDuplicateSubscription(
+    user: User,
+    plan: Plan
+  ): Promise<void> {
+    const existing = await this.em.findOne(Subscription, {
+      user,
+      plan,
+      status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+    });
+
+    if (existing) {
+      throw new ConflictError(
+        'User already has an active subscription to this plan'
+      );
+    }
+  }
+
+  private async getPaymentMethodIfProvided(
+    paymentMethodId: string | undefined,
+    customer: Customer
+  ): Promise<PaymentMethod | null> {
+    if (!paymentMethodId) return null;
+
+    const paymentMethod = await this.em.findOne(PaymentMethod, {
+      stripePaymentMethodId: paymentMethodId,
+      customer,
+      status: PaymentMethodStatus.ACTIVE,
+    });
+
+    if (!paymentMethod) {
+      throw new NotFoundError('Payment method not found or inactive');
+    }
+
+    return paymentMethod;
+  }
+
+  private buildStripeSubscriptionData(
+    customer: Customer,
+    plan: Plan,
+    user: User,
+    input: CreateSubscriptionInput,
+    paymentMethod: PaymentMethod | null
+  ): Stripe.SubscriptionCreateParams {
+    const data: Stripe.SubscriptionCreateParams = {
+      customer: customer.customerId,
+      default_payment_method:
+        paymentMethod?.stripePaymentMethodId ??
+        customer.paymentMethods[0]?.stripePaymentMethodId,
+      items: [{ price: plan.stripePriceId, quantity: input.quantity || 1 }],
+      metadata: {
+        userId: user.id,
+        planId: plan.id,
+        ...input.metadata,
+      },
+    };
+
+    if (input.trialPeriodDays === undefined) return data;
+
+    if (input.trialPeriodDays > 0) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + input.trialPeriodDays);
+      data.trial_end = Math.floor(trialEnd.getTime() / 1000);
+    } else {
+      data.trial_period_days = 0;
+    }
+
+    return data;
+  }
+
+  // ============= HELPERS =============
+
+  private createSubscriptionEntity(
+    stripeSub: Stripe.Subscription,
+    user: User,
+    customer: Customer,
+    plan: Plan,
+    paymentMethod: PaymentMethod | null,
+    companyId: string
+  ): Subscription {
+    return this.em.create(Subscription, {
+      stripeSubscriptionId: stripeSub.id,
+      user,
+      customer,
+      plan,
+      defaultPaymentMethod: paymentMethod,
+      company: companyId,
+      status: stripeSub.status as SubscriptionStatus,
+      currentPeriodStart: this.stripeTimestampToDate(
+        stripeSub.current_period_start
+      )!,
+      currentPeriodEnd: this.stripeTimestampToDate(
+        stripeSub.current_period_end
+      )!,
+      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
+      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
+      quantity: stripeSub.items.data[0]?.quantity || 1,
+      metadata: stripeSub.metadata,
+      isInTrial: false,
+      isPastDue: false,
+    });
+  }
+
+  private stripeTimestampToDate(
+    timestamp: number | null | undefined
+  ): Date | undefined {
+    return timestamp ? new Date(timestamp * 1000) : undefined;
+  }
+
+  private async getCustomerOrFail(customerId: string): Promise<Customer> {
+    const customer = await this.em.findOne(
+      Customer,
+      { customerId },
+      { populate: ['user'] as any }
+    );
+
+    if (!customer) {
+      throw new NotFoundError('Stripe customer not found in database');
+    }
+
+    return customer;
+  }
+
+  private async getPlanByPriceIdOrFail(priceId: string): Promise<Plan> {
+    const plan = await this.em.findOne(Plan, { stripePriceId: priceId });
+
+    if (!plan) {
+      throw new NotFoundError('Plan not found in database');
+    }
+
+    return plan;
+  }
+
+  private mapStripeSubscriptionData(
+    stripeSub: Stripe.Subscription
+  ): Partial<Subscription> {
+    const item = stripeSub.items.data[0];
+
+    return {
+      status: stripeSub.status as SubscriptionStatus,
+      currentPeriodStart: this.stripeTimestampToDate(
+        stripeSub.current_period_start
+      )!,
+      currentPeriodEnd: this.stripeTimestampToDate(
+        stripeSub.current_period_end
+      )!,
+      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
+      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
+      canceledAt: this.stripeTimestampToDate(stripeSub.canceled_at),
+      cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+      endedAt: this.stripeTimestampToDate(stripeSub.ended_at),
+      quantity: item?.quantity || 1,
+      metadata: stripeSub.metadata,
+    };
   }
 
   private async notifyUser(subscription: Subscription): Promise<void> {

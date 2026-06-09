@@ -1,20 +1,10 @@
-import {
-  Collection,
-  Entity,
-  Enum,
-  Index,
-  ManyToOne,
-  OneToMany,
-  Property,
-} from '@mikro-orm/core';
+import { Entity, Enum, Index, ManyToOne, Property } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
-import { Invoice } from './Invoice';
+import { Customer } from './Customer';
 import { PaymentMethod } from './PaymentMethod';
 import { Plan } from './Plan';
-import { StripeCustomer } from './StripeCustomer';
-import { Transaction } from './Transaction';
 import { User } from './User';
 
 export enum SubscriptionStatus {
@@ -30,25 +20,18 @@ export enum SubscriptionStatus {
 
 @Entity()
 export class Subscription extends BaseEntity {
-  @Property({ length: 100 })
-  @Index()
-  stripeSubscriptionId!: string; // sub_xxxxx
-
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   @Index()
   user!: User;
 
-  @ManyToOne(() => StripeCustomer)
-  stripeCustomer!: StripeCustomer;
+  @ManyToOne(() => Customer)
+  customer!: Customer;
 
   @ManyToOne(() => Plan)
   plan!: Plan;
 
   @ManyToOne(() => PaymentMethod, { nullable: true })
   defaultPaymentMethod?: PaymentMethod;
-
-  @OneToMany(() => Transaction, transaction => transaction.subscription)
-  transactions = new Collection<Transaction>(this);
 
   @Enum(() => SubscriptionStatus)
   @Index()
@@ -76,19 +59,16 @@ export class Subscription extends BaseEntity {
   @Property({ type: 'datetime', nullable: true })
   endedAt?: Date;
 
-  @Property({ type: 'bigint', nullable: true })
-  quantity?: number;
+  @Property({ type: 'datetime', nullable: true })
+  nextBillingDate?: Date;
 
-  @Property({ type: 'json', nullable: true })
-  metadata?: Record<string, any>;
+  // Nueva: número de intentos de cobro fallidos
+  @Property({ type: 'smallint', default: 0 })
+  failedPaymentAttempts: number = 0;
 
   @ManyToOne(() => Company, { nullable: true })
   @Index()
   company: Company;
-
-  // Relaciones
-  @OneToMany(() => Invoice, invoice => invoice.subscription)
-  invoices = new Collection<Invoice>(this);
 
   get isActive(): boolean {
     return [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING].includes(

@@ -56,18 +56,18 @@ type Query {
     #------------------s3-----------------
     getPresignedUrl(key: String, command: String ): PresignedUrlResponse!
     
-    #--------------StripeCustomer---------
-    getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
-    getCustomerByUserId(userId: ID!): StripeCustomerResponse!
+    #--------------Customer---------
+    getCustomer(customerId: ID!): CustomerResponse!
+    getCustomerByUserId(userId: ID!): CustomerResponse!
     
     #-----------------Payments------------
     listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
     getPaymentMethod(stripePaymentMethodId: ID!): PaymentMethodResponse!
-    listPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
-    getDefaultPaymentMethod(stripeCustomerId: ID!): PaymentMethodResponse!
+    listPaymentMethods(customerId: ID!): PaymentMethodResponse!
+    getDefaultPaymentMethod(customerId: ID!): PaymentMethodResponse!
     getUserDefaultPaymentMethod(userId: ID!): PaymentMethodResponse!
-    getExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
-    getPaymentMethodsStats(stripeCustomerId: ID!): StatsResponse!
+    getExpiredPaymentMethods(customerId: ID!): PaymentMethodResponse!
+    getPaymentMethodsStats(customerId: ID!): StatsResponse!
     
     #--------------Subscriptions---------
     getSubscription(subscriptionId: ID!): SubscriptionResponse!

@@ -204,7 +204,7 @@ input SendNotificationInput {
 }
 
 input CreatePaymentMethodInput {
-    stripeCustomerId: String!
+    customerId: String!
     type: PaymentMethodType!
     card: CardInput
     setAsDefault: Boolean
@@ -218,7 +218,7 @@ input CreateCustomerInput {
 }
 
 input UpdateCustomerInput {
-    stripeCustomerId: ID!
+    customerId: ID!
     email: String
     name: String
     phoneNumber: String
@@ -247,7 +247,7 @@ input CardInput {
 
 input AttachPaymentMethodInput {
     paymentMethodId: ID!
-    stripeCustomerId: ID!
+    customerId: ID!
     setAsDefault: Boolean
 }
 

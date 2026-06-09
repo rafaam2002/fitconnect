@@ -15,3 +15,7 @@ An array of percentage values representing capacity levels at which schedule adm
 
 **Notified Quota Thresholds**:
 An array of threshold percentages stored on a schedule to track which quota warnings have already been sent to avoid duplicate notifications.
+
+**Waitlist (Lista de espera)**:
+A list of users waiting to join a schedule when its maximum capacity has been reached. When a slot becomes available, the first user in the waitlist is promoted, subject to business logic validation.
+

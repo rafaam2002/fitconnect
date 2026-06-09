@@ -1028,10 +1028,6 @@ export class ScheduleService extends BaseService {
       .getItems()
       .filter(s => s.state === ScheduleState.AVAILABLE);
 
-    const availableUserWaitListSchedules = user.waitListSchedules
-      .getItems()
-      .filter(s => s.state === ScheduleState.AVAILABLE);
-
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
     const isHourDisabled = moment().isAfter(Number(schedule.startDate));
@@ -1046,23 +1042,17 @@ export class ScheduleService extends BaseService {
       schedule.admin.id === currentUser.id;
 
     const isMaxUserBookingsReached =
-      availableUserSchedules.length + availableUserWaitListSchedules.length >=
+      availableUserSchedules.length >=
       (scheduleOptions?.maxActiveReservations || Infinity);
 
     const isMaxUserBookingsTodayReached =
       !scheduleOptions?.sameDayBookingAllowed &&
-      (availableUserSchedules.some(s =>
+      availableUserSchedules.some(s =>
         moment(Number(s.startDate)).isSame(
           moment(Number(schedule.startDate)),
           'day'
         )
-      ) ||
-        availableUserWaitListSchedules.some(s =>
-          moment(Number(s.startDate)).isSame(
-            moment(Number(schedule.startDate)),
-            'day'
-          )
-        ));
+      );
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')

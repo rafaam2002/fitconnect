@@ -1,6 +1,7 @@
 import { EntityManager } from '@mikro-orm/core';
 import moment from 'moment';
 
+import { Company } from '../entities/Company';
 import { Schedule } from '../entities/Schedule';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
@@ -362,11 +363,12 @@ export class ScheduleService extends BaseService {
 
     try {
       const scheduleRepo = this.em.getRepository(Schedule);
-      const scheduleOptionsRepo = this.em.getRepository(ScheduleOptions);
-
-      const scheduleOptions = await scheduleOptionsRepo.findOne({
-        id: { $ne: null },
-      });
+      const company = await this.em.findOne(
+        Company,
+        { id: { $ne: null } },
+        { populate: ['scheduleOptions'] }
+      );
+      const scheduleOptions = company?.scheduleOptions || null;
 
       const startOfDay = new Date(startDate);
       const endOfDay = new Date(endDate);
@@ -1003,7 +1005,13 @@ export class ScheduleService extends BaseService {
     const user = await this.em.findOne(
       User,
       { id: currentUser.id },
-      { populate: ['schedules', 'waitListSchedules'] }
+      {
+        populate: [
+          'schedules',
+          'waitListSchedules',
+          'waitListSchedules.waitListUsers',
+        ],
+      }
     );
 
     if (!user) {
@@ -1020,17 +1028,13 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError(NOT_FND_ERRORS.SCHEDULE);
     }
 
-    const scheduleOptions = await this.em.findOne(ScheduleOptions, {
-      id: { $ne: null },
-    });
-
-    const availableUserSchedules = user.schedules
-      .getItems()
-      .filter(s => s.state === ScheduleState.AVAILABLE);
-
-    const availableUserWaitListSchedules = user.waitListSchedules
-      .getItems()
-      .filter(s => s.state === ScheduleState.AVAILABLE);
+    const company = await this.em.findOne(
+      Company,
+      { id: { $ne: null } },
+      { populate: ['scheduleOptions'] }
+    );
+    const scheduleOptions = company?.scheduleOptions || null;
+    console.log('🚀 ~ ScheduleService ~ addUserToSchedule ~ company:', company);
 
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
@@ -1045,24 +1049,7 @@ export class ScheduleService extends BaseService {
       currentUser.contextRole === UserRoleEnum.COACH &&
       schedule.admin.id === currentUser.id;
 
-    const isMaxUserBookingsReached =
-      availableUserSchedules.length + availableUserWaitListSchedules.length >=
-      (scheduleOptions?.maxActiveReservations || Infinity);
-
-    const isMaxUserBookingsTodayReached =
-      !scheduleOptions?.sameDayBookingAllowed &&
-      (availableUserSchedules.some(s =>
-        moment(Number(s.startDate)).isSame(
-          moment(Number(schedule.startDate)),
-          'day'
-        )
-      ) ||
-        availableUserWaitListSchedules.some(s =>
-          moment(Number(s.startDate)).isSame(
-            moment(Number(schedule.startDate)),
-            'day'
-          )
-        ));
+    const limits = this.checkUserBookingLimits(user, schedule, scheduleOptions);
 
     const maxAdvanceDate = moment()
       .add(scheduleOptions?.maxAdvanceBookingDays ?? 0, 'days')
@@ -1090,10 +1077,10 @@ export class ScheduleService extends BaseService {
       }
 
       if (!isBooked && !isWaitListed) {
-        if (isMaxUserBookingsReached) {
+        if (limits.isMaxUserBookingsReached) {
           throw new ValidationError(MAX_ACTIVE_RESERVATIONS_REACHED);
         }
-        if (isMaxUserBookingsTodayReached) {
+        if (limits.isMaxUserBookingsTodayReached) {
           throw new ValidationError(SAME_DAY_BOOKING_NOT_ALLOWED);
         }
         if (isAdvanceBookingDisabled) {
@@ -1112,9 +1099,27 @@ export class ScheduleService extends BaseService {
     let message = 'User added to schedule';
     if (isFull) {
       schedule.waitListUsers.add(user);
+      user.waitListSchedules.add(schedule);
       message = 'User added to waitlist';
     } else {
       schedule.users.add(user);
+      user.schedules.add(schedule);
+      const limitsAfterBooking = this.checkUserBookingLimits(
+        user,
+        schedule,
+        scheduleOptions
+      );
+      if (
+        limitsAfterBooking.isMaxUserBookingsReached ||
+        limitsAfterBooking.isMaxUserBookingsTodayReached
+      ) {
+        await this.cleanupUserWaitlists(
+          user,
+          schedule,
+          limitsAfterBooking.isMaxUserBookingsReached,
+          limitsAfterBooking.isMaxUserBookingsTodayReached
+        );
+      }
     }
 
     this.em.persist(schedule);
@@ -1179,18 +1184,20 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError('User');
     }
 
+    const company = await this.em.findOne(
+      Company,
+      { id: { $ne: null } },
+      { populate: ['scheduleOptions'] }
+    );
+    const scheduleOptions = company?.scheduleOptions || null;
+
     let message = 'User removed from schedule';
 
     if (schedule.users.contains(user)) {
       schedule.users.remove(user);
 
       // Si hay gente en la waitlist, meter al primero
-      if (schedule.waitListUsers.length > 0) {
-        const nextUser = schedule.waitListUsers.getItems()[0];
-        schedule.waitListUsers.remove(nextUser);
-        schedule.users.add(nextUser);
-        await this.sendWaitlistPromotionNotification(schedule, nextUser);
-      }
+      await this.promoteNextUser(schedule, scheduleOptions);
     } else if (schedule.waitListUsers.contains(user)) {
       schedule.waitListUsers.remove(user);
       message = 'User removed from waitlist';
@@ -1553,6 +1560,155 @@ export class ScheduleService extends BaseService {
   }
 
   // ============= MÉTODOS PRIVADOS =============
+
+  /**
+   * Checks if a user has reached their maximum booking limits.
+   */
+  private checkUserBookingLimits(
+    user: User,
+    schedule: Schedule,
+    scheduleOptions: ScheduleOptions | null
+  ) {
+    const availableUserSchedules = user.schedules
+      .getItems()
+      .filter(s => s.state === ScheduleState.AVAILABLE);
+
+    const isMaxUserBookingsReached =
+      availableUserSchedules.length >=
+      (scheduleOptions?.maxActiveReservations || Infinity);
+
+    const isMaxUserBookingsTodayReached =
+      !scheduleOptions?.sameDayBookingAllowed &&
+      availableUserSchedules.some(s =>
+        moment(Number(s.startDate)).isSame(
+          moment(Number(schedule.startDate)),
+          'day'
+        )
+      );
+
+    return {
+      isMaxUserBookingsReached,
+      isMaxUserBookingsTodayReached,
+    };
+  }
+
+  /**
+   * Removes user from other waitlisted schedules if they reached their limits.
+   */
+  private async cleanupUserWaitlists(
+    user: User,
+    currentSchedule: Schedule,
+    maxReached: boolean,
+    todayReached: boolean
+  ): Promise<void> {
+    const waitlists = user.waitListSchedules.getItems();
+    for (const s of waitlists) {
+      if (s.id === currentSchedule.id) {
+        continue;
+      }
+
+      let shouldRemove = false;
+      if (maxReached) {
+        shouldRemove = true;
+      } else if (todayReached) {
+        const isSameDay = moment(Number(s.startDate)).isSame(
+          moment(Number(currentSchedule.startDate)),
+          'day'
+        );
+        if (isSameDay) {
+          shouldRemove = true;
+        }
+      }
+
+      if (shouldRemove) {
+        if (!s.waitListUsers.isInitialized()) {
+          await s.waitListUsers.init();
+        }
+        s.waitListUsers.remove(user);
+        user.waitListSchedules.remove(s);
+        this.em.persist(s);
+      }
+    }
+  }
+
+  /**
+   * Promotes the first valid user from the waitlist recursively/iteratively.
+   */
+  private async promoteNextUser(
+    schedule: Schedule,
+    scheduleOptions: ScheduleOptions | null
+  ): Promise<void> {
+    while (schedule.waitListUsers.length > 0) {
+      const nextUser = schedule.waitListUsers.getItems()[0];
+      try {
+        const user = await this.em.findOne(
+          User,
+          { id: nextUser.id },
+          {
+            populate: [
+              'schedules',
+              'waitListSchedules',
+              'waitListSchedules.waitListUsers',
+              'pushTokens',
+            ],
+          }
+        );
+
+        if (!user) {
+          schedule.waitListUsers.remove(nextUser);
+          continue;
+        }
+
+        const { isMaxUserBookingsReached, isMaxUserBookingsTodayReached } =
+          this.checkUserBookingLimits(user, schedule, scheduleOptions);
+
+        if (isMaxUserBookingsReached || isMaxUserBookingsTodayReached) {
+          schedule.waitListUsers.remove(user);
+          await this.cleanupUserWaitlists(
+            user,
+            schedule,
+            isMaxUserBookingsReached,
+            isMaxUserBookingsTodayReached
+          );
+          this.em.persist(schedule);
+          this.em.persist(user);
+          continue;
+        }
+
+        schedule.waitListUsers.remove(user);
+        schedule.users.add(user);
+
+        await this.sendWaitlistPromotionNotification(schedule, user);
+
+        const limitsAfterPromotion = this.checkUserBookingLimits(
+          user,
+          schedule,
+          scheduleOptions
+        );
+        if (
+          limitsAfterPromotion.isMaxUserBookingsReached ||
+          limitsAfterPromotion.isMaxUserBookingsTodayReached
+        ) {
+          await this.cleanupUserWaitlists(
+            user,
+            schedule,
+            limitsAfterPromotion.isMaxUserBookingsReached,
+            limitsAfterPromotion.isMaxUserBookingsTodayReached
+          );
+        }
+
+        this.em.persist(schedule);
+        this.em.persist(user);
+        break;
+      } catch (error) {
+        console.error(
+          `Error promoting user ${nextUser.id} from waitlist:`,
+          error
+        );
+        schedule.waitListUsers.remove(nextUser);
+      }
+    }
+  }
 
   /**
    * Enviar notificaciones de promoción de waitlist

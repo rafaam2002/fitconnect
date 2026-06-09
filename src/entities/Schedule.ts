@@ -67,6 +67,9 @@ export class Schedule extends BaseEntity {
   @ManyToOne(() => ScheduleProgrammed, { nullable: true })
   scheduleProgrammed?: ScheduleProgrammed;
 
+  @Property({ type: 'json', default: '[]' })
+  notifiedQuotaThresholds: number[] = [];
+
   constructor(schedule: Schedule) {
     super();
     this.startDate = schedule.startDate;
@@ -77,6 +80,7 @@ export class Schedule extends BaseEntity {
     this.title = schedule.title;
     this.description = schedule.description;
     this.age = schedule.age;
+    this.notifiedQuotaThresholds = schedule.notifiedQuotaThresholds || [];
   }
 
   @BeforeCreate()

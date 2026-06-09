@@ -11,6 +11,10 @@ yarn-error.log*
 # dependencies
 node_modules
 
+GEMINI.md
+handoffs
+CONTEXT.md
+
 
 # testing
 coverage
@@ -33,6 +37,3 @@ build
 
 # database dumps
 remote_dump.sql
-
-GEMINI.md
-handoffs

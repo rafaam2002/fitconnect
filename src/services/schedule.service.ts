@@ -1,6 +1,7 @@
 import { EntityManager } from '@mikro-orm/core';
 import moment from 'moment';
 
+import { Company } from '../entities/Company';
 import { Schedule } from '../entities/Schedule';
 import { ScheduleOptions } from '../entities/ScheduleOptions';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
@@ -362,11 +363,12 @@ export class ScheduleService extends BaseService {
 
     try {
       const scheduleRepo = this.em.getRepository(Schedule);
-      const scheduleOptionsRepo = this.em.getRepository(ScheduleOptions);
-
-      const scheduleOptions = await scheduleOptionsRepo.findOne({
-        id: { $ne: null },
-      });
+      const company = await this.em.findOne(
+        Company,
+        { id: { $ne: null } },
+        { populate: ['scheduleOptions'] }
+      );
+      const scheduleOptions = company?.scheduleOptions || null;
 
       const startOfDay = new Date(startDate);
       const endOfDay = new Date(endDate);
@@ -1026,9 +1028,13 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError(NOT_FND_ERRORS.SCHEDULE);
     }
 
-    const scheduleOptions = await this.em.findOne(ScheduleOptions, {
-      id: { $ne: null },
-    });
+    const company = await this.em.findOne(
+      Company,
+      { id: { $ne: null } },
+      { populate: ['scheduleOptions'] }
+    );
+    const scheduleOptions = company?.scheduleOptions || null;
+    console.log('🚀 ~ ScheduleService ~ addUserToSchedule ~ company:', company);
 
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
@@ -1178,9 +1184,12 @@ export class ScheduleService extends BaseService {
       throw new NotFoundError('User');
     }
 
-    const scheduleOptions = await this.em.findOne(ScheduleOptions, {
-      id: { $ne: null },
-    });
+    const company = await this.em.findOne(
+      Company,
+      { id: { $ne: null } },
+      { populate: ['scheduleOptions'] }
+    );
+    const scheduleOptions = company?.scheduleOptions || null;
 
     let message = 'User removed from schedule';
 

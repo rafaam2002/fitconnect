@@ -1,7 +1,7 @@
 import moment from 'moment';
 
+import { Company } from '../../entities/Company';
 import { Schedule } from '../../entities/Schedule';
-import { ScheduleOptions } from '../../entities/ScheduleOptions';
 import { User } from '../../entities/User';
 import { ScheduleState, UserRoleEnum } from '../../types/enums';
 import { ValidationError } from '../../utils/errors.util';
@@ -91,7 +91,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 
       mockEntityManager.findOne.mockImplementation((entity: any) => {
         if (entity === User) return user;
-        if (entity === ScheduleOptions) return scheduleOptions;
+        if (entity === Company) return { scheduleOptions };
         return null;
       });
       mockScheduleRepo.findOne.mockResolvedValue(schedule);
@@ -128,7 +128,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 
       mockEntityManager.findOne.mockImplementation((entity: any) => {
         if (entity === User) return user;
-        if (entity === ScheduleOptions) return scheduleOptions;
+        if (entity === Company) return { scheduleOptions };
         return null;
       });
       mockScheduleRepo.findOne.mockResolvedValue(schedule);
@@ -176,7 +176,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 
       mockEntityManager.findOne.mockImplementation((entity: any) => {
         if (entity === User) return user;
-        if (entity === ScheduleOptions) return scheduleOptions;
+        if (entity === Company) return { scheduleOptions };
         return null;
       });
       mockScheduleRepo.findOne.mockResolvedValue(schedule);
@@ -249,7 +249,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
             if (query.id === 'user-wl-1') return waitlistUser1;
             if (query.id === 'user-wl-2') return waitlistUser2;
           }
-          if (entity === ScheduleOptions) return scheduleOptions;
+          if (entity === Company) return { scheduleOptions };
           return null;
         }
       );

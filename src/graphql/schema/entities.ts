@@ -123,6 +123,7 @@ type ScheduleOptions {
     fullOpenHours: Int!
     bookingCutoffMinutes: Int!
     minBookingsRequired: Int!
+    quotaWarningThresholds: [Int]!
 }
 
 type CompanyConfig {

@@ -128,6 +128,9 @@ export type updateScheduleOptionsProps = {
     maxAdvanceBookingDays: number;
     sameDayBookingAllowed: boolean;
     fullOpenHours: number;
+    bookingCutoffMinutes: number;
+    minBookingsRequired: number;
+    quotaWarningThresholds: number[];
   };
 };
 

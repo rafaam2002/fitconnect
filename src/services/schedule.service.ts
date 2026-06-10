@@ -1011,6 +1011,10 @@ export class ScheduleService extends BaseService {
           'waitListSchedules',
           'waitListSchedules.waitListUsers',
         ],
+        populateWhere: {
+          schedules: { startDate: { $gte: new Date() } },
+          waitListSchedules: { startDate: { $gte: new Date() } },
+        },
       }
     );
 
@@ -1034,7 +1038,6 @@ export class ScheduleService extends BaseService {
       { populate: ['scheduleOptions'] }
     );
     const scheduleOptions = company?.scheduleOptions || null;
-    console.log('🚀 ~ ScheduleService ~ addUserToSchedule ~ company:', company);
 
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;

@@ -7,6 +7,7 @@ import { Company } from './entities/Company';
 import { CompanyConfig } from './entities/CompanyConfig';
 import { Invoice } from './entities/Invoice';
 import { Message } from './entities/Message';
+import { Notification } from './entities/Notification';
 import { PaymentMethod } from './entities/PaymentMethod';
 import { Plan } from './entities/Plan';
 import { Poll } from './entities/Poll';
@@ -57,6 +58,7 @@ export default {
     UserRole,
     UserWeight,
     WebhookEventLog,
+    Notification,
   ],
   clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
   dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,

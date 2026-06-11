@@ -3,6 +3,7 @@ import cron from 'node-cron';
 
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { storeNews } from '../helpers/articles';
+import { NotificationService } from '../services/notification.service';
 import { ScheduleService } from '../services/schedule.service';
 import { SubscriptionService } from '../services/subscription.service';
 
@@ -23,6 +24,7 @@ export const cronFunctions = async (
           storeNews(em, 3, [1, 2, 3, 4]),
           updatePictureUrls(em),
           setNotActiveUsers(em),
+          new NotificationService(em).cleanOldNotifications(30),
         ]);
       } catch (error) {
         console.error('Error al ejecutar la tarea programada:', error);

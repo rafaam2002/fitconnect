@@ -16,7 +16,6 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
@@ -25,6 +24,7 @@ import {
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
@@ -395,17 +395,17 @@ export class CompanyService extends BaseService {
         { populate: ['user.pushTokens'] }
       );
 
+      const notificationService = new NotificationService(this.em);
       for (const role of adminRoles) {
         const admin = role.user;
-        if (admin?.pushTokens) {
-          for (const tokenEntity of admin.pushTokens) {
-            await sendPushNotification(
-              tokenEntity.token,
-              'Nueva solicitud de unión',
-              `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
-              { type: 'join_request', userId: user.id, companyId: company.id }
-            );
-          }
+        if (admin) {
+          await notificationService.sendToUser(
+            admin.id,
+            'Nueva solicitud de unión',
+            `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
+            { type: 'join_request', userId: user.id, companyId: company.id },
+            company.id
+          );
         }
       }
     } catch (error) {
@@ -575,17 +575,13 @@ export class CompanyService extends BaseService {
     companyName: string,
     companyId: string
   ): Promise<void> {
-    if (!user.pushTokens?.length) return;
-
-    const notifications = user.pushTokens.map(token =>
-      sendPushNotification(
-        token.token,
-        'Solicitud aceptada',
-        `Has sido aceptado en ${companyName}`,
-        { type: 'company_admission', companyId }
-      ).catch(err => console.error('Push notification failed:', err))
+    const notificationService = new NotificationService(this.em);
+    await notificationService.sendToUser(
+      user.id,
+      'Solicitud aceptada',
+      `Has sido aceptado en ${companyName}`,
+      { type: 'company_admission', companyId },
+      companyId
     );
-
-    await Promise.allSettled(notifications);
   }
 }

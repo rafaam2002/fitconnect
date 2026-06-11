@@ -4,6 +4,7 @@ import moment, { Moment } from 'moment';
 import { Schedule } from '../entities/Schedule';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { User } from '../entities/User';
+import { NotificationService } from '../services/notification.service';
 import { CurrentUser } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 
@@ -12,7 +13,6 @@ import {
   InternalServerError,
   UnauthorizedError,
 } from './errors.util';
-import { sendPushNotification } from './notification.util';
 
 /**
  * Crear fecha con tiempo específico
@@ -240,7 +240,7 @@ export const sendScheduleReminders = async (
     console.log(`Found ${upcomingSchedules.length} upcoming schedules.`);
 
     for (const schedule of upcomingSchedules) {
-      await sendScheduleReminderNotifications(schedule);
+      await sendScheduleReminderNotifications(schedule, em);
     }
 
     console.log('✅ Finished sending schedule reminders.');
@@ -250,11 +250,9 @@ export const sendScheduleReminders = async (
   }
 };
 
-/**
- * Enviar notificaciones de recordatorio para un schedule específico
- */
 const sendScheduleReminderNotifications = async (
-  schedule: Schedule
+  schedule: Schedule,
+  em: EntityManager
 ): Promise<void> => {
   try {
     const title = '¡Tu clase está a punto de empezar!';
@@ -273,29 +271,17 @@ const sendScheduleReminderNotifications = async (
       return;
     }
 
-    let notificationsSent = 0;
-
-    for (const user of users) {
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        const tokens = user.pushTokens.getItems();
-        for (const pushToken of tokens) {
-          try {
-            await sendPushNotification(pushToken.token, title, body, data);
-            notificationsSent++;
-          } catch (error) {
-            console.error(
-              `Failed to send notification to token ${pushToken.token}:`,
-              error
-            );
-            // Continuar con el siguiente token
-          }
-        }
-      }
-    }
-
-    console.log(
-      `Sent ${notificationsSent} reminder notifications for schedule ${schedule.id}`
+    const notificationService = new NotificationService(em);
+    const userIds = users.map(user => user.id);
+    await notificationService.sendToUsers(
+      userIds,
+      title,
+      body,
+      data,
+      schedule.company?.id
     );
+
+    console.log(`Sent reminder notifications for schedule ${schedule.id}`);
   } catch (error) {
     console.error(
       `Error sending notifications for schedule ${schedule.id}:`,

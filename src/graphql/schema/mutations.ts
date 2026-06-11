@@ -71,6 +71,8 @@ type Mutation {
     removePushToken(token: String!): DefaultResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshAccessToken(inputToken: String!): LoginResponse!
+    markNotificationAsRead(id: ID!): NotificationResponse!
+    markAllNotificationsAsRead: DefaultResponse!
     
     #-----------------PaymentMethod------------
     createSetupIntent(stripeCustomerId: String!, usage: String): SetupIntentResponse!

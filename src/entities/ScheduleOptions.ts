@@ -12,6 +12,8 @@ export class ScheduleOptions extends BaseEntity {
     | 'isBlocked'
     | 'maxActiveReservations'
     | 'bookingCutoffMinutes'
+    | 'minBookingsRequired'
+    | 'quotaWarningThresholds'
     | 'maxAdvanceBookingDays'
     | 'sameDayBookingAllowed'
     | 'fullOpenHours';
@@ -33,6 +35,9 @@ export class ScheduleOptions extends BaseEntity {
 
   @Property({ default: 0 })
   minBookingsRequired: number;
+
+  @Property({ type: 'json', default: '[]' })
+  quotaWarningThresholds: number[] = [];
 
   @Property({ default: 7 }) // in days
   maxAdvanceBookingDays: number;

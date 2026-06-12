@@ -11625,6 +11625,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "notified_quota_thresholds": {
+          "name": "notified_quota_thresholds",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'[]'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
         }
       },
       "name": "schedule",
@@ -11893,6 +11909,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "integer"
+        },
+        "quota_warning_thresholds": {
+          "name": "quota_warning_thresholds",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'[]'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
         }
       },
       "name": "schedule_options",

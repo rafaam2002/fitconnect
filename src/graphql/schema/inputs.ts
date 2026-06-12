@@ -55,12 +55,13 @@ input CompanyConfigInput {
 }
 
 input ScheduleOptionsInput {
-    maxActiveReservations: Int
-    maxAdvanceBookingDays: Int
-    sameDayBookingAllowed: Boolean
-    fullOpenHours: Int
-    bookingCutoffMinutes: Int
-    minBookingsRequired: Int
+    maxActiveReservations: Int,
+    maxAdvanceBookingDays: Int,
+    sameDayBookingAllowed: Boolean,
+    fullOpenHours: Int,
+    bookingCutoffMinutes: Int,
+    minBookingsRequired: Int,
+    quotaWarningThresholds: [Int],
 }
 
 input UpdateScheduleInput {
@@ -122,12 +123,13 @@ input CreateScheduleInput {
 }
 
 input UpdateScheduleOptionsInput {
-    maxActiveReservations: Int!
-    maxAdvanceBookingDays: Int!
-    sameDayBookingAllowed: Boolean!
-    fullOpenHours: Int!
-    bookingCutoffMinutes: Int!
-    minBookingsRequired: Int!
+    maxActiveReservations: Int!,
+    maxAdvanceBookingDays: Int!,
+    sameDayBookingAllowed: Boolean!,
+    fullOpenHours: Int!,
+    bookingCutoffMinutes: Int!,
+    minBookingsRequired: Int!,
+    quotaWarningThresholds: [Int]!,
 }
 
 input CreateScheduleDevelopmentInput {

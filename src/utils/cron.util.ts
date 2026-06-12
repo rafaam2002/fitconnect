@@ -80,17 +80,22 @@ export const cronFunctions = async (
   cron.schedule(
     '*/30 * * * *', // Every 30 minutes
     async () => {
-      console.log('🚀 Iniciando tarea de eliminacion de horarios vacios...');
+      console.log(
+        '🚀 Iniciando tarea de eliminacion de horarios vacios y alertas de ocupación...'
+      );
       try {
         const scheduleService = new ScheduleService(em.fork());
         await scheduleService.cutOffSchedules();
+        await scheduleService.checkQuotaThresholds();
       } catch (error) {
         console.error(
-          'Error al ejecutar la tarea de eliminacion de horarios vacios:',
+          'Error al ejecutar la tarea de eliminacion de horarios vacios y alertas de ocupación:',
           error
         );
       }
-      console.log('✅ Tarea de eliminacion de horarios vacios completada.');
+      console.log(
+        '✅ Tarea de eliminacion de horarios vacios y alertas de ocupación completada.'
+      );
     },
     {
       timezone: 'Europe/Madrid',

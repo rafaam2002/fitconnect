@@ -1,10 +1,20 @@
-import { Entity, Enum, Index, ManyToOne, Property } from '@mikro-orm/core';
+import {
+  Collection,
+  Entity,
+  Enum,
+  Index,
+  ManyToOne,
+  OneToMany,
+  Property,
+} from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
 import { Customer } from './Customer';
+import { Invoice } from './Invoice';
 import { PaymentMethod } from './PaymentMethod';
 import { Plan } from './Plan';
+import { Transaction } from './Transaction';
 import { User } from './User';
 
 export enum SubscriptionStatus {
@@ -24,6 +34,10 @@ export class Subscription extends BaseEntity {
   @Index()
   user!: User;
 
+  /**
+   * Relación al perfil de facturación del usuario.
+   * Reemplaza a stripeCustomer.
+   */
   @ManyToOne(() => Customer)
   customer!: Customer;
 
@@ -32,6 +46,9 @@ export class Subscription extends BaseEntity {
 
   @ManyToOne(() => PaymentMethod, { nullable: true })
   defaultPaymentMethod?: PaymentMethod;
+
+  @OneToMany(() => Transaction, transaction => transaction.subscription)
+  transactions = new Collection<Transaction>(this);
 
   @Enum(() => SubscriptionStatus)
   @Index()
@@ -59,16 +76,34 @@ export class Subscription extends BaseEntity {
   @Property({ type: 'datetime', nullable: true })
   endedAt?: Date;
 
+  @Property({ type: 'bigint', nullable: true })
+  quantity?: number;
+
+  /**
+   * Fecha en que se debe ejecutar el próximo cobro.
+   * El CRON de billing filtra por este campo cada día.
+   */
   @Property({ type: 'datetime', nullable: true })
+  @Index()
   nextBillingDate?: Date;
 
-  // Nueva: número de intentos de cobro fallidos
+  /**
+   * Contador de intentos de cobro fallidos consecutivos.
+   * Se resetea a 0 cuando un cobro tiene éxito.
+   * La lógica de dunning usa este valor para decidir reintentos o cancelación.
+   */
   @Property({ type: 'smallint', default: 0 })
   failedPaymentAttempts: number = 0;
+
+  @Property({ type: 'json', nullable: true })
+  metadata?: Record<string, any>;
 
   @ManyToOne(() => Company, { nullable: true })
   @Index()
   company: Company;
+
+  @OneToMany(() => Invoice, invoice => invoice.subscription)
+  invoices = new Collection<Invoice>(this);
 
   get isActive(): boolean {
     return [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING].includes(

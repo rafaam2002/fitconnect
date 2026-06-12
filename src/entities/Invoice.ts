@@ -24,7 +24,13 @@ export enum InvoiceStatus {
 
 @Entity()
 export class Invoice extends BaseEntity {
+  /**
+   * Número de factura legible generado internamente.
+   * Formato: INV-YYYY-NNNNN (ej: INV-2025-00042).
+   * Ya no depende de Stripe para este valor.
+   */
   @Property({ length: 50, nullable: true })
+  @Index()
   invoiceNumber?: string;
 
   @ManyToOne(() => User)
@@ -53,8 +59,8 @@ export class Invoice extends BaseEntity {
   @Property({ type: 'bigint', default: 0 })
   amountRemaining: number = 0;
 
-  @Property({ length: 10, default: 'usd' })
-  currency: string = 'usd';
+  @Property({ length: 10, default: 'eur' })
+  currency: string = 'eur';
 
   @Property({ type: 'datetime', nullable: true })
   @Index()
@@ -81,7 +87,6 @@ export class Invoice extends BaseEntity {
   @ManyToOne(() => Company, { nullable: true })
   company: Company;
 
-  // Relaciones
   @OneToMany(() => Transaction, transaction => transaction.invoice)
   transactions = new Collection<Transaction>(this);
 

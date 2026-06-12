@@ -12,6 +12,11 @@ import { PaymentMethod } from './PaymentMethod';
 import { Subscription } from './Subscription';
 import { User } from './User';
 
+/**
+ * Customer representa el perfil de facturación de un usuario.
+ * Reemplaza a StripeCustomer — ya no existe ningún ID externo.
+ * Esta tabla es la fuente de verdad del sistema de billing propio.
+ */
 @Entity()
 export class Customer extends BaseEntity {
   @ManyToOne(() => User, { eager: true, deleteRule: 'cascade' })
@@ -22,8 +27,11 @@ export class Customer extends BaseEntity {
   @Index()
   isActive: boolean = true;
 
-  @Property({ length: 10, default: 'usd' })
-  defaultCurrency: string = 'usd';
+  @Property({ length: 10, default: 'eur' })
+  defaultCurrency: string = 'eur';
+
+  @Property({ type: 'json', nullable: true })
+  metadata?: Record<string, any> | null;
 
   // Relaciones
   @OneToMany(() => PaymentMethod, paymentMethod => paymentMethod.customer)

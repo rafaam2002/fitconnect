@@ -16,18 +16,20 @@ import jwt from 'jsonwebtoken';
 import moment from 'moment-timezone';
 import { WebSocketServer } from 'ws';
 
+import { registerBillingCrons } from './crons/billing.cron';
 import { Company } from './entities/Company';
 import { User } from './entities/User';
 import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { middleware } from './middlewares';
 import { AuthService } from './services/auth.service';
+import { BraintreeProcessor } from './services/braintree.processor';
 import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
 import { deleteAccountHtml, renderPage } from './utils/templates.util';
-import { stripeWebhookRouter } from './webhooks/stripe.webhook';
+import { createBraintreeWebhookRouter } from './webhooks/braintree.webhook';
 
 dotenv.config();
 
@@ -42,6 +44,14 @@ const schema = makeExecutableSchema({ typeDefs, resolvers });
 const path = require('node:path');
 
 const app = express();
+
+const braintree = new BraintreeProcessor({
+  merchantId: process.env.BRAINTREE_MERCHANT_ID!,
+  publicKey: process.env.BRAINTREE_PUBLIC_KEY!,
+  privateKey: process.env.BRAINTREE_PRIVATE_KEY!,
+  sandbox: process.env.BRAINTREE_SANDBOX === 'true',
+});
+
 // ===== 1. MIDDLEWARE PARA INYECTAR EntityManager EN WEBHOOKS =====
 const injectEntityManager = (orm: any) => {
   return (req: any, res: any, next: any) => {
@@ -98,7 +108,7 @@ const startServer = async () => {
   // ===== WEBHOOKS PRIMERO (ANTES DE express.json()) =====
   app.use('/webhooks', webhookCors);
   app.use('/webhooks', injectEntityManager(orm));
-  app.use('/webhooks', stripeWebhookRouter);
+  app.use(createBraintreeWebhookRouter(orm, braintree));
 
   // ===== MIDDLEWARE GENERAL DESPUÉS =====
   app.use(cors());
@@ -240,10 +250,6 @@ const startServer = async () => {
     res.status(200).send(deleteAccountHtml());
   });
 
-  // app.get('/test-sentry', (req, res) => {
-  //   throw new Error('¡HOLA SENTRY! Si ves esto, la conexión funciona.');
-  // });
-
   // ===== APOLLO SERVER =====
   await apolloServer.start();
   app.use(
@@ -333,6 +339,7 @@ const startServer = async () => {
   });
 
   cronFunctions(createRetryingEntityManager(orm));
+  registerBillingCrons(orm, braintree);
 };
 
 startServer();

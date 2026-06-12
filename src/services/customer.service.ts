@@ -4,232 +4,202 @@ import { Customer } from '../entities/Customer';
 import { User } from '../entities/User';
 import { ServiceResponse } from '../types/common.type';
 import {
+  BadRequestError,
   createServiceResponse,
   NotFoundError,
-  ValidationError,
 } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 
 export interface CreateCustomerInput {
   userId: string;
-  email?: string;
-  name?: string;
-  phone?: string;
+  currency?: string;
   metadata?: Record<string, any>;
 }
 
-interface UpdateCustomerInput {
+export interface UpdateCustomerInput {
   customerId: string;
-  email?: string;
-  name?: string;
-  phone?: string;
+  currency?: string;
   metadata?: Record<string, any>;
+  isActive?: boolean;
 }
 
+/**
+ * CustomerService
+ *
+ * Gestiona los perfiles de facturación de los usuarios.
+ * Reemplaza completamente a la integración con Stripe Customers.
+ * No hay llamadas externas — esta tabla es la fuente de verdad.
+ */
 export class CustomerService extends BaseService {
   constructor(em: EntityManager) {
     super(em);
   }
 
-  async findByCustomerId(id: string) {
-    const customer = await this.em.findOne(Customer, {
-      id,
-    });
+  /**
+   * Crea el perfil de facturación para un usuario.
+   * Se llama una vez al registrar al usuario (desde UserService).
+   */
+  public async createCustomer(
+    input: CreateCustomerInput
+  ): Promise<ServiceResponse> {
+    if (!input.userId) {
+      throw new BadRequestError('User ID is required');
+    }
 
-    if (!customer) throw new Error('Stripe Customer not found');
-
-    return customer;
-  }
-
-  async createCustomer(input: CreateCustomerInput): Promise<ServiceResponse> {
-    // Buscar usuario
-    const user = await this.em.findOne(
-      User,
-      { id: input.userId },
-      { filters: false }
-    );
-
+    const user = await this.em.findOne(User, { id: input.userId });
     if (!user) {
-      throw new Error('Customer');
+      throw new NotFoundError('User');
     }
 
-    const existingCustomer = await this.em.findOne(
-      Customer,
-      {
-        user,
-        isActive: true,
-      },
-      { filters: false }
-    );
-
-    if (existingCustomer) {
-      throw new ValidationError('User already has an active Stripe customer');
-    }
-
-    // Crear en base de datos
-    const customerEntity: any = this.em.create(Customer, {
-      user,
+    // Evitar duplicados: un usuario solo puede tener un Customer activo
+    const existing = await this.em.findOne(Customer, {
+      user: input.userId,
       isActive: true,
-      defaultCurrency: 'EUR',
     });
 
-    user.customer = customerEntity.customerId;
-
-    this.em.persist(customerEntity);
-    await this.em.flush();
-
-    return createServiceResponse(
-      200,
-      'Customer has been created',
-      true,
-      customerEntity
-    );
-  }
-
-  async updateCustomer(input: UpdateCustomerInput): Promise<ServiceResponse> {
-    const customer = await this.em.findOne(
-      Customer,
-      {
-        isActive: true,
-      },
-      { filters: false }
-    );
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
-
-    try {
-      // Actualizar en Stripe
-      await this.stripe.customers.update(input.customerId, {
-        email: input.email,
-        name: input.name,
-        phone: input.phone,
-        metadata: input.metadata,
-      });
-
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Customer has been updated',
-        true,
-        customer
-      );
-    } catch (error) {
-      this.handleStripeError(error);
-    }
-  }
-
-  async getCustomer(id: string): Promise<ServiceResponse> {
-    const customer = await this.em.findOne(
-      Customer,
-      {
-        id,
-        isActive: true,
-      },
-      {
-        populate: ['user', 'paymentMethods', 'subscriptions'],
-      }
-    );
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
-    return createServiceResponse(
-      200,
-      'Customer has been fetched successfully',
-      true,
-      customer
-    );
-  }
-
-  async getCustomerByUserId(userId: string): Promise<ServiceResponse> {
-    const user = await this.em.findOne(User, { id: userId });
-    if (!user) throw new NotFoundError('Customer');
-
-    const customer = await this.em.findOne(
-      Customer,
-      {
-        user,
-        isActive: true,
-      },
-      {
-        populate: ['paymentMethods', 'subscriptions'],
-      }
-    );
-
-    return createServiceResponse(
-      200,
-      'Customer has been fetched successfully',
-      true,
-      customer
-    );
-  }
-
-  async deactivateCustomer(customerId: string): Promise<ServiceResponse> {
-    const customer = await this.em.findOne(Customer, {
-      id: customerId,
-    });
-
-    if (!customer) {
-      throw new NotFoundError('Stripe customer not found');
-    }
-    if (customer.isActive) customer.isActive = false;
-    else if (!customer.isActive) {
-      console.log(`Customer ${customerId} already inactive`);
-    }
-    await this.em.flush();
-
-    return createServiceResponse(
-      200,
-      'Customer has been deactivated',
-      true,
-      customer
-    );
-  }
-
-  async syncCustomerFromStripe(id: string): Promise<Customer> {
-    // Obtener datos de Stripe
-    const stripeCustomer: any = await this.stripe.customers.retrieve(id);
-
-    if (stripeCustomer.deleted) {
-      throw new Error('Customer was deleted in Stripe');
-    }
-
-    // Buscar en BD
-    let customer: any = await this.em.findOne(Customer, {
-      id,
-    });
-
-    if (!customer) {
-      // Si no existe, necesitamos encontrar el usuario por metadata o email
-      const userId = stripeCustomer.metadata?.userId;
-      if (!userId) {
-        throw new Error('Cannot sync customer: no userId in metadata');
-      }
-
-      const user = await this.em.findOne(User, { id: userId });
-      if (!user) {
-        throw new Error('User not found for sync');
-      }
-
-      customer = this.em.create(Customer, {
-        id,
-        user,
-        isActive: true,
-        defaultCurrency: 'EUR',
+    if (existing) {
+      return createServiceResponse(200, 'Customer already exists', true, {
+        customer: existing,
       });
     }
 
-    // Actualizar datos
-    customer.metadata = stripeCustomer.metadata;
-    customer.isActive = true;
+    const customer = this.em.create(Customer, {
+      user,
+      defaultCurrency: input.currency ?? 'eur',
+      isActive: true,
+      metadata: input.metadata ?? null,
+    });
 
     this.em.persist(customer);
     await this.em.flush();
 
+    return createServiceResponse(201, 'Customer created successfully', true, {
+      customer,
+    });
+  }
+
+  /**
+   * Devuelve el Customer activo de un usuario.
+   * La mayoría de servicios de billing parten de aquí.
+   */
+  public async getCustomerByUserId(userId: string): Promise<ServiceResponse> {
+    if (!userId) {
+      throw new BadRequestError('User ID is required');
+    }
+
+    const customer = await this.em.findOne(
+      Customer,
+      { user: userId, isActive: true },
+      { populate: ['user', 'paymentMethods', 'subscriptions'] }
+    );
+
+    if (!customer) {
+      throw new NotFoundError('Customer');
+    }
+
+    return createServiceResponse(200, 'Customer fetched successfully', true, {
+      customer,
+    });
+  }
+
+  /**
+   * Devuelve el Customer por su propio ID.
+   */
+  public async getCustomerById(customerId: string): Promise<ServiceResponse> {
+    if (!customerId) {
+      throw new BadRequestError('Customer ID is required');
+    }
+
+    const customer = await this.em.findOne(
+      Customer,
+      { id: customerId },
+      { populate: ['user', 'paymentMethods', 'subscriptions'] }
+    );
+
+    if (!customer) {
+      throw new NotFoundError('Customer');
+    }
+
+    return createServiceResponse(200, 'Customer fetched successfully', true, {
+      customer,
+    });
+  }
+
+  /**
+   * Actualiza metadatos o moneda del Customer.
+   */
+  public async updateCustomer(
+    input: UpdateCustomerInput
+  ): Promise<ServiceResponse> {
+    if (!input.customerId) {
+      throw new BadRequestError('Customer ID is required');
+    }
+
+    const customer = await this.em.findOne(Customer, { id: input.customerId });
+    if (!customer) {
+      throw new NotFoundError('Customer');
+    }
+
+    if (input.currency !== undefined) {
+      customer.defaultCurrency = input.currency;
+    }
+    if (input.isActive !== undefined) {
+      customer.isActive = input.isActive;
+    }
+    if (input.metadata !== undefined) {
+      customer.metadata = { ...customer.metadata, ...input.metadata };
+    }
+
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Customer updated successfully', true, {
+      customer,
+    });
+  }
+
+  /**
+   * Obtiene el Customer activo de un usuario, o lo crea si no existe.
+   * Útil en flujos donde el Customer debería existir pero puede faltar por datos legacy.
+   */
+  public async getOrCreateCustomer(user: User): Promise<Customer> {
+    let customer = await this.em.findOne(Customer, {
+      user: user.id,
+      isActive: true,
+    });
+
+    if (!customer) {
+      customer = this.em.create(Customer, {
+        user,
+        defaultCurrency: 'eur',
+        isActive: true,
+      });
+      this.em.persist(customer);
+      await this.em.flush();
+    }
+
     return customer;
+  }
+
+  /**
+   * Marca un Customer como inactivo (soft-delete).
+   * No elimina sus suscripciones ni pagos — solo desactiva el perfil.
+   */
+  public async deactivateCustomer(
+    customerId: string
+  ): Promise<ServiceResponse> {
+    const customer = await this.em.findOne(Customer, { id: customerId });
+    if (!customer) {
+      throw new NotFoundError('Customer');
+    }
+
+    customer.isActive = false;
+    await this.em.flush();
+
+    return createServiceResponse(
+      200,
+      'Customer deactivated successfully',
+      true
+    );
   }
 }

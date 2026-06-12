@@ -1,316 +1,102 @@
-import { PaymentMethodService } from '../../services/payment.method.service';
+import { PlanService } from '../../services/plan.service';
 import { ContextProps } from '../../types/resolvers';
 import { handleError } from '../../utils/errors.util';
+import { plansPermissions } from '../../utils/permissions';
+import { withPermissions } from '../middlewares/permissions';
 
 // ===== QUERY RESOLVERS =====
 
-export const getPaymentMethod = async (
-  parent: any,
-  args: { stripePaymentMethodId: string },
-  context: ContextProps
-) => {
+export const getPlan = async (_: any, args: any, context: ContextProps) => {
   try {
-    const { em } = context;
-    const { stripePaymentMethodId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getPaymentMethod(stripePaymentMethodId);
+    const planService = new PlanService(context.em);
+    return await planService.getPlan(args.planId);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const listPaymentMethods = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
+export const listPlans = async (_: any, args: any, context: ContextProps) => {
   try {
-    const { em } = context;
-    const { customerId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.listPaymentMethods(customerId);
+    const planService = new PlanService(context.em);
+    const onlyActive = args.onlyActive ?? true;
+    const showGlobal = args.showGlobal ?? false;
+    return await planService.listPlans(onlyActive, showGlobal);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const listUserPaymentMethods = async (
-  parent: any,
-  args: any,
+export const getPlansByCompany = async (
+  _: any,
+  args: { companyId: string },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.listUserPaymentMethods(userId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const getDefaultPaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { customerId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getDefaultPaymentMethod(customerId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const getUserDefaultPaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { userId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getUserDefaultPaymentMethod(userId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const getExpiredPaymentMethods = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { customerId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getExpiredPaymentMethods(customerId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const getPaymentMethodsStats = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { customerId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.getPaymentMethodsStats(customerId);
+    const planService = new PlanService(context.em);
+    return await planService.getPlansByCompany(args.companyId);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
 // ===== MUTATION RESOLVERS =====
-export const createSetupIntent = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { customerId, usage, metadata } = args;
 
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.createSetupIntent({
-      customerId,
-      usage: usage || 'on_session',
-      metadata: metadata || {},
+export const createPlan = async (_: any, args: any, context: ContextProps) => {
+  try {
+    const planService = new PlanService(context.em);
+    return await planService.createPlan({
+      ...args.plan,
+      companyId: context.currentUser.activeCompanyId,
     });
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const confirmSetupIntent = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
+export const updatePlan = async (_: any, args: any, context: ContextProps) => {
   try {
-    const { em } = context;
-    const { setupIntentId, setAsDefault } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.confirmSetupIntent({
-      setupIntentId,
-      setAsDefault,
-    });
+    const planService = new PlanService(context.em);
+    return await planService.updatePlan(args.plan);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const attachPaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
+export const removePlan = async (_: any, args: any, context: ContextProps) => {
   try {
-    const { em } = context;
-    const { input } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.attachPaymentMethod(input);
+    const planService = new PlanService(context.em);
+    return await planService.deactivatePlan(args.planId);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const removePaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
+export const archivePlan = async (_: any, args: any, context: ContextProps) => {
   try {
-    const { em } = context;
-    const { paymentId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.removePaymentMethod(paymentId);
+    const planService = new PlanService(context.em);
+    return await planService.archivePlan(args.planId);
   } catch (error: any) {
     return handleError(error);
   }
 };
 
-export const setDefaultPaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { paymentMethodId } = args;
+// ===== EXPORT RESOLVERS OBJECT =====
 
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.setDefaultPaymentMethod(paymentMethodId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const updatePaymentMethodMetadata = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { paymentMethodId, metadata } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.updatePaymentMethodMetadata(
-      paymentMethodId,
-      metadata
-    );
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const markPaymentMethodAsExpired = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { paymentMethodId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.markPaymentMethodAsExpired(
-      paymentMethodId
-    );
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const cleanupExpiredPaymentMethods = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { customerId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.cleanupExpiredPaymentMethods(customerId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const syncPaymentMethodFromStripe = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { paymentMethodId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.syncPaymentMethodFromStripe(
-      paymentMethodId
-    );
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const validatePaymentMethod = async (
-  parent: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { paymentMethodId } = args;
-
-    const paymentMethodService = new PaymentMethodService(em);
-    return await paymentMethodService.validatePaymentMethod(paymentMethodId);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-// ===== EXPORT RESOLVERS OBJECT FINAL =====
-export const paymentMethodResolvers = {
+export const planResolvers = {
   Query: {
-    getPaymentMethod,
-    listPaymentMethods,
-    listUserPaymentMethods,
-    getDefaultPaymentMethod,
-    getUserDefaultPaymentMethod,
-    getExpiredPaymentMethods,
-    getPaymentMethodsStats,
+    getPlan: withPermissions(plansPermissions.READ, getPlan),
+    listPlans,
+    getPlansByCompany: withPermissions(
+      plansPermissions.READ,
+      getPlansByCompany
+    ),
+    // ELIMINADOS: getPlanByStripeId
   },
   Mutation: {
-    createSetupIntent,
-    confirmSetupIntent,
-    attachPaymentMethod,
-    removePaymentMethod,
-    setDefaultPaymentMethod,
-    updatePaymentMethodMetadata,
-    markPaymentMethodAsExpired,
-    validatePaymentMethod,
-    cleanupExpiredPaymentMethods,
+    createPlan: withPermissions(plansPermissions.CREATE, createPlan),
+    updatePlan: withPermissions(plansPermissions.UPDATE, updatePlan),
+    removePlan: withPermissions(plansPermissions.DELETE, removePlan),
+    archivePlan: withPermissions(plansPermissions.DELETE, archivePlan),
+    // ELIMINADOS: syncPlanFromStripe, syncPlanFromProduct, archivePlanFromProduct
   },
 };

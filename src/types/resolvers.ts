@@ -1,9 +1,23 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { User } from '../entities/User';
+import { BraintreeProcessor } from '../services/braintree.processor';
 
 import { CurrentUser } from './common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
+
+export type ContextProps = {
+  em: EntityManager;
+  currentUser: CurrentUser;
+  /**
+   * Instancia del procesador de pagos activo.
+   * Tipado como BraintreeProcessor para que braintree.resolver.ts
+   * pueda acceder a generateClientToken() y vaultPaymentMethod(),
+   * que son métodos específicos de Braintree fuera del interface genérico.
+   * El resto de servicios lo reciben como PaymentProcessor (interface base).
+   */
+  paymentProcessor: BraintreeProcessor;
+};
 
 export type UserProps = {
   user: User & {
@@ -29,11 +43,6 @@ export type UserPictureProps = {
 export type UpdateCompanyPictureProps = {
   companyId: string;
   picture: string;
-};
-
-export type ContextProps = {
-  em: EntityManager;
-  currentUser: CurrentUser;
 };
 
 export type MessageProps = {

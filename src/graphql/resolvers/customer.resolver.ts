@@ -4,7 +4,7 @@ import { handleError } from '../../utils/errors.util';
 // ===== QUERY RESOLVERS =====
 export const getCustomer = async (parent: any, args: any, context: any) => {
   const customerService = new CustomerService(context.em);
-  return await customerService.getCustomer(args.customerId);
+  return await customerService.getCustomerById(args.customerId);
 };
 
 export const getCustomerByUserId = async (

@@ -6,15 +6,15 @@ import { handleError } from '../../utils/errors.util';
 
 export const getTransaction = async (
   _: any,
-  args: any,
+  args: { transactionId: string },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { transactionId } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.getTransaction(transactionId);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.getTransaction(args.transactionId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -22,15 +22,18 @@ export const getTransaction = async (
 
 export const listUserTransactions = async (
   _: any,
-  args: any,
+  args: { userId: string; limit?: number },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId, limit } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.listUserTransactions(userId, limit);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.listUserTransactions(
+      args.userId,
+      args.limit
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -38,18 +41,18 @@ export const listUserTransactions = async (
 
 export const getTransactionsByStatus = async (
   _: any,
-  args: any,
+  args: { userId: string; status: any; limit?: number },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId, status, limit } = args;
-
-    const transactionService = new TransactionService(em);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
     return await transactionService.getTransactionsByStatus(
-      userId,
-      status,
-      limit
+      args.userId,
+      args.status,
+      args.limit
     );
   } catch (error: any) {
     return handleError(error);
@@ -58,15 +61,18 @@ export const getTransactionsByStatus = async (
 
 export const getSuccessfulTransactions = async (
   _: any,
-  args: any,
+  args: { userId: string; limit?: number },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId, limit } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.getSuccessfulTransactions(userId, limit);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.getSuccessfulTransactions(
+      args.userId,
+      args.limit
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -74,15 +80,18 @@ export const getSuccessfulTransactions = async (
 
 export const getFailedTransactions = async (
   _: any,
-  args: any,
+  args: { userId: string; limit?: number },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId, limit } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.getFailedTransactions(userId, limit);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.getFailedTransactions(
+      args.userId,
+      args.limit
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -90,15 +99,15 @@ export const getFailedTransactions = async (
 
 export const getUserTransactionsSummary = async (
   _: any,
-  args: any,
+  args: { userId: string },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { userId } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.getUserTransactionsSummary(userId);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.getUserTransactionsSummary(args.userId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -108,15 +117,15 @@ export const getUserTransactionsSummary = async (
 
 export const createCharge = async (
   _: any,
-  args: any,
+  args: { input: any },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { input } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.createCharge(input);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.createCharge(args.input);
   } catch (error: any) {
     return handleError(error);
   }
@@ -124,15 +133,15 @@ export const createCharge = async (
 
 export const refundTransaction = async (
   _: any,
-  args: any,
+  args: { input: any },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { input } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.refundTransaction(input);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.refundTransaction(args.input);
   } catch (error: any) {
     return handleError(error);
   }
@@ -140,15 +149,15 @@ export const refundTransaction = async (
 
 export const retryFailedTransaction = async (
   _: any,
-  args: any,
+  args: { transactionId: string },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { transactionId } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.retryFailedTransaction(transactionId);
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await transactionService.retryFailedTransaction(args.transactionId);
   } catch (error: any) {
     return handleError(error);
   }
@@ -156,34 +165,18 @@ export const retryFailedTransaction = async (
 
 export const markTransactionAsReconciled = async (
   _: any,
-  args: any,
+  args: { transactionId: string; reconciledBy?: string },
   context: ContextProps
 ) => {
   try {
-    const { em } = context;
-    const { transactionId, reconciledBy } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.markTransactionAsReconciled(
-      transactionId,
-      reconciledBy
+    const transactionService = new TransactionService(
+      context.em,
+      context.paymentProcessor
     );
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
-export const syncTransactionFromStripe = async (
-  _: any,
-  args: any,
-  context: ContextProps
-) => {
-  try {
-    const { em } = context;
-    const { stripeChargeId } = args;
-
-    const transactionService = new TransactionService(em);
-    return await transactionService.syncTransactionFromStripe(stripeChargeId);
+    return await transactionService.markTransactionAsReconciled(
+      args.transactionId,
+      args.reconciledBy
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -205,6 +198,6 @@ export const transactionResolvers = {
     refundTransaction,
     retryFailedTransaction,
     markTransactionAsReconciled,
-    //syncTransactionFromStripe,
+    // ELIMINADOS: syncTransactionFromStripe
   },
 };

@@ -17,6 +17,15 @@ export enum PaymentMethodStatus {
 
 @Entity()
 export class PaymentMethod extends BaseEntity {
+  /**
+   * Token opaco devuelto por el procesador de pagos externo (Redsys, Braintree, Adyen…).
+   * NUNCA almacenamos datos de tarjeta en crudo — este token es la referencia segura
+   * que el procesador nos permite guardar para cobros futuros (card-on-file).
+   */
+  @Property({ length: 200, nullable: true })
+  @Index()
+  externalToken?: string;
+
   @ManyToOne(() => Customer)
   @Index()
   customer!: Customer;
@@ -27,7 +36,7 @@ export class PaymentMethod extends BaseEntity {
   @Enum(() => PaymentMethodStatus)
   status: PaymentMethodStatus = PaymentMethodStatus.ACTIVE;
 
-  // Datos seguros de tarjeta (NO datos sensibles)
+  // Datos seguros de visualización (NO datos sensibles)
   @Property({ length: 20, nullable: true })
   @Index()
   brand?: string; // visa, mastercard, etc.
@@ -44,9 +53,13 @@ export class PaymentMethod extends BaseEntity {
   @Index()
   expiryYear?: number;
 
+  /**
+   * Fingerprint devuelto por el procesador para detectar tarjetas duplicadas.
+   * Si el procesador elegido no lo provee, se puede calcular como hash(last4+month+year+brand).
+   */
   @Property({ length: 100, nullable: true })
   @Index()
-  fingerprint?: string; // Para detectar duplicados
+  fingerprint?: string;
 
   @Property({ length: 50, nullable: true })
   country?: string;
@@ -54,8 +67,8 @@ export class PaymentMethod extends BaseEntity {
   @Property({ type: 'boolean', default: false })
   isDefault: boolean = false;
 
-  @Property({ length: 200, nullable: true })
-  externalToken?: string;
+  @Property({ type: 'json', nullable: true })
+  metadata?: Record<string, unknown>;
 
   get displayName(): string {
     if (this.type === PaymentMethodType.CARD && this.brand && this.last4) {

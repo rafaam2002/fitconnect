@@ -6,9 +6,9 @@ interface BasicResponse {
 }
 
 type DefaultResponse implements BasicResponse {
-  code: String!
-  success: Boolean!
-  message: String!
+    code: String!
+    success: Boolean!
+    message: String!
 }
 
 type PresignedUrlResponse implements BasicResponse {
@@ -40,13 +40,12 @@ type SchedulesStats {
     ratio: Float!
 }
 
-
 type SchedulesStatsResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
     stats: [[SchedulesStats]]!
-} 
+}
 
 type SubscriptionsStats {
     planId: String!
@@ -87,7 +86,7 @@ type UserResponse implements BasicResponse {
     groupBy: GroupUser
 }
 
-type ScheduleResponse implements BasicResponse{
+type ScheduleResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -95,7 +94,7 @@ type ScheduleResponse implements BasicResponse{
     schedules: [Schedule]
 }
 
-type ScheduleResumeResponse implements BasicResponse{
+type ScheduleResumeResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -103,14 +102,14 @@ type ScheduleResumeResponse implements BasicResponse{
     scheduleOptions: ScheduleOptions
 }
 
-type ScheduleOptionsResponse implements BasicResponse{
+type ScheduleOptionsResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
     scheduleOptions: ScheduleOptions
 }
 
-type ScheduleProgrammedResponse implements BasicResponse{
+type ScheduleProgrammedResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -118,7 +117,7 @@ type ScheduleProgrammedResponse implements BasicResponse{
     schedulesProgrammed: [ScheduleProgrammed]
 }
 
-type LoginResponse implements BasicResponse{
+type LoginResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -128,7 +127,7 @@ type LoginResponse implements BasicResponse{
     tokens: Tokens
 }
 
-type MeResponse implements BasicResponse{
+type MeResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -136,7 +135,7 @@ type MeResponse implements BasicResponse{
     companies: [Company]
 }
 
-type CompanyResponse implements BasicResponse{
+type CompanyResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -144,7 +143,7 @@ type CompanyResponse implements BasicResponse{
     companies: [Company]
 }
 
-type NotificationResponse implements BasicResponse{
+type NotificationResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -152,14 +151,7 @@ type NotificationResponse implements BasicResponse{
     notifications: [Notification]
 }
 
-type ScheduleOptionsResponse implements BasicResponse{
-   code: String!
-    success: Boolean!
-    message: String!
-    scheduleOptions: ScheduleOptions
-}
-
-type PollResponse implements BasicResponse{
+type PollResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
@@ -172,29 +164,13 @@ type ConversationResponse {
     hasMore: Boolean
 }
 
-type MessageResponse implements BasicResponse{
+type MessageResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
     sms: Message
     conversations: [[Message]]
     conversation: ConversationResponse
-}
-
-type PlanResponse implements BasicResponse{
-    code: String!
-    success: Boolean!
-    message: String!
-    plan: Plan
-    plans: [Plan]
-}
-
-type SubscriptionResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
-    subscription: Subscription
-    subscriptions: [Subscription]
 }
 
 type IdResponse {
@@ -227,48 +203,43 @@ type SendNotificationResponse implements BasicResponse {
     message: String!
 }
 
-type AddCreditCardResponse implements BasicResponse {
+type GlobalSystemStatsResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
+    totalUsers: Int
+    totalCompanies: Int
 }
 
-type CardResponse implements BasicResponse {
+# ── BILLING RESPONSES ─────────────────────────────────────────────────
+
+type BraintreeClientTokenData {
+    clientToken: String!
+}
+
+type BraintreeClientTokenResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    cards: [Card]
+    data: BraintreeClientTokenData
 }
 
 type CustomerResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    customers: [Customer]
     customer: Customer
+    customers: [Customer]
 }
 
 type PaymentMethodResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
+    paymentMethod: PaymentMethod
     paymentMethods: [PaymentMethod]
-    paymentMethod: PaymentMethod
-}
-
-type SetupIntentResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
-    clientSecret: String          
-    setupIntentId: String
-}
-
-type AttachPaymentMethodResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
-    paymentMethod: PaymentMethod
+    isValid: Boolean
+    errors: [String]
 }
 
 type StatsResponse implements BasicResponse {
@@ -278,20 +249,70 @@ type StatsResponse implements BasicResponse {
     stats: Stats
 }
 
+type PlanResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    plan: Plan
+    plans: [Plan]
+}
+
+type SubscriptionHistoryEntry {
+    event: String!
+    actor: String!
+    detail: String!
+    timestamp: String!
+}
+
+type SubscriptionHistoryResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    history: [SubscriptionHistoryEntry]
+}
+
+type SubscriptionResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    subscription: Subscription
+    subscriptions: [Subscription]
+}
+
+type InvoiceResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    invoice: Invoice
+    invoices: [Invoice]
+}
+
+type InvoiceStatsData {
+    total: Int!
+    paid: Int!
+    pending: Int!
+    overdue: Int!
+    totalAmount: Float!
+    paidAmount: Float!
+    pendingAmount: Float!
+    overdueAmount: Float!
+}
+
+type InvoiceStatsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    stats: InvoiceStatsData
+}
+
 type TransactionResponse implements BasicResponse {
     code: String!
     success: Boolean!
     message: String!
-    transactions: [Transaction]
     transaction: Transaction
+    transactions: [Transaction]
     summary: JSON
 }
 
-type GlobalSystemStatsResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
-    totalUsers:Int
-    totalCompanies: Int
-}
+
 `;

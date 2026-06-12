@@ -25,6 +25,15 @@ export enum TransactionStatus {
 
 @Entity()
 export class Transaction extends BaseEntity {
+  /**
+   * ID de la operación en el procesador externo (Redsys, Braintree, Adyen…).
+   * Opcional — en operaciones internas puede quedar vacío.
+   * Reemplaza a stripeChargeId y stripePaymentIntentId.
+   */
+  @Property({ length: 200, nullable: true })
+  @Index()
+  externalTransactionId?: string;
+
   @ManyToOne(() => User)
   @Index()
   user!: User;
@@ -56,8 +65,8 @@ export class Transaction extends BaseEntity {
   @Property({ type: 'bigint', default: 0 })
   amountRefunded: number = 0;
 
-  @Property({ length: 10, default: 'usd' })
-  currency: string = 'usd';
+  @Property({ length: 10, default: 'eur' })
+  currency: string = 'eur';
 
   @Property({ type: 'text', nullable: true })
   description?: string;

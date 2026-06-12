@@ -6,7 +6,6 @@ export interface LoginPermissionsContext {
   plan: {
     id: string;
     name: string;
-    stripePriceId: string;
     amount: number;
     currency: string;
     interval: string;

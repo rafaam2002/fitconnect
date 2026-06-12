@@ -185,7 +185,7 @@ input PlanFilterInput {
 # ── BILLING ──────────────────────────────────────────────────────────
 
 """
-Creación de un plan. Sin IDs de Stripe — el sistema genera su propio ID.
+Creación de un plan. el sistema genera su propio ID.
 """
 input CreatePlanInput {
     name: String!

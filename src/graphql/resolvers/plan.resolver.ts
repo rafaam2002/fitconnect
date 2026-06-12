@@ -90,13 +90,11 @@ export const planResolvers = {
       plansPermissions.READ,
       getPlansByCompany
     ),
-    // ELIMINADOS: getPlanByStripeId
   },
   Mutation: {
     createPlan: withPermissions(plansPermissions.CREATE, createPlan),
     updatePlan: withPermissions(plansPermissions.UPDATE, updatePlan),
     removePlan: withPermissions(plansPermissions.DELETE, removePlan),
     archivePlan: withPermissions(plansPermissions.DELETE, archivePlan),
-    // ELIMINADOS: syncPlanFromStripe, syncPlanFromProduct, archivePlanFromProduct
   },
 };

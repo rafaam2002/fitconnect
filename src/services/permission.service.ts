@@ -24,15 +24,6 @@ interface CreatePermissionInput {
   description?: string;
 }
 
-/**
- * PermissionService
- *
- * Sin cambios de lógica respecto a la versión original.
- * No tenía ninguna dependencia de Stripe — solo se actualiza
- * la referencia a Plan que en el contexto de permisos sigue igual,
- * y se elimina cualquier mención a stripePriceId en los objetos de respuesta
- * (ahora solo se expone el ID interno del plan).
- */
 export class PermissionService extends BaseService {
   public readonly coachPermissionNames = [
     'schedules:manage',
@@ -163,11 +154,6 @@ export class PermissionService extends BaseService {
     await this.em.flush();
   }
 
-  /**
-   * Sincroniza permisos desde metadata.
-   * El formato esperado: { permissions: "users:create,users:read,schedules:manage" }
-   * Ya no viene de Stripe metadata — puede venir de la BD o de una petición manual.
-   */
   async syncPermissionsFromMetadata(
     planId: string,
     metadata: Record<string, any>

@@ -100,9 +100,9 @@ const startServer = async () => {
   console.log('👤 Usuario:', orm.config.get('user'));
 
   const webhookCors = cors({
-    origin: '*', // Stripe puede llamar desde diferentes IPs
+    origin: '*',
     methods: ['POST'],
-    allowedHeaders: ['content-type', 'stripe-signature'],
+    allowedHeaders: ['content-type'],
   });
 
   // ===== WEBHOOKS PRIMERO (ANTES DE express.json()) =====
@@ -318,7 +318,6 @@ const startServer = async () => {
   app.use((error: any, req: any, res: any, _: any) => {
     console.error('Global error handler:', error);
     if (req.path.startsWith('/webhooks')) {
-      // Para webhooks, responder con formato que Stripe espera
       return res.status(500).json({
         error: 'Internal server error',
         timestamp: new Date().toISOString(),
@@ -331,9 +330,6 @@ const startServer = async () => {
   httpServer.listen(port, () => {
     console.log(`🚀 Server ready at http://localhost:${port}/`);
     console.log(`🚀 GraphQL ready at http://localhost:${port}/`);
-    console.log(
-      `🚀 Webhooks ready at http://localhost:${port}/webhooks/stripe`
-    );
     console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
     console.log(`🩺 Health check at http://localhost:${port}/health`);
   });

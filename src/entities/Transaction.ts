@@ -28,7 +28,6 @@ export class Transaction extends BaseEntity {
   /**
    * ID de la operación en el procesador externo (Redsys, Braintree, Adyen…).
    * Opcional — en operaciones internas puede quedar vacío.
-   * Reemplaza a stripeChargeId y stripePaymentIntentId.
    */
   @Property({ length: 200, nullable: true })
   @Index()

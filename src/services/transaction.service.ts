@@ -46,7 +46,6 @@ export interface RefundTransactionInput {
  * Delega la ejecución real del cobro/reembolso al PaymentProcessor inyectado,
  * manteniendo en BD el registro canónico de cada operación.
  *
- * Ya no existe ninguna referencia a Stripe PaymentIntents ni Charges.
  */
 export class TransactionService extends BaseService {
   constructor(em: EntityManager, paymentProcessor: PaymentProcessor) {

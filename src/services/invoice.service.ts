@@ -31,7 +31,6 @@ export interface CreateInvoiceInput {
  * InvoiceService
  *
  * Gestiona el ciclo de vida de las facturas de forma completamente autónoma.
- * Ya no existe ninguna referencia a Stripe Invoices.
  *
  * Las facturas las crea el propio sistema (via SubscriptionService/BillingCycleService)
  * y se numeran con un secuencial interno.

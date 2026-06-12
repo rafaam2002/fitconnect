@@ -36,7 +36,6 @@ export class Subscription extends BaseEntity {
 
   /**
    * Relación al perfil de facturación del usuario.
-   * Reemplaza a stripeCustomer.
    */
   @ManyToOne(() => Customer)
   customer!: Customer;

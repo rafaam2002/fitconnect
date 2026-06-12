@@ -35,7 +35,7 @@ import { S3Service } from './s3.service';
  * Gestiona toda la lógica relacionada con los usuarios.
  * La única diferencia respecto a la versión anterior es que
  * el registro de cliente de billing pasa a ser un Customer propio
- * en lugar de un Stripe Customer.
+ *
  * El resto de la lógica (roles, permisos, auth, S3…) no cambia.
  */
 export class UserService extends BaseService {
@@ -296,7 +296,6 @@ export class UserService extends BaseService {
       this.em.persist(newUser);
       await this.em.flush();
 
-      // Crear el perfil de facturación interno (reemplaza a createStripeCustomer)
       await this.customerService.createCustomer({
         userId: newUser.id,
         currency: 'eur',

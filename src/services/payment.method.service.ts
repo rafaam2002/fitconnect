@@ -39,13 +39,6 @@ export interface TokenizeAndAddCardInput {
   setAsDefault?: boolean;
 }
 
-/**
- * PaymentMethodService
- *
- * Gestiona los métodos de pago almacenados (card-on-file).
- * No llama a ninguna API de Stripe — trabaja con tokens del procesador elegido
- * y con los datos de la propia BD.
- */
 export class PaymentMethodService extends BaseService {
   constructor(em: EntityManager, paymentProcessor?: PaymentProcessor) {
     super(em, paymentProcessor);

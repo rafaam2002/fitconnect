@@ -198,6 +198,5 @@ export const transactionResolvers = {
     refundTransaction,
     retryFailedTransaction,
     markTransactionAsReconciled,
-    // ELIMINADOS: syncTransactionFromStripe
   },
 };

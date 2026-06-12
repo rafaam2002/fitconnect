@@ -35,13 +35,6 @@ export interface UpdatePlanInput {
   isActive?: boolean;
 }
 
-/**
- * PlanService
- *
- * Gestiona los planes de suscripción de forma completamente autónoma.
- * Ya no existe ninguna referencia a Stripe Products ni Prices.
- * Los planes se crean, actualizan y archivan directamente en la BD.
- */
 export class PlanService extends BaseService {
   private readonly permissionService: PermissionService;
 

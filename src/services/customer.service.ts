@@ -28,7 +28,6 @@ export interface UpdateCustomerInput {
  * CustomerService
  *
  * Gestiona los perfiles de facturación de los usuarios.
- * Reemplaza completamente a la integración con Stripe Customers.
  * No hay llamadas externas — esta tabla es la fuente de verdad.
  */
 export class CustomerService extends BaseService {

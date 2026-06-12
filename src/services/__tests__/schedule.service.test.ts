@@ -7,9 +7,6 @@ import { ScheduleState, UserRoleEnum } from '../../types/enums';
 import { ValidationError } from '../../utils/errors.util';
 import { ScheduleService } from '../schedule.service';
 
-// Set environment variable for Stripe to prevent constructor crash
-process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
-
 // Helper to create mock collection
 function createMockCollection<T>(initialItems: T[] = []): any {
   let items = [...initialItems];

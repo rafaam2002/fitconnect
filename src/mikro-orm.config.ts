@@ -25,7 +25,6 @@ import { Transaction } from './entities/Transaction';
 import { User } from './entities/User';
 import { UserRole } from './entities/UserRole';
 import { UserWeight } from './entities/UserWeight';
-import { WebhookEventLog } from './entities/WebhookEventLog';
 
 dotenv.config();
 
@@ -56,7 +55,6 @@ export default {
     User,
     UserRole,
     UserWeight,
-    WebhookEventLog,
   ],
   clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
   dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,

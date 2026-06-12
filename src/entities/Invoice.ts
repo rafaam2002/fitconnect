@@ -24,11 +24,6 @@ export enum InvoiceStatus {
 
 @Entity()
 export class Invoice extends BaseEntity {
-  /**
-   * Número de factura legible generado internamente.
-   * Formato: INV-YYYY-NNNNN (ej: INV-2025-00042).
-   * Ya no depende de Stripe para este valor.
-   */
   @Property({ length: 50, nullable: true })
   @Index()
   invoiceNumber?: string;

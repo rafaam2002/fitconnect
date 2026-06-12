@@ -172,7 +172,6 @@ type Conversation {
 
 """
 Perfil de facturación de un usuario.
-Reemplaza a StripeCustomer — no existe ningún ID externo.
 """
 type Customer {
     id: ID!
@@ -206,9 +205,6 @@ type PaymentMethod {
     metadata: JSON
 }
 
-"""
-Plan de suscripción. Gestionado 100% de forma interna — sin IDs de Stripe.
-"""
 type Plan {
     id: ID!
     created_at: String!

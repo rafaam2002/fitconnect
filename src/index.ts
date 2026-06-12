@@ -332,7 +332,12 @@ const startServer = async () => {
     console.log(`🩺 Health check at http://localhost:${port}/health`);
   });
 
-  cronFunctions(createRetryingEntityManager(orm, true));
+  if (process.env.NODE_ENV !== 'development') {
+    console.log('⏰ Starting cron jobs...');
+    cronFunctions(createRetryingEntityManager(orm, true));
+  } else {
+    console.log('⏰ Cron jobs are disabled in development mode.');
+  }
 };
 
 startServer();

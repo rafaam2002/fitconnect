@@ -4,7 +4,6 @@ import cron from 'node-cron';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { storeNews } from '../helpers/articles';
 import { ScheduleService } from '../services/schedule.service';
-import { SubscriptionService } from '../services/subscription.service';
 
 import { updatePictureUrls } from './presigned-urls.util';
 import { sendScheduleReminders } from './schedules.util';
@@ -102,14 +101,4 @@ export const cronFunctions = async (
       timezone: 'Europe/Madrid',
     }
   );
-
-  cron.schedule('0 12 * * *', async () => {
-    console.log('📅 Chequeando las suscripciones a punto de expirar.');
-    try {
-      const subscriptionService = new SubscriptionService(em.fork());
-      await subscriptionService.notifyExpiringSubscriptions();
-    } catch (error) {
-      console.error('[CRON] Error checking expiring subscriptions:', error);
-    }
-  });
 };

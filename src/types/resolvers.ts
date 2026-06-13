@@ -1,9 +1,16 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { User } from '../entities/User';
+import { BraintreeProcessor } from '../services/braintree.processor';
 
 import { CurrentUser } from './common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
+
+export type ContextProps = {
+  em: EntityManager;
+  currentUser: CurrentUser;
+  paymentProcessor: BraintreeProcessor;
+};
 
 export type UserProps = {
   user: User & {
@@ -29,11 +36,6 @@ export type UserPictureProps = {
 export type UpdateCompanyPictureProps = {
   companyId: string;
   picture: string;
-};
-
-export type ContextProps = {
-  em: EntityManager;
-  currentUser: CurrentUser;
 };
 
 export type MessageProps = {

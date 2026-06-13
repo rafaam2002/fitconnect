@@ -37,13 +37,6 @@ export enum PlanStatus {
 })
 export class Plan extends BaseEntity {
   @Property({ length: 100 })
-  @Index()
-  stripePriceId!: string; // price_xxxxx
-
-  @Property({ length: 100, nullable: true })
-  stripeProductId?: string; // prod_xxxxx
-
-  @Property({ length: 100 })
   name!: string;
 
   @Property({ type: 'text', nullable: true })

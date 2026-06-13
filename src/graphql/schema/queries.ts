@@ -1,22 +1,20 @@
 export const graphqlQueries = `
 type Query {
-    # ----------------- Login ----------------
+    # ── Login ─────────────────────────────────────────────────────────
     login(emailOrNickname: String!, password: String!): LoginResponse!
     loginWithId(id: ID!): LoginResponse!
 
-    # ----------------- User -----------------
+    # ── User ──────────────────────────────────────────────────────────
     getUsers(query: String, page: Int, roleFilter: [UserRoleEnum], stateFilter: String, filterMe: Boolean, planFilter: PlanFilterInput): UserResponse!
-    me: MeResponse,
+    me: MeResponse
     findUser(id: ID!): UserResponse!
-    #otherUser default = 0 (forum) (juan miguel, te parece que el foro tenga id 0? por cierto, en el congelador deje una par de pingas fresquitas para ti)
-    #each page will have 50 messages, default = 0 (first page)
     sendEmailVerification: DefaultResponse!
-    
-    # ----------------- Message -----------------
+
+    # ── Message ───────────────────────────────────────────────────────
     getConversation(otherUserId: ID, page: Int, limit: Int, isForumMessage: Boolean): MessageResponse!
     getNotifications: NotificationResponse!
 
-    # ----------------- Schedule -----------------
+    # ── Schedule ──────────────────────────────────────────────────────
     getSchedules(scheduleId: ID, schedulesIds: [ID]): ScheduleResponse!
     getScheduleOptions: ScheduleOptionsResponse!
     getSchedulesResume: ScheduleResumeResponse!
@@ -25,57 +23,70 @@ type Query {
     getSchedulesRange(startDate: String!, endDate: String!, mySchedules: Boolean): ScheduleResponse!
     getSchedulesResumeRange(startDate: String!, endDate: String!): ScheduleResumeResponse!
     getSchedulesStats(month: Int!): SchedulesStatsResponse!
-    getMonthlySchedules(month: Int!,startHour: String!): ScheduleResponse!
+    getMonthlySchedules(month: Int!, startHour: String!): ScheduleResponse!
     getUserSchedules(userId: ID, past: Boolean): ScheduleResponse!
     getSchedulesProgrammed(id: ID): ScheduleProgrammedResponse!
 
-    #----------------- Poll --------------
+    # ── Poll ──────────────────────────────────────────────────────────
     getPolls(pollId: ID, filter: PollFilter): PollResponse!
     getAdminPolls(id: ID): PollResponse!
 
-    #----------------- Plan --------------
+    # ── Plan ──────────────────────────────────────────────────────────
     listPlans(onlyActive: Boolean, showGlobal: Boolean): PlanResponse!
-    getPlanByStripeId(stripePriceId: ID): PlanResponse!
-    getPlan(planId: ID): PlanResponse!
+    getPlan(planId: ID!): PlanResponse!
+    getPlansByCompany(companyId: ID!): PlanResponse!
 
-    #------------------Product------------
+    # ── Product ───────────────────────────────────────────────────────
     getProducts: ProductResponse!
 
-    #------------------Article------------
+    # ── Article ───────────────────────────────────────────────────────
     getArticles(limit: Int!, offset: Int!): ArticleResponse!
 
-    #------------------Admin--------------
+    # ── Admin ─────────────────────────────────────────────────────────
     getAdminStats: AdminStatsResponse!
 
-    #---------------TrainingTask----------
-    getTrainingTasks(userId: String,dateRange: [String]!, onlyGlobal: Boolean ): TrainingTaskResponse!
+    # ── TrainingTask ──────────────────────────────────────────────────
+    getTrainingTasks(userId: String, dateRange: [String]!, onlyGlobal: Boolean): TrainingTaskResponse!
 
-    #-------------------UserWeight--------
+    # ── UserWeight ────────────────────────────────────────────────────
     getUserWeights(userId: String, dateRange: [String]): UserWeightResponse!
 
-    #------------------s3-----------------
-    getPresignedUrl(key: String, command: String ): PresignedUrlResponse!
-    
-    #--------------StripeCustomer---------
-    getCustomer(stripeCustomerId: ID!): StripeCustomerResponse!
-    getCustomerByUserId(userId: ID!): StripeCustomerResponse!
-    
-    #-----------------Payments------------
+    # ── S3 ────────────────────────────────────────────────────────────
+    getPresignedUrl(key: String, command: String): PresignedUrlResponse!
+
+    # ── Customer ──────────────────────────────────────────────────────
+    getCustomer(customerId: ID!): CustomerResponse!
+    getCustomerByUserId(userId: ID!): CustomerResponse!
+
+    # ── PaymentMethod ─────────────────────────────────────────────────
     listUserPaymentMethods(userId: ID!): PaymentMethodResponse!
-    getPaymentMethod(stripePaymentMethodId: ID!): PaymentMethodResponse!
-    listPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
-    getDefaultPaymentMethod(stripeCustomerId: ID!): PaymentMethodResponse!
+    listPaymentMethods(customerId: ID!): PaymentMethodResponse!
+    getPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
+    getDefaultPaymentMethod(customerId: ID!): PaymentMethodResponse!
     getUserDefaultPaymentMethod(userId: ID!): PaymentMethodResponse!
-    getExpiredPaymentMethods(stripeCustomerId: ID!): PaymentMethodResponse!
-    getPaymentMethodsStats(stripeCustomerId: ID!): StatsResponse!
-    
-    #--------------Subscriptions---------
+    getExpiredPaymentMethods(customerId: ID!): PaymentMethodResponse!
+    getPaymentMethodsStats(customerId: ID!): StatsResponse!
+
+    # ── Subscription ──────────────────────────────────────────────────
     getSubscription(subscriptionId: ID!): SubscriptionResponse!
     listUserSubscriptions(userId: ID!): SubscriptionResponse!
     getActiveSubscription(userId: ID!): SubscriptionResponse!
     getSubscriptionsStats: SubscriptionsStatsResponse!
-    
-    #--------------Transactions---------
+    getSubscriptionHistory(subscriptionId: ID!): SubscriptionHistoryResponse!
+
+    # ── Braintree ─────────────────────────────────────────────────────
+    """Genera el clientToken para inicializar el Drop-in UI de Braintree en el frontend."""
+    getBraintreeClientToken: BraintreeClientTokenResponse!
+
+    # ── Invoice ───────────────────────────────────────────────────────
+    getInvoice(invoiceId: ID!): InvoiceResponse!
+    listUserInvoices(userId: ID!): InvoiceResponse!
+    getInvoicesBySubscription(subscriptionId: ID!): InvoiceResponse!
+    getOverdueInvoices: InvoiceResponse!
+    getUpcomingInvoices(userId: ID!): InvoiceResponse!
+    getInvoiceStats(userId: ID!): InvoiceStatsResponse!
+
+    # ── Transaction ───────────────────────────────────────────────────
     getTransaction(transactionId: ID!): TransactionResponse!
     listUserTransactions(userId: ID!, limit: Int): TransactionResponse!
     getTransactionsByStatus(userId: ID!, status: TransactionStatus!, limit: Int): TransactionResponse!
@@ -83,10 +94,10 @@ type Query {
     getFailedTransactions(userId: ID!, limit: Int): TransactionResponse!
     getUserTransactionsSummary(userId: ID!): TransactionResponse!
 
-    #--------------Company---------
+    # ── Company ───────────────────────────────────────────────────────
     getCompanies(companyId: ID, page: Int, query: String): CompanyResponse!
-    
-    #--------------SuperAdmin Global---------
+
+    # ── SuperAdmin ────────────────────────────────────────────────────
     getGlobalSystemStats: GlobalSystemStatsResponse!
 }
 `;

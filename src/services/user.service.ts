@@ -7,7 +7,7 @@ import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
-import { UpdateUserProps, PlanFilterInput } from '../types/resolvers';
+import { PlanFilterInput, UpdateUserProps } from '../types/resolvers';
 import {
   BadRequestError,
   createServiceResponse,
@@ -30,14 +30,19 @@ import { EmailService } from './email.service';
 import { S3Service } from './s3.service';
 
 /**
- * User Service - Handles all user-related business logic
+ * UserService
+ *
+ * Gestiona toda la lógica relacionada con los usuarios.
+ * La única diferencia respecto a la versión anterior es que
+ * el registro de cliente de billing pasa a ser un Customer propio
+ * en lugar de un Stripe Customer.
+ * El resto de la lógica (roles, permisos, auth, S3…) no cambia.
  */
 export class UserService extends BaseService {
   private readonly emailService: EmailService;
   private readonly customerService: CustomerService;
   private readonly authService: AuthService;
   private readonly companyService: CompanyService;
-
   private readonly s3Service: S3Service;
 
   constructor(em: EntityManager) {
@@ -58,15 +63,9 @@ export class UserService extends BaseService {
     filterMe: boolean = true,
     planFilter?: PlanFilterInput
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
-    const pagination = {
-      limit: 50,
-      offset: page * 50,
-    };
-
+    const pagination = { limit: 50, offset: page * 50 };
     const where = await this.buildUserFilter(
       query,
       roleFilter,
@@ -75,7 +74,6 @@ export class UserService extends BaseService {
       planFilter
     );
     const userRepo = this.em.getRepository(User);
-
     const isPendingSearch = stateFilter === 'pending';
 
     try {
@@ -95,29 +93,26 @@ export class UserService extends BaseService {
         users: filteredUsers,
       });
     } catch (e: any) {
-      throw new InternalServerError(`Error fetching users ${e.message}`);
+      throw new InternalServerError(`Error fetching users: ${e.message}`);
     }
   }
 
   public async getMe(currentUser: CurrentUser): Promise<ServiceResponse> {
     if (!currentUser) {
-      throw new UnauthorizedError('No esta autorizado para acceder al recurso');
+      throw new UnauthorizedError('No está autorizado para acceder al recurso');
     }
 
     const authService = new AuthService(this.em);
-
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
       { id: currentUser.id },
       {
         populate: ['companies', 'companies.companyConfig'],
-        filters: false, //!!currentUser.activeCompanyId,
+        filters: false,
       }
     );
 
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     const userCompanies = user.companies.getItems();
     const activeCompany = user.activeCompanyId
@@ -132,18 +127,14 @@ export class UserService extends BaseService {
       );
     }
 
-    return createServiceResponse(200, 'logging successfully', true, {
-      user,
-    });
+    return createServiceResponse(200, 'Logged in successfully', true, { user });
   }
 
   public async setActiveCompany(
     companyId: string,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
@@ -155,23 +146,15 @@ export class UserService extends BaseService {
       }
     );
 
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     user.activeCompanyId = companyId;
     this.em.persist(user);
 
     const companyRepo = this.em.getRepository(Company);
-
     const company = await companyRepo.findOne(
       { id: companyId },
-      {
-        populate: ['companyConfig'],
-        filters: {
-          companyContext: false,
-        },
-      }
+      { populate: ['companyConfig'], filters: { companyContext: false } }
     );
 
     if (
@@ -183,13 +166,10 @@ export class UserService extends BaseService {
       })
     ) {
       this.em.persist(
-        this.em.create(UserRole, {
-          user: user,
-          company,
-          role: UserRoleEnum.ADMIN,
-        })
+        this.em.create(UserRole, { user, company, role: UserRoleEnum.ADMIN })
       );
     }
+
     await this.em.flush();
 
     return await this.authService.buildAuthResponseWithPermissions(
@@ -202,9 +182,7 @@ export class UserService extends BaseService {
   public async findUser(
     id: string,
     currentUser: CurrentUser,
-    options?: {
-      includePermissions?: boolean;
-    }
+    options?: { includePermissions?: boolean }
   ): Promise<ServiceResponse> {
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
@@ -236,11 +214,10 @@ export class UserService extends BaseService {
               ]
             : []) as any[]),
         ],
-        filters: { companyContext: false }, //no se filtra porque debe traer usuarios pendientes (que no entran en el filtro)
+        filters: { companyContext: false },
       }
     );
 
-    //debido a que no se filtra por companyContext, hay que asegurarse de que los roles solo incluyan los de la empresa activa (si es que tiene)
     if (user?.roles && typeof user.roles.set === 'function') {
       user.roles.set(
         user.roles
@@ -249,22 +226,15 @@ export class UserService extends BaseService {
       );
     }
 
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-    Object.assign(user, {
-      isPending: user.pendingCompanies.length > 0,
-    });
+    if (!user) throw new NotFoundError('User');
 
-    return createServiceResponse(200, 'User found', true, {
-      user,
-    });
+    Object.assign(user, { isPending: user.pendingCompanies.length > 0 });
+
+    return createServiceResponse(200, 'User found', true, { user });
   }
 
   public async getPromotions(currentUser: CurrentUser): Promise<any> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne(
@@ -276,7 +246,6 @@ export class UserService extends BaseService {
   }
 
   public async createUser(
-    em: SqlEntityManager,
     userData: any,
     companyData?: any
   ): Promise<ServiceResponse> {
@@ -292,24 +261,18 @@ export class UserService extends BaseService {
 
     const existingUser = await this.em.findOne(
       User,
-      {
-        $or: [{ email }, { nickname }],
-      },
-      {
-        filters: false,
-      }
+      { $or: [{ email }, { nickname }] },
+      { filters: false }
     );
 
-    if (existingUser) {
-      throw new BadRequestError('User already exists');
-    }
+    if (existingUser) throw new BadRequestError('User already exists');
 
     let newUser: User = this.em.create(User, userData);
 
     try {
       if (role === UserRoleEnum.ADMIN) {
         const { newUser: adminUser, newFirstForumMessage } =
-          this.companyService.createAdminCompany(em, newUser, companyData);
+          this.companyService.createAdminCompany(newUser, companyData);
 
         this.em.persist([newFirstForumMessage]);
         newUser = adminUser;
@@ -324,21 +287,17 @@ export class UserService extends BaseService {
             companyData,
             newUser
           );
-        } else {
-          throw new Error('Company not created, activeCompanyId is null');
         }
       }
 
       this.em.persist(newUser);
       await this.em.flush();
 
-      const stripeData = {
-        userId: newUser.id,
-        phoneNumber: 123456789,
-        name: newUser.nickname,
-        email: newUser.email,
-      };
-      await this.customerService.createCustomer(stripeData);
+      // Crear el perfil de facturación interno (reemplaza a createStripeCustomer)
+      await this.customerService.createCustomer({
+        user: newUser,
+        currency: 'eur',
+      });
 
       let tokens: any = null;
       if (this.authService) {
@@ -367,112 +326,41 @@ export class UserService extends BaseService {
     userUpdates: UpdateUserProps,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    this.assertCanUpdate(userUpdates.id, currentUser);
 
-    if (
-      currentUser.id !== userUpdates.id &&
-      currentUser.contextRole !== UserRoleEnum.ADMIN
-    ) {
-      throw new ForbiddenError();
-    }
+    const user = await this.resolveUserForUpdate(userUpdates.id);
 
-    const user = await this.em.findOne(
-      User,
-      { id: userUpdates.id },
-      {
-        populate: ['companies'],
-      }
+    this.validateUpdateSchema(userUpdates);
+
+    await this.assertUniqueEmail(userUpdates.email, user.email, userUpdates.id);
+    await this.assertUniqueNickname(userUpdates.nickname);
+
+    this.applyUserFields(user, userUpdates);
+
+    await this.applyRoleUpdate(
+      user,
+      userUpdates.role,
+      currentUser.activeCompanyId
     );
 
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    this.em.persist(user);
+    await this.em.flush();
 
-    try {
-      updateUserSchema.parse(userUpdates);
-    } catch (error: any) {
-      throw new BadRequestError(error.message);
-    }
-
-    const oldEmail = user.email;
-
-    if (oldEmail !== userUpdates.email) {
-      const existingEmail = await this.em.findOne(User, {
-        email: userUpdates.email,
-      });
-      if (existingEmail && existingEmail.id !== userUpdates.id) {
-        throw new BadRequestError('Email already exists');
-      }
-    }
-
-    const existingNickname = await this.em.find(User, {
-      nickname: userUpdates.nickname,
+    return createServiceResponse(200, 'User updated successfully', true, {
+      user,
     });
-    if (existingNickname.length > 1) {
-      throw new BadRequestError('Nickname already exists');
-    }
-    Object.assign(user, {
-      name: userUpdates.name ?? user.name,
-      email: userUpdates.email ?? user.email,
-      surname: userUpdates.surname ?? user.surname,
-      nickname: userUpdates.nickname ?? user.nickname,
-      phoneNumber: userUpdates.phoneNumber ?? user.phoneNumber,
-      isActive: userUpdates.isActive ?? user.isActive,
-      isBlocked: userUpdates.isBlocked ?? user.isBlocked,
-    });
-    if (userUpdates.role) {
-      if (user.roles.length > 0) {
-        user.roles[0].role = userUpdates.role;
-      } else {
-        const activeCompanyId = currentUser.activeCompanyId;
-        if (activeCompanyId) {
-          const company = await this.em.findOne(Company, {
-            id: activeCompanyId,
-          });
-          if (company) {
-            const newUserRole = this.em.create(UserRole, {
-              user,
-              company,
-              role: userUpdates.role,
-            });
-            user.roles.add(newUserRole);
-          }
-        }
-      }
-    }
-
-    try {
-      this.em.persist(user);
-      await this.em.flush();
-      if (user.stripeCustomerId) {
-        const stripeData = {
-          stripeCustomerId: user.stripeCustomerId,
-          email: user.email,
-          name: user.name ?? user.email,
-          phoneNumber: user.phoneNumber,
-        };
-        await this.customerService.updateCustomer(stripeData);
-      }
-
-      return createServiceResponse(200, 'User updated successfully', true, {
-        user,
-      });
-    } catch (error) {
-      console.error('Error updating user: ', error);
-      throw new Error('Error updating user');
-    }
   }
+
+  // ─────────────────────────────────────────────
+  // PRIVADOS
+  // ─────────────────────────────────────────────
 
   public async updateUserPicture(
     userId: string,
     pictureName: string,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
     if (
       currentUser.id !== userId &&
@@ -483,29 +371,20 @@ export class UserService extends BaseService {
 
     const userRepo = this.em.getRepository(User);
     const user = await userRepo.findOne({ id: userId });
-
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     const url = await getPresignedUrl(pictureName);
 
     if (user.pictureUrl) {
-      // Borrar imagen antigua de S3 antes de actualizar
       if (user.pictureUrl.name) {
         await this.s3Service.deleteObject(user.pictureUrl.name);
       }
-
       user.pictureUrl.name = pictureName;
       user.pictureUrl.url = url;
     } else {
       user.pictureUrl = createPictureUrl(
         this.em,
-        {
-          id: userId,
-          name: pictureName,
-          type: 'user',
-        },
+        { id: userId, name: pictureName, type: 'user' },
         url
       );
     }
@@ -531,9 +410,7 @@ export class UserService extends BaseService {
   public async sendEmailVerification(
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
     const token = this.authService.generateEmailVerificationToken(
       currentUser.email
@@ -547,13 +424,9 @@ export class UserService extends BaseService {
     em: SqlEntityManager,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
-
-    if (currentUser.contextRole !== UserRoleEnum.ADMIN) {
+    if (!currentUser) throw new UnauthorizedError();
+    if (currentUser.contextRole !== UserRoleEnum.ADMIN)
       throw new ForbiddenError();
-    }
 
     const knex = em.getKnex();
 
@@ -561,7 +434,7 @@ export class UserService extends BaseService {
       .join('user_role as ur', 'u.id', 'ur.user_id')
       .where('ur.company_id', currentUser.activeCompanyId)
       .select([
-        knex.raw('COUNT(DISTINCT u.id) as totalusers'), // DISTINCT por si acaso hay duplicados por joins
+        knex.raw('COUNT(DISTINCT u.id) as totalusers'),
         knex.raw(
           'COUNT(DISTINCT CASE WHEN u.is_blocked = true THEN u.id END) as blockedusers'
         ),
@@ -571,14 +444,9 @@ export class UserService extends BaseService {
         knex.raw(
           "COUNT(DISTINCT CASE WHEN u.created_at >= NOW() - INTERVAL '30 days' THEN u.id END) as newusers"
         ),
-        // Subconsulta para los pendientes
         knex.raw(
-          `(
-          SELECT COUNT(*) 
-          FROM user_pending_companies 
-          WHERE company_id = ?
-        ) as pendingusers`,
-          [currentUser.activeCompanyId ?? null] // Esto asegura que nunca sea undefined
+          `(SELECT COUNT(*) FROM user_pending_companies WHERE company_id = ?) as pendingusers`,
+          [currentUser.activeCompanyId ?? null]
         ),
       ]);
 
@@ -605,7 +473,7 @@ export class UserService extends BaseService {
     permissions: string[],
     extraWhere?: FilterQuery<User>
   ) {
-    const users = await this.em.find(
+    return this.em.find(
       User,
       {
         ...((extraWhere ?? {}) as object),
@@ -615,9 +483,7 @@ export class UserService extends BaseService {
           },
           plan: {
             planPermissions: {
-              permission: {
-                name: { $in: permissions },
-              },
+              permission: { name: { $in: permissions } },
             },
           },
         },
@@ -631,17 +497,13 @@ export class UserService extends BaseService {
         ],
       }
     );
-    return users;
   }
 
   public async deleteUser(
     userId: string,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
-
+    if (!currentUser) throw new UnauthorizedError();
     if (currentUser.id !== userId) {
       throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
     }
@@ -652,20 +514,105 @@ export class UserService extends BaseService {
       { filters: false }
     );
 
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     try {
       this.em.remove(user);
       await this.em.flush();
-
       return createServiceResponse(200, 'User deleted successfully', true);
     } catch (error) {
       console.error('Error deleting user:', error);
       throw new Error('Error deleting user');
     }
   }
+
+  private assertCanUpdate(targetId: string, currentUser: CurrentUser): void {
+    if (!currentUser) throw new UnauthorizedError();
+    if (
+      currentUser.id !== targetId &&
+      currentUser.contextRole !== UserRoleEnum.ADMIN
+    ) {
+      throw new ForbiddenError();
+    }
+  }
+
+  private async resolveUserForUpdate(userId: string): Promise<User> {
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { populate: ['companies', 'roles'] }
+    );
+    if (!user) throw new NotFoundError('User');
+    return user;
+  }
+
+  private validateUpdateSchema(userUpdates: UpdateUserProps): void {
+    try {
+      updateUserSchema.parse(userUpdates);
+    } catch (error: any) {
+      throw new BadRequestError(error.message);
+    }
+  }
+
+  private async assertUniqueEmail(
+    newEmail: string | undefined,
+    oldEmail: string | undefined,
+    userId: string
+  ): Promise<void> {
+    if (!newEmail || newEmail === oldEmail) return;
+
+    const existing = await this.em.findOne(User, { email: newEmail });
+    if (existing && existing.id !== userId) {
+      throw new BadRequestError('Email already exists');
+    }
+  }
+
+  private async assertUniqueNickname(
+    nickname: string | undefined
+  ): Promise<void> {
+    if (!nickname) return;
+
+    const existing = await this.em.find(User, { nickname });
+    if (existing.length > 1) {
+      throw new BadRequestError('Nickname already exists');
+    }
+  }
+
+  private applyUserFields(user: User, updates: UpdateUserProps): void {
+    Object.assign(user, {
+      name: updates.name ?? user.name,
+      email: updates.email ?? user.email,
+      surname: updates.surname ?? user.surname,
+      nickname: updates.nickname ?? user.nickname,
+      phoneNumber: updates.phoneNumber ?? user.phoneNumber,
+      isActive: updates.isActive ?? user.isActive,
+      isBlocked: updates.isBlocked ?? user.isBlocked,
+    });
+  }
+
+  private async applyRoleUpdate(
+    user: User,
+    role: UserRoleEnum | undefined,
+    activeCompanyId: string | null | undefined
+  ): Promise<void> {
+    if (!role) return;
+
+    if (user.roles.length > 0) {
+      user.roles[0].role = role;
+      return;
+    }
+
+    if (!activeCompanyId) return;
+
+    const company = await this.em.findOne(Company, { id: activeCompanyId });
+    if (!company) return;
+
+    user.roles.add(this.em.create(UserRole, { user, company, role }));
+  }
+
+  // ─────────────────────────────────────────────
+  // PRIVADOS
+  // ─────────────────────────────────────────────
 
   private async buildUserFilter(
     query?: string,

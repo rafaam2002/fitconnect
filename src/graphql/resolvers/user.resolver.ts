@@ -199,7 +199,7 @@ const createUser = async (_: any, args: UserProps, context: ContextProps) => {
     const { em } = context;
     const userService = new UserService(em);
 
-    return await userService.createUser(em, user, company);
+    return await userService.createUser(user, company);
   } catch (error) {
     return handleError(error);
   }

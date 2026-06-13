@@ -174,7 +174,7 @@ export class User extends BaseEntity {
   transactions = new Collection<Transaction>(this);
 
   @Property({ nullable: true })
-  stripeCustomerId?: string;
+  customer?: string;
 
   @OneToMany(() => TrainingTask, trainingTask => trainingTask.user, {
     lazy: true,

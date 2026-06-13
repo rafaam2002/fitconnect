@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { Index, OptionalProps, PrimaryKey, Property, t } from '@mikro-orm/core';
+import { OptionalProps, PrimaryKey, Property, t } from '@mikro-orm/core';
 
 export abstract class BaseEntity {
   [OptionalProps]?: any;
@@ -9,7 +9,6 @@ export abstract class BaseEntity {
   id: string = randomUUID();
 
   @Property({ onCreate: () => new Date() })
-  @Index()
   created_at: Date = new Date();
 
   // IMPORTANTE: Añade onCreate también aquí para que tenga valor inicial

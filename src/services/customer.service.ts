@@ -12,7 +12,7 @@ import {
 import { BaseService } from './base.service';
 
 export interface CreateCustomerInput {
-  userId: string;
+  user: User;
   currency?: string;
   metadata?: Record<string, any>;
 }
@@ -42,18 +42,13 @@ export class CustomerService extends BaseService {
   public async createCustomer(
     input: CreateCustomerInput
   ): Promise<ServiceResponse> {
-    if (!input.userId) {
+    if (!input.user.id) {
       throw new BadRequestError('User ID is required');
-    }
-
-    const user = await this.em.findOne(User, { id: input.userId });
-    if (!user) {
-      throw new NotFoundError('User');
     }
 
     // Evitar duplicados: un usuario solo puede tener un Customer activo
     const existing = await this.em.findOne(Customer, {
-      user: input.userId,
+      user: input.user.id,
       isActive: true,
     });
 
@@ -64,7 +59,7 @@ export class CustomerService extends BaseService {
     }
 
     const customer = this.em.create(Customer, {
-      user,
+      user: input.user,
       defaultCurrency: input.currency ?? 'eur',
       isActive: true,
       metadata: input.metadata ?? null,

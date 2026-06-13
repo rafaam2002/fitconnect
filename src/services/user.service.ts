@@ -35,7 +35,7 @@ import { S3Service } from './s3.service';
  * Gestiona toda la lógica relacionada con los usuarios.
  * La única diferencia respecto a la versión anterior es que
  * el registro de cliente de billing pasa a ser un Customer propio
- *
+ * en lugar de un Stripe Customer.
  * El resto de la lógica (roles, permisos, auth, S3…) no cambia.
  */
 export class UserService extends BaseService {
@@ -246,7 +246,6 @@ export class UserService extends BaseService {
   }
 
   public async createUser(
-    em: SqlEntityManager,
     userData: any,
     companyData?: any
   ): Promise<ServiceResponse> {
@@ -273,7 +272,7 @@ export class UserService extends BaseService {
     try {
       if (role === UserRoleEnum.ADMIN) {
         const { newUser: adminUser, newFirstForumMessage } =
-          this.companyService.createAdminCompany(em, newUser, companyData);
+          this.companyService.createAdminCompany(newUser, companyData);
 
         this.em.persist([newFirstForumMessage]);
         newUser = adminUser;
@@ -288,16 +287,15 @@ export class UserService extends BaseService {
             companyData,
             newUser
           );
-        } else {
-          throw new Error('Company not created, activeCompanyId is null');
         }
       }
 
       this.em.persist(newUser);
       await this.em.flush();
 
+      // Crear el perfil de facturación interno (reemplaza a createStripeCustomer)
       await this.customerService.createCustomer({
-        userId: newUser.id,
+        user: newUser,
         currency: 'eur',
       });
 
@@ -328,94 +326,34 @@ export class UserService extends BaseService {
     userUpdates: UpdateUserProps,
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) throw new UnauthorizedError();
+    this.assertCanUpdate(userUpdates.id, currentUser);
 
-    if (
-      currentUser.id !== userUpdates.id &&
-      currentUser.contextRole !== UserRoleEnum.ADMIN
-    ) {
-      throw new ForbiddenError();
-    }
+    const user = await this.resolveUserForUpdate(userUpdates.id);
 
-    const user = await this.em.findOne(
-      User,
-      { id: userUpdates.id },
-      { populate: ['companies'] }
+    this.validateUpdateSchema(userUpdates);
+
+    await this.assertUniqueEmail(userUpdates.email, user.email, userUpdates.id);
+    await this.assertUniqueNickname(userUpdates.nickname);
+
+    this.applyUserFields(user, userUpdates);
+
+    await this.applyRoleUpdate(
+      user,
+      userUpdates.role,
+      currentUser.activeCompanyId
     );
 
-    if (!user) throw new NotFoundError('User');
+    this.em.persist(user);
+    await this.em.flush();
 
-    try {
-      updateUserSchema.parse(userUpdates);
-    } catch (error: any) {
-      throw new BadRequestError(error.message);
-    }
-
-    const oldEmail = user.email;
-
-    if (oldEmail !== userUpdates.email) {
-      const existingEmail = await this.em.findOne(User, {
-        email: userUpdates.email,
-      });
-      if (existingEmail && existingEmail.id !== userUpdates.id) {
-        throw new BadRequestError('Email already exists');
-      }
-    }
-
-    const existingNickname = await this.em.find(User, {
-      nickname: userUpdates.nickname,
+    return createServiceResponse(200, 'User updated successfully', true, {
+      user,
     });
-    if (existingNickname.length > 1) {
-      throw new BadRequestError('Nickname already exists');
-    }
-
-    Object.assign(user, {
-      name: userUpdates.name ?? user.name,
-      email: userUpdates.email ?? user.email,
-      surname: userUpdates.surname ?? user.surname,
-      nickname: userUpdates.nickname ?? user.nickname,
-      phoneNumber: userUpdates.phoneNumber ?? user.phoneNumber,
-      isActive: userUpdates.isActive ?? user.isActive,
-      isBlocked: userUpdates.isBlocked ?? user.isBlocked,
-    });
-
-    if (userUpdates.role) {
-      if (user.roles.length > 0) {
-        user.roles[0].role = userUpdates.role;
-      } else {
-        const activeCompanyId = currentUser.activeCompanyId;
-        if (activeCompanyId) {
-          const company = await this.em.findOne(Company, {
-            id: activeCompanyId,
-          });
-          if (company) {
-            const newUserRole = this.em.create(UserRole, {
-              user,
-              company,
-              role: userUpdates.role,
-            });
-            user.roles.add(newUserRole);
-          }
-        }
-      }
-    }
-
-    try {
-      this.em.persist(user);
-      await this.em.flush();
-
-      // Actualizar el Customer interno si el email cambió
-      // (no hay llamadas externas — solo actualizamos los datos locales que necesitemos)
-      // Si en el futuro el procesador de pagos guarda el email, actualizar aquí también.
-
-      return createServiceResponse(200, 'User updated successfully', true, {
-        user,
-      });
-    } catch (error) {
-      console.error('Error updating user:', error);
-      throw new Error('Error updating user');
-    }
   }
+
+  // ─────────────────────────────────────────────
+  // PRIVADOS
+  // ─────────────────────────────────────────────
 
   public async updateUserPicture(
     userId: string,
@@ -586,6 +524,90 @@ export class UserService extends BaseService {
       console.error('Error deleting user:', error);
       throw new Error('Error deleting user');
     }
+  }
+
+  private assertCanUpdate(targetId: string, currentUser: CurrentUser): void {
+    if (!currentUser) throw new UnauthorizedError();
+    if (
+      currentUser.id !== targetId &&
+      currentUser.contextRole !== UserRoleEnum.ADMIN
+    ) {
+      throw new ForbiddenError();
+    }
+  }
+
+  private async resolveUserForUpdate(userId: string): Promise<User> {
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { populate: ['companies', 'roles'] }
+    );
+    if (!user) throw new NotFoundError('User');
+    return user;
+  }
+
+  private validateUpdateSchema(userUpdates: UpdateUserProps): void {
+    try {
+      updateUserSchema.parse(userUpdates);
+    } catch (error: any) {
+      throw new BadRequestError(error.message);
+    }
+  }
+
+  private async assertUniqueEmail(
+    newEmail: string | undefined,
+    oldEmail: string | undefined,
+    userId: string
+  ): Promise<void> {
+    if (!newEmail || newEmail === oldEmail) return;
+
+    const existing = await this.em.findOne(User, { email: newEmail });
+    if (existing && existing.id !== userId) {
+      throw new BadRequestError('Email already exists');
+    }
+  }
+
+  private async assertUniqueNickname(
+    nickname: string | undefined
+  ): Promise<void> {
+    if (!nickname) return;
+
+    const existing = await this.em.find(User, { nickname });
+    if (existing.length > 1) {
+      throw new BadRequestError('Nickname already exists');
+    }
+  }
+
+  private applyUserFields(user: User, updates: UpdateUserProps): void {
+    Object.assign(user, {
+      name: updates.name ?? user.name,
+      email: updates.email ?? user.email,
+      surname: updates.surname ?? user.surname,
+      nickname: updates.nickname ?? user.nickname,
+      phoneNumber: updates.phoneNumber ?? user.phoneNumber,
+      isActive: updates.isActive ?? user.isActive,
+      isBlocked: updates.isBlocked ?? user.isBlocked,
+    });
+  }
+
+  private async applyRoleUpdate(
+    user: User,
+    role: UserRoleEnum | undefined,
+    activeCompanyId: string | null | undefined
+  ): Promise<void> {
+    if (!role) return;
+
+    if (user.roles.length > 0) {
+      user.roles[0].role = role;
+      return;
+    }
+
+    if (!activeCompanyId) return;
+
+    const company = await this.em.findOne(Company, { id: activeCompanyId });
+    if (!company) return;
+
+    user.roles.add(this.em.create(UserRole, { user, company, role }));
   }
 
   // ─────────────────────────────────────────────

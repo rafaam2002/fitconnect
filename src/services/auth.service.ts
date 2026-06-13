@@ -629,7 +629,7 @@ export class AuthService extends BaseService {
       throw new UnauthorizedError('Invalid refresh token');
     }
 
-    if (storedRefreshToken.expiresAt < moment().toDate()) {
+    if (moment(storedRefreshToken.expiresAt).isBefore(moment())) {
       this.em.remove(storedRefreshToken);
       await this.em.flush();
       throw new UnauthorizedError('Refresh token expired');
@@ -637,16 +637,27 @@ export class AuthService extends BaseService {
 
     const { user } = storedRefreshToken;
 
-    // Generar nuevo par de tokens (Rotación)
-    // Esto usa generateAccessToken internamente
-    const tokens = await this.createTokensPair(user);
+    // Si le quedan menos de 7 días de validez, extendemos el token
+    const daysUntilExpiry = moment(storedRefreshToken.expiresAt).diff(
+      moment(),
+      'days'
+    );
+    if (daysUntilExpiry < 7) {
+      storedRefreshToken.expiresAt = moment()
+        .add(this.refreshTokenExpiry, 'ms')
+        .toDate();
+      this.em.persist(storedRefreshToken);
+      await this.em.flush();
+    }
 
-    // Eliminar el token antiguo (completar rotación)
-    this.em.remove(storedRefreshToken);
-    await this.em.flush();
+    // Generar un nuevo accessToken limpio (sin permisos)
+    const token = this.generateAccessToken(user.id);
 
     return createServiceResponse(200, 'Token refreshed successfully', true, {
-      tokens,
+      tokens: {
+        token,
+        refreshToken: storedRefreshToken.token,
+      },
     });
   }
 

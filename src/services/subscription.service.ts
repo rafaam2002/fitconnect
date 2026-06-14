@@ -159,8 +159,10 @@ export class SubscriptionService extends BaseService {
   /**
    * Crea una suscripción nueva.
    *
-   * Si el plan tiene trial → estado TRIALING, primer cobro al expirar el trial.
-   * Si no → intenta cobrar ahora, queda ACTIVE si tiene éxito o INCOMPLETE si falla.
+   * Plan gratuito (amount = 0) → estado ACTIVE directo, sin cobro ni método de pago.
+   * Plan con trial → estado TRIALING, primer cobro al expirar el trial.
+   * Plan de pago sin trial → intenta cobrar ahora, queda ACTIVE si tiene éxito
+   *   o INCOMPLETE si falla.
    */
   public async createSubscription(
     input: CreateSubscriptionInput
@@ -173,9 +175,14 @@ export class SubscriptionService extends BaseService {
 
     await this.assertNoDuplicateSubscription(user, plan);
 
-    const paymentMethod = input.paymentMethodId
-      ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
-      : await this.getDefaultPaymentMethod(customer);
+    const isFree = plan.amount === 0;
+
+    // Solo buscar método de pago si el plan tiene coste
+    const paymentMethod = isFree
+      ? null
+      : input.paymentMethodId
+        ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
+        : await this.getDefaultPaymentMethod(customer);
 
     const trialDays =
       input.trialPeriodDays !== undefined
@@ -183,7 +190,7 @@ export class SubscriptionService extends BaseService {
         : (plan.trialPeriodDays ?? 0);
 
     const now = new Date();
-    const isTrialing = trialDays > 0;
+    const isTrialing = !isFree && trialDays > 0;
 
     const trialStart = isTrialing ? now : undefined;
     const trialEnd = isTrialing ? this.addDays(now, trialDays) : undefined;
@@ -198,9 +205,14 @@ export class SubscriptionService extends BaseService {
       plan,
       defaultPaymentMethod: paymentMethod ?? undefined,
       company: input.companyId,
-      status: isTrialing
-        ? SubscriptionStatus.TRIALING
-        : SubscriptionStatus.INCOMPLETE,
+      // Plan gratuito → ACTIVE directo
+      // Con trial → TRIALING
+      // De pago sin trial → INCOMPLETE hasta que el cobro confirme
+      status: isFree
+        ? SubscriptionStatus.ACTIVE
+        : isTrialing
+          ? SubscriptionStatus.TRIALING
+          : SubscriptionStatus.INCOMPLETE,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       trialStart,
@@ -211,7 +223,13 @@ export class SubscriptionService extends BaseService {
       metadata: {
         ...input.metadata,
         history: [
-          this.buildHistoryEntry('created', 'system', 'Subscription created'),
+          this.buildHistoryEntry(
+            'created',
+            'system',
+            isFree
+              ? 'Free plan subscription created — no charge required'
+              : 'Subscription created'
+          ),
         ],
       },
     });
@@ -219,7 +237,8 @@ export class SubscriptionService extends BaseService {
     this.em.persist(subscription);
     await this.em.flush();
 
-    if (!isTrialing) {
+    // Solo intentar cobro si hay importe y no está en período de trial
+    if (!isFree && !isTrialing) {
       await this.attemptCharge(subscription);
     }
 
@@ -520,6 +539,8 @@ export class SubscriptionService extends BaseService {
     }
 
     const now = new Date();
+    const isFree = subscription.plan.amount === 0;
+
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.currentPeriodStart = now;
     subscription.currentPeriodEnd = this.calculatePeriodEnd(
@@ -538,8 +559,12 @@ export class SubscriptionService extends BaseService {
 
     await this.em.flush();
 
-    // Si el período anterior ya venció, cobrar ahora
-    if (subscription.currentPeriodEnd && subscription.currentPeriodEnd < now) {
+    // Solo cobrar si hay importe y el período anterior ya venció
+    if (
+      !isFree &&
+      subscription.currentPeriodEnd &&
+      subscription.currentPeriodEnd < now
+    ) {
       await this.attemptCharge(subscription);
     }
 
@@ -556,10 +581,11 @@ export class SubscriptionService extends BaseService {
   /**
    * Reactiva una suscripción en estado PAST_DUE o CANCELED.
    *
+   * Plan gratuito → ACTIVE directo, sin requerir método de pago.
    * PAST_DUE → intenta cobrar las facturas pendientes y vuelve a ACTIVE.
    * CANCELED → crea un período nuevo desde hoy e intenta cobrar.
    *
-   * Requiere que el usuario tenga un método de pago válido.
+   * Requiere método de pago válido solo si el plan tiene coste.
    */
   public async reactivateSubscription(
     subscriptionId: string
@@ -586,22 +612,29 @@ export class SubscriptionService extends BaseService {
       );
     }
 
-    const pm =
-      subscription.defaultPaymentMethod ??
-      (await this.getDefaultPaymentMethod(subscription.customer));
+    const isFree = subscription.plan.amount === 0;
 
-    if (!pm?.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
-      throw new BadRequestError(
-        'A valid payment method is required to reactivate the subscription'
-      );
+    if (!isFree) {
+      // Solo exigir método de pago si el plan tiene coste
+      const pm =
+        subscription.defaultPaymentMethod ??
+        (await this.getDefaultPaymentMethod(subscription.customer));
+
+      if (!pm?.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
+        throw new BadRequestError(
+          'A valid payment method is required to reactivate the subscription'
+        );
+      }
+
+      // Asignar el método de pago si no estaba asignado
+      subscription.defaultPaymentMethod ??= pm;
     }
 
-    // Asignar el método de pago si no estaba asignado
-    subscription.defaultPaymentMethod ??= pm;
-
-    // Resetear contadores y estado provisional para poder cobrar
     const now = new Date();
-    subscription.status = SubscriptionStatus.INCOMPLETE;
+    // Plan gratuito → ACTIVE directo; de pago → INCOMPLETE hasta confirmar cobro
+    subscription.status = isFree
+      ? SubscriptionStatus.ACTIVE
+      : SubscriptionStatus.INCOMPLETE;
     subscription.failedPaymentAttempts = 0;
     subscription.canceledAt = undefined;
     subscription.endedAt = undefined;
@@ -617,18 +650,20 @@ export class SubscriptionService extends BaseService {
       subscription,
       'reactivation_attempted',
       'user',
-      'User requested reactivation'
+      isFree
+        ? 'Free plan reactivated — no charge required'
+        : 'User requested reactivation'
     );
 
     await this.em.flush();
 
-    // Intentar cobrar — si tiene éxito queda ACTIVE, si falla aplica dunning
-    await this.attemptCharge(subscription);
+    if (!isFree) {
+      // Intentar cobrar — si tiene éxito queda ACTIVE, si falla aplica dunning
+      await this.attemptCharge(subscription);
+      await this.em.refresh(subscription);
+    }
 
-    // Recargar para devolver el estado actualizado
-    await this.em.refresh(subscription);
-
-    const success = subscription.status !== SubscriptionStatus.INCOMPLETE;
+    const success = subscription.status === SubscriptionStatus.ACTIVE;
 
     return createServiceResponse(
       success ? 200 : 402,
@@ -1101,12 +1136,13 @@ export class SubscriptionService extends BaseService {
     console.log('[CRON] processBillingCycle — start');
     const now = new Date();
 
-    // 1. Renovaciones
+    // 1. Renovaciones — excluir planes gratuitos (amount > 0)
     const dueSubscriptions = await this.em.find(
       Subscription,
       {
         status: SubscriptionStatus.ACTIVE,
         nextBillingDate: { $lte: now },
+        plan: { amount: { $gt: 0 } },
       },
       { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
     );
@@ -1202,10 +1238,31 @@ export class SubscriptionService extends BaseService {
   /**
    * Intenta cobrar la renovación de una suscripción.
    *
+   * Guardia inicial: plan gratuito → ACTIVE directo, sin cobro.
    * Si hay un crédito pendiente (pendingCredit en metadata) lo descuenta
    * del importe antes de cobrar. Si el crédito cubre el total no se cobra nada.
    */
   private async attemptCharge(subscription: Subscription): Promise<void> {
+    // Guardia extra — nunca cobrar planes gratuitos
+    if (subscription.plan.amount === 0) {
+      const now = new Date();
+      subscription.status = SubscriptionStatus.ACTIVE;
+      subscription.currentPeriodStart = now;
+      subscription.currentPeriodEnd = this.calculatePeriodEnd(
+        now,
+        subscription.plan
+      );
+      subscription.nextBillingDate = subscription.currentPeriodEnd;
+      this.appendHistory(
+        subscription,
+        'renewed',
+        'system',
+        'Free plan — no charge required'
+      );
+      await this.em.flush();
+      return;
+    }
+
     let invoice: Invoice;
     try {
       invoice = await this.invoiceService.createForSubscription(subscription);
@@ -1370,19 +1427,22 @@ export class SubscriptionService extends BaseService {
   /**
    * Transiciona una suscripción de TRIALING a ACTIVE al expirar el trial
    * e intenta el primer cobro real.
+   * Si el plan es gratuito (no debería tener trial, pero por seguridad)
+   * queda ACTIVE sin cobro.
    */
   private async transitionTrialToActive(
     subscription: Subscription
   ): Promise<void> {
     const now = new Date();
+    const isFree = subscription.plan.amount === 0;
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.currentPeriodStart = now;
     subscription.currentPeriodEnd = this.calculatePeriodEnd(
       now,
       subscription.plan
     );
-    subscription.nextBillingDate = subscription.currentPeriodEnd;
     subscription.failedPaymentAttempts = 0;
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
 
     this.appendHistory(
       subscription,
@@ -1393,11 +1453,16 @@ export class SubscriptionService extends BaseService {
 
     await this.em.flush();
 
-    console.log(
-      `[Billing] Trial ended for subscription ${subscription.id}. Attempting first charge.`
-    );
-
-    await this.attemptCharge(subscription);
+    if (!isFree) {
+      console.log(
+        `[Billing] Trial ended for subscription ${subscription.id}. Attempting first charge.`
+      );
+      await this.attemptCharge(subscription);
+    } else {
+      console.log(
+        `[Billing] Trial ended for free subscription ${subscription.id}. No charge needed.`
+      );
+    }
   }
 
   // ═══════════════════════════════════════════

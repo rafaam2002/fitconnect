@@ -942,22 +942,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_invoice_id": {
-          "name": "stripe_invoice_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "invoice_number": {
           "name": "invoice_number",
           "type": "varchar(50)",
@@ -1895,22 +1879,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_payment_method_id": {
-          "name": "stripe_payment_method_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "customer_id": {
           "name": "customer_id",
           "type": "uuid",
@@ -2591,7 +2559,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": 100,
           "precision": null,
@@ -4710,22 +4678,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_subscription_id": {
-          "name": "stripe_subscription_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
@@ -5923,22 +5875,6 @@
         },
         "active_company_id": {
           "name": "active_company_id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "customer": {
-          "name": "customer",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,

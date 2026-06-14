@@ -47,12 +47,17 @@ export class PlanService extends BaseService {
    * Crea un nuevo plan de suscripción.
    */
   async createPlan(input: CreatePlanInput): Promise<ServiceResponse> {
-    if (!input.name || !input.amount || !input.interval) {
+    if (
+      !input.name ||
+      !input.interval ||
+      input.amount === undefined ||
+      input.amount === null
+    ) {
       throw new BadRequestError('name, amount and interval are required');
     }
 
-    if (input.amount <= 0) {
-      throw new BadRequestError('amount must be greater than 0');
+    if (input.amount < 0) {
+      throw new BadRequestError('amosdfsdfunt must be greater than 0');
     }
 
     // Verificar nombre único por empresa

@@ -579,7 +579,7 @@ export class SubscriptionService extends BaseService {
     }
   }
 
-  public async notifyExpiringSubscriptions(): Promise<void> {
+  public async notifyExpiringSubscriptions(): Promise<number> {
     const tomorrow = moment().add(1, 'days');
     const from = tomorrow.startOf('days').toDate();
     const to = tomorrow.endOf('days').toDate();
@@ -599,7 +599,7 @@ export class SubscriptionService extends BaseService {
 
     if (!expiringSubscriptions.length) {
       console.log('[CRON] Ninguna suscripción expira mañana.');
-      return;
+      return 0;
     }
 
     console.log(
@@ -609,6 +609,8 @@ export class SubscriptionService extends BaseService {
     await Promise.allSettled(
       expiringSubscriptions.map(subscription => this.notifyUser(subscription))
     );
+
+    return expiringSubscriptions.length;
   }
 
   private validateCreateSubscriptionInput(

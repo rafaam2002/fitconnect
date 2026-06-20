@@ -1,4 +1,4 @@
-import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/core';
 import cron from 'node-cron';
 
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
@@ -6,24 +6,26 @@ import { storeNews } from '../helpers/articles';
 import { ScheduleService } from '../services/schedule.service';
 import { SubscriptionService } from '../services/subscription.service';
 
+import { createRetryingEntityManager } from './orm-retry';
 import { updatePictureUrls } from './presigned-urls.util';
 import { sendScheduleReminders } from './schedules.util';
 import { setNotActiveUsers } from './users';
 
-export const cronFunctions = async (
-  em: EntityManager<IDatabaseDriver<Connection>>
-) => {
+export const cronFunctions = async (em: MikroORM) => {
   cron.schedule(
     '0 4 * * *', // Ejecuta a las 4:00 AM todos los días
     async () => {
       console.log('🚀 Iniciando tareas programadas...');
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
-        await Promise.all([
-          storeNews(em, 3, [1, 2, 3, 4]),
-          updatePictureUrls(em),
-          setNotActiveUsers(em),
+        const [newsCount, pictureCount, deactivatedCount] = await Promise.all([
+          storeNews(createRetryingEntityManager(em, true), 3, [1, 2, 3, 4]),
+          updatePictureUrls(createRetryingEntityManager(em, true)),
+          setNotActiveUsers(createRetryingEntityManager(em, true)),
         ]);
+        console.log(
+          `[CRON] [Daily Tasks] Success: storeNews (${newsCount} articles), updatePictures (${pictureCount} urls), deactivateUsers (${deactivatedCount} users)`
+        );
       } catch (error) {
         console.error('Error al ejecutar la tarea programada:', error);
       }
@@ -42,8 +44,15 @@ export const cronFunctions = async (
       );
       // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
-        const scheduleProgrammedRepo = em.getRepository(ScheduleProgrammed);
-        await scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+        const scheduleProgrammedRepo = createRetryingEntityManager(
+          em,
+          true
+        ).getRepository(ScheduleProgrammed);
+        const createdCount =
+          await scheduleProgrammedRepo.createSchedulesFromSchedulesProgrammed();
+        console.log(
+          `[CRON] [Weekly Schedules] Success: Created ${createdCount} schedules from programmed templates`
+        );
       } catch (error) {
         console.error(
           'Error al ejecutar la tarea programada (Creacion horarios programados):',
@@ -64,7 +73,11 @@ export const cronFunctions = async (
     async () => {
       console.log('🚀 Iniciando tarea de recordatorios de horarios...');
       try {
-        await sendScheduleReminders(em.fork());
+        const { schedulesProcessed, notificationsSent } =
+          await sendScheduleReminders(createRetryingEntityManager(em, true));
+        console.log(
+          `[CRON] [Hourly Reminders] Success: Sent ${notificationsSent} reminders across ${schedulesProcessed} upcoming schedules`
+        );
       } catch (error) {
         console.error(
           'Error al ejecutar la tarea de recordatorios de horarios:',
@@ -85,9 +98,16 @@ export const cronFunctions = async (
         '🚀 Iniciando tarea de eliminacion de horarios vacios y alertas de ocupación...'
       );
       try {
-        const scheduleService = new ScheduleService(em.fork());
-        await scheduleService.cutOffSchedules();
-        await scheduleService.checkQuotaThresholds();
+        const scheduleService = new ScheduleService(
+          createRetryingEntityManager(em, true)
+        );
+        const [cancelledCount, warningsSent] = await Promise.all([
+          scheduleService.cutOffSchedules(),
+          scheduleService.checkQuotaThresholds(),
+        ]);
+        console.log(
+          `[CRON] [Quota & Cutoff Tasks] Success: Cancelled ${cancelledCount} schedules, sent ${warningsSent} occupancy warnings`
+        );
       } catch (error) {
         console.error(
           'Error al ejecutar la tarea de eliminacion de horarios vacios y alertas de ocupación:',
@@ -106,8 +126,14 @@ export const cronFunctions = async (
   cron.schedule('0 12 * * *', async () => {
     console.log('📅 Chequeando las suscripciones a punto de expirar.');
     try {
-      const subscriptionService = new SubscriptionService(em.fork());
-      await subscriptionService.notifyExpiringSubscriptions();
+      const subscriptionService = new SubscriptionService(
+        createRetryingEntityManager(em, true)
+      );
+      const notifiedCount =
+        await subscriptionService.notifyExpiringSubscriptions();
+      console.log(
+        `[CRON] [Expiring Subscriptions] Success: Notified ${notifiedCount} users with subscriptions expiring tomorrow`
+      );
     } catch (error) {
       console.error('[CRON] Error checking expiring subscriptions:', error);
     }

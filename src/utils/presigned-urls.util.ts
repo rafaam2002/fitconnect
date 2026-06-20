@@ -14,18 +14,20 @@ export * from './s3client.util';
  * Actualizar URLs de imágenes con presigned URLs
  * Usa batch operations para mejor performance
  */
-export const updatePictureUrls = async (em: EntityManager): Promise<void> => {
+export const updatePictureUrls = async (em: EntityManager): Promise<number> => {
   try {
     // Actualizar URLs de usuarios
-    await updateUserPictureUrls(em);
+    const userCount = await updateUserPictureUrls(em);
 
     // Actualizar URLs de productos
-    await updateProductPictureUrls(em);
+    const productCount = await updateProductPictureUrls(em);
 
     // Actualizar URLs de empresas (logos y fotos)
-    await updateCompanyUrls(em);
+    const companyCount = await updateCompanyUrls(em);
 
-    console.log('✅ Picture URLs updated successfully');
+    const total = userCount + productCount + companyCount;
+    console.log(`✅ Picture URLs updated successfully: ${total} total`);
+    return total;
   } catch (error) {
     console.error('❌ Error updating picture URLs:', error);
     throw error;
@@ -35,7 +37,7 @@ export const updatePictureUrls = async (em: EntityManager): Promise<void> => {
 /**
  * Actualizar URLs de imágenes de usuarios
  */
-const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
+const updateUserPictureUrls = async (em: EntityManager): Promise<number> => {
   const userRepo = em.getRepository(User);
 
   const users = await userRepo.find(
@@ -50,7 +52,7 @@ const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
 
   if (users.length === 0) {
     console.log('No users with pictures to update');
-    return;
+    return 0;
   }
 
   // Generar presigned URLs en paralelo
@@ -66,12 +68,13 @@ const updateUserPictureUrls = async (em: EntityManager): Promise<void> => {
   await em.flush();
 
   console.log(`✅ Updated ${users.length} user picture URLs`);
+  return users.length;
 };
 
 /**
  * Actualizar URLs de imágenes de productos
  */
-const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
+const updateProductPictureUrls = async (em: EntityManager): Promise<number> => {
   const productRepo = em.getRepository(Product);
 
   const products = await productRepo.find(
@@ -85,7 +88,7 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
 
   if (products.length === 0) {
     console.log('No products with pictures to update');
-    return;
+    return 0;
   }
 
   // Obtener todas las pictures de todos los productos
@@ -93,7 +96,7 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
 
   if (allPictures.length === 0) {
     console.log('No product pictures to update');
-    return;
+    return 0;
   }
 
   // Generar presigned URLs en paralelo
@@ -107,12 +110,13 @@ const updateProductPictureUrls = async (em: EntityManager): Promise<void> => {
   await em.flush();
 
   console.log(`✅ Updated ${allPictures.length} product picture URLs`);
+  return allPictures.length;
 };
 
 /**
  * Actualizar URLs de imágenes de empresas (logos y fotos)
  */
-export const updateCompanyUrls = async (em: EntityManager): Promise<void> => {
+export const updateCompanyUrls = async (em: EntityManager): Promise<number> => {
   const companyRepo = em.getRepository(Company);
 
   const companies = await companyRepo.find(
@@ -127,7 +131,7 @@ export const updateCompanyUrls = async (em: EntityManager): Promise<void> => {
 
   if (companies.length === 0) {
     console.log('No companies with pictures/logos to update');
-    return;
+    return 0;
   }
 
   // Coleccionar todas las PictureUrl a actualizar
@@ -144,7 +148,7 @@ export const updateCompanyUrls = async (em: EntityManager): Promise<void> => {
 
   if (picturesToUpdate.length === 0) {
     console.log('No company pictures or logos to update');
-    return;
+    return 0;
   }
 
   // Generar presigned URLs en paralelo
@@ -160,6 +164,7 @@ export const updateCompanyUrls = async (em: EntityManager): Promise<void> => {
   console.log(
     `✅ Updated ${picturesToUpdate.length} company picture/logo URLs`
   );
+  return picturesToUpdate.length;
 };
 
 /**

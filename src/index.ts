@@ -228,12 +228,31 @@ const startServer = async () => {
     return res.status(isSuccess ? 200 : 400).send(htmlResponse);
   });
 
-  app.get('/health', (req, res) => {
-    res.status(200).json({
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-      service: 'GraphQL + Webhooks Server',
-    });
+  app.get('/health', async (req, res) => {
+    try {
+      const isConnected = orm.isConnected();
+      if (!isConnected) {
+        return res.status(500).json({
+          status: 'ERROR',
+          database: 'disconnected',
+          timestamp: moment().toDate().toISOString(),
+        });
+      }
+      await orm.em.getConnection().execute('SELECT 1');
+      res.status(200).json({
+        status: 'OK',
+        database: 'connected',
+        timestamp: moment().toDate().toISOString(),
+        service: 'GraphQL + Webhooks Server',
+      });
+    } catch (dbError: any) {
+      res.status(500).json({
+        status: 'ERROR',
+        database: 'error',
+        error: dbError.message,
+        timestamp: moment().toDate().toISOString(),
+      });
+    }
   });
 
   app.get('/delete-account', (req, res) => {

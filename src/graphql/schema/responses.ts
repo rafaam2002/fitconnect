@@ -213,17 +213,6 @@ type GlobalSystemStatsResponse implements BasicResponse {
 
 # ── BILLING RESPONSES ─────────────────────────────────────────────────
 
-type BraintreeClientTokenData {
-    clientToken: String!
-}
-
-type BraintreeClientTokenResponse implements BasicResponse {
-    code: String!
-    success: Boolean!
-    message: String!
-    data: BraintreeClientTokenData
-}
-
 type CustomerResponse implements BasicResponse {
     code: String!
     success: Boolean!
@@ -314,5 +303,37 @@ type TransactionResponse implements BasicResponse {
     summary: JSON
 }
 
+type PaymentOAuthUrlResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    url: String
+}
 
+type PaymentConnectionStatus {
+    isConnected: Boolean!
+    accountId: String
+    status: String
+    connectedAt: String
+    chargesEnabled: Boolean!
+    payoutsEnabled: Boolean!
+}
+
+type PaymentConnectionStatusResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    status: PaymentConnectionStatus
+}
+
+type TokenizeCardData {
+    nonce: String!
+}
+
+type TokenizeCardResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    data: TokenizeCardData
+}
 `;

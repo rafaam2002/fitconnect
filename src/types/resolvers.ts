@@ -1,7 +1,7 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { User } from '../entities/User';
-import { BraintreeProcessor } from '../services/braintree.processor';
+import { PaymentProcessor } from '../services/payment-processor.interface';
 
 import { CurrentUser } from './common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
@@ -9,7 +9,7 @@ import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
 export type ContextProps = {
   em: EntityManager;
   currentUser: CurrentUser;
-  paymentProcessor: BraintreeProcessor;
+  paymentProcessor: PaymentProcessor;
 };
 
 export type UserProps = {

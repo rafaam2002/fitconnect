@@ -51,11 +51,6 @@ type Mutation {
     deactivateCustomer(customerId: ID!): CustomerResponse!
 
     # ── PaymentMethod ─────────────────────────────────────────────────
-    """
-    Guarda un método de pago ya tokenizado por Braintree (via addPaymentMethodFromNonce).
-    El frontend llama a esto después de recibir Ds_Merchant_Identifier del webhook/redirect.
-    """
-    addPaymentMethod(input: AddPaymentMethodInput!): PaymentMethodResponse!
     removePaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     setDefaultPaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
     updatePaymentMethodMetadata(paymentMethodId: ID!, metadata: JSON): PaymentMethodResponse!
@@ -63,14 +58,17 @@ type Mutation {
     cleanupExpiredPaymentMethods(customerId: ID!): PaymentMethodResponse!
     validatePaymentMethod(paymentMethodId: ID!): PaymentMethodResponse!
 
-    # ── Braintree ─────────────────────────────────────────────────────
-    """
-    Convierte el nonce de un solo uso del Drop-in UI en un paymentMethodToken
-    permanente en el Vault de Braintree y lo guarda como PaymentMethod.
-    verifyCard=true ejecuta una autorización de 0€ para validar la tarjeta.
-    """
-    addPaymentMethodFromNonce(nonce: String!, setAsDefault: Boolean, verifyCard: Boolean): PaymentMethodResponse!
-
+    # ── Pagos ─────────────────────────────────────────────────────────
+    addPaymentMethod(nonce: String!, setAsDefault: Boolean, verifyCard: Boolean, companyId: ID): PaymentMethodResponse!
+    getPaymentOAuthUrl(companyId: ID!, platform: String!): PaymentOAuthUrlResponse!
+    disconnectPaymentAccount(companyId: ID!): PaymentConnectionStatusResponse!
+    tokenizeCard(
+      cardNumber: String!
+      expirationMonth: String!
+      expirationYear: String!
+      cvv: String!
+      cardholderName: String
+    ): TokenizeCardResponse!
 
 
     # ── Subscription — usuario ────────────────────────────────────────
@@ -81,19 +79,13 @@ type Mutation {
     cancelSubscription(input: CancelSubscriptionInput!): SubscriptionResponse!
     pauseSubscription(subscriptionId: ID!): SubscriptionResponse!
     resumeSubscription(subscriptionId: ID!): SubscriptionResponse!
-    """Reactiva una suscripción PAST_DUE o CANCELED. Requiere método de pago válido."""
     reactivateSubscription(subscriptionId: ID!): SubscriptionResponse!
-    """Actualiza la tarjeta de una suscripción con pago fallido e intenta cobrar de inmediato."""
     updatePaymentMethodAndRetry(subscriptionId: ID!, paymentMethodId: ID!): SubscriptionResponse!
 
     # ── Subscription — admin ───────────────────────────────────────────
-    """Fuerza cambios de estado, fechas o contadores. Siempre requiere razón (audit log)."""
     adminOverrideSubscription(input: AdminOverrideSubscriptionInput!): SubscriptionResponse!
-    """Fuerza el cobro de renovación ahora mismo sin esperar al CRON."""
     forceRenewal(subscriptionId: ID!): SubscriptionResponse!
-    """Añade días gratuitos al período actual (compensación, promoción, gracia)."""
     extendSubscriptionPeriod(subscriptionId: ID!, days: Int!, reason: String!): SubscriptionResponse!
-    """Aplica un crédito en centavos que se descuenta en el próximo cobro."""
     applySubscriptionCredit(subscriptionId: ID!, amountInCents: Int!, reason: String!): SubscriptionResponse!
 
     # ── Invoice ───────────────────────────────────────────────────────

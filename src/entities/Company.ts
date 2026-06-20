@@ -79,6 +79,27 @@ export class Company extends BaseEntity {
   })
   companyConfig?: CompanyConfig;
 
+  // ── Stripe Connect (OAuth) ────────────────────────────────────────
+  // Credenciales de la cuenta Stripe propia de esta empresa.
+  // Se obtienen via Stripe Connect OAuth cuando el admin conecta su cuenta.
+  // Nunca se exponen al frontend.
+
+  /** Stripe Account ID del admin (acct_xxx) — se usa como connectedAccountId en cobros */
+  @Property({ nullable: true })
+  stripeAccountId?: string;
+
+  @Property({ nullable: true })
+  stripeAccessToken?: string;
+
+  @Property({ nullable: true })
+  stripeRefreshToken?: string;
+
+  @Property({ nullable: true })
+  stripeAccountStatus?: string;
+
+  @Property({ nullable: true })
+  stripeConnectedAt?: Date;
+
   constructor(company: Partial<Company>) {
     super();
     this.name = company.name || '';

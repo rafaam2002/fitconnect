@@ -31,6 +31,7 @@ export interface AddPaymentMethodInput {
   fingerprint?: string;
   country?: string;
   setAsDefault?: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface TokenizeAndAddCardInput {
@@ -48,9 +49,6 @@ export class PaymentMethodService extends BaseService {
   // LECTURA
   // ─────────────────────────────────────────────
 
-  /**
-   * Obtiene un PaymentMethod por su ID interno.
-   */
   public async getPaymentMethod(
     paymentMethodId: string
   ): Promise<ServiceResponse> {
@@ -60,9 +58,7 @@ export class PaymentMethodService extends BaseService {
       { populate: ['customer', 'customer.user'] }
     );
 
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Payment method');
 
     return createServiceResponse(
       200,
@@ -72,9 +68,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Lista los métodos de pago activos de un Customer.
-   */
   public async listPaymentMethods(
     customerId: string
   ): Promise<ServiceResponse> {
@@ -82,10 +75,7 @@ export class PaymentMethodService extends BaseService {
       id: customerId,
       isActive: true,
     });
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
+    if (!customer) throw new NotFoundError('Customer');
 
     const paymentMethods = await this.em.find(
       PaymentMethod,
@@ -104,9 +94,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Lista los métodos de pago activos de un usuario (por userId).
-   */
   public async listUserPaymentMethods(
     userId: string
   ): Promise<ServiceResponse> {
@@ -124,9 +111,6 @@ export class PaymentMethodService extends BaseService {
     return this.listPaymentMethods(customer.id);
   }
 
-  /**
-   * Devuelve el método de pago por defecto de un Customer.
-   */
   public async getDefaultPaymentMethod(
     customerId: string
   ): Promise<ServiceResponse> {
@@ -140,9 +124,7 @@ export class PaymentMethodService extends BaseService {
       { populate: ['customer', 'customer.user'] }
     );
 
-    if (!paymentMethod) {
-      throw new NotFoundError('Default payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Default payment method');
 
     return createServiceResponse(
       200,
@@ -152,9 +134,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Devuelve el método de pago por defecto de un usuario (por userId).
-   */
   public async getUserDefaultPaymentMethod(
     userId: string
   ): Promise<ServiceResponse> {
@@ -168,9 +147,7 @@ export class PaymentMethodService extends BaseService {
         200,
         'No default payment method found',
         true,
-        {
-          paymentMethod: null,
-        }
+        { paymentMethod: null }
       );
     }
 
@@ -184,13 +161,12 @@ export class PaymentMethodService extends BaseService {
       200,
       'Default payment method fetched successfully',
       true,
-      { paymentMethod: paymentMethod ?? null }
+      {
+        paymentMethod: paymentMethod ?? null,
+      }
     );
   }
 
-  /**
-   * Devuelve los métodos de pago expirados de un Customer.
-   */
   public async getExpiredPaymentMethods(
     customerId: string
   ): Promise<ServiceResponse> {
@@ -198,10 +174,7 @@ export class PaymentMethodService extends BaseService {
       id: customerId,
       isActive: true,
     });
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
+    if (!customer) throw new NotFoundError('Customer');
 
     const paymentMethods = await this.em.find(PaymentMethod, {
       customer: customer.id,
@@ -216,9 +189,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Estadísticas de métodos de pago de un Customer.
-   */
   public async getPaymentMethodsStats(
     customerId: string
   ): Promise<ServiceResponse> {
@@ -226,10 +196,7 @@ export class PaymentMethodService extends BaseService {
       id: customerId,
       isActive: true,
     });
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
+    if (!customer) throw new NotFoundError('Customer');
 
     const paymentMethods = await this.em.find(PaymentMethod, { customer });
 
@@ -243,24 +210,22 @@ export class PaymentMethodService extends BaseService {
 
     const byBrand: Record<string, number> = {};
     active.forEach(pm => {
-      if (pm.brand) {
-        byBrand[pm.brand] = (byBrand[pm.brand] || 0) + 1;
-      }
+      if (pm.brand) byBrand[pm.brand] = (byBrand[pm.brand] || 0) + 1;
     });
-
-    const stats = {
-      total: paymentMethods.length,
-      active: active.length,
-      expired: expired.length,
-      byBrand,
-      hasDefault,
-    };
 
     return createServiceResponse(
       200,
       'Payment method stats fetched successfully',
       true,
-      { stats }
+      {
+        stats: {
+          total: paymentMethods.length,
+          active: active.length,
+          expired: expired.length,
+          byBrand,
+          hasDefault,
+        },
+      }
     );
   }
 
@@ -268,13 +233,6 @@ export class PaymentMethodService extends BaseService {
   // ESCRITURA
   // ─────────────────────────────────────────────
 
-  /**
-   * Añade un método de pago ya tokenizado al Customer.
-   *
-   * El token externo lo genera el procesador (Redsys, Braintree, Adyen…)
-   * y llega al backend a través de un webhook o de una llamada del frontend.
-   * Este método solo persiste los datos — no realiza ningún cobro.
-   */
   public async addPaymentMethod(
     input: AddPaymentMethodInput
   ): Promise<ServiceResponse> {
@@ -282,12 +240,9 @@ export class PaymentMethodService extends BaseService {
       id: input.customerId,
       isActive: true,
     });
+    if (!customer) throw new NotFoundError('Customer');
 
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
-
-    // Detectar tarjeta duplicada por fingerprint
+    // Detectar duplicado por fingerprint
     if (input.fingerprint) {
       const duplicate = await this.em.findOne(PaymentMethod, {
         customer,
@@ -296,7 +251,6 @@ export class PaymentMethodService extends BaseService {
       });
 
       if (duplicate) {
-        // Si ya existe y se pide como default, simplemente actualizamos eso
         if (input.setAsDefault && !duplicate.isDefault) {
           await this.setDefaultInternal(duplicate, customer);
           await this.em.flush();
@@ -310,6 +264,7 @@ export class PaymentMethodService extends BaseService {
       }
     }
 
+    // Detectar duplicado por last4 + fecha + brand
     if (input.last4 && input.expiryMonth && input.expiryYear && input.brand) {
       const duplicate = await this.em.findOne(PaymentMethod, {
         customer,
@@ -334,11 +289,10 @@ export class PaymentMethodService extends BaseService {
       }
     }
 
-    // Crear el nuevo método de pago
     const paymentMethod = this.em.create(PaymentMethod, {
       customer,
       externalToken: input.externalToken,
-      type: 'card' as any, // el procesador puede indicar el tipo
+      type: 'card' as any,
       status: PaymentMethodStatus.ACTIVE,
       brand: input.brand,
       last4: input.last4,
@@ -347,6 +301,7 @@ export class PaymentMethodService extends BaseService {
       fingerprint: input.fingerprint,
       country: input.country,
       isDefault: false,
+      metadata: input.metadata ?? {},
     });
 
     if (input.setAsDefault) {
@@ -367,12 +322,15 @@ export class PaymentMethodService extends BaseService {
   /**
    * Tokeniza una tarjeta en el procesador y la guarda en BD.
    * Solo disponible si el procesador implementa tokenizeCard().
-   * En flujos con redirect (Redsys) no se usa este método.
+   *
+   * ✅ CORRECCIÓN: tokenResult devuelve `nonce` (no `token`),
+   * y no incluye `fingerprint` ni `country` — Stripe no los expone
+   * en la tokenización directa. Se obtienen tras el vault si son necesarios.
    */
   public async tokenizeAndAddCard(
     input: TokenizeAndAddCardInput
   ): Promise<ServiceResponse> {
-    if (!this.paymentProcessor?.tokenizeCard) {
+    if (!this.paymentProcessor) {
       throw new BadRequestError(
         'El procesador configurado no soporta tokenización directa. ' +
           'Usa el flujo de redirect o el SDK del frontend para obtener el token.'
@@ -383,7 +341,8 @@ export class PaymentMethodService extends BaseService {
       input.cardData
     );
 
-    if (!tokenResult.success || !tokenResult.token) {
+    // ✅ nonce (no .token) — campo correcto de TokenizeCardResult
+    if (!tokenResult.success || !tokenResult.nonce) {
       throw new BadRequestError(
         tokenResult.errorMessage ?? 'Card tokenization failed'
       );
@@ -391,21 +350,16 @@ export class PaymentMethodService extends BaseService {
 
     return this.addPaymentMethod({
       customerId: input.customerId,
-      externalToken: tokenResult.token,
+      externalToken: tokenResult.nonce, // ✅ nonce, no token
       brand: tokenResult.brand,
       last4: tokenResult.last4,
       expiryMonth: tokenResult.expiryMonth,
       expiryYear: tokenResult.expiryYear,
-      fingerprint: tokenResult.fingerprint,
-      country: tokenResult.country,
+      // fingerprint y country no están en TokenizeCardResult — se omiten aquí
       setAsDefault: input.setAsDefault,
     });
   }
 
-  /**
-   * Elimina un método de pago.
-   * Si el procesador es Braintree también elimina el token del Vault remoto.
-   */
   public async removePaymentMethod(
     paymentMethodId: string
   ): Promise<ServiceResponse> {
@@ -414,23 +368,16 @@ export class PaymentMethodService extends BaseService {
       status: PaymentMethodStatus.ACTIVE,
     });
 
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Payment method');
 
-    // Eliminar del Vault de Braintree si hay procesador inyectado y token externo
     if (this.paymentProcessor && paymentMethod.externalToken) {
-      const processor = this.paymentProcessor as any;
-      if (typeof processor.deleteVaultPaymentMethod === 'function') {
-        const result = await processor.deleteVaultPaymentMethod(
-          paymentMethod.externalToken
+      const result = await this.paymentProcessor.deleteVaultPaymentMethod(
+        paymentMethod.externalToken
+      );
+      if (!result.success) {
+        console.warn(
+          `[PaymentMethodService] Could not delete token from Vault: ${result.errorMessage}`
         );
-        if (!result.success) {
-          console.warn(
-            `[PaymentMethodService] Could not delete token from Vault: ${result.errorMessage}`
-          );
-          // No lanzamos error — el token local se marca inactivo de todas formas
-        }
       }
     }
 
@@ -445,9 +392,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Establece un método de pago como el predeterminado del Customer.
-   */
   public async setDefaultPaymentMethod(
     paymentMethodId: string
   ): Promise<ServiceResponse> {
@@ -457,9 +401,7 @@ export class PaymentMethodService extends BaseService {
       { populate: ['customer'] }
     );
 
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Payment method');
 
     await this.setDefaultInternal(paymentMethod, paymentMethod.customer);
     await this.em.flush();
@@ -472,20 +414,13 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Marca un método de pago como expirado.
-   * Llamado por el CRON de revisión de tarjetas o desde un webhook del procesador.
-   */
   public async markPaymentMethodAsExpired(
     paymentMethodId: string
   ): Promise<ServiceResponse> {
     const paymentMethod = await this.em.findOne(PaymentMethod, {
       id: paymentMethodId,
     });
-
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Payment method');
 
     paymentMethod.status = PaymentMethodStatus.EXPIRED;
     paymentMethod.isDefault = false;
@@ -499,9 +434,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Actualiza los metadatos de un método de pago.
-   */
   public async updatePaymentMethodMetadata(
     paymentMethodId: string,
     metadata: Record<string, any>
@@ -509,10 +441,7 @@ export class PaymentMethodService extends BaseService {
     const paymentMethod = await this.em.findOne(PaymentMethod, {
       id: paymentMethodId,
     });
-
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method');
-    }
+    if (!paymentMethod) throw new NotFoundError('Payment method');
 
     paymentMethod.metadata = { ...paymentMethod.metadata, ...metadata };
     await this.em.flush();
@@ -525,9 +454,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Elimina los métodos de pago expirados de un Customer.
-   */
   public async cleanupExpiredPaymentMethods(
     customerId: string
   ): Promise<ServiceResponse> {
@@ -535,18 +461,13 @@ export class PaymentMethodService extends BaseService {
       id: customerId,
       isActive: true,
     });
-
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
+    if (!customer) throw new NotFoundError('Customer');
 
     const expiredPaymentMethods = await this.em.find(PaymentMethod, {
       customer: customer.id,
       status: PaymentMethodStatus.EXPIRED,
     });
 
-    // Ya están marcados como EXPIRED — aquí podríamos hacer hard delete si se quiere
-    // Por ahora solo normalizamos el flag isDefault
     for (const pm of expiredPaymentMethods) {
       pm.isDefault = false;
     }
@@ -561,10 +482,6 @@ export class PaymentMethodService extends BaseService {
     );
   }
 
-  /**
-   * Comprueba si un método de pago sigue siendo válido.
-   * No llama al procesador externo — valida solo los datos locales.
-   */
   public async validatePaymentMethod(
     paymentMethodId: string
   ): Promise<ServiceResponse> {
@@ -580,18 +497,11 @@ export class PaymentMethodService extends BaseService {
     }
 
     const errors: string[] = [];
-
-    if (paymentMethod.isExpired) {
-      errors.push('Payment method is expired');
-    }
-
-    if (paymentMethod.status !== PaymentMethodStatus.ACTIVE) {
+    if (paymentMethod.isExpired) errors.push('Payment method is expired');
+    if (paymentMethod.status !== PaymentMethodStatus.ACTIVE)
       errors.push('Payment method is not active');
-    }
-
-    if (!paymentMethod.externalToken) {
+    if (!paymentMethod.externalToken)
       errors.push('Payment method has no external token');
-    }
 
     const isValid = errors.length === 0;
 
@@ -609,10 +519,6 @@ export class PaymentMethodService extends BaseService {
   // PRIVADOS
   // ─────────────────────────────────────────────
 
-  /**
-   * Desactiva todos los defaults del Customer y marca el indicado como nuevo default.
-   * No hace flush — el llamador es responsable de hacerlo.
-   */
   private async setDefaultInternal(
     newDefault: PaymentMethod,
     customer: Customer

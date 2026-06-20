@@ -22,12 +22,13 @@ import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { middleware } from './middlewares';
 import { registerRoutes } from './routes';
-import { BraintreeProcessor } from './services/braintree.processor';
+import { PaymentProcessor } from './services/payment-processor.interface';
+import { StripeProcessor } from './services/stripe.processor';
 import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
-import { createBraintreeWebhookRouter } from './webhooks/braintree.webhook';
+import { createStripeWebhookRouter } from './webhooks/stripe.webhook';
 
 // ─────────────────────────────────────────────
 // CONFIGURACIÓN GLOBAL
@@ -43,18 +44,17 @@ moment.tz.setDefault('Europe/Madrid');
 export interface MyContext {
   em: EntityManager;
   currentUser: CurrentUser | null;
-  paymentProcessor: BraintreeProcessor; // ← tipo correcto, no la instancia
+  paymentProcessor: PaymentProcessor;
 }
 
 // ─────────────────────────────────────────────
-// PROCESADOR DE PAGOS
+// PROCESADOR DE PAGOS — Stripe
 // ─────────────────────────────────────────────
 
-const braintree = new BraintreeProcessor({
-  merchantId: process.env.BRAINTREE_MERCHANT_ID!,
-  publicKey: process.env.BRAINTREE_PUBLIC_KEY!,
-  privateKey: process.env.BRAINTREE_PRIVATE_KEY!,
-  sandbox: process.env.BRAINTREE_SANDBOX === 'true',
+const stripeProcessor = new StripeProcessor({
+  secretKey: process.env.STRIPE_SECRET_KEY!,
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+  connectWebhookSecret: process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
 });
 
 // ─────────────────────────────────────────────
@@ -99,18 +99,11 @@ const apolloServer = new ApolloServer<MyContext>({
 // HELPERS
 // ─────────────────────────────────────────────
 
-/**
- * Inyecta un EntityManager forked en req para los handlers de webhook.
- */
 const injectEntityManager = (orm: any) => (req: any, _res: any, next: any) => {
   req.em = orm.em.fork();
   next();
 };
 
-/**
- * Construye el contexto de Apollo a partir de la request HTTP.
- * Las queries de introspección no requieren autenticación.
- */
 const buildHttpContext =
   (orm: any) =>
   async ({ req }: { req: express.Request }): Promise<MyContext> => {
@@ -118,19 +111,16 @@ const buildHttpContext =
     const query = req.body?.query ?? '';
 
     if (query.includes('__schema') || query.includes('IntrospectionQuery')) {
-      return { em, currentUser: null, paymentProcessor: braintree };
+      return { em, currentUser: null, paymentProcessor: stripeProcessor };
     }
 
     const authorization = req.headers.authorization ?? '';
     const companyId = (req.headers['x-company-id'] as string) ?? '';
 
     const ctx = await middleware(em, query, authorization, companyId);
-    return { ...ctx, paymentProcessor: braintree };
+    return { ...ctx, paymentProcessor: stripeProcessor };
   };
 
-/**
- * Construye el contexto de Apollo para conexiones WebSocket.
- */
 const buildWsContext =
   (orm: any) =>
   async (ctx: any): Promise<MyContext> => {
@@ -139,7 +129,7 @@ const buildWsContext =
     const em = createRetryingEntityManager(orm);
 
     const base = await middleware(em, '', authorization, companyId);
-    return { ...base, paymentProcessor: braintree };
+    return { ...base, paymentProcessor: stripeProcessor };
   };
 
 // ─────────────────────────────────────────────
@@ -153,17 +143,21 @@ const startServer = async () => {
   console.log('🗄️  Base de datos:', orm.config.get('dbName'));
   console.log('👤 Usuario:  ', orm.config.get('user'));
 
-  // ── 1. Webhooks (antes de express.json — Braintree envía urlencoded) ──
+  // ── 1. Webhooks de Stripe (body crudo — antes de express.json) ────────
   app.use('/webhooks', cors(webhookCorsOptions));
   app.use('/webhooks', injectEntityManager(orm));
-  app.use('/webhooks', express.urlencoded({ extended: false }));
-  app.use(createBraintreeWebhookRouter(orm, braintree));
+  // Stripe necesita el body como Buffer para verificar la firma
+  app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
+  app.use(createStripeWebhookRouter(orm, stripeProcessor));
 
   // ── 2. Middleware general ─────────────────────────────────────────────
   app.use(express.json());
   app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
   // ── 3. Rutas REST ─────────────────────────────────────────────────────
+  // injectEntityManager antes de registerRoutes para que authMiddleware
+  // tenga acceso a req.em en las rutas de Stripe Connect OAuth
+  app.use(injectEntityManager(orm));
   registerRoutes(app, orm);
 
   // ── 4. Apollo Server ──────────────────────────────────────────────────
@@ -188,8 +182,7 @@ const startServer = async () => {
 
   app.use((error: any, req: any, res: any, _next: any) => {
     console.error('[Global error handler]', error);
-    const status = 500;
-    res.status(status).json({
+    res.status(500).json({
       error: 'Internal server error',
       timestamp: new Date().toISOString(),
     });
@@ -197,20 +190,16 @@ const startServer = async () => {
 
   // ── 7. CRONs ──────────────────────────────────────────────────────────
   cronFunctions(createRetryingEntityManager(orm, true));
-  registerBillingCrons(orm, braintree);
+  registerBillingCrons(orm, stripeProcessor);
 
   // ── 8. Escuchar ───────────────────────────────────────────────────────
   const port = process.env.PORT ?? 4000;
   httpServer.listen(port, () => {
-    console.log(`🚀 Server     → http://localhost:${port}/`);
-    console.log(`🚀 GraphQL    → http://localhost:${port}/`);
-    console.log(`🚀 WS         → ws://localhost:${port}/graphql`);
-    console.log(`🩺 Health     → http://localhost:${port}/health`);
+    console.log(`🚀 Server  → http://localhost:${port}/`);
+    console.log(`🚀 GraphQL → http://localhost:${port}/`);
+    console.log(`🚀 WS      → ws://localhost:${port}/graphql`);
+    console.log(`🩺 Health  → http://localhost:${port}/health`);
   });
 };
-
-// ─────────────────────────────────────────────
-// INICIO
-// ─────────────────────────────────────────────
 
 startServer();

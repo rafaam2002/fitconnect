@@ -25,11 +25,11 @@ export function registerBillingCrons(
   // Cada día a las 02:00 UTC
   // Cobra renovaciones vencidas, transiciona trials expirados
   // y ejecuta cancelaciones diferidas.
-  scheduleDailyAt('02:00', 'processBillingCycle', async () => {
+  /*  scheduleDailyAt('02:00', 'processBillingCycle', async () => {
     const em = orm.em.fork();
     const service = new SubscriptionService(em, paymentProcessor);
     await service.processBillingCycle();
-  });
+  });*/
 
   // ── Notificaciones de expiración ────────────────────────────────
   // Cada día a las 10:00 UTC

@@ -74,9 +74,9 @@ type Query {
     getSubscriptionsStats: SubscriptionsStatsResponse!
     getSubscriptionHistory(subscriptionId: ID!): SubscriptionHistoryResponse!
 
-    # ── Braintree ─────────────────────────────────────────────────────
-    """Genera el clientToken para inicializar el Drop-in UI de Braintree en el frontend."""
-    getBraintreeClientToken: BraintreeClientTokenResponse!
+    # ── Pagos ─────────────────────────────────────────────────────────
+    """Devuelve el estado de conexión Stripe de una empresa."""
+    getPaymentConnectionStatus(companyId: ID!): PaymentConnectionStatusResponse!
 
     # ── Invoice ───────────────────────────────────────────────────────
     getInvoice(invoiceId: ID!): InvoiceResponse!

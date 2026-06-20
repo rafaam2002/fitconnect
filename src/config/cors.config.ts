@@ -23,6 +23,7 @@ export const corsOriginValidator = (
   const isDev = true;
   const isLocalhost =
     origin.startsWith('http://localhost') ||
+    origin.startsWith('https://54e3-92-176-56-191.ngrok-free.app') ||
     origin.startsWith('http://192.168.1.65');
 
   if ((isDev && isLocalhost) || ALLOWED_ORIGINS.has(origin)) {

@@ -55,13 +55,12 @@ input CompanyConfigInput {
 }
 
 input ScheduleOptionsInput {
-    maxActiveReservations: Int,
-    maxAdvanceBookingDays: Int,
-    sameDayBookingAllowed: Boolean,
-    fullOpenHours: Int,
-    bookingCutoffMinutes: Int,
-    minBookingsRequired: Int,
-    quotaWarningThresholds: [Int],
+    maxActiveReservations: Int
+    maxAdvanceBookingDays: Int
+    sameDayBookingAllowed: Boolean
+    fullOpenHours: Int
+    bookingCutoffMinutes: Int
+    minBookingsRequired: Int
 }
 
 input UpdateScheduleInput {
@@ -123,13 +122,12 @@ input CreateScheduleInput {
 }
 
 input UpdateScheduleOptionsInput {
-    maxActiveReservations: Int!,
-    maxAdvanceBookingDays: Int!,
-    sameDayBookingAllowed: Boolean!,
-    fullOpenHours: Int!,
-    bookingCutoffMinutes: Int!,
-    minBookingsRequired: Int!,
-    quotaWarningThresholds: [Int]!,
+    maxActiveReservations: Int!
+    maxAdvanceBookingDays: Int!
+    sameDayBookingAllowed: Boolean!
+    fullOpenHours: Int!
+    bookingCutoffMinutes: Int!
+    minBookingsRequired: Int!
 }
 
 input CreateScheduleDevelopmentInput {
@@ -184,9 +182,6 @@ input PlanFilterInput {
 
 # ── BILLING ──────────────────────────────────────────────────────────
 
-"""
-Creación de un plan. el sistema genera su propio ID.
-"""
 input CreatePlanInput {
     name: String!
     description: String
@@ -199,10 +194,6 @@ input CreatePlanInput {
     metadata: JSON
 }
 
-"""
-Actualización parcial de un plan.
-Cambiar amount no afecta suscripciones activas hasta su próxima renovación.
-"""
 input UpdatePlanInput {
     id: ID!
     name: String
@@ -214,19 +205,13 @@ input UpdatePlanInput {
     isActive: Boolean
 }
 
-"""
-Creación del perfil de facturación de un usuario.
-Se llama automáticamente al registrar un usuario — no suele usarse desde el cliente.
-"""
 input CreateCustomerInput {
     userId: ID!
     currency: Currency
     metadata: JSON
 }
 
-"""
-Actualización del perfil de facturación.
-"""
+
 input UpdateCustomerInput {
     customerId: ID!
     currency: Currency
@@ -234,11 +219,6 @@ input UpdateCustomerInput {
     metadata: JSON
 }
 
-"""
-Añade un método de pago ya tokenizado por el procesador externo.
-El frontend obtiene el token tras completar el flujo del Drop-in UI de Braintree.
-Nunca se envían datos de tarjeta en crudo al backend.
-"""
 input AddPaymentMethodInput {
     customerId: ID!
     """paymentMethodToken permanente devuelto por el Vault de Braintree"""
@@ -275,21 +255,24 @@ input CancelSubscriptionInput {
     cancellationReason: String
 }
 
-"""
-Cambio de plan con prorrateo opcional.
-prorate=true → cobra/acredita la diferencia proporcional de inmediato.
-prorate=false → aplica el nuevo plan en el siguiente período (sin cobro ahora).
-"""
 input ChangePlanInput {
     subscriptionId: ID!
     newPlanId: ID!
     prorate: Boolean
 }
 
-"""
-Operación administrativa sobre una suscripción.
-Todos los cambios quedan registrados en el audit log.
-"""
+
+input ReplaceSubscriptionInput {
+    oldSubscriptionId: ID!
+    newPlanId: ID!
+    paymentMethodId: ID
+    trialPeriodDays: Int
+    forceImmediateCancellation: Boolean
+    cancellationReason: String
+    metadata: JSON
+}
+
+
 input AdminOverrideSubscriptionInput {
     subscriptionId: ID!
     status: SubscriptionStatus
@@ -300,9 +283,6 @@ input AdminOverrideSubscriptionInput {
     reason: String!
 }
 
-"""
-Cargo manual sobre un usuario. El CRON usa la lógica interna directamente.
-"""
 input CreateChargeInput {
     userId: ID!
     amount: Int!

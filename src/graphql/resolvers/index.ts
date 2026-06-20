@@ -2,10 +2,10 @@ import { merge } from 'lodash';
 
 import { articleResolvers } from './article.resolver';
 import { authResolvers } from './auth.resolver';
-import { braintreeResolvers } from './braintree.resolver';
 import companyResolvers from './company.resolver';
 import { customerResolvers } from './customer.resolver';
 import { paymentMethodResolvers } from './payment-method.resolver';
+import { paymentResolvers } from './payment.resolver';
 import { permissionResolvers } from './permission.resolver';
 import { planResolvers } from './plan.resolver';
 import { pollResolvers } from './poll.resolver';
@@ -35,7 +35,7 @@ const resolvers = merge(
   companyResolvers,
   scheduleResolvers,
   superAdminResolvers,
-  braintreeResolvers
+  paymentResolvers
 );
 
 export default resolvers;

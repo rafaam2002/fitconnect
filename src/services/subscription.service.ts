@@ -59,6 +59,27 @@ interface CancelSubscriptionInput {
 }
 
 /**
+ * Input para sustituir una suscripcion por otra (cancelar la vieja + crear la nueva).
+ * A diferencia de changePlan, este flujo es para cuando se trata de dos contratos
+ * distintos (ej: el usuario cambia de un plan mensual a uno anual de otra familia,
+ * o el admin le asigna manualmente un plan distinto).
+ */
+interface ReplaceSubscriptionInput {
+  oldSubscriptionId: string;
+  newPlanId: string;
+  paymentMethodId?: string;
+  trialPeriodDays?: number;
+  /**
+   * Si true, cancela la suscripcion vieja inmediatamente sin importar si le quedaba
+   * periodo pagado. Si false (default), respeta el periodo ya pagado y la nueva
+   * suscripcion no empieza hasta que termine - ver explicacion en replaceSubscription().
+   */
+  forceImmediateCancellation?: boolean;
+  cancellationReason?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
  * Input para el cambio de plan con prorrateo.
  * upgrade = cobra la diferencia ahora.
  * downgrade = acredita los días restantes al siguiente período.
@@ -159,10 +180,8 @@ export class SubscriptionService extends BaseService {
   /**
    * Crea una suscripción nueva.
    *
-   * Plan gratuito (amount = 0) → estado ACTIVE directo, sin cobro ni método de pago.
-   * Plan con trial → estado TRIALING, primer cobro al expirar el trial.
-   * Plan de pago sin trial → intenta cobrar ahora, queda ACTIVE si tiene éxito
-   *   o INCOMPLETE si falla.
+   * Si el plan tiene trial → estado TRIALING, primer cobro al expirar el trial.
+   * Si no → intenta cobrar ahora, queda ACTIVE si tiene éxito o INCOMPLETE si falla.
    */
   public async createSubscription(
     input: CreateSubscriptionInput
@@ -175,14 +194,9 @@ export class SubscriptionService extends BaseService {
 
     await this.assertNoDuplicateSubscription(user, plan);
 
-    const isFree = plan.amount === 0;
-
-    // Solo buscar método de pago si el plan tiene coste
-    const paymentMethod = isFree
-      ? null
-      : input.paymentMethodId
-        ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
-        : await this.getDefaultPaymentMethod(customer);
+    const paymentMethod = input.paymentMethodId
+      ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
+      : await this.getDefaultPaymentMethod(customer);
 
     const trialDays =
       input.trialPeriodDays !== undefined
@@ -190,7 +204,7 @@ export class SubscriptionService extends BaseService {
         : (plan.trialPeriodDays ?? 0);
 
     const now = new Date();
-    const isTrialing = !isFree && trialDays > 0;
+    const isTrialing = trialDays > 0;
 
     const trialStart = isTrialing ? now : undefined;
     const trialEnd = isTrialing ? this.addDays(now, trialDays) : undefined;
@@ -205,14 +219,9 @@ export class SubscriptionService extends BaseService {
       plan,
       defaultPaymentMethod: paymentMethod ?? undefined,
       company: input.companyId,
-      // Plan gratuito → ACTIVE directo
-      // Con trial → TRIALING
-      // De pago sin trial → INCOMPLETE hasta que el cobro confirme
-      status: isFree
-        ? SubscriptionStatus.ACTIVE
-        : isTrialing
-          ? SubscriptionStatus.TRIALING
-          : SubscriptionStatus.INCOMPLETE,
+      status: isTrialing
+        ? SubscriptionStatus.TRIALING
+        : SubscriptionStatus.INCOMPLETE,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       trialStart,
@@ -223,13 +232,7 @@ export class SubscriptionService extends BaseService {
       metadata: {
         ...input.metadata,
         history: [
-          this.buildHistoryEntry(
-            'created',
-            'system',
-            isFree
-              ? 'Free plan subscription created — no charge required'
-              : 'Subscription created'
-          ),
+          this.buildHistoryEntry('created', 'system', 'Subscription created'),
         ],
       },
     });
@@ -237,8 +240,7 @@ export class SubscriptionService extends BaseService {
     this.em.persist(subscription);
     await this.em.flush();
 
-    // Solo intentar cobro si hay importe y no está en período de trial
-    if (!isFree && !isTrialing) {
+    if (!isTrialing) {
       await this.attemptCharge(subscription);
     }
 
@@ -364,6 +366,142 @@ export class SubscriptionService extends BaseService {
     return createServiceResponse(200, 'Plan changed successfully', true, {
       subscription,
     });
+  }
+
+  /**
+   * Sustituye una suscripcion por otra completamente nueva (dos contratos distintos).
+   *
+   * La fecha de inicio de la nueva suscripcion depende de si la vieja tenia
+   * periodo pagado vigente en el momento de la sustitucion:
+   *
+   *  - Si oldSubscription.currentPeriodEnd > ahora (el usuario aun tiene acceso
+   *    pagado), la nueva suscripcion NO empieza hoy - empieza exactamente cuando
+   *    termina el periodo que ya pago. Asi no paga dos planes a la vez ni pierde
+   *    los dias que ya habia abonado.
+   *
+   *  - Si no le queda periodo pagado vigente (ya estaba CANCELED, PAST_DUE, o el
+   *    periodo ya vencio), la nueva suscripcion empieza inmediatamente.
+   *
+   * Usar forceImmediateCancellation=true para saltarse esta logica y cancelar
+   * la vieja ya mismo aunque le quedara periodo pagado (ej: el usuario pide
+   * expresamente el cambio inmediato y acepta perder los dias restantes).
+   */
+  public async replaceSubscription(
+    input: ReplaceSubscriptionInput
+  ): Promise<ServiceResponse> {
+    if (!input.oldSubscriptionId || !input.newPlanId) {
+      throw new BadRequestError('oldSubscriptionId and newPlanId are required');
+    }
+
+    const oldSubscription = await this.em.findOne(
+      Subscription,
+      { id: input.oldSubscriptionId },
+      { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
+    );
+    if (!oldSubscription) throw new NotFoundError('Subscription');
+
+    const newPlan = await this.getActivePlanOrFail(input.newPlanId);
+
+    const now = new Date();
+    const hasRemainingPeriod =
+      !input.forceImmediateCancellation &&
+      !!oldSubscription.currentPeriodEnd &&
+      oldSubscription.currentPeriodEnd > now &&
+      oldSubscription.isActive;
+
+    // Cancelar la suscripcion vieja
+    oldSubscription.status = SubscriptionStatus.CANCELED;
+    oldSubscription.canceledAt = now;
+    oldSubscription.endedAt = hasRemainingPeriod
+      ? oldSubscription.currentPeriodEnd // se respeta el periodo ya pagado
+      : now;
+    oldSubscription.nextBillingDate = undefined;
+
+    this.appendHistory(
+      oldSubscription,
+      'replaced',
+      'system',
+      `Replaced by a new subscription to plan "${newPlan.name}". ` +
+        `Reason: ${input.cancellationReason ?? 'not specified'}`
+    );
+
+    // Determinar la fecha de inicio de la nueva suscripcion
+    const newPeriodStart = hasRemainingPeriod
+      ? oldSubscription.currentPeriodEnd!
+      : now;
+
+    const paymentMethod = input.paymentMethodId
+      ? await this.getPaymentMethodOrFail(
+          input.paymentMethodId,
+          oldSubscription.customer
+        )
+      : (oldSubscription.defaultPaymentMethod ??
+        (await this.getDefaultPaymentMethod(oldSubscription.customer)));
+
+    const trialDays = input.trialPeriodDays ?? newPlan.trialPeriodDays ?? 0;
+
+    // El trial solo tiene sentido si la nueva suscripcion empieza ya -
+    // si empieza en el futuro (porque respeta el periodo pagado), no aplicamos trial.
+    const isTrialing = trialDays > 0 && !hasRemainingPeriod;
+
+    const trialStart = isTrialing ? newPeriodStart : undefined;
+    const trialEnd = isTrialing
+      ? this.addDays(newPeriodStart, trialDays)
+      : undefined;
+    const periodEnd = isTrialing
+      ? trialEnd!
+      : this.calculatePeriodEnd(newPeriodStart, newPlan);
+
+    const newSubscription = this.em.create(Subscription, {
+      user: oldSubscription.user,
+      customer: oldSubscription.customer,
+      plan: newPlan,
+      defaultPaymentMethod: paymentMethod ?? undefined,
+      company: oldSubscription.company,
+      status: hasRemainingPeriod
+        ? SubscriptionStatus.ACTIVE // queda activa pero no se cobra hasta newPeriodStart
+        : isTrialing
+          ? SubscriptionStatus.TRIALING
+          : SubscriptionStatus.INCOMPLETE,
+      currentPeriodStart: newPeriodStart,
+      currentPeriodEnd: periodEnd,
+      trialStart,
+      trialEnd,
+      nextBillingDate: hasRemainingPeriod ? newPeriodStart : periodEnd,
+      failedPaymentAttempts: 0,
+      quantity: oldSubscription.quantity ?? 1,
+      metadata: {
+        ...input.metadata,
+        replacedSubscriptionId: oldSubscription.id,
+        history: [
+          this.buildHistoryEntry(
+            'created',
+            'system',
+            hasRemainingPeriod
+              ? `Created to replace subscription ${oldSubscription.id}. ` +
+                  `Starts on ${newPeriodStart.toISOString()} (after old period ends).`
+              : `Created to replace subscription ${oldSubscription.id}. Starts immediately.`
+          ),
+        ],
+      },
+    });
+
+    this.em.persist(newSubscription);
+    await this.em.flush();
+
+    // Si la nueva suscripcion empieza ya (no hay periodo pendiente), intentar cobrar
+    if (!hasRemainingPeriod && !isTrialing) {
+      await this.attemptCharge(newSubscription);
+    }
+
+    return createServiceResponse(
+      201,
+      hasRemainingPeriod
+        ? `Subscription replaced. New plan starts on ${newPeriodStart.toLocaleDateString()}.`
+        : 'Subscription replaced successfully',
+      true,
+      { oldSubscription, newSubscription }
+    );
   }
 
   /**

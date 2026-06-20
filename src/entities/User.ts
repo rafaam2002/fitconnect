@@ -173,8 +173,8 @@ export class User extends BaseEntity {
   @OneToMany(() => Transaction, transaction => transaction.user)
   transactions = new Collection<Transaction>(this);
 
-  @Property({ nullable: true })
-  customer?: string;
+  /*  @Property({ nullable: true })
+  customer?: string;*/
 
   @OneToMany(() => TrainingTask, trainingTask => trainingTask.user, {
     lazy: true,

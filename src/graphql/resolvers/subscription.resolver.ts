@@ -131,6 +131,22 @@ export const changePlan = async (
   }
 };
 
+export const replaceSubscription = async (
+  _: any,
+  args: { input: any },
+  context: ContextProps
+) => {
+  try {
+    const service = new SubscriptionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await service.replaceSubscription(args.input);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 export const updateSubscription = async (
   _: any,
   args: { subscription: any },
@@ -342,6 +358,7 @@ export const subscriptionResolvers = {
     // Usuario
     createSubscription,
     changePlan,
+    replaceSubscription,
     updateSubscription,
     cancelSubscription,
     pauseSubscription,

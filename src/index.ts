@@ -351,7 +351,7 @@ const startServer = async () => {
     console.log(`🩺 Health check at http://localhost:${port}/health`);
   });
 
-  cronFunctions(createRetryingEntityManager(orm, true));
+  cronFunctions(orm);
 };
 
 startServer();

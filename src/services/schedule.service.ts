@@ -1404,7 +1404,8 @@ export class ScheduleService extends BaseService {
     }
   }
 
-  public async cutOffSchedules() {
+  public async cutOffSchedules(): Promise<number> {
+    let cancelledCount = 0;
     try {
       const now = moment();
       const twentyFourHoursLater = now.clone().add(24, 'hours').toDate();
@@ -1465,9 +1466,10 @@ export class ScheduleService extends BaseService {
 
       if (cancelledSchedules.length > 0) {
         await this.em.flush();
+        cancelledCount = cancelledSchedules.length;
 
         console.log(
-          `Cancelled ${cancelledSchedules.length} schedules due to cutoff criteria.`
+          `Cancelled ${cancelledCount} schedules due to cutoff criteria.`
         );
 
         const cancelledSchedulesWithUsers = schedules.filter(s =>
@@ -1485,9 +1487,11 @@ export class ScheduleService extends BaseService {
     } catch (error) {
       console.error('Error in cutOffSchedules:', error);
     }
+    return cancelledCount;
   }
 
-  public async checkQuotaThresholds(): Promise<void> {
+  public async checkQuotaThresholds(): Promise<number> {
+    let warningsSent = 0;
     try {
       const now = moment().toDate();
       const scheduleRepo = this.em.getRepository(Schedule);
@@ -1536,6 +1540,7 @@ export class ScheduleService extends BaseService {
                     threshold,
                     type: 'QUOTA_WARNING',
                   });
+                  warningsSent++;
                 } catch (err) {
                   console.error(
                     `Error sending push notification to admin:`,
@@ -1560,6 +1565,7 @@ export class ScheduleService extends BaseService {
     } catch (error) {
       console.error('Error in checkQuotaThresholds:', error);
     }
+    return warningsSent;
   }
 
   // ============= MÉTODOS PRIVADOS =============

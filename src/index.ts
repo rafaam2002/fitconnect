@@ -196,7 +196,7 @@ const startServer = async () => {
   });
 
   // ── 7. CRONs ──────────────────────────────────────────────────────────
-  cronFunctions(createRetryingEntityManager(orm, true));
+  cronFunctions(orm);
   registerBillingCrons(orm, braintree);
 
   // ── 8. Escuchar ───────────────────────────────────────────────────────

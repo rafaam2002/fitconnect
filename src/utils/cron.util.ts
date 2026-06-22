@@ -3,6 +3,7 @@ import cron from 'node-cron';
 
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { storeNews } from '../helpers/articles';
+import { AuthService } from '../services/auth.service';
 import { ScheduleService } from '../services/schedule.service';
 
 import { createRetryingEntityManager } from './orm-retry';
@@ -15,8 +16,15 @@ export const cronFunctions = async (orm: MikroORM) => {
     '0 4 * * *', // Ejecuta a las 4:00 AM todos los días
     async () => {
       console.log('🚀 Iniciando tareas programadas...');
-      // Aquí debes pasar `em` desde tu contexto de MikroORM
       try {
+        const authService = new AuthService(
+          createRetryingEntityManager(orm, true)
+        );
+        const deletedTokens = await authService.cleanExpiredRefreshTokens();
+        console.log(
+          `🧹 [Cron] Se eliminaron ${deletedTokens} refresh tokens expirados de la base de datos.`
+        );
+
         await Promise.all([
           storeNews(createRetryingEntityManager(orm, true), 3, [1, 2, 3, 4]),
           updatePictureUrls(createRetryingEntityManager(orm, true)),

@@ -3529,22 +3529,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_invoice_id": {
-          "name": "stripe_invoice_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "invoice_number": {
           "name": "invoice_number",
           "type": "varchar(50)",
@@ -7662,22 +7646,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_payment_method_id": {
-          "name": "stripe_payment_method_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "customer_id": {
           "name": "customer_id",
           "type": "uuid",
@@ -8555,38 +8523,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "stripe_price_id": {
-          "name": "stripe_price_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "stripe_product_id": {
-          "name": "stripe_product_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
         },
         "name": {
           "name": "name",
@@ -10097,7 +10033,17 @@
         }
       ],
       "checks": [],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "push_token_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "push_token_user_id_foreign",
+          "localTableName": "public.push_token",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
       "nativeEnums": {
         "auth.aal_level": {
           "name": "aal_level",
@@ -10281,7 +10227,17 @@
         }
       ],
       "checks": [],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "refresh_token_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "refresh_token_user_id_foreign",
+          "localTableName": "public.refresh_token",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
       "nativeEnums": {
         "auth.aal_level": {
           "name": "aal_level",
@@ -14087,22 +14043,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_subscription_id": {
-          "name": "stripe_subscription_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
@@ -14474,6 +14414,15 @@
           "referencedColumnNames": ["id"],
           "updateRule": "cascade",
           "deleteRule": "no action"
+        },
+        "subscription_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "subscription_user_id_foreign",
+          "localTableName": "public.subscription",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
         }
       },
       "nativeEnums": {
@@ -14834,22 +14783,6 @@
         },
         "stripe_charge_id": {
           "name": "stripe_charge_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "stripe_payment_intent_id": {
-          "name": "stripe_payment_intent_id",
           "type": "varchar(100)",
           "unsigned": false,
           "autoincrement": false,
@@ -15509,22 +15442,6 @@
           "enumItems": [],
           "mappedType": "string"
         },
-        "customer": {
-          "name": "customer",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "picture_url_id": {
           "name": "picture_url_id",
           "type": "uuid",
@@ -16124,6 +16041,15 @@
           "referencedColumnNames": ["id"],
           "updateRule": "cascade",
           "deleteRule": "cascade"
+        },
+        "user_role_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "user_role_user_id_foreign",
+          "localTableName": "public.user_role",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
         }
       },
       "nativeEnums": {
@@ -16251,6 +16177,15 @@
           "constraintName": "user_schedules_schedule_id_foreign",
           "localTableName": "public.user_schedules",
           "referencedTableName": "public.schedule",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
+        "user_schedules_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "user_schedules_user_id_foreign",
+          "localTableName": "public.user_schedules",
+          "referencedTableName": "public.user",
           "referencedColumnNames": ["id"],
           "updateRule": "cascade",
           "deleteRule": "cascade"

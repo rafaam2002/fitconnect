@@ -2,20 +2,11 @@ import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20260614_fix_plan_nullable extends Migration {
   async up(): Promise<void> {
-    this.addSql(`
-      ALTER TABLE plan ALTER COLUMN stripe_price_id DROP NOT NULL;
-    `);
-    this.addSql(`
-      ALTER TABLE plan ALTER COLUMN stripe_product_id DROP NOT NULL;
-    `);
+    // No-op: the columns stripe_price_id and stripe_product_id were already dropped
+    // in Migration20260614_drop_stripe_fields_plan_transaction
   }
 
   async down(): Promise<void> {
-    this.addSql(`
-      ALTER TABLE plan ALTER COLUMN stripe_price_id SET NOT NULL;
-    `);
-    this.addSql(`
-      ALTER TABLE plan ALTER COLUMN stripe_product_id SET NOT NULL;
-    `);
+    // No-op
   }
 }

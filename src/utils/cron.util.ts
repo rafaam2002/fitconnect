@@ -4,6 +4,7 @@ import cron from 'node-cron';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { storeNews } from '../helpers/articles';
 import { AuthService } from '../services/auth.service';
+import { NotificationService } from '../services/notification.service';
 import { ScheduleService } from '../services/schedule.service';
 
 import { createRetryingEntityManager } from './orm-retry';
@@ -29,6 +30,9 @@ export const cronFunctions = async (orm: MikroORM) => {
           storeNews(createRetryingEntityManager(orm, true), 3, [1, 2, 3, 4]),
           updatePictureUrls(createRetryingEntityManager(orm, true)),
           setNotActiveUsers(createRetryingEntityManager(orm, true)),
+          new NotificationService(
+            createRetryingEntityManager(orm, true)
+          ).cleanOldNotifications(30),
         ]);
       } catch (error) {
         console.error('Error al ejecutar la tarea programada:', error);

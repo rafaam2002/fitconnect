@@ -124,7 +124,9 @@ type Mutation {
     removePushToken(token: String!): DefaultResponse!
     sendNotification(notification: SendNotificationInput!): SendNotificationResponse!
     refreshAccessToken(inputToken: String!): LoginResponse!
-
+    markNotificationAsRead(id: ID!): NotificationResponse!
+    markAllNotificationsAsRead: DefaultResponse!
+    
     # ── Company ───────────────────────────────────────────────────────
     updateCompany(companyId: ID!, companyData: CompanyDataInput!, scheduleOptions: ScheduleOptionsInput!): CompanyResponse!
     updateCompanyLogo(companyId: ID!, picture: String!): CompanyResponse!

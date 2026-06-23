@@ -16,7 +16,6 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
@@ -25,6 +24,7 @@ import {
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
@@ -331,7 +331,34 @@ export class CompanyService extends BaseService {
     user.pendingCompanies.add(company);
     await this.em.flush();
 
-    await this.notifyCompanyAdmins(company, user);
+    // Enviar notificaciones a los ADMIN
+    try {
+      const adminRoles = await this.em.find(
+        UserRole,
+        {
+          company: company.id,
+          role: UserRoleEnum.ADMIN,
+        },
+        { populate: ['user.pushTokens'] }
+      );
+
+      const notificationService = new NotificationService(this.em);
+      for (const role of adminRoles) {
+        const admin = role.user;
+        if (admin) {
+          await notificationService.sendToUser(
+            admin.id,
+            'Nueva solicitud de unión',
+            `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
+            { type: 'join_request', userId: user.id, companyId: company.id },
+            company.id
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error sending push notifications:', error);
+      // No lanzar error - las notificaciones son secundarias
+    }
 
     return createServiceResponse(200, 'Request sent successfully', true);
   }
@@ -478,35 +505,6 @@ export class CompanyService extends BaseService {
     );
   }
 
-  private async notifyCompanyAdmins(
-    company: Company,
-    user: User
-  ): Promise<void> {
-    try {
-      const adminRoles = await this.em.find(
-        UserRole,
-        { company: company.id, role: UserRoleEnum.ADMIN },
-        { populate: ['user.pushTokens'] }
-      );
-
-      const notifications = adminRoles.flatMap(role =>
-        (role.user?.pushTokens ?? []).map(tokenEntity =>
-          sendPushNotification(
-            tokenEntity.token,
-            'Nueva solicitud de unión',
-            `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
-            { type: 'join_request', userId: user.id, companyId: company.id }
-          )
-        )
-      );
-
-      await Promise.allSettled(notifications);
-    } catch (error) {
-      // Las notificaciones son secundarias — no bloquean el flujo principal
-      console.error('Error sending push notifications:', error);
-    }
-  }
-
   private async validateAdminPermission(
     userId: string,
     companyId: string
@@ -579,17 +577,13 @@ export class CompanyService extends BaseService {
     companyName: string,
     companyId: string
   ): Promise<void> {
-    if (!user.pushTokens?.length) return;
-
-    const notifications = user.pushTokens.map(token =>
-      sendPushNotification(
-        token.token,
-        'Solicitud aceptada',
-        `Has sido aceptado en ${companyName}`,
-        { type: 'company_admission', companyId }
-      ).catch(err => console.error('Push notification failed:', err))
+    const notificationService = new NotificationService(this.em);
+    await notificationService.sendToUser(
+      user.id,
+      'Solicitud aceptada',
+      `Has sido aceptado en ${companyName}`,
+      { type: 'company_admission', companyId },
+      companyId
     );
-
-    await Promise.allSettled(notifications);
   }
 }

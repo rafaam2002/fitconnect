@@ -57,7 +57,7 @@ export class PlanService extends BaseService {
     }
 
     if (input.amount < 0) {
-      throw new BadRequestError('amosdfsdfunt must be greater than 0');
+      throw new BadRequestError('amount must be greater than or equal to 0');
     }
 
     // Verificar nombre único por empresa
@@ -122,7 +122,7 @@ export class PlanService extends BaseService {
     const plan = await this.em.findOne(
       Plan,
       { id: input.id },
-      { filters: false }
+      { filters: false, populate: ['company'] }
     );
     if (!plan) {
       throw new NotFoundError('Plan');
@@ -131,8 +131,8 @@ export class PlanService extends BaseService {
     if (input.name !== undefined) plan.name = input.name;
     if (input.description !== undefined) plan.description = input.description;
     if (input.amount !== undefined) {
-      if (input.amount <= 0)
-        throw new BadRequestError('amount must be greater than 0');
+      if (input.amount < 0)
+        throw new BadRequestError('amount must be greater than or equal to 0');
       plan.amount = input.amount;
     }
     if (input.features !== undefined) plan.features = input.features;
@@ -178,7 +178,7 @@ export class PlanService extends BaseService {
       { id: planId },
       {
         filters: false,
-        populate: ['planPermissions', 'planPermissions.permission'],
+        populate: ['planPermissions', 'planPermissions.permission', 'company'],
       }
     );
 
@@ -208,7 +208,7 @@ export class PlanService extends BaseService {
 
     const plans = await this.em.find<Plan>(Plan, where, {
       orderBy: { amount: QueryOrder.ASC },
-      populate: ['subscriptions'] as any,
+      populate: ['subscriptions', 'company'] as any,
       filters: !showGlobal,
     });
 
@@ -225,7 +225,7 @@ export class PlanService extends BaseService {
     const plan = await this.em.findOne(
       Plan,
       { id: planId },
-      { filters: false }
+      { filters: false, populate: ['company'] }
     );
     if (!plan) {
       throw new NotFoundError('Plan');
@@ -248,7 +248,7 @@ export class PlanService extends BaseService {
     const plan = await this.em.findOne(
       Plan,
       { id: planId },
-      { filters: false }
+      { filters: false, populate: ['company'] }
     );
     if (!plan) {
       throw new NotFoundError('Plan');

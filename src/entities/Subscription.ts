@@ -2,6 +2,7 @@ import {
   Collection,
   Entity,
   Enum,
+  Filter,
   Index,
   ManyToOne,
   OneToMany,
@@ -29,6 +30,11 @@ export enum SubscriptionStatus {
 }
 
 @Entity()
+@Filter({
+  name: 'companyContext',
+  cond: args => (args.companyId ? { company: args.companyId } : {}),
+  default: true,
+})
 export class Subscription extends BaseEntity {
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   @Index()

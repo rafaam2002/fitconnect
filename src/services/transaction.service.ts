@@ -191,6 +191,14 @@ export class TransactionService extends BaseService {
     // Llamar al procesador si hay ID externo
     if (originalTransaction.externalTransactionId) {
       try {
+        // Si el cobro original se enruto a la cuenta Stripe de una empresa
+        // (transfer_data.destination), hay que revertir esa transferencia
+        // y recuperar la comision de plataforma. Sin esto el reembolso al
+        // cliente saldria de tu cuenta master y el dinero ya transferido
+        // al admin nunca se recupera.
+        const wasConnectedCharge =
+          !!originalTransaction.metadata?.connectedAccountId;
+
         const result = await this.paymentProcessor!.refund({
           externalTransactionId: originalTransaction.externalTransactionId,
           amount: refundAmount,
@@ -200,6 +208,8 @@ export class TransactionService extends BaseService {
             originalTransaction.id,
             refundAmount.toString()
           ),
+          reverseTransfer: wasConnectedCharge,
+          refundApplicationFee: wasConnectedCharge,
         });
 
         refundTransaction.status = result.success
@@ -530,29 +540,28 @@ export class TransactionService extends BaseService {
     try {
       // ── Stripe Connect: resolver cuenta de la empresa ─────────────────────
       // Si el cobro es para una empresa (cliente pagando al admin),
-      // enrutamos el pago a su cuenta Stripe y retenemos nuestra comisión.
+      // enrutamos el pago a su cuenta Stripe y retenemos nuestra comision.
       // Si no hay companyId, el cobro va a nuestra cuenta master
       // (admin pagando su mensualidad a nosotros).
+      //
+      // IMPORTANTE: si hay companyId pero la empresa NO tiene Stripe
+      // conectado, el cobro debe FALLAR explicitamente. Procesarlo sin
+      // connectedAccountId significaria que el dinero del cliente cae
+      // integro en tu cuenta master en lugar de en la del admin, sin que
+      // nadie se entere. No se permite ese fallback silencioso.
       let connectedAccountId: string | undefined;
       let applicationFeeAmount: number | undefined;
 
-      if (input.companyId && this.paymentProcessor) {
+      if (input.companyId) {
         const connectService = new StripeConnectService(this.em);
-        connectedAccountId = await connectService
-          .getConnectedAccountId(input.companyId)
-          .catch(err => {
-            console.warn(
-              `[TransactionService] Could not resolve connectedAccountId for company ${input.companyId}: ${err.message}`
-            );
-            return undefined;
-          });
+        // Sin catch: si la empresa no tiene Stripe conectado, esto lanza
+        // BadRequestError y el cobro se marca como FAILED con un motivo claro.
+        connectedAccountId = await connectService.getConnectedAccountId(
+          input.companyId
+        );
 
-        if (connectedAccountId) {
-          // Calcular comisión de plataforma (redondeada a centavos enteros)
-          applicationFeeAmount = Math.round(
-            input.amount * PLATFORM_FEE_PERCENT
-          );
-        }
+        // Calcular comision de plataforma (redondeada a centavos enteros)
+        applicationFeeAmount = Math.round(input.amount * PLATFORM_FEE_PERCENT);
       }
 
       const result = await this.paymentProcessor!.charge({

@@ -74,8 +74,19 @@ type Query {
     getSubscriptionsStats: SubscriptionsStatsResponse!
     getSubscriptionHistory(subscriptionId: ID!): SubscriptionHistoryResponse!
 
-    # ── Pagos ─────────────────────────────────────────────────────────
-    """Devuelve el estado de conexión Stripe de una empresa."""
+    # ── Pagos (Stripe Connect — Modelo B) ──────────────────────────────
+    """
+    SetupIntent para añadir una tarjeta a la cuenta master de la plataforma.
+    Usar cuando el ADMIN paga su mensualidad a la plataforma (tú).
+    """
+    getClientToken: ClientTokenResponse!
+    """
+    SetupIntent para añadir una tarjeta dentro de la cuenta Stripe conectada
+    de una empresa. Usar cuando un CLIENTE paga a su gym/admin — el dinero
+    va a la cuenta del admin y tu comisión se retiene automáticamente.
+    """
+    getCompanyClientToken(companyId: ID!): ClientTokenResponse!
+    """Devuelve el estado de conexión Stripe Connect de una empresa (admin)."""
     getPaymentConnectionStatus(companyId: ID!): PaymentConnectionStatusResponse!
 
     # ── Invoice ───────────────────────────────────────────────────────

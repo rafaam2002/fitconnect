@@ -16,6 +16,7 @@ import {
   BadRequestError,
   ConflictError,
   createServiceResponse,
+  ForbiddenError,
   InternalServerError,
   NotFoundError,
   UnauthorizedError,
@@ -110,6 +111,39 @@ interface AdminOverrideInput {
   adminId: string;
 }
 
+/**
+ * Parámetros de entrada de buildReplacementSubscription, extraídos como
+ * tipo nombrado en lugar de un objeto inline para que cada métdo auxiliar
+ * pueda recibir el subconjunto que necesita sin repetir la firma completa.
+ */
+interface ReplacementParams {
+  oldSubscription: Subscription;
+  newPlan: Plan;
+  paymentMethodId?: string;
+  trialPeriodDays?: number;
+  forceImmediateCancellation?: boolean;
+  cancellationReason?: string;
+  metadata?: Record<string, any>;
+  /**
+   * true cuando la suscripcion vieja ya estaba CANCELED antes de llegar
+   * aqui (caso createSubscription detectando una cancelacion previa).
+   * false cuando hay que cancelarla ahora mismo (caso replaceSubscription).
+   */
+  alreadyCanceled: boolean;
+}
+
+/**
+ * Resultado del cálculo de fechas/estado de la suscripción de reemplazo.
+ */
+interface ReplacementSchedule {
+  newPeriodStart: Date;
+  periodEnd: Date;
+  trialStart?: Date;
+  trialEnd?: Date;
+  status: SubscriptionStatus;
+  nextBillingDate: Date;
+}
+
 // ─────────────────────────────────────────────
 // CONFIGURACIÓN DE DUNNING
 // ─────────────────────────────────────────────
@@ -128,34 +162,15 @@ const DUNNING_CONFIG = {
 /**
  * SubscriptionService
  *
- * Gestiona el ciclo de vida completo de las suscripciones:
+ * Gestiona el ciclo de vida completo de las suscripciones.
  *
- * OPERACIONES DE USUARIO
- *   createSubscription       — nueva suscripción con o sin trial
- *   changePlan               — cambio de plan con prorrateo opcional
- *   updateSubscription       — cambiar método de pago, cantidad o metadata
- *   cancelSubscription       — cancelar ahora o al final del período
- *   pauseSubscription        — pausar sin cobros hasta reanudar
- *   resumeSubscription       — reanudar desde pausa
- *   reactivateSubscription   — reactivar desde PAST_DUE o CANCELED
- *   updatePaymentMethodAndRetry — actualizar tarjeta e intentar cobro inmediato
- *
- * OPERACIONES DE ADMIN
- *   adminOverride            — forzar estado, fechas o contadores (con audit log)
- *   forceRenewal             — forzar cobro de renovación ahora mismo
- *   extendPeriod             — añadir días gratuitos al período actual
- *   applyDiscount            — ajustar el importe del próximo cobro
- *
- * OPERACIONES DEL SISTEMA (CRON)
- *   processBillingCycle      — cobros de renovación, transición de trials, cancelaciones diferidas
- *   notifyExpiringSubscriptions — avisos de expiración
- *
- * LECTURA
- *   getSubscription
- *   listUserSubscriptions
- *   getActiveSubscription
- *   getSubscriptionsStats
- *   getSubscriptionHistory    — audit log de cambios de estado
+ * EL FRONTEND SOLO LLAMA A createSubscription. El backend decide
+ * automaticamente si eso significa crear desde cero, sustituir una
+ * suscripcion cancelada con periodo pendiente, o sustituir una suscripcion
+ * activa de otro plan en la misma empresa (lo que coloquialmente es "cambiar
+ * de plan"). Nunca deberian coexistir dos Subscription en estado ACTIVE o
+ * TRIALING para la misma empresa y el mismo usuario - ver
+ * findActiveSubscriptionForPlan() para la regla que lo garantiza.
  */
 export class SubscriptionService extends BaseService {
   private readonly customerService: CustomerService;
@@ -178,10 +193,13 @@ export class SubscriptionService extends BaseService {
   // ═══════════════════════════════════════════
 
   /**
-   * Crea una suscripción nueva.
+   * Crea una suscripción nueva. Punto de entrada único desde el frontend.
    *
-   * Si el plan tiene trial → estado TRIALING, primer cobro al expirar el trial.
-   * Si no → intenta cobrar ahora, queda ACTIVE si tiene éxito o INCOMPLETE si falla.
+   * Decide automáticamente entre tres caminos:
+   *  1. Si hay una CANCELED reciente con periodo pagado pendiente → sustituye
+   *  2. Si hay una ACTIVE/TRIALING en la misma empresa → sustituye (esto ES
+   *     el cambio de plan, sin que el frontend tenga que saberlo)
+   *  3. Si no hay nada relevante → crea desde cero
    */
   public async createSubscription(
     input: CreateSubscriptionInput
@@ -192,16 +210,65 @@ export class SubscriptionService extends BaseService {
     const plan = await this.getActivePlanOrFail(input.planId);
     const customer = await this.customerService.getOrCreateCustomer(user);
 
-    await this.assertNoDuplicateSubscription(user, plan);
+    // Camino 1: cancelacion reciente con periodo pagado pendiente
+    const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
+      user,
+      plan
+    );
+
+    if (recentCanceled) {
+      const isSamePlan = recentCanceled.plan.id === plan.id;
+      return this.buildReplacementSubscription({
+        oldSubscription: recentCanceled,
+        newPlan: plan,
+        paymentMethodId: input.paymentMethodId,
+        trialPeriodDays: input.trialPeriodDays,
+        metadata: input.metadata,
+        forceImmediateCancellation: false,
+        cancellationReason: isSamePlan
+          ? 'Superseded by new subscription to the same plan'
+          : `Superseded by new subscription to a different plan (${plan.name})`,
+        alreadyCanceled: true,
+      });
+    }
+
+    // Camino 2: ya hay algo ACTIVE/TRIALING en la misma empresa
+    // (esto es lo que antes fallaba por no popular plan.company)
+    const activeInCompany = await this.findActiveSubscriptionForPlan(
+      user,
+      plan
+    );
+
+    if (activeInCompany) {
+      if (activeInCompany.plan.id === plan.id) {
+        throw new ConflictError(
+          'User already has an active subscription to this plan'
+        );
+      }
+
+      return this.buildReplacementSubscription({
+        oldSubscription: activeInCompany,
+        newPlan: plan,
+        paymentMethodId: input.paymentMethodId,
+        trialPeriodDays: input.trialPeriodDays,
+        metadata: input.metadata,
+        forceImmediateCancellation: false,
+        cancellationReason: `Replaced by new subscription to plan "${plan.name}" via createSubscription`,
+        alreadyCanceled: false,
+      });
+    }
+
+    // Camino 3: creación desde cero
+    const billingCompanyId = this.resolveBillingCompanyId(
+      plan,
+      input.companyId
+    );
 
     const paymentMethod = input.paymentMethodId
       ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
       : await this.getDefaultPaymentMethod(customer);
 
-    const trialDays =
-      input.trialPeriodDays !== undefined
-        ? input.trialPeriodDays
-        : (plan.trialPeriodDays ?? 0);
+    const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
 
     const now = new Date();
     const isTrialing = trialDays > 0;
@@ -218,7 +285,7 @@ export class SubscriptionService extends BaseService {
       customer,
       plan,
       defaultPaymentMethod: paymentMethod ?? undefined,
-      company: input.companyId,
+      company: billingCompanyId,
       status: isTrialing
         ? SubscriptionStatus.TRIALING
         : SubscriptionStatus.INCOMPLETE,
@@ -257,108 +324,30 @@ export class SubscriptionService extends BaseService {
   /**
    * Cambia el plan de una suscripción activa con prorrateo opcional.
    *
-   * SIN prorrateo (prorate: false):
-   *   El nuevo plan se aplica en el siguiente período. No se cobra nada ahora.
-   *
-   * CON prorrateo (prorate: true):
-   *   Se calcula el valor de los días restantes del plan actual y la diferencia
-   *   con el nuevo plan. Si es upgrade se cobra la diferencia ahora mismo.
-   *   Si es downgrade se acredita como descuento en el siguiente cobro.
+   * Dividido en pasos privados con nombre propio para mantener la
+   * complejidad cognitiva baja: cada paso es lineal y se puede leer/testear
+   * de forma aislada (mismo patron que buildReplacementSubscription).
    */
   public async changePlan(input: ChangePlanInput): Promise<ServiceResponse> {
-    if (!input.subscriptionId || !input.newPlanId) {
-      throw new BadRequestError('subscriptionId and newPlanId are required');
-    }
-
-    const subscription = await this.em.findOne(
-      Subscription,
-      { id: input.subscriptionId },
-      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
-    );
-
-    if (!subscription) throw new NotFoundError('Subscription');
-    if (!subscription.isActive) {
-      throw new BadRequestError(
-        'Only active or trialing subscriptions can change plan'
-      );
-    }
-
-    const newPlan = await this.em.findOne(
-      Plan,
-      { id: input.newPlanId, isActive: true },
-      { filters: { companyContext: false } }
-    );
-
-    if (!newPlan) throw new NotFoundError('New plan not found or inactive');
-    if (newPlan.id === subscription.plan.id) {
-      throw new BadRequestError('New plan is the same as the current plan');
-    }
+    const { subscription, newPlan } =
+      await this.resolveChangePlanTargets(input);
 
     const oldPlan = subscription.plan;
     const now = new Date();
 
-    if (
-      input.prorate &&
-      subscription.currentPeriodStart &&
-      subscription.currentPeriodEnd
-    ) {
-      const periodTotal =
-        subscription.currentPeriodEnd.getTime() -
-        subscription.currentPeriodStart.getTime();
-      const periodElapsed =
-        now.getTime() - subscription.currentPeriodStart.getTime();
-      const periodRemaining = Math.max(0, periodTotal - periodElapsed);
-      const fractionRemaining = periodRemaining / periodTotal;
-
-      const oldPlanCredit = Math.round(oldPlan.amount * fractionRemaining);
-      const newPlanCharge = Math.round(newPlan.amount * fractionRemaining);
-      const proratedDiff = newPlanCharge - oldPlanCredit;
-
-      if (proratedDiff > 0) {
-        // Upgrade: cobrar la diferencia ahora
-        const pm = subscription.defaultPaymentMethod;
-        if (pm?.externalToken && pm.status === PaymentMethodStatus.ACTIVE) {
-          const chargeResult = await this.transactionService.createCharge({
-            userId: subscription.user.id,
-            amount: proratedDiff,
-            currency: newPlan.currency,
-            paymentMethodId: pm.id,
-            subscriptionId: subscription.id,
-            description: `Plan upgrade proration: ${oldPlan.name} → ${newPlan.name}`,
-            companyId: subscription.company?.id,
-          });
-
-          const { transaction } = chargeResult.data as any;
-          if (transaction?.status !== 'succeeded') {
-            throw new BadRequestError(
-              'Proration charge failed. Plan not changed. Please check your payment method.'
-            );
-          }
-        }
-      } else if (proratedDiff < 0) {
-        // Downgrade: guardar el crédito en metadata para descontarlo del próximo cobro
-        const credit = Math.abs(proratedDiff);
-        subscription.metadata = {
-          ...subscription.metadata,
-          pendingCredit: (subscription.metadata?.pendingCredit ?? 0) + credit,
-          pendingCreditReason: `Plan downgrade: ${oldPlan.name} → ${newPlan.name}`,
-        };
-      }
+    if (input.prorate) {
+      await this.applyPlanChangeProration(subscription, oldPlan, newPlan, now);
     }
 
-    // Aplicar el nuevo plan
-    subscription.plan = newPlan;
-    subscription.currentPeriodEnd = this.calculatePeriodEnd(
-      subscription.currentPeriodStart ?? now,
-      newPlan
-    );
-    subscription.nextBillingDate = subscription.currentPeriodEnd;
+    this.applyNewPlanToSubscription(subscription, newPlan, now);
 
     this.appendHistory(
       subscription,
       'plan_changed',
       'user',
-      `Plan changed from "${oldPlan.name}" to "${newPlan.name}"${input.prorate ? ' with proration' : ''}`
+      `Plan changed from "${oldPlan.name}" to "${newPlan.name}"${
+        input.prorate ? ' with proration' : ''
+      }`
     );
 
     await this.em.flush();
@@ -370,21 +359,20 @@ export class SubscriptionService extends BaseService {
 
   /**
    * Sustituye una suscripcion por otra completamente nueva (dos contratos distintos).
+   * Llamada EXPLÍCITA, útil cuando el cambio es entre empresas distintas o cuando
+   * se quiere forzar la sustitución inmediata sin pasar por createSubscription.
    *
    * La fecha de inicio de la nueva suscripcion depende de si la vieja tenia
    * periodo pagado vigente en el momento de la sustitucion:
    *
    *  - Si oldSubscription.currentPeriodEnd > ahora (el usuario aun tiene acceso
    *    pagado), la nueva suscripcion NO empieza hoy - empieza exactamente cuando
-   *    termina el periodo que ya pago. Asi no paga dos planes a la vez ni pierde
-   *    los dias que ya habia abonado.
+   *    termina el periodo que ya pago.
    *
-   *  - Si no le queda periodo pagado vigente (ya estaba CANCELED, PAST_DUE, o el
-   *    periodo ya vencio), la nueva suscripcion empieza inmediatamente.
+   *  - Si no le queda periodo pagado vigente, la nueva suscripcion empieza
+   *    inmediatamente.
    *
-   * Usar forceImmediateCancellation=true para saltarse esta logica y cancelar
-   * la vieja ya mismo aunque le quedara periodo pagado (ej: el usuario pide
-   * expresamente el cambio inmediato y acepta perder los dias restantes).
+   * Usar forceImmediateCancellation=true para saltarse esta logica.
    */
   public async replaceSubscription(
     input: ReplaceSubscriptionInput
@@ -402,106 +390,16 @@ export class SubscriptionService extends BaseService {
 
     const newPlan = await this.getActivePlanOrFail(input.newPlanId);
 
-    const now = new Date();
-    const hasRemainingPeriod =
-      !input.forceImmediateCancellation &&
-      !!oldSubscription.currentPeriodEnd &&
-      oldSubscription.currentPeriodEnd > now &&
-      oldSubscription.isActive;
-
-    // Cancelar la suscripcion vieja
-    oldSubscription.status = SubscriptionStatus.CANCELED;
-    oldSubscription.canceledAt = now;
-    oldSubscription.endedAt = hasRemainingPeriod
-      ? oldSubscription.currentPeriodEnd // se respeta el periodo ya pagado
-      : now;
-    oldSubscription.nextBillingDate = undefined;
-
-    this.appendHistory(
+    return this.buildReplacementSubscription({
       oldSubscription,
-      'replaced',
-      'system',
-      `Replaced by a new subscription to plan "${newPlan.name}". ` +
-        `Reason: ${input.cancellationReason ?? 'not specified'}`
-    );
-
-    // Determinar la fecha de inicio de la nueva suscripcion
-    const newPeriodStart = hasRemainingPeriod
-      ? oldSubscription.currentPeriodEnd!
-      : now;
-
-    const paymentMethod = input.paymentMethodId
-      ? await this.getPaymentMethodOrFail(
-          input.paymentMethodId,
-          oldSubscription.customer
-        )
-      : (oldSubscription.defaultPaymentMethod ??
-        (await this.getDefaultPaymentMethod(oldSubscription.customer)));
-
-    const trialDays = input.trialPeriodDays ?? newPlan.trialPeriodDays ?? 0;
-
-    // El trial solo tiene sentido si la nueva suscripcion empieza ya -
-    // si empieza en el futuro (porque respeta el periodo pagado), no aplicamos trial.
-    const isTrialing = trialDays > 0 && !hasRemainingPeriod;
-
-    const trialStart = isTrialing ? newPeriodStart : undefined;
-    const trialEnd = isTrialing
-      ? this.addDays(newPeriodStart, trialDays)
-      : undefined;
-    const periodEnd = isTrialing
-      ? trialEnd!
-      : this.calculatePeriodEnd(newPeriodStart, newPlan);
-
-    const newSubscription = this.em.create(Subscription, {
-      user: oldSubscription.user,
-      customer: oldSubscription.customer,
-      plan: newPlan,
-      defaultPaymentMethod: paymentMethod ?? undefined,
-      company: oldSubscription.company,
-      status: hasRemainingPeriod
-        ? SubscriptionStatus.ACTIVE // queda activa pero no se cobra hasta newPeriodStart
-        : isTrialing
-          ? SubscriptionStatus.TRIALING
-          : SubscriptionStatus.INCOMPLETE,
-      currentPeriodStart: newPeriodStart,
-      currentPeriodEnd: periodEnd,
-      trialStart,
-      trialEnd,
-      nextBillingDate: hasRemainingPeriod ? newPeriodStart : periodEnd,
-      failedPaymentAttempts: 0,
-      quantity: oldSubscription.quantity ?? 1,
-      metadata: {
-        ...input.metadata,
-        replacedSubscriptionId: oldSubscription.id,
-        history: [
-          this.buildHistoryEntry(
-            'created',
-            'system',
-            hasRemainingPeriod
-              ? `Created to replace subscription ${oldSubscription.id}. ` +
-                  `Starts on ${newPeriodStart.toISOString()} (after old period ends).`
-              : `Created to replace subscription ${oldSubscription.id}. Starts immediately.`
-          ),
-        ],
-      },
+      newPlan,
+      paymentMethodId: input.paymentMethodId,
+      trialPeriodDays: input.trialPeriodDays,
+      forceImmediateCancellation: input.forceImmediateCancellation,
+      cancellationReason: input.cancellationReason,
+      metadata: input.metadata,
+      alreadyCanceled: false,
     });
-
-    this.em.persist(newSubscription);
-    await this.em.flush();
-
-    // Si la nueva suscripcion empieza ya (no hay periodo pendiente), intentar cobrar
-    if (!hasRemainingPeriod && !isTrialing) {
-      await this.attemptCharge(newSubscription);
-    }
-
-    return createServiceResponse(
-      201,
-      hasRemainingPeriod
-        ? `Subscription replaced. New plan starts on ${newPeriodStart.toLocaleDateString()}.`
-        : 'Subscription replaced successfully',
-      true,
-      { oldSubscription, newSubscription }
-    );
   }
 
   /**
@@ -531,11 +429,10 @@ export class SubscriptionService extends BaseService {
     }
 
     if (input.paymentMethodId) {
-      const pm = await this.getPaymentMethodOrFail(
+      subscription.defaultPaymentMethod = await this.getPaymentMethodOrFail(
         input.paymentMethodId,
         subscription.customer
       );
-      subscription.defaultPaymentMethod = pm;
       this.appendHistory(
         subscription,
         'payment_method_updated',
@@ -564,7 +461,8 @@ export class SubscriptionService extends BaseService {
    * Cancela una suscripción inmediatamente o al final del período actual.
    */
   public async cancelSubscription(
-    input: CancelSubscriptionInput
+    input: CancelSubscriptionInput,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!input.subscriptionId) {
       throw new BadRequestError('Subscription ID is required');
@@ -575,6 +473,7 @@ export class SubscriptionService extends BaseService {
     });
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
       throw new BadRequestError('Subscription is not active');
     }
@@ -624,13 +523,15 @@ export class SubscriptionService extends BaseService {
    * El CRON no la tocará mientras esté en estado PAUSED.
    */
   public async pauseSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     const subscription = await this.em.findOne(Subscription, {
       id: subscriptionId,
     });
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
       throw new BadRequestError('Only active subscriptions can be paused');
     }
@@ -663,7 +564,8 @@ export class SubscriptionService extends BaseService {
    * si el período actual ya ha vencido.
    */
   public async resumeSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     const subscription = await this.em.findOne(
       Subscription,
@@ -672,6 +574,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (subscription.status !== SubscriptionStatus.PAUSED) {
       throw new BadRequestError('Subscription is not paused');
     }
@@ -697,7 +600,6 @@ export class SubscriptionService extends BaseService {
 
     await this.em.flush();
 
-    // Solo cobrar si hay importe y el período anterior ya venció
     if (
       !isFree &&
       subscription.currentPeriodEnd &&
@@ -726,7 +628,8 @@ export class SubscriptionService extends BaseService {
    * Requiere método de pago válido solo si el plan tiene coste.
    */
   public async reactivateSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     const subscription = await this.em.findOne(
       Subscription,
@@ -735,6 +638,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     const reactivableStatuses = [
       SubscriptionStatus.PAST_DUE,
@@ -753,23 +657,22 @@ export class SubscriptionService extends BaseService {
     const isFree = subscription.plan.amount === 0;
 
     if (!isFree) {
-      // Solo exigir método de pago si el plan tiene coste
       const pm =
         subscription.defaultPaymentMethod ??
         (await this.getDefaultPaymentMethod(subscription.customer));
 
-      if (!pm?.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
+      const isPaymentMethodReady =
+        !!pm?.externalToken && pm?.status === PaymentMethodStatus.ACTIVE;
+      if (!isPaymentMethodReady) {
         throw new BadRequestError(
           'A valid payment method is required to reactivate the subscription'
         );
       }
 
-      // Asignar el método de pago si no estaba asignado
       subscription.defaultPaymentMethod ??= pm;
     }
 
     const now = new Date();
-    // Plan gratuito → ACTIVE directo; de pago → INCOMPLETE hasta confirmar cobro
     subscription.status = isFree
       ? SubscriptionStatus.ACTIVE
       : SubscriptionStatus.INCOMPLETE;
@@ -796,7 +699,6 @@ export class SubscriptionService extends BaseService {
     await this.em.flush();
 
     if (!isFree) {
-      // Intentar cobrar — si tiene éxito queda ACTIVE, si falla aplica dunning
       await this.attemptCharge(subscription);
       await this.em.refresh(subscription);
     }
@@ -816,13 +718,11 @@ export class SubscriptionService extends BaseService {
   /**
    * Actualiza el método de pago de una suscripción PAST_DUE e intenta
    * cobrar las facturas pendientes de inmediato.
-   *
-   * Este es el flujo típico cuando el usuario añade una tarjeta nueva
-   * después de que su pago haya fallado repetidamente.
    */
   public async updatePaymentMethodAndRetry(
     subscriptionId: string,
-    paymentMethodId: string
+    paymentMethodId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     const subscription = await this.em.findOne(
       Subscription,
@@ -831,6 +731,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     const allowedStatuses = [
       SubscriptionStatus.PAST_DUE,
@@ -844,12 +745,10 @@ export class SubscriptionService extends BaseService {
       );
     }
 
-    const pm = await this.getPaymentMethodOrFail(
+    subscription.defaultPaymentMethod = await this.getPaymentMethodOrFail(
       paymentMethodId,
       subscription.customer
     );
-
-    subscription.defaultPaymentMethod = pm;
     subscription.failedPaymentAttempts = 0;
 
     this.appendHistory(
@@ -861,7 +760,6 @@ export class SubscriptionService extends BaseService {
 
     await this.em.flush();
 
-    // Cobrar inmediatamente sin esperar al CRON
     await this.attemptCharge(subscription);
     await this.em.refresh(subscription);
 
@@ -877,22 +775,13 @@ export class SubscriptionService extends BaseService {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // OPERACIONES DE ADMIN
-  // ═══════════════════════════════════════════
-
   /**
    * Permite a un administrador forzar cambios en una suscripción.
    * Todos los cambios quedan registrados en el audit log (metadata.history).
-   *
-   * Casos de uso:
-   *  - Cambiar estado manualmente (ej: resolver un PAST_DUE sin cobrar)
-   *  - Extender el período de un cliente con incidencia
-   *  - Cambiar la fecha del próximo cobro
-   *  - Resetear intentos fallidos sin cobrar
    */
   public async adminOverride(
-    input: AdminOverrideInput
+    input: AdminOverrideInput,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!input.reason) {
       throw new BadRequestError('A reason is required for admin overrides');
@@ -905,6 +794,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     const changes: string[] = [];
 
@@ -912,7 +802,6 @@ export class SubscriptionService extends BaseService {
       const oldStatus = subscription.status;
       subscription.status = input.status;
 
-      // Efectos secundarios según el nuevo estado
       if (input.status === SubscriptionStatus.CANCELED) {
         subscription.canceledAt = new Date();
         subscription.endedAt = new Date();
@@ -973,15 +862,12 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Fuerza la renovación de una suscripción activa ahora mismo,
-   * sin esperar a que llegue nextBillingDate.
-   *
-   * Útil para testing, corrección de errores o cuando el admin
-   * quiere cobrar manualmente un período atrasado.
+   * Fuerza la renovación de una suscripción activa ahora mismo.
    */
   public async forceRenewal(
     subscriptionId: string,
-    adminId: string
+    adminId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     const subscription = await this.em.findOne(
       Subscription,
@@ -990,6 +876,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     const validStatuses = [
       SubscriptionStatus.ACTIVE,
@@ -1026,15 +913,13 @@ export class SubscriptionService extends BaseService {
 
   /**
    * Extiende el período actual de una suscripción añadiendo días gratuitos.
-   * No cobra nada — simplemente desplaza currentPeriodEnd y nextBillingDate.
-   *
-   * Casos de uso: compensación por incidencia, promoción, período de gracia.
    */
   public async extendPeriod(
     subscriptionId: string,
     days: number,
     adminId: string,
-    reason: string
+    reason: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!days || days <= 0) {
       throw new BadRequestError('Days must be a positive number');
@@ -1048,6 +933,7 @@ export class SubscriptionService extends BaseService {
     });
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     const oldEnd = subscription.currentPeriodEnd ?? new Date();
     const newEnd = this.addDays(oldEnd, days);
@@ -1071,15 +957,13 @@ export class SubscriptionService extends BaseService {
 
   /**
    * Aplica un crédito al siguiente cobro de una suscripción.
-   * El importe se descuenta automáticamente en la próxima ejecución de attemptCharge.
-   *
-   * Casos de uso: descuento comercial, devolución parcial en crédito, compensación.
    */
   public async applyCredit(
     subscriptionId: string,
     amountInCents: number,
     adminId: string,
-    reason: string
+    reason: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!amountInCents || amountInCents <= 0) {
       throw new BadRequestError('Credit amount must be a positive number');
@@ -1095,6 +979,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     if (amountInCents > subscription.plan.amount) {
       throw new BadRequestError(
@@ -1126,12 +1011,9 @@ export class SubscriptionService extends BaseService {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // LECTURA
-  // ═══════════════════════════════════════════
-
   public async getSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!subscriptionId)
       throw new BadRequestError('Subscription ID is required');
@@ -1143,6 +1025,7 @@ export class SubscriptionService extends BaseService {
     );
 
     if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     return createServiceResponse(
       200,
@@ -1197,6 +1080,10 @@ export class SubscriptionService extends BaseService {
       }
     );
   }
+
+  // ═══════════════════════════════════════════
+  // OPERACIONES DE ADMIN
+  // ═══════════════════════════════════════════
 
   /**
    * Devuelve el audit log de cambios de estado de una suscripción.
@@ -1253,28 +1140,18 @@ export class SubscriptionService extends BaseService {
         stats,
       });
     } catch (error: any) {
-      console.log(error);
+      console.error(error);
       throw new InternalServerError('Error calculating subscription stats');
     }
   }
 
-  // ═══════════════════════════════════════════
-  // CRON: CICLO DE FACTURACIÓN
-  // ═══════════════════════════════════════════
-
   /**
    * Punto de entrada del CRON de billing — ejecutar una vez al día (02:00 UTC).
-   *
-   * Procesa en orden:
-   *  1. Suscripciones ACTIVE con nextBillingDate <= hoy  → cobro de renovación
-   *  2. Suscripciones TRIALING con trialEnd <= hoy       → transición a ACTIVE + cobro
-   *  3. Suscripciones con cancelAtPeriodEnd vencidas     → cancelación definitiva
    */
   public async processBillingCycle(): Promise<void> {
     console.log('[CRON] processBillingCycle — start');
     const now = new Date();
 
-    // 1. Renovaciones — excluir planes gratuitos (amount > 0)
     const dueSubscriptions = await this.em.find(
       Subscription,
       {
@@ -1292,7 +1169,6 @@ export class SubscriptionService extends BaseService {
       await this.attemptCharge(sub);
     }
 
-    // 2. Trials expirados
     const expiringTrials = await this.em.find(
       Subscription,
       {
@@ -1307,7 +1183,6 @@ export class SubscriptionService extends BaseService {
       await this.transitionTrialToActive(sub);
     }
 
-    // 3. Cancelaciones diferidas
     const pendingCancellations = await this.em.find(
       Subscription,
       {
@@ -1370,18 +1245,516 @@ export class SubscriptionService extends BaseService {
   }
 
   // ═══════════════════════════════════════════
-  // LÓGICA DE COBRO Y DUNNING
+  // LECTURA
   // ═══════════════════════════════════════════
 
   /**
-   * Intenta cobrar la renovación de una suscripción.
-   *
-   * Guardia inicial: plan gratuito → ACTIVE directo, sin cobro.
-   * Si hay un crédito pendiente (pendingCredit en metadata) lo descuenta
-   * del importe antes de cobrar. Si el crédito cubre el total no se cobra nada.
+   * Resuelve y valida la suscripción y el plan nuevo para changePlan.
+   * Agrupa las cuatro validaciones de entrada en un solo paso.
    */
+  private async resolveChangePlanTargets(
+    input: ChangePlanInput
+  ): Promise<{ subscription: Subscription; newPlan: Plan }> {
+    if (!input.subscriptionId || !input.newPlanId) {
+      throw new BadRequestError('subscriptionId and newPlanId are required');
+    }
+
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: input.subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    if (!subscription.isActive) {
+      throw new BadRequestError(
+        'Only active or trialing subscriptions can change plan'
+      );
+    }
+
+    const newPlan = await this.em.findOne(
+      Plan,
+      { id: input.newPlanId, isActive: true },
+      { filters: { companyContext: false }, populate: ['company'] }
+    );
+
+    if (!newPlan) throw new NotFoundError('New plan not found or inactive');
+    if (newPlan.id === subscription.plan.id) {
+      throw new BadRequestError('New plan is the same as the current plan');
+    }
+
+    return { subscription, newPlan };
+  }
+
+  /**
+   * Calcula la fracción de período restante y la diferencia prorrateada
+   * entre el plan viejo y el nuevo en el instante `now`.
+   */
+  private calculateProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    now: Date
+  ): { fractionRemaining: number; proratedDiff: number } | null {
+    if (!subscription.currentPeriodStart || !subscription.currentPeriodEnd) {
+      return null;
+    }
+
+    const periodTotal =
+      subscription.currentPeriodEnd.getTime() -
+      subscription.currentPeriodStart.getTime();
+    const periodElapsed =
+      now.getTime() - subscription.currentPeriodStart.getTime();
+    const periodRemaining = Math.max(0, periodTotal - periodElapsed);
+    const fractionRemaining = periodRemaining / periodTotal;
+
+    const oldPlanCredit = Math.round(oldPlan.amount * fractionRemaining);
+    const newPlanCharge = Math.round(newPlan.amount * fractionRemaining);
+
+    return {
+      fractionRemaining,
+      proratedDiff: newPlanCharge - oldPlanCredit,
+    };
+  }
+
+  /**
+   * Orquesta el prorrateo: si es upgrade cobra la diferencia ahora, si es
+   * downgrade acredita la diferencia para el siguiente cobro.
+   * No hace nada si no se puede calcular el prorrateo (faltan fechas de
+   * período) o si la diferencia es cero.
+   */
+  private async applyPlanChangeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    now: Date
+  ): Promise<void> {
+    const proration = this.calculateProration(
+      subscription,
+      oldPlan,
+      newPlan,
+      now
+    );
+    if (!proration) return;
+
+    const { proratedDiff, fractionRemaining } = proration;
+
+    if (proratedDiff > 0) {
+      await this.chargePlanUpgradeProration(
+        subscription,
+        oldPlan,
+        newPlan,
+        proratedDiff,
+        fractionRemaining,
+        now
+      );
+    } else if (proratedDiff < 0) {
+      this.creditPlanDowngradeProration(
+        subscription,
+        oldPlan,
+        newPlan,
+        proratedDiff
+      );
+    }
+  }
+
+  /**
+   * Cobra la diferencia prorrateada de un upgrade: crea la Invoice, ejecuta
+   * el cargo, y la marca pagada o la anula según el resultado.
+   * Si no hay métdo de pago válido, no hace nada (el plan se aplicará sin
+   * cobro retroactivo — comportamiento previo conservado).
+   */
+  private async chargePlanUpgradeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    proratedDiff: number,
+    fractionRemaining: number,
+    now: Date
+  ): Promise<void> {
+    const pm = subscription.defaultPaymentMethod;
+    const isPaymentMethodReady =
+      !!pm?.externalToken && pm?.status === PaymentMethodStatus.ACTIVE;
+    if (!isPaymentMethodReady) {
+      return;
+    }
+
+    const description = `Plan upgrade proration: ${oldPlan.name} → ${newPlan.name}`;
+    const companyId = this.extractCompanyId(subscription.company);
+
+    const prorationInvoice = await this.invoiceService.createInvoice({
+      userId: subscription.user.id,
+      subscriptionId: subscription.id,
+      subtotal: proratedDiff,
+      currency: newPlan.currency,
+      dueDate: now,
+      description,
+      lineItems: [
+        {
+          description: `Prorated upgrade from "${oldPlan.name}" to "${newPlan.name}"`,
+          amount: proratedDiff,
+          currency: newPlan.currency,
+          fractionRemaining,
+        },
+      ],
+      companyId,
+    });
+
+    const chargeResult = await this.transactionService.createCharge({
+      userId: subscription.user.id,
+      amount: proratedDiff,
+      currency: newPlan.currency,
+      paymentMethodId: pm.id,
+      invoiceId: prorationInvoice.id,
+      subscriptionId: subscription.id,
+      description,
+      companyId,
+    });
+
+    const { transaction } = chargeResult.data;
+
+    if (transaction?.status !== 'succeeded') {
+      await this.invoiceService.voidInvoice(prorationInvoice.id);
+      throw new BadRequestError(
+        'Proration charge failed. Plan not changed. Please check your payment method.'
+      );
+    }
+
+    await this.invoiceService.markAsPaid(prorationInvoice.id, now);
+  }
+
+  /**
+   * Acredita en metadata.pendingCredit la diferencia de un downgrade, para
+   * descontarla del siguiente cobro de renovación.
+   */
+  private creditPlanDowngradeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    proratedDiff: number
+  ): void {
+    const credit = Math.abs(proratedDiff);
+    subscription.metadata = {
+      ...subscription.metadata,
+      pendingCredit: (subscription.metadata?.pendingCredit ?? 0) + credit,
+      pendingCreditReason: `Plan downgrade: ${oldPlan.name} → ${newPlan.name}`,
+    };
+  }
+
+  // ═══════════════════════════════════════════
+  // CRON: CICLO DE FACTURACIÓN
+  // ═══════════════════════════════════════════
+
+  /**
+   * Aplica el nuevo plan a la suscripción y recalcula su período/próximo cobro.
+   */
+  private applyNewPlanToSubscription(
+    subscription: Subscription,
+    newPlan: Plan,
+    now: Date
+  ): void {
+    subscription.plan = newPlan;
+    subscription.currentPeriodEnd = this.calculatePeriodEnd(
+      subscription.currentPeriodStart ?? now,
+      newPlan
+    );
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
+  }
+
+  /**
+   * Logica compartida entre replaceSubscription() y el flujo automatico de
+   * createSubscription() cuando detecta una suscripcion que debe sustituirse.
+   *
+   * Cancela (o reconoce ya cancelada) la suscripcion vieja y crea la nueva
+   * respetando el periodo ya pagado: si a la vieja le quedaba periodo
+   * vigente, la nueva no empieza hoy, empieza cuando ese periodo termine.
+   */
+  /**
+   * Logica compartida entre replaceSubscription() y el flujo automatico de
+   * createSubscription() cuando detecta una suscripcion que debe sustituirse.
+   *
+   * Cancela (o reconoce ya cancelada) la suscripcion vieja y crea la nueva
+   * respetando el periodo ya pagado: si a la vieja le quedaba periodo
+   * vigente, la nueva no empieza hoy, empieza cuando ese periodo termine.
+   *
+   * Dividido en pasos privados con nombre propio para mantener la
+   * complejidad cognitiva baja (cada paso es lineal, sin anidamiento, y
+   * se puede leer/testear de forma aislada).
+   */
+  private async buildReplacementSubscription(
+    params: ReplacementParams
+  ): Promise<ServiceResponse> {
+    const now = new Date();
+    const hasRemainingPeriod = this.hasRemainingPaidPeriod(params, now);
+
+    if (!params.alreadyCanceled) {
+      this.cancelOldSubscriptionForReplacement(
+        params.oldSubscription,
+        params.newPlan,
+        hasRemainingPeriod,
+        params.cancellationReason,
+        now
+      );
+    }
+
+    const newSubscription = await this.createReplacementSubscription(
+      params,
+      hasRemainingPeriod,
+      now
+    );
+
+    if (
+      !hasRemainingPeriod &&
+      !this.isTrialingNow(params, hasRemainingPeriod)
+    ) {
+      await this.attemptCharge(newSubscription);
+    }
+
+    return this.buildReplacementResponse(
+      params.oldSubscription,
+      newSubscription,
+      hasRemainingPeriod
+    );
+  }
+
+  /**
+   * ¿La suscripcion vieja todavia tiene periodo pagado vigente?
+   * Si forceImmediateCancellation es true, se ignora aunque le quedara
+   * periodo, para forzar el corte inmediato.
+   */
+  private hasRemainingPaidPeriod(
+    params: ReplacementParams,
+    now: Date
+  ): boolean {
+    const { oldSubscription, forceImmediateCancellation, alreadyCanceled } =
+      params;
+
+    return (
+      !forceImmediateCancellation &&
+      !!oldSubscription.currentPeriodEnd &&
+      oldSubscription.currentPeriodEnd > now &&
+      (alreadyCanceled || oldSubscription.isActive)
+    );
+  }
+
+  /**
+   * Marca la suscripcion vieja como CANCELED, respetando el periodo ya
+   * pagado en endedAt si correspondia, y deja constancia en el audit log.
+   */
+  private cancelOldSubscriptionForReplacement(
+    oldSubscription: Subscription,
+    newPlan: Plan,
+    hasRemainingPeriod: boolean,
+    cancellationReason: string | undefined,
+    now: Date
+  ): void {
+    oldSubscription.status = SubscriptionStatus.CANCELED;
+    oldSubscription.canceledAt = now;
+    oldSubscription.endedAt = hasRemainingPeriod
+      ? oldSubscription.currentPeriodEnd
+      : now;
+    oldSubscription.nextBillingDate = undefined;
+
+    this.appendHistory(
+      oldSubscription,
+      'replaced',
+      'system',
+      `Replaced by a new subscription to plan "${newPlan.name}". ` +
+        `Reason: ${cancellationReason ?? 'not specified'}`
+    );
+  }
+
+  /**
+   * Calcula si la suscripcion nueva debe arrancar en trial.
+   * Solo aplica si empieza ya (no hay periodo pendiente que respetar).
+   */
+  private isTrialingNow(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean
+  ): boolean {
+    const trialDays =
+      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
+    return trialDays > 0 && !hasRemainingPeriod;
+  }
+
+  /**
+   * Resuelve el metodo de pago a usar en la nueva suscripcion: el indicado
+   * explicitamente, o si no se indica, el de la suscripcion vieja, o si
+   * tampoco existe, el default del Customer.
+   */
+  private async resolveReplacementPaymentMethod(
+    oldSubscription: Subscription,
+    paymentMethodId?: string
+  ): Promise<PaymentMethod | null> {
+    if (paymentMethodId) {
+      return this.getPaymentMethodOrFail(
+        paymentMethodId,
+        oldSubscription.customer
+      );
+    }
+    return (
+      oldSubscription.defaultPaymentMethod ??
+      (await this.getDefaultPaymentMethod(oldSubscription.customer))
+    );
+  }
+
+  /**
+   * Construye el objeto de fechas/trial/periodo de la nueva suscripcion.
+   * Se aisla en su propio metodo porque mezclar este calculo dentro de
+   * createReplacementSubscription elevaba demasiado la complejidad de esa
+   * funcion.
+   */
+  /**
+   * Resuelve el estado inicial de la suscripcion de reemplazo.
+   * Extraido como statement independiente (S3358) en lugar de un ternario
+   * anidado: ACTIVE si aun queda periodo pagado por respetar, TRIALING si
+   * arranca ya y tiene trial, INCOMPLETE en cualquier otro caso.
+   */
+  private resolveReplacementStatus(
+    hasRemainingPeriod: boolean,
+    isTrialing: boolean
+  ): SubscriptionStatus {
+    if (hasRemainingPeriod) return SubscriptionStatus.ACTIVE;
+    if (isTrialing) return SubscriptionStatus.TRIALING;
+    return SubscriptionStatus.INCOMPLETE;
+  }
+
+  private buildReplacementSchedule(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean,
+    now: Date
+  ): ReplacementSchedule {
+    const newPeriodStart = hasRemainingPeriod
+      ? params.oldSubscription.currentPeriodEnd!
+      : now;
+
+    const isTrialing = this.isTrialingNow(params, hasRemainingPeriod);
+    const trialDays =
+      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
+
+    const trialStart = isTrialing ? newPeriodStart : undefined;
+    const trialEnd = isTrialing
+      ? this.addDays(newPeriodStart, trialDays)
+      : undefined;
+    const periodEnd = isTrialing
+      ? trialEnd!
+      : this.calculatePeriodEnd(newPeriodStart, params.newPlan);
+
+    const status = this.resolveReplacementStatus(
+      hasRemainingPeriod,
+      isTrialing
+    );
+
+    return {
+      newPeriodStart,
+      periodEnd,
+      trialStart,
+      trialEnd,
+      status,
+      nextBillingDate: hasRemainingPeriod ? newPeriodStart : periodEnd,
+    };
+  }
+
+  /**
+   * Construye el texto del primer evento de audit log de la suscripcion
+   * nueva, explicando si empieza ya o si espera al fin del periodo viejo.
+   */
+  private buildReplacementCreationNote(
+    oldSubscriptionId: string,
+    hasRemainingPeriod: boolean,
+    newPeriodStart: Date
+  ): string {
+    if (hasRemainingPeriod) {
+      return (
+        `Created to replace subscription ${oldSubscriptionId}. ` +
+        `Starts on ${newPeriodStart.toISOString()} (after old period ends).`
+      );
+    }
+    return `Created to replace subscription ${oldSubscriptionId}. Starts immediately.`;
+  }
+
+  /**
+   * Crea y persiste la entidad Subscription nueva que sustituye a la vieja.
+   */
+  private async createReplacementSubscription(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean,
+    now: Date
+  ): Promise<Subscription> {
+    const { oldSubscription, newPlan, paymentMethodId, metadata } = params;
+
+    const billingCompanyId = this.resolveBillingCompanyId(
+      newPlan,
+      this.extractCompanyId(oldSubscription.company)
+    );
+
+    const paymentMethod = await this.resolveReplacementPaymentMethod(
+      oldSubscription,
+      paymentMethodId
+    );
+
+    const schedule = this.buildReplacementSchedule(
+      params,
+      hasRemainingPeriod,
+      now
+    );
+
+    const creationNote = this.buildReplacementCreationNote(
+      oldSubscription.id,
+      hasRemainingPeriod,
+      schedule.newPeriodStart
+    );
+
+    const newSubscription = this.em.create(Subscription, {
+      user: oldSubscription.user,
+      customer: oldSubscription.customer,
+      plan: newPlan,
+      defaultPaymentMethod: paymentMethod ?? undefined,
+      company: billingCompanyId,
+      status: schedule.status,
+      currentPeriodStart: schedule.newPeriodStart,
+      currentPeriodEnd: schedule.periodEnd,
+      trialStart: schedule.trialStart,
+      trialEnd: schedule.trialEnd,
+      nextBillingDate: schedule.nextBillingDate,
+      failedPaymentAttempts: 0,
+      quantity: oldSubscription.quantity ?? 1,
+      metadata: {
+        ...metadata,
+        replacedSubscriptionId: oldSubscription.id,
+        history: [this.buildHistoryEntry('created', 'system', creationNote)],
+      },
+    });
+
+    this.em.persist(newSubscription);
+    await this.em.flush();
+
+    return newSubscription;
+  }
+
+  /**
+   * Construye la ServiceResponse final de buildReplacementSubscription.
+   */
+  private buildReplacementResponse(
+    oldSubscription: Subscription,
+    newSubscription: Subscription,
+    hasRemainingPeriod: boolean
+  ): ServiceResponse {
+    const message = hasRemainingPeriod
+      ? `Subscription replaced. New plan starts on ${newSubscription.currentPeriodStart!.toLocaleDateString()}.`
+      : 'Subscription replaced successfully';
+
+    return createServiceResponse(201, message, true, {
+      oldSubscription,
+      newSubscription,
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // LÓGICA DE COBRO Y DUNNING
+  // ═══════════════════════════════════════════
+
   private async attemptCharge(subscription: Subscription): Promise<void> {
-    // Guardia extra — nunca cobrar planes gratuitos
     if (subscription.plan.amount === 0) {
       const now = new Date();
       subscription.status = SubscriptionStatus.ACTIVE;
@@ -1414,7 +1787,7 @@ export class SubscriptionService extends BaseService {
 
     const pm = subscription.defaultPaymentMethod;
 
-    if (!pm || !pm.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
+    if (!pm?.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
       console.warn(
         `[Billing] Subscription ${subscription.id} has no valid payment method`
       );
@@ -1422,13 +1795,11 @@ export class SubscriptionService extends BaseService {
       return;
     }
 
-    // Aplicar crédito pendiente si existe
     const pendingCredit: number = subscription.metadata?.pendingCredit ?? 0;
     const baseAmount = subscription.plan.amount;
     const chargeAmount = Math.max(0, baseAmount - pendingCredit);
 
     if (chargeAmount === 0) {
-      // El crédito cubre el cobro completo
       await this.invoiceService.markAsPaid(invoice.id, new Date());
 
       const now = new Date();
@@ -1464,10 +1835,12 @@ export class SubscriptionService extends BaseService {
       invoiceId: invoice.id,
       subscriptionId: subscription.id,
       description: `Renewal — ${subscription.plan.name}`,
-      companyId: subscription.company?.id,
+      companyId: this.extractCompanyId(subscription.company),
     });
 
-    const { transaction } = chargeResponse.data as any;
+    const { transaction } = chargeResponse.data as {
+      transaction?: { status?: string };
+    };
 
     if (transaction?.status === 'succeeded') {
       await this.invoiceService.markAsPaid(invoice.id, new Date());
@@ -1482,7 +1855,6 @@ export class SubscriptionService extends BaseService {
       subscription.nextBillingDate = subscription.currentPeriodEnd;
       subscription.failedPaymentAttempts = 0;
 
-      // Limpiar crédito si se usó parcialmente
       if (pendingCredit > 0) {
         subscription.metadata = {
           ...subscription.metadata,
@@ -1507,13 +1879,6 @@ export class SubscriptionService extends BaseService {
     }
   }
 
-  /**
-   * Gestiona un pago fallido aplicando la lógica de dunning.
-   *
-   * Intento 1 → reintento en 3 días
-   * Intento 2 → reintento en 5 días
-   * Intento 3 → PAST_DUE, sin más reintentos automáticos
-   */
   private async handleFailedPayment(
     subscription: Subscription,
     _invoice: Invoice
@@ -1541,8 +1906,7 @@ export class SubscriptionService extends BaseService {
       await this.notifyPaymentFailed(subscription);
     } else {
       const daysUntilRetry =
-        retryIntervalDays[attempt - 1] ??
-        retryIntervalDays[retryIntervalDays.length - 1];
+        retryIntervalDays[attempt - 1] ?? retryIntervalDays.at(-1)!;
 
       subscription.nextBillingDate = this.addDays(new Date(), daysUntilRetry);
 
@@ -1562,12 +1926,6 @@ export class SubscriptionService extends BaseService {
     await this.em.flush();
   }
 
-  /**
-   * Transiciona una suscripción de TRIALING a ACTIVE al expirar el trial
-   * e intenta el primer cobro real.
-   * Si el plan es gratuito (no debería tener trial, pero por seguridad)
-   * queda ACTIVE sin cobro.
-   */
   private async transitionTrialToActive(
     subscription: Subscription
   ): Promise<void> {
@@ -1591,15 +1949,15 @@ export class SubscriptionService extends BaseService {
 
     await this.em.flush();
 
-    if (!isFree) {
+    if (isFree) {
+      console.log(
+        `[Billing] Trial ended for free subscription ${subscription.id}. No charge needed.`
+      );
+    } else {
       console.log(
         `[Billing] Trial ended for subscription ${subscription.id}. Attempting first charge.`
       );
       await this.attemptCharge(subscription);
-    } else {
-      console.log(
-        `[Billing] Trial ended for free subscription ${subscription.id}. No charge needed.`
-      );
     }
   }
 
@@ -1607,10 +1965,6 @@ export class SubscriptionService extends BaseService {
   // AUDIT LOG
   // ═══════════════════════════════════════════
 
-  /**
-   * Añade una entrada al historial de cambios de la suscripción.
-   * Se almacena en metadata.history como array de eventos inmutables.
-   */
   private appendHistory(
     subscription: Subscription,
     event: string,
@@ -1664,28 +2018,181 @@ export class SubscriptionService extends BaseService {
     const plan = await this.em.findOne(
       Plan,
       { id: planId, isActive: true },
-      { filters: { companyContext: false } }
+      { filters: { companyContext: false }, populate: ['company'] }
     );
     if (!plan) throw new NotFoundError('Plan not found or inactive');
     return plan;
   }
 
-  private async assertNoDuplicateSubscription(
-    user: User,
-    plan: Plan
-  ): Promise<void> {
-    const existing = await this.em.findOne(Subscription, {
-      user,
-      plan,
-      status: {
-        $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-      },
-    });
-    if (existing) {
-      throw new ConflictError(
-        'User already has an active subscription to this plan'
+  /**
+   * Extrae de forma segura el ID de una relacion ManyToOne sin importar si
+   * llego populada (objeto con .id), como Reference sin inicializar de
+   * MikroORM, o ya como string plano.
+   *
+   * Centraliza la logica que antes estaba duplicada (y rota) en 5 sitios
+   * distintos como (entity.relation as any)?.id ?? entity.relation ??
+   * undefined - ese patron fallaba silenciosamente cuando la relacion no
+   * estaba populada, devolviendo undefined en vez del id real.
+   */
+  private extractCompanyId(relation: unknown): string | undefined {
+    if (!relation) return undefined;
+    if (typeof relation === 'string') return relation;
+    if (typeof relation === 'object' && 'id' in (relation as any)) {
+      return (relation as any).id as string;
+    }
+    const ref = relation as any;
+    if (typeof ref.getEntity === 'function') {
+      try {
+        return ref.getEntity()?.id;
+      } catch {
+        // entidad no cargada en memoria - seguimos con el siguiente accesor
+      }
+    }
+    if (typeof ref.unwrap === 'function') {
+      return ref.unwrap()?.id;
+    }
+    return undefined;
+  }
+
+  /**
+   * Resuelve a que empresa pertenece el cobro de una suscripcion.
+   *
+   * Regla: si el plan pertenece a una empresa (plan.company), esa empresa
+   * es SIEMPRE la que debe recibir el dinero via Stripe Connect -
+   * independientemente de cual sea la empresa activa del usuario que se
+   * suscribe. Si el plan es global (sin empresa, plan.company es null),
+   * se respeta el companyId recibido en el input.
+   */
+  private resolveBillingCompanyId(
+    plan: Plan,
+    inputCompanyId?: string
+  ): string | undefined {
+    const planCompanyId = this.extractCompanyId(plan.company);
+
+    if (planCompanyId) {
+      if (inputCompanyId && inputCompanyId !== planCompanyId) {
+        console.warn(
+          `[SubscriptionService] companyId mismatch: plan belongs to company ` +
+            `${planCompanyId} but request came from company ${inputCompanyId}. ` +
+            `Using the plan's company for billing.`
+        );
+      }
+      return planCompanyId;
+    }
+
+    return inputCompanyId;
+  }
+
+  /**
+   * Verifica que una suscripcion pertenece a la empresa activa del usuario
+   * que esta intentando operarla.
+   */
+  private assertBelongsToCompany(
+    subscription: Subscription,
+    requesterCompanyId?: string
+  ): void {
+    if (!requesterCompanyId) return;
+
+    const subscriptionCompanyId = this.extractCompanyId(subscription.company);
+
+    if (!subscriptionCompanyId) return;
+
+    if (subscriptionCompanyId !== requesterCompanyId) {
+      throw new ForbiddenError(
+        'This subscription does not belong to your active company'
       );
     }
+  }
+
+  /**
+   * Busca si el usuario ya tiene una suscripcion ACTIVE/TRIALING relevante
+   * para el plan que intenta crear, y decide que hacer con ella.
+   *
+   * - Plan SIN empresa (global): solo bloquea si es exactamente el mismo
+   *   plan.
+   * - Plan CON empresa: busca cualquier suscripcion activa o en trial en
+   *   esa misma empresa, sin importar el plan exacto. Esto es lo que
+   *   permite que createSubscription() la detecte y la trate como un
+   *   cambio de plan en lugar de dejar coexistir dos membresias activas
+   *   pagando a la vez en el mismo gym.
+   *
+   * IMPORTANTE: requiere que `plan` venga con 'company' populado (ver
+   * getActivePlanOrFail) - de lo contrario planCompanyId sale undefined
+   * y esta funcion compara por plan exacto en lugar de por empresa,
+   * dejando pasar el bug que origino esta correccion.
+   */
+  private async findActiveSubscriptionForPlan(
+    user: User,
+    plan: Plan
+  ): Promise<Subscription | null> {
+    const planCompanyId = this.extractCompanyId(plan.company);
+
+    if (!planCompanyId) {
+      return this.em.findOne(
+        Subscription,
+        {
+          user,
+          plan,
+          status: {
+            $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+        },
+        { populate: ['plan'] }
+      );
+    }
+
+    return this.em.findOne(
+      Subscription,
+      {
+        user,
+        company: planCompanyId,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
+    );
+  }
+
+  /**
+   * Busca una suscripcion CANCELED reciente del usuario (a CUALQUIER plan,
+   * no solo al mismo) que todavia tiene periodo pagado pendiente.
+   *
+   * Restriccion de seguridad: si el plan nuevo pertenece a una empresa
+   * distinta a la de la suscripcion cancelada, NO se considera una
+   * sustitucion.
+   */
+  private async findRecentCanceledWithPendingPeriod(
+    user: User,
+    newPlan: Plan
+  ): Promise<Subscription | null> {
+    const now = new Date();
+    const lookbackWindow = this.addDays(now, -3);
+
+    const candidate = await this.em.findOne(
+      Subscription,
+      {
+        user,
+        status: SubscriptionStatus.CANCELED,
+        canceledAt: { $gte: lookbackWindow },
+        currentPeriodEnd: { $gt: now },
+      },
+      {
+        populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'],
+        orderBy: { canceledAt: 'DESC' } as any,
+      }
+    );
+
+    if (!candidate) return null;
+
+    const oldCompanyId = this.extractCompanyId(candidate.company);
+    const newCompanyId = this.extractCompanyId(newPlan.company);
+
+    if (oldCompanyId && newCompanyId && oldCompanyId !== newCompanyId) {
+      return null;
+    }
+
+    return candidate;
   }
 
   private async getPaymentMethodOrFail(

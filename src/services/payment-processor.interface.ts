@@ -56,6 +56,18 @@ export interface RefundParams {
   amount?: number;
   reason?: string;
   idempotencyKey?: string;
+  /**
+   * Si el cobro original se hizo con transfer_data.destination (Stripe Connect),
+   * hay que indicar que tambien se revierta la transferencia hecha al admin.
+   * Sin esto, el reembolso sale de tu cuenta master y el dinero transferido
+   * al admin NO se recupera.
+   */
+  reverseTransfer?: boolean;
+  /**
+   * Si true, tambien te devuelve proporcionalmente tu application_fee_amount.
+   * Normalmente debe ir junto con reverseTransfer.
+   */
+  refundApplicationFee?: boolean;
 }
 
 export interface RefundResult {

@@ -22,7 +22,10 @@ export const getSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.getSubscription(args.subscriptionId);
+    return await service.getSubscription(
+      args.subscriptionId,
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -173,7 +176,10 @@ export const cancelSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.cancelSubscription(args.input);
+    return await service.cancelSubscription(
+      args.input,
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -189,7 +195,10 @@ export const pauseSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.pauseSubscription(args.subscriptionId);
+    return await service.pauseSubscription(
+      args.subscriptionId,
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -205,7 +214,10 @@ export const resumeSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.resumeSubscription(args.subscriptionId);
+    return await service.resumeSubscription(
+      args.subscriptionId,
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -221,7 +233,10 @@ export const reactivateSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.reactivateSubscription(args.subscriptionId);
+    return await service.reactivateSubscription(
+      args.subscriptionId,
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -239,7 +254,8 @@ export const updatePaymentMethodAndRetry = async (
     );
     return await service.updatePaymentMethodAndRetry(
       args.subscriptionId,
-      args.paymentMethodId
+      args.paymentMethodId,
+      context.currentUser?.activeCompanyId
     );
   } catch (error: any) {
     return handleError(error);
@@ -260,10 +276,13 @@ export const adminOverrideSubscription = async (
       context.em,
       context.paymentProcessor
     );
-    return await service.adminOverride({
-      ...args.input,
-      adminId: context.currentUser.id,
-    });
+    return await service.adminOverride(
+      {
+        ...args.input,
+        adminId: context.currentUser.id,
+      },
+      context.currentUser?.activeCompanyId
+    );
   } catch (error: any) {
     return handleError(error);
   }
@@ -281,7 +300,8 @@ export const forceRenewal = async (
     );
     return await service.forceRenewal(
       args.subscriptionId,
-      context.currentUser.id
+      context.currentUser.id,
+      context.currentUser?.activeCompanyId
     );
   } catch (error: any) {
     return handleError(error);
@@ -302,7 +322,8 @@ export const extendSubscriptionPeriod = async (
       args.subscriptionId,
       args.days,
       context.currentUser.id,
-      args.reason
+      args.reason,
+      context.currentUser?.activeCompanyId
     );
   } catch (error: any) {
     return handleError(error);
@@ -323,7 +344,8 @@ export const applySubscriptionCredit = async (
       args.subscriptionId,
       args.amountInCents,
       context.currentUser.id,
-      args.reason
+      args.reason,
+      context.currentUser?.activeCompanyId
     );
   } catch (error: any) {
     return handleError(error);

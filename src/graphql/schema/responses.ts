@@ -303,6 +303,24 @@ type TransactionResponse implements BasicResponse {
     summary: JSON
 }
 
+# ── STRIPE CONNECT (Modelo B) ───────────────────────────────────────────
+
+"""
+Datos del SetupIntent que el frontend necesita para confirmar la tarjeta
+con Stripe Elements / SDK móvil antes de llamar a addPaymentMethod.
+"""
+type ClientTokenData {
+    clientToken: String!
+    setupIntentId: String
+}
+
+type ClientTokenResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    data: ClientTokenData
+}
+
 type PaymentOAuthUrlResponse implements BasicResponse {
     code: String!
     success: Boolean!

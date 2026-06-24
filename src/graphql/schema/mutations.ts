@@ -60,7 +60,7 @@ type Mutation {
 
     # ── Pagos ─────────────────────────────────────────────────────────
     addPaymentMethod(nonce: String!, setAsDefault: Boolean, verifyCard: Boolean, companyId: ID): PaymentMethodResponse!
-    getPaymentOAuthUrl(companyId: ID!, platform: String!): PaymentOAuthUrlResponse!
+    getPaymentOAuthUrl(companyId: ID!, platform: String): PaymentOAuthUrlResponse!
     disconnectPaymentAccount(companyId: ID!): PaymentConnectionStatusResponse!
     tokenizeCard(
       cardNumber: String!
@@ -75,6 +75,13 @@ type Mutation {
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!
     """Cambio de plan con prorrateo opcional. Usar en lugar de updateSubscription para cambios de plan."""
     changePlan(input: ChangePlanInput!): SubscriptionResponse!
+    """
+    Cancela una suscripcion y crea una nueva a otro plan.
+    Si la suscripcion vieja aun tiene periodo pagado vigente, la nueva no
+    empieza hoy -- empieza cuando termine ese periodo, para no cobrar dos
+    planes a la vez. Usar forceImmediateCancellation para saltarse esa proteccion.
+    """
+    replaceSubscription(input: ReplaceSubscriptionInput!): SubscriptionResponse!
     updateSubscription(subscription: UpdateSubscriptionInput!): SubscriptionResponse!
     cancelSubscription(input: CancelSubscriptionInput!): SubscriptionResponse!
     pauseSubscription(subscriptionId: ID!): SubscriptionResponse!

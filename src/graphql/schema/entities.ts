@@ -185,7 +185,7 @@ type Customer {
 
 """
 Método de pago almacenado (card-on-file).
-El token de la tarjeta lo gestiona el procesador externo (Braintree).
+El token de la tarjeta lo gestiona el procesador externo (Stripe).
 Nunca se exponen datos sensibles de la tarjeta.
 """
 type PaymentMethod {
@@ -198,6 +198,7 @@ type PaymentMethod {
     last4: String
     expiryMonth: Int
     expiryYear: Int
+    fingerprint: String
     country: String
     isDefault: Boolean!
     displayName: String
@@ -285,7 +286,7 @@ type Invoice {
 
 """
 Registro de cada movimiento de dinero.
-externalTransactionId referencia la operación en Braintree (o cualquier otro procesador).
+externalTransactionId referencia la operación en Stripe (PaymentIntent.id).
 """
 type Transaction {
     id: ID!

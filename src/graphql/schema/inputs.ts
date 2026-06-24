@@ -219,19 +219,6 @@ input UpdateCustomerInput {
     metadata: JSON
 }
 
-input AddPaymentMethodInput {
-    customerId: ID!
-    """paymentMethodToken permanente devuelto por el Vault de Braintree"""
-    externalToken: String!
-    brand: String
-    last4: String
-    expiryMonth: Int
-    expiryYear: Int
-    fingerprint: String
-    country: String
-    setAsDefault: Boolean
-}
-
 input CreateSubscriptionInput {
     planId: ID!
     userId: ID!

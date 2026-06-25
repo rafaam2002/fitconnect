@@ -4,6 +4,7 @@ import moment, { Moment } from 'moment';
 import { Schedule } from '../entities/Schedule';
 import { ScheduleProgrammed } from '../entities/ScheduleProgrammed';
 import { User } from '../entities/User';
+import { NotificationService } from '../services/notification.service';
 import { CurrentUser } from '../types/common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from '../types/enums';
 
@@ -12,7 +13,6 @@ import {
   InternalServerError,
   UnauthorizedError,
 } from './errors.util';
-import { sendPushNotification } from './notification.util';
 
 /**
  * Crear fecha con tiempo específico
@@ -143,12 +143,12 @@ export const createScheduleInXWeeks = async (
   weeksFromNow: number,
   scheduleProgrammed: ScheduleProgrammed,
   em: EntityManager
-): Promise<void> => {
+): Promise<boolean> => {
   if (!scheduleProgrammed.admin) {
     console.warn(
       `[createScheduleInXWeeks] scheduleProgrammed sin admin (ID: ${scheduleProgrammed.id}, Title: "${scheduleProgrammed.title}")`
     );
-    return;
+    return false;
   }
 
   const daysToAdd = ((7 + day - now.day()) % 7) + weeksFromNow * 7;
@@ -186,7 +186,7 @@ export const createScheduleInXWeeks = async (
   );
 
   if (existingSchedule) {
-    return;
+    return false;
   }
 
   const newSchedule = em.create<Schedule>(Schedule, {
@@ -204,6 +204,7 @@ export const createScheduleInXWeeks = async (
   });
 
   em.persist(newSchedule);
+  return true;
 };
 
 /**
@@ -212,12 +213,15 @@ export const createScheduleInXWeeks = async (
  */
 export const sendScheduleReminders = async (
   em: EntityManager
-): Promise<void> => {
+): Promise<{ schedulesProcessed: number; notificationsSent: number }> => {
   console.log('🚀 Checking for upcoming schedules to send reminders...');
 
   const now = moment();
   const twoHoursFromNow = now.clone().add(2, 'hours');
   const threeHoursFromNow = twoHoursFromNow.clone().add(1, 'hour');
+
+  let notificationsSent = 0;
+  let schedulesProcessed = 0;
 
   try {
     const scheduleRepo = em.getRepository(Schedule);
@@ -232,15 +236,18 @@ export const sendScheduleReminders = async (
       { populate: ['users', 'users.pushTokens'], filters: false }
     );
 
-    if (upcomingSchedules.length === 0) {
+    schedulesProcessed = upcomingSchedules.length;
+
+    if (schedulesProcessed === 0) {
       console.log('No upcoming schedules found.');
-      return;
+      return { schedulesProcessed: 0, notificationsSent: 0 };
     }
 
-    console.log(`Found ${upcomingSchedules.length} upcoming schedules.`);
+    console.log(`Found ${schedulesProcessed} upcoming schedules.`);
 
     for (const schedule of upcomingSchedules) {
-      await sendScheduleReminderNotifications(schedule);
+      const sent = await sendScheduleReminderNotifications(schedule, em);
+      notificationsSent += sent;
     }
 
     console.log('✅ Finished sending schedule reminders.');
@@ -248,14 +255,15 @@ export const sendScheduleReminders = async (
     console.error('Error sending schedule reminders:', error);
     // No lanzar error - es un cron job, solo loguear
   }
+
+  return { schedulesProcessed, notificationsSent };
 };
 
-/**
- * Enviar notificaciones de recordatorio para un schedule específico
- */
 const sendScheduleReminderNotifications = async (
-  schedule: Schedule
-): Promise<void> => {
+  schedule: Schedule,
+  em: EntityManager
+): Promise<number> => {
+  let notificationsSent = 0;
   try {
     const title = '¡Tu clase está a punto de empezar!';
     const body = `Tu clase de "${schedule.title}" empieza a las ${moment(
@@ -270,28 +278,18 @@ const sendScheduleReminderNotifications = async (
 
     if (users.length === 0) {
       console.log(`Schedule ${schedule.id} has no users enrolled.`);
-      return;
+      return 0;
     }
 
-    let notificationsSent = 0;
-
-    for (const user of users) {
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        const tokens = user.pushTokens.getItems();
-        for (const pushToken of tokens) {
-          try {
-            await sendPushNotification(pushToken.token, title, body, data);
-            notificationsSent++;
-          } catch (error) {
-            console.error(
-              `Failed to send notification to token ${pushToken.token}:`,
-              error
-            );
-            // Continuar con el siguiente token
-          }
-        }
-      }
-    }
+    const notificationService = new NotificationService(em);
+    const userIds = users.map(user => user.id);
+    await notificationService.sendToUsers(
+      userIds,
+      title,
+      body,
+      data,
+      schedule.company?.id
+    );
 
     console.log(
       `Sent ${notificationsSent} reminder notifications for schedule ${schedule.id}`
@@ -303,4 +301,5 @@ const sendScheduleReminderNotifications = async (
     );
     // No lanzar error - continuar con el siguiente schedule
   }
+  return notificationsSent;
 };

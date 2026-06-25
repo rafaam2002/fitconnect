@@ -14,9 +14,9 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 
 import { BaseService } from './base.service';
+import { NotificationService } from './notification.service';
 
 export class PollService extends BaseService {
   constructor(em: EntityManager) {
@@ -300,31 +300,19 @@ export class PollService extends BaseService {
 
   // ============= MÉTODOS PRIVADOS =============
 
-  /**
-   * Enviar notificaciones push sobre nueva encuesta
-   */
   private async sendPollNotifications(poll: Poll): Promise<void> {
     try {
-      const users = await this.em.find(User, {}, { populate: ['pushTokens'] });
-      const notificationTitle = '¡Nueva encuesta disponible!';
-      const notificationBody = poll.title;
-      const notificationData = {
-        type: 'new_poll',
-        pollId: poll.id,
-      };
-
-      users.forEach((user: User) => {
-        if (user.pushTokens && user.pushTokens.length > 0) {
-          user.pushTokens.getItems().forEach(pushToken => {
-            sendPushNotification(
-              pushToken.token,
-              notificationTitle,
-              notificationBody,
-              notificationData
-            );
-          });
-        }
-      });
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToAllActiveUsers(
+        '¡Nueva encuesta disponible!',
+        poll.title,
+        {
+          type: 'new_poll',
+          pollId: poll.id,
+        },
+        undefined,
+        poll.company?.id
+      );
     } catch (error) {
       console.error('Error sending poll notifications:', error);
       // No lanzar error - las notificaciones son secundarias

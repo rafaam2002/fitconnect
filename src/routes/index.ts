@@ -20,5 +20,5 @@ export function registerRoutes(app: Application, orm: any): void {
   app.use('/auth', createAuthRouter(orm));
   app.use('/admin', createAdminRouter(orm));
   app.use('/stripe', createStripeConnectRouter(orm));
-  app.use(createSystemRouter());
+  app.use(createSystemRouter(orm));
 }

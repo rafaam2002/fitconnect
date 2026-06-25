@@ -20,7 +20,6 @@ import {
   NOT_FND_ERRORS,
   FORBIDDEN_ERRORS,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createDateWithTime,
   createInitialSchedules,
@@ -28,6 +27,7 @@ import {
 } from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
+import { NotificationService } from './notification.service';
 
 export type createScheduleDataType = {
   currentUser: CurrentUser;
@@ -1404,7 +1404,8 @@ export class ScheduleService extends BaseService {
     }
   }
 
-  public async cutOffSchedules() {
+  public async cutOffSchedules(): Promise<number> {
+    let cancelledCount = 0;
     try {
       const now = moment();
       const twentyFourHoursLater = now.clone().add(24, 'hours').toDate();
@@ -1465,9 +1466,10 @@ export class ScheduleService extends BaseService {
 
       if (cancelledSchedules.length > 0) {
         await this.em.flush();
+        cancelledCount = cancelledSchedules.length;
 
         console.log(
-          `Cancelled ${cancelledSchedules.length} schedules due to cutoff criteria.`
+          `Cancelled ${cancelledCount} schedules due to cutoff criteria.`
         );
 
         const cancelledSchedulesWithUsers = schedules.filter(s =>
@@ -1485,9 +1487,11 @@ export class ScheduleService extends BaseService {
     } catch (error) {
       console.error('Error in cutOffSchedules:', error);
     }
+    return cancelledCount;
   }
 
-  public async checkQuotaThresholds(): Promise<void> {
+  public async checkQuotaThresholds(): Promise<number> {
+    let warningsSent = 0;
     try {
       const now = moment().toDate();
       const scheduleRepo = this.em.getRepository(Schedule);
@@ -1528,22 +1532,20 @@ export class ScheduleService extends BaseService {
 
             const admin = schedule.admin;
             if (admin) {
-              await admin.pushTokens.init();
-              for (const pushToken of admin.pushTokens) {
-                try {
-                  await sendPushNotification(pushToken.token, title, body, {
-                    scheduleId: schedule.id,
-                    threshold,
-                    type: 'QUOTA_WARNING',
-                  });
-                } catch (err) {
-                  console.error(
-                    `Error sending push notification to admin:`,
-                    err
-                  );
-                }
-              }
+              const notificationService = new NotificationService(this.em);
+              await notificationService.sendToUser(
+                admin.id,
+                title,
+                body,
+                {
+                  scheduleId: schedule.id,
+                  threshold,
+                  type: 'warning',
+                },
+                schedule.company?.id
+              );
             }
+            warningsSent++;
 
             newNotified.push(threshold);
             hasNewNotification = true;
@@ -1560,6 +1562,7 @@ export class ScheduleService extends BaseService {
     } catch (error) {
       console.error('Error in checkQuotaThresholds:', error);
     }
+    return warningsSent;
   }
 
   // ============= MÉTODOS PRIVADOS =============
@@ -1721,18 +1724,17 @@ export class ScheduleService extends BaseService {
     user: User
   ): Promise<void> {
     try {
-      const title = '¡Tienes plaza!';
-      const body = `Has sido movido de la lista de espera al horario "${schedule.title}".`;
-      const data = {
-        type: 'schedule_waitlist_promotion',
-        scheduleId: schedule.id,
-      };
-
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        user.pushTokens.getItems().forEach(pushToken => {
-          sendPushNotification(pushToken.token, title, body, data);
-        });
-      }
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToUser(
+        user.id,
+        '¡Tienes plaza!',
+        `Has sido movido de la lista de espera al horario "${schedule.title}".`,
+        {
+          type: 'info',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
     } catch (error) {
       console.error('Error sending waitlist promotion notification:', error);
     }
@@ -1748,18 +1750,22 @@ export class ScheduleService extends BaseService {
     try {
       const title = 'Horario cancelado';
       const body = `El horario "${schedule.title}" ha sido cancelado. ${description}`;
-      const data = {
-        type: 'schedule_cancelled',
-        scheduleId: schedule.id,
-      };
 
-      [...schedule.users.getItems(), schedule.admin].forEach(user => {
-        if (user.pushTokens && user.pushTokens.length > 0) {
-          user.pushTokens.getItems().forEach(pushToken => {
-            sendPushNotification(pushToken.token, title, body, data);
-          });
-        }
-      });
+      const userIds = [...schedule.users.getItems(), schedule.admin]
+        .filter(user => user !== undefined)
+        .map(user => user.id);
+
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToUsers(
+        userIds,
+        title,
+        body,
+        {
+          type: 'warning',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
     } catch (error) {
       console.error(
         'Error sending schedule cancellation notifications:',

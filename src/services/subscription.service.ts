@@ -1216,7 +1216,7 @@ export class SubscriptionService extends BaseService {
   /**
    * Notifica a los usuarios cuya suscripción vence mañana.
    */
-  public async notifyExpiringSubscriptions(): Promise<void> {
+  public async notifyExpiringSubscriptions(): Promise<number> {
     const tomorrow = moment().add(1, 'days');
     const from = tomorrow.clone().startOf('day').toDate();
     const to = tomorrow.clone().endOf('day').toDate();
@@ -1232,7 +1232,7 @@ export class SubscriptionService extends BaseService {
 
     if (!expiringSubscriptions.length) {
       console.log('[CRON] No subscriptions expiring tomorrow');
-      return;
+      return 0;
     }
 
     console.log(
@@ -1242,6 +1242,7 @@ export class SubscriptionService extends BaseService {
     await Promise.allSettled(
       expiringSubscriptions.map(sub => this.notifyUser(sub))
     );
+    return expiringSubscriptions.length;
   }
 
   // ═══════════════════════════════════════════

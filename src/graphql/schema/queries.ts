@@ -12,7 +12,7 @@ type Query {
 
     # ── Message ───────────────────────────────────────────────────────
     getConversation(otherUserId: ID, page: Int, limit: Int, isForumMessage: Boolean): MessageResponse!
-    getNotifications: NotificationResponse!
+    getNotifications(limit: Int, page: Int): NotificationResponse!
 
     # ── Schedule ──────────────────────────────────────────────────────
     getSchedules(scheduleId: ID, schedulesIds: [ID]): ScheduleResponse!

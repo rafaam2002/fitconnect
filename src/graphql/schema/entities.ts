@@ -313,9 +313,12 @@ type Notification {
     created_at: String!
     updated_at: String!
     type: NotificationType!
+    title: String!
     message: String! 
-    link: String!
+    link: String
+    read: Boolean!
     user: IdResponse!
+    company: Company
 }
 
 type Stats {

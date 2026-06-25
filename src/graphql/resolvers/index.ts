@@ -4,6 +4,7 @@ import { articleResolvers } from './article.resolver';
 import { authResolvers } from './auth.resolver';
 import companyResolvers from './company.resolver';
 import { customerResolvers } from './customer.resolver';
+import { notificationResolvers } from './notification.resolver';
 import { paymentMethodResolvers } from './payment-method.resolver';
 import { paymentResolvers } from './payment.resolver';
 import { permissionResolvers } from './permission.resolver';
@@ -35,7 +36,8 @@ const resolvers = merge(
   companyResolvers,
   scheduleResolvers,
   superAdminResolvers,
-  paymentResolvers
+  paymentResolvers,
+  notificationResolvers
 );
 
 export default resolvers;

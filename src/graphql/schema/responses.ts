@@ -149,6 +149,7 @@ type NotificationResponse implements BasicResponse {
     message: String!
     notification: Notification
     notifications: [Notification]
+    hasMore: Boolean
 }
 
 type PollResponse implements BasicResponse {

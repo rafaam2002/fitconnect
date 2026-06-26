@@ -10,9 +10,11 @@ import {
   ChargeParams,
   ChargeResult,
   ClientTokenResult,
+  ConfirmedPaymentMethodResult,
   CreateVaultCustomerParams,
   DeletePaymentMethodResult,
   GenerateClientTokenParams,
+  GetConfirmedPaymentMethodParams,
   PaymentProcessor,
   ProcessorWebhookEvent,
   RefundParams,
@@ -48,7 +50,7 @@ export class StripeProcessor implements PaymentProcessor {
       const intentParams = {
         amount: params.amount,
         currency: params.currency.toLowerCase(),
-        customer: params.metadata?.stripeCustomerId,
+        customer: params.metadata?.processorCustomerId,
         payment_method: params.token,
         confirm: true,
         off_session: true,
@@ -313,6 +315,59 @@ export class StripeProcessor implements PaymentProcessor {
         success: false,
         errorMessage: error?.message ?? 'Card tokenization failed',
       };
+    }
+  }
+
+  // ── Confirmed SetupIntent (flujo PaymentSheet) ───────────────────────────────
+
+  public async getConfirmedPaymentMethod(
+    params: GetConfirmedPaymentMethodParams
+  ): Promise<ConfirmedPaymentMethodResult> {
+    try {
+      const options = params.connectedAccountId
+        ? { stripeAccount: params.connectedAccountId }
+        : undefined;
+
+      const setupIntent = await this.stripe.setupIntents.retrieve(
+        params.setupIntentId,
+        { expand: ['payment_method'] },
+        options
+      );
+
+      if (setupIntent.status !== 'succeeded') {
+        return {
+          success: false,
+          errorMessage: `SetupIntent status is "${setupIntent.status}", expected "succeeded"`,
+        };
+      }
+
+      const pm = setupIntent.payment_method;
+
+      if (!pm || typeof pm === 'string') {
+        return {
+          success: false,
+          errorMessage: 'PaymentMethod was not expanded on the SetupIntent',
+        };
+      }
+
+      const card = pm.card;
+
+      return {
+        success: true,
+        paymentMethodToken: pm.id,
+        brand: card?.brand ?? undefined,
+        last4: card?.last4 ?? undefined,
+        expiryMonth: card?.exp_month ?? undefined,
+        expiryYear: card?.exp_year ?? undefined,
+        fingerprint: card?.fingerprint ?? undefined,
+        country: card?.country ?? undefined,
+      };
+    } catch (error: any) {
+      console.error(
+        '[Stripe] getConfirmedPaymentMethod error:',
+        error?.message
+      );
+      return { success: false, errorMessage: error?.message };
     }
   }
 

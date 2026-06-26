@@ -335,6 +335,8 @@ type PaymentConnectionStatus {
     connectedAt: String
     chargesEnabled: Boolean!
     payoutsEnabled: Boolean!
+    missingRequirements: [String]
+    disabledReason: String
 }
 
 type PaymentConnectionStatusResponse implements BasicResponse {

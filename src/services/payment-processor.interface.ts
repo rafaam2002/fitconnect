@@ -3,16 +3,20 @@
  *
  * Contrato que debe implementar cualquier pasarela de pago externa.
  * La aplicación solo habla con esta interfaz — el procesador concreto
- * (Braintree, Stripe, Adyen…) se inyecta en BaseService.
+ * (Stripe, Adyen, etc.) se inyecta en BaseService.
  *
  * Para cambiar de procesador basta con crear una nueva clase que implemente
  * PaymentProcessor y actualizar la inyección en index.ts.
  *
- * CONCEPTOS AGNÓSTICOS:
- *   externalToken         → paymentMethodToken (Braintree) | PaymentMethod.id pm_xxx (Stripe)
- *   externalTransactionId → transaction.id (Braintree)     | PaymentIntent.id pi_xxx (Stripe)
- *   processorCustomerId   → Customer.id en Braintree Vault | Customer.id cus_xxx en Stripe
- *   nonce                 → nonce de Drop-in UI (Braintree) | PaymentMethod.id del SDK (Stripe)
+ * CONCEPTOS AGNÓSTICOS (mapeados a Stripe, la implementación actual):
+ *   externalToken         → PaymentMethod.id (pm_xxx)
+ *   externalTransactionId → PaymentIntent.id (pi_xxx)
+ *   processorCustomerId   → Customer.id (cus_xxx)
+ *   nonce                 → PaymentMethod.id obtenido via el SDK del frontend
+ *
+ * El interface se mantiene agnóstico a propósito por si en el futuro se
+ * añade un segundo procesador (ej. para otra región), pero la única
+ * implementación actual es StripeProcessor.
  */
 
 // ── Charge ────────────────────────────────────────────────────────────────────
@@ -172,6 +176,32 @@ export interface DeletePaymentMethodResult {
   errorMessage?: string;
 }
 
+// ── Confirmed SetupIntent (flujo PaymentSheet) ────────────────────────────────
+//
+// Cuando el frontend usa Stripe PaymentSheet con un SetupIntent generado por
+// generateClientToken(), el SDK nativo confirma y vincula el PaymentMethod al
+// Customer directamente en los servidores de Stripe — sin pasar por nuestro
+// backend. Una vez el SDK confirma, solo necesitamos recuperar QUÉ
+// PaymentMethod fue, para sincronizarlo en nuestra BD local. No hay ningún
+// "nonce" que adjuntar porque Stripe ya hizo esa vinculación.
+
+export interface GetConfirmedPaymentMethodParams {
+  setupIntentId: string;
+  connectedAccountId?: string;
+}
+
+export interface ConfirmedPaymentMethodResult {
+  success: boolean;
+  paymentMethodToken?: string;
+  brand?: string;
+  last4?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  fingerprint?: string;
+  country?: string;
+  errorMessage?: string;
+}
+
 // ── Webhook normalizado ───────────────────────────────────────────────────────
 
 export type ProcessorWebhookEventType =
@@ -210,6 +240,14 @@ export interface PaymentProcessor {
   vaultPaymentMethod(
     params: VaultPaymentMethodParams
   ): Promise<VaultPaymentMethodResult>;
+  /**
+   * Recupera el PaymentMethod que el SDK nativo (PaymentSheet) ya confirmó
+   * y vinculó al Customer al cerrar un SetupIntent. No tokeniza ni vincula
+   * nada nuevo — solo lee el resultado para sincronizarlo en BD local.
+   */
+  getConfirmedPaymentMethod(
+    params: GetConfirmedPaymentMethodParams
+  ): Promise<ConfirmedPaymentMethodResult>;
   deleteVaultPaymentMethod(
     paymentMethodToken: string
   ): Promise<DeletePaymentMethodResult>;
@@ -222,8 +260,8 @@ export interface PaymentProcessor {
    * Devuelve un nonce/token de un solo uso para pasar a vaultPaymentMethod.
    * Útil cuando el frontend usa un formulario propio en lugar del SDK del procesador.
    *
-   * Stripe: crea un Token de tarjeta (tok_xxx) via la API de Tokens.
-   * Braintree: usaba gateway.creditCard.create().
+   * Implementación actual (Stripe): crea un Token de tarjeta (tok_xxx)
+   * via la API de Tokens (stripe.tokens.create()).
    */
   tokenizeCard(params: TokenizeCardParams): Promise<TokenizeCardResult>;
 }

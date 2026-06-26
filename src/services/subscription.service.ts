@@ -7,11 +7,7 @@ import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Plan, PlanInterval } from '../entities/Plan';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
-import {
-  CurrentUser,
-  EmailConfig,
-  ServiceResponse,
-} from '../types/common.type';
+import { CurrentUser, EmailConfig, ServiceResponse, } from '../types/common.type';
 import {
   BadRequestError,
   ConflictError,
@@ -195,11 +191,27 @@ export class SubscriptionService extends BaseService {
   /**
    * Crea una suscripción nueva. Punto de entrada único desde el frontend.
    *
-   * Decide automáticamente entre tres caminos:
-   *  1. Si hay una CANCELED reciente con periodo pagado pendiente → sustituye
-   *  2. Si hay una ACTIVE/TRIALING en la misma empresa → sustituye (esto ES
-   *     el cambio de plan, sin que el frontend tenga que saberlo)
-   *  3. Si no hay nada relevante → crea desde cero
+   * El backend decide automáticamente qué significa "crear" según el
+   * estado actual del usuario respecto a la empresa del plan elegido:
+   *
+   *  1. Ya tiene una suscripción ACTIVE/TRIALING al MISMO plan
+   *       → ConflictError. No tiene sentido volver a asignarle la misma
+   *         suscripción que ya tiene activa.
+   *
+   *  2. Ya tiene una suscripción ACTIVE/TRIALING a OTRO plan de la misma
+   *     empresa
+   *       → esto es un cambio de plan. Se delega a executePlanChange()
+   *         (el mismo núcleo que usa changePlan), que muta la suscripción
+   *         existente y aplica prorrateo si corresponde. No se crea una
+   *         entidad nueva.
+   *
+   *  3. Tiene una suscripción CANCELED (a cualquier plan de la misma
+   *     empresa) cuyo período pagado todavía no terminó
+   *       → se sustituye: la nueva Subscription no empieza hoy, empieza
+   *         exactamente cuando termine ese período ya pagado.
+   *
+   *  4. Ninguno de los casos anteriores
+   *       → se crea la suscripción desde cero.
    */
   public async createSubscription(
     input: CreateSubscriptionInput
@@ -208,153 +220,36 @@ export class SubscriptionService extends BaseService {
 
     const user = await this.getUserOrFail(input.userId);
     const plan = await this.getActivePlanOrFail(input.planId);
-    const customer = await this.customerService.getOrCreateCustomer(user);
 
-    // Camino 1: cancelacion reciente con periodo pagado pendiente
-    const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
-      user,
-      plan
-    );
-
-    if (recentCanceled) {
-      const isSamePlan = recentCanceled.plan.id === plan.id;
-      return this.buildReplacementSubscription({
-        oldSubscription: recentCanceled,
-        newPlan: plan,
-        paymentMethodId: input.paymentMethodId,
-        trialPeriodDays: input.trialPeriodDays,
-        metadata: input.metadata,
-        forceImmediateCancellation: false,
-        cancellationReason: isSamePlan
-          ? 'Superseded by new subscription to the same plan'
-          : `Superseded by new subscription to a different plan (${plan.name})`,
-        alreadyCanceled: true,
-      });
-    }
-
-    // Camino 2: ya hay algo ACTIVE/TRIALING en la misma empresa
-    // (esto es lo que antes fallaba por no popular plan.company)
     const activeInCompany = await this.findActiveSubscriptionForPlan(
       user,
       plan
     );
-
     if (activeInCompany) {
-      if (activeInCompany.plan.id === plan.id) {
-        throw new ConflictError(
-          'User already has an active subscription to this plan'
-        );
-      }
-
-      return this.buildReplacementSubscription({
-        oldSubscription: activeInCompany,
-        newPlan: plan,
-        paymentMethodId: input.paymentMethodId,
-        trialPeriodDays: input.trialPeriodDays,
-        metadata: input.metadata,
-        forceImmediateCancellation: false,
-        cancellationReason: `Replaced by new subscription to plan "${plan.name}" via createSubscription`,
-        alreadyCanceled: false,
-      });
+      return this.resolveExistingActiveSubscription(activeInCompany, plan);
     }
 
-    // Camino 3: creación desde cero
-    const billingCompanyId = this.resolveBillingCompanyId(
-      plan,
-      input.companyId
-    );
-
-    const paymentMethod = input.paymentMethodId
-      ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
-      : await this.getDefaultPaymentMethod(customer);
-
-    const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
-
-    const now = new Date();
-    const isTrialing = trialDays > 0;
-
-    const trialStart = isTrialing ? now : undefined;
-    const trialEnd = isTrialing ? this.addDays(now, trialDays) : undefined;
-    const periodStart = now;
-    const periodEnd = isTrialing
-      ? trialEnd!
-      : this.calculatePeriodEnd(now, plan);
-
-    const subscription = this.em.create(Subscription, {
+    const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
       user,
-      customer,
-      plan,
-      defaultPaymentMethod: paymentMethod ?? undefined,
-      company: billingCompanyId,
-      status: isTrialing
-        ? SubscriptionStatus.TRIALING
-        : SubscriptionStatus.INCOMPLETE,
-      currentPeriodStart: periodStart,
-      currentPeriodEnd: periodEnd,
-      trialStart,
-      trialEnd,
-      nextBillingDate: periodEnd,
-      quantity: input.quantity ?? 1,
-      failedPaymentAttempts: 0,
-      metadata: {
-        ...input.metadata,
-        history: [
-          this.buildHistoryEntry('created', 'system', 'Subscription created'),
-        ],
-      },
-    });
-
-    this.em.persist(subscription);
-    await this.em.flush();
-
-    if (!isTrialing) {
-      await this.attemptCharge(subscription);
+      plan
+    );
+    if (recentCanceled) {
+      return this.replaceCanceledSubscription(recentCanceled, plan, input);
     }
 
-    return createServiceResponse(
-      201,
-      'Subscription created successfully',
-      true,
-      {
-        subscription,
-      }
-    );
+    return this.createSubscriptionFromScratch(user, plan, input);
   }
 
   /**
    * Cambia el plan de una suscripción activa con prorrateo opcional.
-   *
-   * Dividido en pasos privados con nombre propio para mantener la
-   * complejidad cognitiva baja: cada paso es lineal y se puede leer/testear
-   * de forma aislada (mismo patron que buildReplacementSubscription).
+   * Punto de entrada público — resuelve la suscripción por ID y delega
+   * el trabajo real a executePlanChange().
    */
   public async changePlan(input: ChangePlanInput): Promise<ServiceResponse> {
     const { subscription, newPlan } =
       await this.resolveChangePlanTargets(input);
 
-    const oldPlan = subscription.plan;
-    const now = new Date();
-
-    if (input.prorate) {
-      await this.applyPlanChangeProration(subscription, oldPlan, newPlan, now);
-    }
-
-    this.applyNewPlanToSubscription(subscription, newPlan, now);
-
-    this.appendHistory(
-      subscription,
-      'plan_changed',
-      'user',
-      `Plan changed from "${oldPlan.name}" to "${newPlan.name}"${
-        input.prorate ? ' with proration' : ''
-      }`
-    );
-
-    await this.em.flush();
-
-    return createServiceResponse(200, 'Plan changed successfully', true, {
-      subscription,
-    });
+    return this.executePlanChange(subscription, newPlan, input.prorate);
   }
 
   /**
@@ -1081,10 +976,6 @@ export class SubscriptionService extends BaseService {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // OPERACIONES DE ADMIN
-  // ═══════════════════════════════════════════
-
   /**
    * Devuelve el audit log de cambios de estado de una suscripción.
    */
@@ -1242,6 +1133,175 @@ export class SubscriptionService extends BaseService {
     await Promise.allSettled(
       expiringSubscriptions.map(sub => this.notifyUser(sub))
     );
+  }
+
+  // ═══════════════════════════════════════════
+  // OPERACIONES DE ADMIN
+  // ═══════════════════════════════════════════
+
+  /**
+   * Caso 1 y 2: el usuario ya tiene una suscripción activa relevante.
+   * Si es al mismo plan, es un conflicto real. Si es a otro plan de la
+   * misma empresa, se trata como cambio de plan (sin prorrateo, ya que
+   * createSubscription no expone ese parámetro al frontend — para
+   * prorratear explícitamente, el frontend debe llamar a changePlan).
+   */
+  private async resolveExistingActiveSubscription(
+    activeSubscription: Subscription,
+    newPlan: Plan
+  ): Promise<ServiceResponse> {
+    if (activeSubscription.plan.id === newPlan.id) {
+      throw new ConflictError(
+        'User already has an active subscription to this plan'
+      );
+    }
+
+    return this.executePlanChange(activeSubscription, newPlan, false);
+  }
+
+  /**
+   * Caso 3: hay una suscripción CANCELED (a cualquier plan de la misma
+   * empresa) con período pagado pendiente. Se sustituye respetando ese
+   * período — ver buildReplacementSubscription.
+   */
+  private async replaceCanceledSubscription(
+    canceledSubscription: Subscription,
+    newPlan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const isSamePlan = canceledSubscription.plan.id === newPlan.id;
+
+    return this.buildReplacementSubscription({
+      oldSubscription: canceledSubscription,
+      newPlan,
+      paymentMethodId: input.paymentMethodId,
+      trialPeriodDays: input.trialPeriodDays,
+      metadata: input.metadata,
+      forceImmediateCancellation: false,
+      cancellationReason: isSamePlan
+        ? 'Superseded by new subscription to the same plan'
+        : `Superseded by new subscription to a different plan (${newPlan.name})`,
+      alreadyCanceled: true,
+    });
+  }
+
+  /**
+   * Caso 4: no hay nada que sustituir ni cambiar — se crea la suscripción
+   * desde cero, con o sin trial según el plan.
+   */
+  private async createSubscriptionFromScratch(
+    user: User,
+    plan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const customer = await this.customerService.getOrCreateCustomer(user);
+    const billingCompanyId = this.resolveBillingCompanyId(
+      plan,
+      input.companyId
+    );
+
+    const paymentMethod = input.paymentMethodId
+      ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
+      : await this.getDefaultPaymentMethod(customer);
+
+    const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
+    const now = new Date();
+    const isTrialing = trialDays > 0;
+
+    const trialStart = isTrialing ? now : undefined;
+    const trialEnd = isTrialing ? this.addDays(now, trialDays) : undefined;
+    const periodEnd = isTrialing
+      ? trialEnd!
+      : this.calculatePeriodEnd(now, plan);
+
+    const subscription = this.em.create(Subscription, {
+      user,
+      customer,
+      plan,
+      defaultPaymentMethod: paymentMethod ?? undefined,
+      company: billingCompanyId,
+      status: isTrialing
+        ? SubscriptionStatus.TRIALING
+        : SubscriptionStatus.INCOMPLETE,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      trialStart,
+      trialEnd,
+      nextBillingDate: periodEnd,
+      quantity: input.quantity ?? 1,
+      failedPaymentAttempts: 0,
+      // TEMPORAL: toda suscripcion nueva nace marcada para cancelarse al
+      // terminar su periodo actual. El CRON (processBillingCycle) ya
+      // respeta este flag y la pasara a CANCELED en cuanto currentPeriodEnd
+      // se cumpla, sin renovacion automatica. Pendiente: cuando se
+      // implemente el flujo de renovacion real en produccion, este valor
+      // dejara de ser fijo y pasara a depender de la decision del usuario
+      // (ej. un toggle de "renovacion automatica" en el input).
+      cancelAtPeriodEnd: true,
+      metadata: {
+        ...input.metadata,
+        history: [
+          this.buildHistoryEntry('created', 'system', 'Subscription created'),
+        ],
+      },
+    });
+
+    this.em.persist(subscription);
+    await this.em.flush();
+
+    if (!isTrialing) {
+      await this.attemptCharge(subscription);
+    }
+
+    return createServiceResponse(
+      201,
+      'Subscription created successfully',
+      true,
+      { subscription }
+    );
+  }
+
+  /**
+   * Núcleo del cambio de plan, sin resolución de IDs: recibe la
+   * Subscription y el Plan ya cargados.
+   *
+   * Reutilizado por:
+   *  - changePlan() — cuando el frontend pide explícitamente un cambio
+   *  - createSubscription() — cuando detecta que el usuario ya tiene esta
+   *    suscripción activa a otro plan de la misma empresa y, en vez de
+   *    crear una segunda entidad, debe migrar la existente con prorrateo.
+   *
+   * Dividido en pasos privados con nombre propio para mantener la
+   * complejidad cognitiva baja.
+   */
+  private async executePlanChange(
+    subscription: Subscription,
+    newPlan: Plan,
+    prorate?: boolean
+  ): Promise<ServiceResponse> {
+    const oldPlan = subscription.plan;
+    const now = new Date();
+
+    if (prorate) {
+      await this.applyPlanChangeProration(subscription, oldPlan, newPlan, now);
+    }
+
+    this.applyNewPlanToSubscription(subscription, newPlan, now);
+
+    this.appendHistory(
+      subscription,
+      'plan_changed',
+      'user',
+      `Plan changed from "${oldPlan.name}" to "${newPlan.name}"${
+        prorate ? ' with proration' : ''
+      }`
+    );
+
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Plan changed successfully', true, {
+      subscription,
+    });
   }
 
   // ═══════════════════════════════════════════
@@ -1411,7 +1471,9 @@ export class SubscriptionService extends BaseService {
       companyId,
     });
 
-    const { transaction } = chargeResult.data;
+    const { transaction } = chargeResult.data as {
+      transaction?: { status?: string };
+    };
 
     if (transaction?.status !== 'succeeded') {
       await this.invoiceService.voidInvoice(prorationInvoice.id);
@@ -1461,14 +1523,6 @@ export class SubscriptionService extends BaseService {
     subscription.nextBillingDate = subscription.currentPeriodEnd;
   }
 
-  /**
-   * Logica compartida entre replaceSubscription() y el flujo automatico de
-   * createSubscription() cuando detecta una suscripcion que debe sustituirse.
-   *
-   * Cancela (o reconoce ya cancelada) la suscripcion vieja y crea la nueva
-   * respetando el periodo ya pagado: si a la vieja le quedaba periodo
-   * vigente, la nueva no empieza hoy, empieza cuando ese periodo termine.
-   */
   /**
    * Logica compartida entre replaceSubscription() y el flujo automatico de
    * createSubscription() cuando detecta una suscripcion que debe sustituirse.
@@ -1599,12 +1653,6 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Construye el objeto de fechas/trial/periodo de la nueva suscripcion.
-   * Se aisla en su propio metodo porque mezclar este calculo dentro de
-   * createReplacementSubscription elevaba demasiado la complejidad de esa
-   * funcion.
-   */
-  /**
    * Resuelve el estado inicial de la suscripcion de reemplazo.
    * Extraido como statement independiente (S3358) en lugar de un ternario
    * anidado: ACTIVE si aun queda periodo pagado por respetar, TRIALING si
@@ -1619,6 +1667,12 @@ export class SubscriptionService extends BaseService {
     return SubscriptionStatus.INCOMPLETE;
   }
 
+  /**
+   * Construye el objeto de fechas/trial/periodo de la nueva suscripcion.
+   * Se aisla en su propio metodo porque mezclar este calculo dentro de
+   * createReplacementSubscription elevaba demasiado la complejidad de esa
+   * funcion.
+   */
   private buildReplacementSchedule(
     params: ReplacementParams,
     hasRemainingPeriod: boolean,
@@ -1719,6 +1773,9 @@ export class SubscriptionService extends BaseService {
       nextBillingDate: schedule.nextBillingDate,
       failedPaymentAttempts: 0,
       quantity: oldSubscription.quantity ?? 1,
+      // TEMPORAL: misma regla que en createSubscriptionFromScratch — ver
+      // ese comentario para el contexto completo.
+      cancelAtPeriodEnd: true,
       metadata: {
         ...metadata,
         replacedSubscriptionId: oldSubscription.id,
@@ -1838,7 +1895,7 @@ export class SubscriptionService extends BaseService {
       companyId: this.extractCompanyId(subscription.company),
     });
 
-    const { transaction } = chargeResponse.data as {
+    const { transaction } = chargeResponse as {
       transaction?: { status?: string };
     };
 

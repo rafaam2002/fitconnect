@@ -16,7 +16,7 @@ export class CustomScheduleProgrammedRepository extends EntityRepository<Schedul
           const created = await createScheduleInXWeeks(
             moment(),
             day,
-            3,
+            2, //0 es para la siguiente semana, 1 para la otra ...
             scheduleProgrammed,
             tem
           );

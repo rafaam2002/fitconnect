@@ -189,8 +189,10 @@ const startServer = async () => {
   });
 
   // ── 7. CRONs ──────────────────────────────────────────────────────────
-  cronFunctions(orm);
-  registerBillingCrons(orm, stripeProcessor);
+  if (process.env.NODE_ENV !== 'development') {
+    cronFunctions(orm);
+    registerBillingCrons(orm, stripeProcessor);
+  }
 
   // ── 8. Escuchar ───────────────────────────────────────────────────────
   const port = process.env.PORT ?? 4000;

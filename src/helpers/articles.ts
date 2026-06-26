@@ -7,8 +7,9 @@ export const storeNews = async (
   em: EntityManager<IDatabaseDriver<Connection>>,
   limit: number,
   pages: number[]
-) => {
+): Promise<number> => {
   const articleRepo = em.getRepository(Article);
+  let storedCount = 0;
 
   try {
     // Realizar todas las peticiones en paralelo
@@ -34,6 +35,7 @@ export const storeNews = async (
           try {
             em.persist(article);
             await em.flush();
+            storedCount++;
           } catch (error) {
             console.error('Error al crear el artículo:', error);
           }
@@ -44,6 +46,8 @@ export const storeNews = async (
   } catch (error) {
     console.error('Error al almacenar las noticias:', error);
   }
+
+  return storedCount;
 };
 const fetchBoxingNews = async (limit: number, page: number) => {
   try {

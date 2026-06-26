@@ -189,7 +189,7 @@ const startServer = async () => {
   });
 
   // ── 7. CRONs ──────────────────────────────────────────────────────────
-  cronFunctions(createRetryingEntityManager(orm, true));
+  cronFunctions(orm);
   registerBillingCrons(orm, stripeProcessor);
 
   // ── 8. Escuchar ───────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ export class StripeConnectService {
       response_type: 'code',
       client_id: process.env.STRIPE_CLIENT_ID!,
       scope: 'read_write',
-      redirect_uri: process.env.STRIPE_REDIRECT_URI!,
+      redirect_uri: `${process.env.STRIPE_REDIRECT_URI!}/stripe/callback`,
       state: `${companyId}__${platform}`,
       // Sugerir tipo de cuenta: Express es lo más sencillo para sub-merchants
       'suggested_capabilities[]': 'transfers',
@@ -138,6 +138,8 @@ export class StripeConnectService {
     connectedAt?: Date;
     chargesEnabled?: boolean;
     payoutsEnabled?: boolean;
+    missingRequirements?: string[]; // 👈 Nuevo
+    disabledReason?: string | null; // 👈 Nuevo
   }> {
     const company = await this.em.findOne(Company, { id: companyId });
     if (!company) throw new NotFoundError('Company');
@@ -158,6 +160,9 @@ export class StripeConnectService {
         connectedAt: company.stripeConnectedAt,
         chargesEnabled: account.charges_enabled,
         payoutsEnabled: account.payouts_enabled,
+
+        missingRequirements: account.requirements?.currently_due || [],
+        disabledReason: account.requirements?.disabled_reason || null,
       };
     } catch {
       return {
@@ -166,6 +171,25 @@ export class StripeConnectService {
         status: 'error',
       };
     }
+  }
+
+  // ── 4.5. Completar Onboarding Pendiente ───────────────────────────────────
+
+  /**
+   * Si la cuenta fue creada pero charges_enabled es false, se llama a esta función
+   * para devolver al admin al formulario de Stripe y que rellene lo que falta.
+   */
+  async getOnboardingLink(companyId: string): Promise<string> {
+    const accountId = await this.getConnectedAccountId(companyId);
+
+    const accountLink = await this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${process.env.STRIPE_REDIRECT_URI}/refresh`, // A donde ir si el link expira
+      return_url: `${process.env.STRIPE_REDIRECT_URI}/return`, // A donde ir tras terminar
+      type: 'account_onboarding',
+    });
+
+    return accountLink.url;
   }
 
   // ── 5. Desconectar empresa ────────────────────────────────────────────────

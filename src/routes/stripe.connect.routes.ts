@@ -106,5 +106,58 @@ export function createStripeConnectRouter(orm: MikroORM): Router {
     }
   );
 
+  // ── GET /stripe/refresh ────────────────────────────────────────────────────
+  // Stripe redirige aquí si el Account Link caduca, el usuario recarga la página
+  // por accidente o la sesión expira.
+  // Query params: ?companyId=...
+  router.get('/refresh', async (req: Request, res: Response) => {
+    const { companyId } = req.query as Record<string, string>;
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Missing companyId' });
+    }
+
+    try {
+      const em = orm.em.fork();
+      const service = new StripeConnectService(em);
+
+      // Generamos un nuevo enlace fresco y redirigimos al admin de vuelta a Stripe
+      // de forma transparente para que continúe donde se quedó.
+      const url = await service.getOnboardingLink(companyId);
+      res.redirect(url);
+    } catch (err: any) {
+      console.error('[StripeConnect] Refresh error:', err.message);
+      res.status(500).send('Error al refrescar el enlace de Stripe.');
+    }
+  });
+
+  // ── GET /stripe/return ─────────────────────────────────────────────────────
+  // Stripe redirige aquí cuando el admin termina de rellenar el formulario
+  // o si decide pulsar en "Volver a la aplicación".
+  // Query params: ?companyId=...
+  router.get('/return', async (req: Request, res: Response) => {
+    // Reutilizamos la misma lógica de entorno que ya tienes en el callback
+    const frontendWebUrl =
+      process.env.FRONTEND_WEB_URL ??
+      process.env.FRONTEND_URL ??
+      'http://localhost:3000';
+
+    /* Nota: Si vas a soportar el rellenado de datos faltantes también desde la 
+      app móvil (React Native/Expo), asegúrate de enviar '&platform=mobile' en el 
+      getOnboardingLink() y capturarlo aquí en req.query para usar mobileScheme. 
+      Por defecto asumo que esto se gestiona desde el panel web de administración.
+    */
+
+    // Redirigimos al admin de vuelta a su panel de configuración de pagos.
+    // Tu frontend, al ver este parámetro en la URL, debería volver a llamar a
+    // tu backend para obtener getConnectionDetails() y comprobar si
+    // chargesEnabled ya cambió a true.
+    const returnRedirect = `${frontendWebUrl}/settings/payments?stripe=returned`;
+
+    res.redirect(returnRedirect);
+  });
+
   return router;
 }

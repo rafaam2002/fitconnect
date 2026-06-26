@@ -3,23 +3,15 @@ import { EntityManager, QueryOrder } from '@mikro-orm/core';
 import { Invoice } from '../entities/Invoice';
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Subscription } from '../entities/Subscription';
-import {
-  Transaction,
-  TransactionStatus,
-  TransactionType,
-} from '../entities/Transaction';
+import { Transaction, TransactionStatus, TransactionType, } from '../entities/Transaction';
 import { User } from '../entities/User';
 import { ServiceResponse } from '../types/common.type';
-import {
-  BadRequestError,
-  createServiceResponse,
-  InternalServerError,
-  NotFoundError,
-} from '../utils/errors.util';
+import { BadRequestError, createServiceResponse, InternalServerError, NotFoundError, } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 import { PaymentProcessor } from './payment-processor.interface';
 import { StripeConnectService } from './stripe.connect.service';
+import { Customer } from '../entities/Customer';
 
 // Porcentaje de comisión que te quedas en cada cobro de cliente a empresa (5%)
 const PLATFORM_FEE_PERCENT = 0.05;
@@ -551,7 +543,13 @@ export class TransactionService extends BaseService {
       // nadie se entere. No se permite ese fallback silencioso.
       let connectedAccountId: string | undefined;
       let applicationFeeAmount: number | undefined;
+      const customer = await this.em.findOne(Customer, {
+        user,
+      });
 
+      if (!customer) {
+        throw new NotFoundError('Customer');
+      }
       if (input.companyId) {
         const connectService = new StripeConnectService(this.em);
         // Sin catch: si la empresa no tiene Stripe conectado, esto lanza
@@ -565,7 +563,7 @@ export class TransactionService extends BaseService {
       }
 
       const result = await this.paymentProcessor!.charge({
-        amount: input.amount,
+        amount: input.amount * 100,
         currency: input.currency ?? 'eur',
         token,
         description: input.description,
@@ -578,6 +576,7 @@ export class TransactionService extends BaseService {
           transaction.id
         ),
         metadata: {
+          processorCustomerId: customer.metadata!.processorCustomerId,
           transactionId: transaction.id,
           userId: user.id,
           ...(input.companyId && { companyId: input.companyId }),

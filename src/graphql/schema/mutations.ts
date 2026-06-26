@@ -60,8 +60,11 @@ type Mutation {
 
     # ── Pagos ─────────────────────────────────────────────────────────
     addPaymentMethod(nonce: String!, setAsDefault: Boolean, verifyCard: Boolean, companyId: ID): PaymentMethodResponse!
+    confirmPaymentMethodFromSetupIntent(setupIntentId: String!, setAsDefault: Boolean, companyId: ID): PaymentMethodResponse!
     getPaymentOAuthUrl(companyId: ID!, platform: String): PaymentOAuthUrlResponse!
+    getPaymentOnboardingUrl(companyId: ID!, platform: String): PaymentOAuthUrlResponse!
     disconnectPaymentAccount(companyId: ID!): PaymentConnectionStatusResponse!
+    
     tokenizeCard(
       cardNumber: String!
       expirationMonth: String!
@@ -69,7 +72,6 @@ type Mutation {
       cvv: String!
       cardholderName: String
     ): TokenizeCardResponse!
-
 
     # ── Subscription — usuario ────────────────────────────────────────
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!

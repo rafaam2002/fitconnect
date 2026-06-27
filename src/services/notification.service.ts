@@ -26,13 +26,23 @@ export class NotificationService extends BaseService {
     data?: PushNotificationData,
     companyId?: string | null
   ): Promise<void> {
+    let targetUserId = userId;
+    if (process.env.NODE_ENV === 'development') {
+      targetUserId = '0a7fcee9-64d1-4875-9a49-11c3778457df';
+    }
+
     const user = await this.em.findOne(
       User,
-      { id: userId },
+      { id: targetUserId },
       { populate: ['pushTokens'] }
     );
 
     if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[NotificationService] Test user with ID '${targetUserId}' not found in development mode.`
+        );
+      }
       return;
     }
 
@@ -81,11 +91,23 @@ export class NotificationService extends BaseService {
     data?: PushNotificationData,
     companyId?: string | null
   ): Promise<void> {
+    let targetUserIds = userIds;
+    if (process.env.NODE_ENV === 'development') {
+      targetUserIds = ['0a7fcee9-64d1-4875-9a49-11c3778457df'];
+    }
+
     const users = await this.em.find(
       User,
-      { id: { $in: userIds } },
+      { id: { $in: targetUserIds } },
       { populate: ['pushTokens'] }
     );
+
+    if (process.env.NODE_ENV === 'development' && users.length === 0) {
+      console.warn(
+        `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+      );
+      return;
+    }
 
     let notificationType = NotificationType.INFO;
     if (data?.type) {
@@ -126,18 +148,35 @@ export class NotificationService extends BaseService {
     excludeUserId?: string,
     companyId?: string | null
   ): Promise<void> {
-    const filter: any = {
-      isBlocked: false,
-      isActive: true,
-    };
+    let users: User[];
 
-    if (excludeUserId) {
-      filter.id = { $ne: excludeUserId };
+    if (process.env.NODE_ENV === 'development') {
+      const testUser = await this.em.findOne(
+        User,
+        { id: '0a7fcee9-64d1-4875-9a49-11c3778457df' },
+        { populate: ['pushTokens'] }
+      );
+      if (!testUser) {
+        console.warn(
+          `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+        );
+        return;
+      }
+      users = [testUser];
+    } else {
+      const filter: any = {
+        isBlocked: false,
+        isActive: true,
+      };
+
+      if (excludeUserId) {
+        filter.id = { $ne: excludeUserId };
+      }
+
+      users = await this.em.find(User, filter, {
+        populate: ['pushTokens'],
+      });
     }
-
-    const users = await this.em.find(User, filter, {
-      populate: ['pushTokens'],
-    });
 
     let notificationType = NotificationType.INFO;
     if (data?.type) {

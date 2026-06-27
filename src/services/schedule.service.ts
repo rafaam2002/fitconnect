@@ -1261,7 +1261,9 @@ export class ScheduleService extends BaseService {
    */
   public async changeScheduleStatus(
     currentUser: CurrentUser,
-    scheduleId: string
+    scheduleId: string,
+    status: ScheduleState,
+    reason?: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -1284,19 +1286,24 @@ export class ScheduleService extends BaseService {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
-    const newState =
-      schedule.state === ScheduleState.AVAILABLE
-        ? ScheduleState.CANCELLED
-        : ScheduleState.AVAILABLE;
-    schedule.state = newState;
+    if (schedule.state === status) {
+      return createServiceResponse(
+        200,
+        'Schedule status is already ' + status,
+        true,
+        {
+          schedule,
+        }
+      );
+    }
+
+    schedule.state = status;
 
     this.em.persist(schedule);
     await this.em.flush();
 
-    // Enviar notificaciones si fue cancelado
-    if (newState === ScheduleState.CANCELLED) {
-      await this.sendScheduleCancellationNotifications(schedule);
-    }
+    // Enviar notificaciones de cualquier cambio de estado
+    await this.sendScheduleStatusChangeNotifications(schedule, status, reason);
 
     return createServiceResponse(
       200,
@@ -1769,6 +1776,45 @@ export class ScheduleService extends BaseService {
     } catch (error) {
       console.error(
         'Error sending schedule cancellation notifications:',
+        error
+      );
+      // No lanzar error - las notificaciones son secundarias
+    }
+  }
+
+  /**
+   * Enviar notificaciones de cambio de estado de schedule
+   */
+  private async sendScheduleStatusChangeNotifications(
+    schedule: Schedule,
+    status: ScheduleState,
+    reason?: string
+  ): Promise<void> {
+    try {
+      const isCancelled = status === ScheduleState.CANCELLED;
+      const title = isCancelled ? 'Horario cancelado' : 'Horario disponible';
+      const body = isCancelled
+        ? `El horario "${schedule.title}" ha sido cancelado.${reason ? ' ' + reason : ''}`
+        : `El horario "${schedule.title}" vuelve a estar disponible.${reason ? ' ' + reason : ''}`;
+
+      const userIds = [...schedule.users.getItems(), schedule.admin]
+        .filter(user => user !== undefined)
+        .map(user => user.id);
+
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToUsers(
+        userIds,
+        title,
+        body,
+        {
+          type: isCancelled ? 'warning' : 'info',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
+    } catch (error) {
+      console.error(
+        'Error sending schedule status change notifications:',
         error
       );
       // No lanzar error - las notificaciones son secundarias

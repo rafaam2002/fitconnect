@@ -371,10 +371,15 @@ const changeScheduleStatus = async (
 ) => {
   try {
     const { em, currentUser } = context;
-    const { scheduleId } = args;
+    const { scheduleId, status, reason } = args;
 
     const scheduleService = new ScheduleService(em);
-    return await scheduleService.changeScheduleStatus(currentUser, scheduleId);
+    return await scheduleService.changeScheduleStatus(
+      currentUser,
+      scheduleId,
+      status,
+      reason
+    );
   } catch (error: any) {
     return handleError(error);
   }

@@ -198,6 +198,8 @@ export type UnfixMessageProps = {
 
 export type ChangeScheduleStatusProp = {
   scheduleId: string;
+  status: ScheduleState;
+  reason?: string;
 };
 
 export type PlanFilterInput = {

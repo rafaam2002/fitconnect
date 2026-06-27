@@ -24,7 +24,7 @@ type Mutation {
     # ── Schedule ──────────────────────────────────────────────────────
     removeSchedule(scheduleId: ID!): ScheduleResponse!
     createSchedule(schedule: CreateScheduleInput!): ScheduleResponse!
-    changeScheduleStatus(scheduleId: ID!): ScheduleResponse!
+    changeScheduleStatus(scheduleId: ID!, status: ScheduleState!, reason: String): ScheduleResponse!
     createScheduleDevelopment(scheduleDevelopment: CreateScheduleDevelopmentInput!): ScheduleResponse!
     addUserToSchedule(scheduleId: ID!): ScheduleResponse!
     removeUserFromSchedule(scheduleId: ID!, userId: ID): ScheduleResponse!

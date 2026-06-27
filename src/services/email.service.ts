@@ -41,7 +41,14 @@ export class EmailService {
    */
   public async sendEmail(config: EmailConfig): Promise<void> {
     try {
-      await this.transporter.sendMail(config);
+      const finalConfig = { ...config };
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `[EmailService] Dev mode: Redirecting email target from '${config.to}' to 'gondorwebmasters@gmail.com'`
+        );
+        finalConfig.to = 'gondorwebmasters@gmail.com';
+      }
+      await this.transporter.sendMail(finalConfig);
     } catch (error: any) {
       console.error('Error sending email:', error);
       throw new Error(`Failed to send email: ${error.message}`);

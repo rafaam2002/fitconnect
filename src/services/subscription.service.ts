@@ -7,7 +7,11 @@ import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Plan, PlanInterval } from '../entities/Plan';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
-import { CurrentUser, EmailConfig, ServiceResponse, } from '../types/common.type';
+import {
+  CurrentUser,
+  EmailConfig,
+  ServiceResponse,
+} from '../types/common.type';
 import {
   BadRequestError,
   ConflictError,

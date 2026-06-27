@@ -1045,38 +1045,7 @@ export class SubscriptionService extends BaseService {
    */
   public async processBillingCycle(): Promise<void> {
     console.log('[CRON] processBillingCycle — start');
-    const now = new Date();
-
-    const dueSubscriptions = await this.em.find(
-      Subscription,
-      {
-        status: SubscriptionStatus.ACTIVE,
-        nextBillingDate: { $lte: now },
-        plan: { amount: { $gt: 0 } },
-      },
-      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
-    );
-
-    console.log(
-      `[CRON] ${dueSubscriptions.length} subscriptions due for renewal`
-    );
-    for (const sub of dueSubscriptions) {
-      await this.attemptCharge(sub);
-    }
-
-    const expiringTrials = await this.em.find(
-      Subscription,
-      {
-        status: SubscriptionStatus.TRIALING,
-        trialEnd: { $lte: now },
-      },
-      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
-    );
-
-    console.log(`[CRON] ${expiringTrials.length} trials expiring`);
-    for (const sub of expiringTrials) {
-      await this.transitionTrialToActive(sub);
-    }
+    const now = moment().toDate();
 
     const pendingCancellations = await this.em.find(
       Subscription,
@@ -1103,6 +1072,37 @@ export class SubscriptionService extends BaseService {
 
     if (pendingCancellations.length > 0) {
       await this.em.flush();
+    }
+
+    const expiringTrials = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.TRIALING,
+        trialEnd: { $lte: now },
+      },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    console.log(`[CRON] ${expiringTrials.length} trials expiring`);
+    for (const sub of expiringTrials) {
+      await this.transitionTrialToActive(sub);
+    }
+
+    const dueSubscriptions = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.ACTIVE,
+        nextBillingDate: { $lte: now },
+        // plan: { amount: { $gt: 0 } },
+      },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    console.log(
+      `[CRON] ${dueSubscriptions.length} subscriptions due for renewal`
+    );
+    for (const sub of dueSubscriptions) {
+      await this.attemptCharge(sub);
     }
 
     console.log('[CRON] processBillingCycle — done');

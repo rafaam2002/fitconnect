@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 
+import { PermissionAction, PermissionModule } from '../entities/Permission';
 import { TrainingTask } from '../entities/TraningITask';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import {
@@ -69,7 +70,7 @@ export class TrainingTaskService {
 
     const newTrainingTask = this.em.create(TrainingTask, {
       content,
-      user: userId!,
+      user: userId,
       repeat,
       date,
       company: currentUser.activeCompanyId!,
@@ -137,7 +138,7 @@ export class TrainingTaskService {
     } else {
       const userService = new UserService(this.em);
       const users = await userService.getUsersByPermissions([
-        'training_task.create',
+        `${PermissionModule.WORKOUTS}:${PermissionAction.READ}`,
       ]);
       await this.notificationService.sendToUsers(
         users.map(user => user.id),

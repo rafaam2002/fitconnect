@@ -12,6 +12,8 @@ export const VAL_ERRORS = {
     'Schedule is outside the advance booking window',
   USER_ALREADY_IN_SCHEDULE: 'User is already registered for this schedule',
   INCORRECT_PASSWORD: 'Current password is incorrect',
+  SCHEDULE_HAS_USERS:
+    'Cannot delete schedule because it has registered or waitlisted users',
 } as const;
 
 export const NOT_FND_ERRORS = {

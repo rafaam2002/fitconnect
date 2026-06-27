@@ -1329,7 +1329,7 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['admin'] }
+      { populate: ['admin', 'users', 'waitListUsers'] }
     );
 
     if (!schedule) {
@@ -1341,6 +1341,10 @@ export class ScheduleService extends BaseService {
       currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    if (schedule.users.length > 0 || schedule.waitListUsers.length > 0) {
+      throw new ValidationError(VAL_ERRORS.SCHEDULE_HAS_USERS);
     }
 
     this.em.remove(schedule);

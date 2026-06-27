@@ -278,4 +278,59 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
       ).toBe(false);
     });
   });
+
+  describe('removeSchedule', () => {
+    it('should throw error when schedule has registered users', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const schedule = new Schedule({
+        admin: { id: 'admin-1' } as any,
+      } as any);
+      schedule.id = 'sch-1';
+      schedule.users = createMockCollection([{ id: 'user-1' }]);
+      schedule.waitListUsers = createMockCollection([]);
+
+      mockScheduleRepo.findOne.mockResolvedValue(schedule);
+
+      await expect(
+        scheduleService.removeSchedule(currentUser as any, 'sch-1')
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('should throw error when schedule has users in waitlist', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const schedule = new Schedule({
+        admin: { id: 'admin-1' } as any,
+      } as any);
+      schedule.id = 'sch-1';
+      schedule.users = createMockCollection([]);
+      schedule.waitListUsers = createMockCollection([{ id: 'user-1' }]);
+
+      mockScheduleRepo.findOne.mockResolvedValue(schedule);
+
+      await expect(
+        scheduleService.removeSchedule(currentUser as any, 'sch-1')
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('should remove schedule successfully when there are no users and no waitlisted users', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const schedule = new Schedule({
+        admin: { id: 'admin-1' } as any,
+      } as any);
+      schedule.id = 'sch-1';
+      schedule.users = createMockCollection([]);
+      schedule.waitListUsers = createMockCollection([]);
+
+      mockScheduleRepo.findOne.mockResolvedValue(schedule);
+      mockEntityManager.remove = jest.fn();
+
+      const response = await scheduleService.removeSchedule(
+        currentUser as any,
+        'sch-1'
+      );
+      expect(response.success).toBe(true);
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(schedule);
+      expect(mockEntityManager.flush).toHaveBeenCalled();
+    });
+  });
 });

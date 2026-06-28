@@ -1,4 +1,5 @@
 import { EntityManager } from '@mikro-orm/core';
+import moment from 'moment';
 
 import {
   Permission,
@@ -206,6 +207,8 @@ export class PermissionService extends BaseService {
     userId: string,
     companyId: string
   ): Promise<Subscription | null> {
+    const now = moment().toDate();
+
     return this.em.findOne(
       Subscription,
       {
@@ -214,6 +217,8 @@ export class PermissionService extends BaseService {
         status: {
           $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
         },
+        currentPeriodStart: { $lte: now },
+        currentPeriodEnd: { $gte: now },
       },
       {
         populate: [

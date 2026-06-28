@@ -226,6 +226,7 @@ input CreateSubscriptionInput {
     trialPeriodDays: Int
     quantity: Int
     metadata: JSON
+    startDate: String
 }
 
 input UpdateSubscriptionInput {

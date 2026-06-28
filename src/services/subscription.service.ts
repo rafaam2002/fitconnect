@@ -43,6 +43,7 @@ interface CreateSubscriptionInput {
   quantity?: number;
   metadata?: Record<string, any>;
   companyId: string;
+  startDate?: string | Date;
 }
 
 interface UpdateSubscriptionInput {
@@ -230,6 +231,14 @@ export class SubscriptionService extends BaseService {
       plan
     );
     if (activeInCompany) {
+      if (input.startDate) {
+        const start = moment(input.startDate);
+        if (!start.isSame(moment(), 'day')) {
+          throw new BadRequestError(
+            'Cannot schedule a plan change in the future'
+          );
+        }
+      }
       return this.resolveExistingActiveSubscription(activeInCompany, plan);
     }
 
@@ -238,6 +247,14 @@ export class SubscriptionService extends BaseService {
       plan
     );
     if (recentCanceled) {
+      if (input.startDate) {
+        const start = moment(input.startDate);
+        if (!start.isSame(moment(), 'day')) {
+          throw new BadRequestError(
+            'Cannot schedule a future subscription when there is a pending canceled subscription'
+          );
+        }
+      }
       return this.replaceCanceledSubscription(recentCanceled, plan, input);
     }
 
@@ -968,7 +985,16 @@ export class SubscriptionService extends BaseService {
       orderBy: { created_at: QueryOrder.DESC },
     } as any);
 
-    const activeSubscription = subscriptions.find(s => s.isActive) ?? null;
+    const now = moment().toDate();
+    const activeSubscription =
+      subscriptions.find(
+        s =>
+          s.isActive &&
+          s.currentPeriodStart &&
+          s.currentPeriodStart <= now &&
+          s.currentPeriodEnd &&
+          s.currentPeriodEnd >= now
+      ) ?? null;
 
     return createServiceResponse(
       200,
@@ -1210,14 +1236,17 @@ export class SubscriptionService extends BaseService {
       : await this.getDefaultPaymentMethod(customer);
 
     const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
-    const now = new Date();
+    const now = moment().toDate();
+    const baseStart = input.startDate ? moment(input.startDate).toDate() : now;
     const isTrialing = trialDays > 0;
 
-    const trialStart = isTrialing ? now : undefined;
-    const trialEnd = isTrialing ? this.addDays(now, trialDays) : undefined;
+    const trialStart = isTrialing ? baseStart : undefined;
+    const trialEnd = isTrialing
+      ? this.addDays(baseStart, trialDays)
+      : undefined;
     const periodEnd = isTrialing
       ? trialEnd!
-      : this.calculatePeriodEnd(now, plan);
+      : this.calculatePeriodEnd(baseStart, plan);
 
     const subscription = this.em.create(Subscription, {
       user,
@@ -1228,7 +1257,7 @@ export class SubscriptionService extends BaseService {
       status: isTrialing
         ? SubscriptionStatus.TRIALING
         : SubscriptionStatus.INCOMPLETE,
-      currentPeriodStart: now,
+      currentPeriodStart: baseStart,
       currentPeriodEnd: periodEnd,
       trialStart,
       trialEnd,
@@ -1817,15 +1846,20 @@ export class SubscriptionService extends BaseService {
   // ═══════════════════════════════════════════
 
   private async attemptCharge(subscription: Subscription): Promise<void> {
+    const now = moment().toDate();
+    const isFuture =
+      subscription.currentPeriodStart && subscription.currentPeriodStart > now;
+
     if (subscription.plan.amount === 0) {
-      const now = new Date();
       subscription.status = SubscriptionStatus.ACTIVE;
-      subscription.currentPeriodStart = now;
-      subscription.currentPeriodEnd = this.calculatePeriodEnd(
-        now,
-        subscription.plan
-      );
-      subscription.nextBillingDate = subscription.currentPeriodEnd;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
       this.appendHistory(
         subscription,
         'renewed',
@@ -1862,16 +1896,17 @@ export class SubscriptionService extends BaseService {
     const chargeAmount = Math.max(0, baseAmount - pendingCredit);
 
     if (chargeAmount === 0) {
-      await this.invoiceService.markAsPaid(invoice.id, new Date());
+      await this.invoiceService.markAsPaid(invoice.id, now);
 
-      const now = new Date();
       subscription.status = SubscriptionStatus.ACTIVE;
-      subscription.currentPeriodStart = now;
-      subscription.currentPeriodEnd = this.calculatePeriodEnd(
-        now,
-        subscription.plan
-      );
-      subscription.nextBillingDate = subscription.currentPeriodEnd;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
       subscription.failedPaymentAttempts = 0;
       subscription.metadata = {
         ...subscription.metadata,
@@ -1905,16 +1940,17 @@ export class SubscriptionService extends BaseService {
     };
 
     if (transaction?.status === 'succeeded') {
-      await this.invoiceService.markAsPaid(invoice.id, new Date());
+      await this.invoiceService.markAsPaid(invoice.id, now);
 
-      const now = new Date();
       subscription.status = SubscriptionStatus.ACTIVE;
-      subscription.currentPeriodStart = now;
-      subscription.currentPeriodEnd = this.calculatePeriodEnd(
-        now,
-        subscription.plan
-      );
-      subscription.nextBillingDate = subscription.currentPeriodEnd;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
       subscription.failedPaymentAttempts = 0;
 
       if (pendingCredit > 0) {
@@ -2067,6 +2103,15 @@ export class SubscriptionService extends BaseService {
     }
     if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
       throw new BadRequestError('Trial period days cannot be negative');
+    }
+    if (input.startDate) {
+      const start = moment(input.startDate);
+      if (!start.isValid()) {
+        throw new BadRequestError('Invalid startDate');
+      }
+      if (start.isBefore(moment(), 'day')) {
+        throw new BadRequestError('startDate cannot be in the past');
+      }
     }
   }
 

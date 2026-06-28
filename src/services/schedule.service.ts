@@ -1002,6 +1002,7 @@ export class ScheduleService extends BaseService {
         );
       } catch (error: any) {
         if (
+          error?.isOperational ||
           error instanceof ForbiddenError ||
           error instanceof UnauthorizedError ||
           error instanceof NotFoundError ||

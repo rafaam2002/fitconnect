@@ -203,7 +203,7 @@ export class GatewayTimeoutError extends AppError {
  */
 export const handleError = (error: any): ServiceResponse => {
   // Si es un AppError (ya es GraphQLError), simplemente propaga
-  if (error instanceof AppError) {
+  if (error instanceof AppError || error?.isOperational) {
     throw error; // Dejar que GraphQL lo maneje
   }
 

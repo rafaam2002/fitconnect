@@ -1,87 +1,185 @@
-// src/services/invoice.service.ts
 import { EntityManager } from '@mikro-orm/core';
 
 import { Invoice, InvoiceStatus } from '../entities/Invoice';
 import { Subscription } from '../entities/Subscription';
 import { User } from '../entities/User';
+import { ServiceResponse } from '../types/common.type';
+import {
+  BadRequestError,
+  createServiceResponse,
+  NotFoundError,
+} from '../utils/errors.util';
 
 import { BaseService } from './base.service';
 
+export interface CreateInvoiceInput {
+  userId: string;
+  subscriptionId?: string;
+  subtotal: number;
+  tax?: number;
+  currency?: string;
+  dueDate?: Date;
+  periodStart?: Date;
+  periodEnd?: Date;
+  description?: string;
+  lineItems?: any[];
+  metadata?: Record<string, any>;
+  companyId?: string;
+}
+
+/**
+ * InvoiceService
+ *
+ * Gestiona el ciclo de vida de las facturas de forma completamente autónoma.
+ *
+ * Las facturas las crea el propio sistema (via SubscriptionService/BillingCycleService)
+ * y se numeran con un secuencial interno.
+ */
 export class InvoiceService extends BaseService {
   constructor(em: EntityManager) {
     super(em);
   }
 
+  // ─────────────────────────────────────────────
+  // CREACIÓN
+  // ─────────────────────────────────────────────
+
   /**
-   * Find invoices by user
+   * Crea una factura manualmente o desde el ciclo de billing.
+   * Asigna automáticamente el número de factura interno.
    */
-  async findByUser(user: UserActivation): Promise<Invoice[]> {
-    return this.em.find(
-      Invoice,
-      { user },
-      {
-        orderBy: { created_at: 'DESC' },
-        populate: ['user', 'subscription', 'transactions'],
-      }
-    );
+  async createInvoice(input: CreateInvoiceInput): Promise<Invoice> {
+    const user = await this.em.findOne(User, { id: input.userId });
+    if (!user) throw new NotFoundError('User');
+
+    let subscription: Subscription | null = null;
+    if (input.subscriptionId) {
+      subscription = await this.em.findOne(Subscription, {
+        id: input.subscriptionId,
+      });
+      if (!subscription) throw new NotFoundError('Subscription');
+    }
+
+    const tax = input.tax ?? 0;
+    const total = input.subtotal + tax;
+    const invoiceNumber = await this.generateInvoiceNumber();
+
+    const invoice = this.em.create(Invoice, {
+      invoiceNumber,
+      user,
+      subscription: subscription ?? undefined,
+      status: InvoiceStatus.OPEN,
+      subtotal: input.subtotal,
+      tax,
+      total,
+      amountPaid: 0,
+      amountRemaining: total,
+      currency: input.currency ?? 'eur',
+      dueDate: input.dueDate,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+      description: input.description,
+      lineItems: input.lineItems,
+      metadata: input.metadata,
+      company: input.companyId,
+    });
+
+    this.em.persist(invoice);
+    await this.em.flush();
+
+    return invoice;
   }
 
   /**
-   * Find invoices by user ID
+   * Crea una factura para una suscripción en el momento de la renovación.
+   * Llamado por SubscriptionService.processBillingCycle().
+   */
+  async createForSubscription(subscription: Subscription): Promise<Invoice> {
+    const plan = subscription.plan;
+
+    const periodStart = subscription.currentPeriodEnd ?? new Date();
+    const periodEnd = this.calculatePeriodEnd(
+      periodStart,
+      plan.interval,
+      plan.intervalCount
+    );
+
+    return this.createInvoice({
+      userId: subscription.user.id,
+      subscriptionId: subscription.id,
+      subtotal: plan.amount,
+      tax: 0,
+      currency: plan.currency,
+      dueDate: new Date(), // vence inmediatamente — se cobra en el momento
+      periodStart,
+      periodEnd,
+      description: `Subscription renewal — ${plan.name}`,
+      lineItems: [
+        {
+          description: plan.name,
+          amount: plan.amount,
+          currency: plan.currency,
+          period: { start: periodStart, end: periodEnd },
+        },
+      ],
+      companyId: subscription.company?.id,
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // LECTURA
+  // ─────────────────────────────────────────────
+
+  /**
+   * Facturas de un usuario ordenadas por fecha descendente.
    */
   async findByUserId(userId: string): Promise<Invoice[]> {
-    return this.em.find(Invoice, { user: userId }, {
-      orderBy: { createdAt: 'DESC' },
-      populate: ['user', 'subscription', 'transactions'],
-    } as any);
-  }
-
-  /**
-   * Find invoices by subscription
-   */
-  async findBySubscription(subscription: Subscription): Promise<Invoice[]> {
-    return this.em.find(Invoice, { subscription }, {
-      orderBy: { createdAt: 'DESC' },
-      populate: ['user', 'subscription', 'transactions'],
-    } as any);
-  }
-
-  /**
-   * Find invoice by Stripe invoice ID
-   */
-  async findByStripeInvoiceId(
-    stripeInvoiceId: string
-  ): Promise<Invoice | null> {
-    return this.em.findOne(
+    return this.em.find(
       Invoice,
-      { stripeInvoiceId },
+      { user: userId },
       {
+        orderBy: { created_at: 'DESC' } as any,
         populate: ['user', 'subscription', 'transactions'],
       }
     );
   }
 
   /**
-   * Find invoices by status
+   * Facturas de una suscripción.
    */
-  async findByStatus(status: InvoiceStatus): Promise<Invoice[]> {
-    return this.em.find(Invoice, { status }, {
-      orderBy: { createdAt: 'DESC' },
-      populate: ['user', 'subscription', 'transactions'],
-    } as any);
+  async findBySubscription(subscription: Subscription): Promise<Invoice[]> {
+    return this.em.find(
+      Invoice,
+      { subscription },
+      {
+        orderBy: { created_at: 'DESC' } as any,
+        populate: ['user', 'subscription', 'transactions'],
+      }
+    );
   }
 
   /**
-   * Find overdue invoices
+   * Facturas por estado.
+   */
+  async findByStatus(status: InvoiceStatus): Promise<Invoice[]> {
+    return this.em.find(
+      Invoice,
+      { status },
+      {
+        orderBy: { created_at: 'DESC' } as any,
+        populate: ['user', 'subscription', 'transactions'],
+      }
+    );
+  }
+
+  /**
+   * Facturas vencidas (OPEN + dueDate en el pasado).
    */
   async findOverdueInvoices(): Promise<Invoice[]> {
     const now = new Date();
     return this.em.find(
       Invoice,
-      {
-        status: InvoiceStatus.OPEN,
-        dueDate: { $lt: now },
-      },
+      { status: InvoiceStatus.OPEN, dueDate: { $lt: now } },
       {
         orderBy: { dueDate: 'ASC' },
         populate: ['user', 'subscription'],
@@ -90,7 +188,7 @@ export class InvoiceService extends BaseService {
   }
 
   /**
-   * Find invoices by date range
+   * Facturas en un rango de fechas, opcionalmente filtradas por usuario.
    */
   async findByDateRange(
     startDate: Date,
@@ -98,121 +196,104 @@ export class InvoiceService extends BaseService {
     userId?: string
   ): Promise<Invoice[]> {
     const conditions: any = {
-      createdAt: { $gte: startDate, $lte: endDate },
+      created_at: { $gte: startDate, $lte: endDate },
     };
-
-    if (userId) {
-      conditions.user = userId;
-    }
+    if (userId) conditions.user = userId;
 
     return this.em.find(Invoice, conditions, {
-      orderBy: { createdAt: 'DESC' },
+      orderBy: { created_at: 'DESC' } as any,
       populate: ['user', 'subscription', 'transactions'],
-    } as any);
-  }
-
-  /**
-   * Sync invoice from Stripe
-   */
-  async syncFromStripe(stripeInvoiceId: string): Promise<Invoice> {
-    const stripeInvoice = await this.stripe.invoices.retrieve(stripeInvoiceId, {
-      expand: ['subscription', 'customer'],
     });
-
-    let invoice = await this.findByStripeInvoiceId(stripeInvoiceId);
-    let user: User | null = null;
-
-    // Find or get user by Stripe customer ID
-    if (typeof stripeInvoice.customer === 'string') {
-      user = await this.em.findOne(User, {
-        stripeCustomerId: stripeInvoice.customer,
-      });
-    } else if (
-      stripeInvoice.customer &&
-      typeof stripeInvoice.customer === 'object'
-    ) {
-      user = await this.em.findOne(User, {
-        stripeCustomerId: stripeInvoice.customer.id,
-      });
-    }
-
-    if (!user) {
-      throw new Error(
-        `User not found for Stripe customer: ${stripeInvoice.customer as string}`
-      );
-    }
-    try {
-      // Find subscription if exists
-      let subscription: Subscription | null = null;
-      if (stripeInvoice.subscription) {
-        const subscriptionId =
-          typeof stripeInvoice.subscription === 'string'
-            ? stripeInvoice.subscription
-            : stripeInvoice.subscription.id;
-        subscription = await this.em.findOne(Subscription, {
-          stripeSubscriptionId: subscriptionId,
-        });
-      }
-
-      if (!invoice) {
-        // Create new invoice
-        invoice = new Invoice();
-        invoice.stripeInvoiceId = stripeInvoice.id;
-        invoice.user = user;
-        if (subscription) {
-          invoice.subscription = subscription;
-        }
-      }
-
-      // Update invoice data
-      invoice.invoiceNumber = stripeInvoice.number || undefined;
-      invoice.status = this.mapStripeStatusToEnum(
-        stripeInvoice.status as InvoiceStatus
-      );
-      invoice.subtotal = stripeInvoice.subtotal || 0;
-      invoice.tax = stripeInvoice.tax || 0;
-      invoice.total = stripeInvoice.total;
-      invoice.amountPaid = stripeInvoice.amount_paid || 0;
-      invoice.amountRemaining = stripeInvoice.amount_remaining || 0;
-      invoice.currency = stripeInvoice.currency;
-      invoice.dueDate = stripeInvoice.due_date
-        ? new Date(stripeInvoice.due_date * 1000)
-        : undefined;
-      invoice.paidAt = stripeInvoice.status_transitions?.paid_at
-        ? new Date(stripeInvoice.status_transitions.paid_at * 1000)
-        : undefined;
-      invoice.periodStart = stripeInvoice.period_start
-        ? new Date(stripeInvoice.period_start * 1000)
-        : undefined;
-      invoice.periodEnd = stripeInvoice.period_end
-        ? new Date(stripeInvoice.period_end * 1000)
-        : undefined;
-      invoice.description = stripeInvoice.description || undefined;
-      invoice.lineItems = stripeInvoice.lines?.data || undefined;
-      invoice.metadata = stripeInvoice.metadata || undefined;
-
-      this.em.persist(invoice);
-      await this.em.flush();
-      return invoice;
-    } catch (error) {
-      console.error('Error syncing invoice from Stripe:', error);
-      throw error;
-    }
   }
 
   /**
-   * Get invoice statistics for a user
+   * Facturas abiertas que vencen en el próximo mes (próximas a cobrar).
    */
-  async getInvoiceStats(userId: string): Promise<{
-    total: number;
-    paid: number;
-    pending: number;
-    overdue: number;
-    totalAmount: number;
-    paidAmount: number;
-    pendingAmount: number;
-    overdueAmount: number;
-  }> {
+  async getUpcomingInvoices(userId: string): Promise<Invoice[]> {
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 1);
+
+    return this.em.find(
+      Invoice,
+      {
+        user: userId,
+        status: InvoiceStatus.OPEN,
+        dueDate: { $gte: new Date(), $lte: futureDate },
+      },
+      {
+        orderBy: { dueDate: 'ASC' },
+        populate: ['user', 'subscription'],
+      }
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // CAMBIO DE ESTADO
+  // ─────────────────────────────────────────────
+
+  /**
+   * Marca una factura como pagada.
+   * Llamado por SubscriptionService tras un cobro exitoso.
+   */
+  async markAsPaid(invoiceId: string, paidAt?: Date): Promise<Invoice> {
+    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
+    if (!invoice) throw new NotFoundError('Invoice');
+
+    invoice.status = InvoiceStatus.PAID;
+    invoice.paidAt = paidAt ?? new Date();
+    invoice.amountPaid = invoice.total;
+    invoice.amountRemaining = 0;
+
+    this.em.persist(invoice);
+    await this.em.flush();
+
+    return invoice;
+  }
+
+  /**
+   * Marca una factura como incobrable.
+   */
+  async markAsUncollectible(invoiceId: string): Promise<ServiceResponse> {
+    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
+    if (!invoice) throw new NotFoundError('Invoice');
+
+    invoice.status = InvoiceStatus.UNCOLLECTIBLE;
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Invoice marked as uncollectible', true, {
+      invoice,
+    });
+  }
+
+  /**
+   * Anula una factura.
+   */
+  async voidInvoice(invoiceId: string): Promise<ServiceResponse> {
+    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
+    if (!invoice) throw new NotFoundError('Invoice');
+
+    if (invoice.status === InvoiceStatus.PAID) {
+      throw new BadRequestError(
+        'Cannot void a paid invoice. Use a refund instead.'
+      );
+    }
+
+    invoice.status = InvoiceStatus.VOID;
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Invoice voided successfully', true, {
+      invoice,
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // ESTADÍSTICAS
+  // ─────────────────────────────────────────────
+
+  /**
+   * Estadísticas de facturación de un usuario.
+   */
+  async getInvoiceStats(userId: string): Promise<ServiceResponse> {
     const invoices = await this.findByUserId(userId);
 
     const stats = {
@@ -241,69 +322,16 @@ export class InvoiceService extends BaseService {
       }
     });
 
-    return stats;
-  }
-
-  /**
-   * Mark invoice as paid
-   */
-  async markAsPaid(invoiceId: string): Promise<Invoice> {
-    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    invoice.status = InvoiceStatus.PAID;
-    invoice.paidAt = new Date();
-    invoice.amountPaid = invoice.total;
-    invoice.amountRemaining = 0;
-
-    this.em.persist(invoice);
-    await this.em.flush();
-    return invoice;
-  }
-
-  /**
-   * Send invoice via Stripe
-   */
-  async sendInvoice(invoiceId: string): Promise<Invoice> {
-    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    try {
-      await this.stripe.invoices.sendInvoice(invoice.stripeInvoiceId);
-      return invoice;
-    } catch (error) {
-      console.error('Error sending invoice:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get upcoming invoices for a user
-   */
-  async getUpcomingInvoices(userId: string): Promise<Invoice[]> {
-    const futureDate = new Date();
-    futureDate.setMonth(futureDate.getMonth() + 1); // Next month
-
-    return this.em.find(
-      Invoice,
-      {
-        user: userId,
-        status: InvoiceStatus.OPEN,
-        dueDate: { $gte: new Date(), $lte: futureDate },
-      },
-      {
-        orderBy: { dueDate: 'ASC' },
-        populate: ['user', 'subscription'],
-      }
+    return createServiceResponse(
+      200,
+      'Invoice stats fetched successfully',
+      true,
+      { stats }
     );
   }
 
   /**
-   * Calculate total revenue for a date range
+   * Ingresos en un rango de fechas.
    */
   async calculateRevenue(
     startDate: Date,
@@ -335,23 +363,45 @@ export class InvoiceService extends BaseService {
     return revenue;
   }
 
+  // ─────────────────────────────────────────────
+  // PRIVADOS
+  // ─────────────────────────────────────────────
+
   /**
-   * Map Stripe status to enum
+   * Genera un número de factura secuencial por año.
+   * Formato: INV-YYYY-NNNNN  (ej: INV-2025-00042)
+   * Usa una consulta COUNT con filtro de año para garantizar unicidad.
    */
-  private mapStripeStatusToEnum(stripeStatus: string): InvoiceStatus {
-    switch (stripeStatus) {
-      case 'draft':
-        return InvoiceStatus.DRAFT;
-      case 'open':
-        return InvoiceStatus.OPEN;
-      case 'paid':
-        return InvoiceStatus.PAID;
-      case 'uncollectible':
-        return InvoiceStatus.UNCOLLECTIBLE;
-      case 'void':
-        return InvoiceStatus.VOID;
+  private async generateInvoiceNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
+
+    const count = await this.em.count(Invoice, {
+      created_at: { $gte: startOfYear },
+    } as any);
+
+    return `INV-${year}-${String(count + 1).padStart(5, '0')}`;
+  }
+
+  /**
+   * Calcula la fecha de fin de período según el intervalo del plan.
+   */
+  private calculatePeriodEnd(
+    start: Date,
+    interval: string,
+    intervalCount: number
+  ): Date {
+    switch (interval) {
+      case 'day':
+        return this.addDays(start, intervalCount);
+      case 'week':
+        return this.addDays(start, intervalCount * 7);
+      case 'month':
+        return this.addMonths(start, intervalCount);
+      case 'year':
+        return this.addYears(start, intervalCount);
       default:
-        return InvoiceStatus.DRAFT;
+        return this.addMonths(start, 1);
     }
   }
 }

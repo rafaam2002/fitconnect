@@ -12,6 +12,7 @@ import {
 import { sendPushNotification } from '../utils/notification.util';
 
 import { BaseService } from './base.service';
+import { NotificationService } from './notification.service';
 
 export class PushTokenService extends BaseService {
   constructor(em: EntityManager) {
@@ -62,7 +63,7 @@ export class PushTokenService extends BaseService {
   }
 
   /**
-   * Enviar notificación push a usuarios
+   * Enviar notificación push a usuarios y guardarla en la base de datos
    */
   public async sendNotification(
     currentUser: CurrentUser,
@@ -74,28 +75,19 @@ export class PushTokenService extends BaseService {
       throw new UnauthorizedError();
     }
 
-    let tokens: PushToken[];
+    const notificationService = new NotificationService(this.em);
 
     if (forAll) {
-      // Enviar a todos los usuarios
-      tokens = await this.em.findAll(PushToken);
+      await notificationService.sendToAllActiveUsers(title, body, {
+        type: 'info',
+      });
     } else {
-      // Enviar solo al usuario actual
-      tokens = await this.em.find(PushToken, { user: currentUser.id });
+      await notificationService.sendToUser(currentUser.id, title, body, {
+        type: 'info',
+      });
     }
 
-    if (!tokens.length) {
-      throw new NotFoundError('No tokens found');
-    }
-
-    // Enviar notificaciones
-    const results = await this.sendNotifications(tokens, title, body);
-
-    return createServiceResponse(201, 'The message has been sent', true, {
-      sent: results.sent,
-      failed: results.failed,
-      total: tokens.length,
-    });
+    return createServiceResponse(201, 'The message has been sent', true);
   }
 
   /**

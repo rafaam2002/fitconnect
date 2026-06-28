@@ -1,7 +1,6 @@
 import { EntityManager } from '@mikro-orm/core';
 
 import { Product } from '../entities/Product';
-import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
 import { UserRoleEnum } from '../types/enums';
 import {
@@ -12,13 +11,13 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
 } from '../utils/presigned-urls.util';
 
 import { BaseService } from './base.service';
+import { NotificationService } from './notification.service';
 import { S3Service } from './s3.service';
 
 export class ProductService extends BaseService {
@@ -194,26 +193,17 @@ export class ProductService extends BaseService {
    */
   private async sendProductNotifications(product: Product): Promise<void> {
     try {
-      const users = await this.em.find(User, {}, { populate: ['pushTokens'] });
-      const notificationTitle = '¡Nuevo producto disponible!';
-      const notificationBody = product.name;
-      const notificationData = {
-        type: 'new_product',
-        productId: product.id,
-      };
-
-      users.forEach((user: User) => {
-        if (user.pushTokens && user.pushTokens.length > 0) {
-          user.pushTokens.getItems().forEach(pushToken => {
-            sendPushNotification(
-              pushToken.token,
-              notificationTitle,
-              notificationBody,
-              notificationData
-            );
-          });
-        }
-      });
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToAllActiveUsers(
+        '¡Nuevo producto disponible!',
+        product.name,
+        {
+          type: 'new_product',
+          productId: product.id,
+        },
+        undefined,
+        product.company?.id
+      );
     } catch (error) {
       console.error('Error sending product notifications:', error);
       // No lanzar error - las notificaciones son secundarias

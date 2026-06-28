@@ -1,9 +1,16 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { User } from '../entities/User';
+import { PaymentProcessor } from '../services/payment-processor.interface';
 
 import { CurrentUser } from './common.type';
 import { ScheduleState, ScheduleType, UserRoleEnum } from './enums';
+
+export type ContextProps = {
+  em: EntityManager;
+  currentUser: CurrentUser;
+  paymentProcessor: PaymentProcessor;
+};
 
 export type UserProps = {
   user: User & {
@@ -29,11 +36,6 @@ export type UserPictureProps = {
 export type UpdateCompanyPictureProps = {
   companyId: string;
   picture: string;
-};
-
-export type ContextProps = {
-  em: EntityManager;
-  currentUser: CurrentUser;
 };
 
 export type MessageProps = {
@@ -196,6 +198,8 @@ export type UnfixMessageProps = {
 
 export type ChangeScheduleStatusProp = {
   scheduleId: string;
+  status: ScheduleState;
+  reason?: string;
 };
 
 export type PlanFilterInput = {

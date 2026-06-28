@@ -16,7 +16,6 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createPictureUrl,
   getPresignedUrl,
@@ -25,6 +24,7 @@ import {
 import { AuthService } from './auth.service';
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import { S3Service } from './s3.service';
 
 export interface AdminCompanyResponse {
@@ -260,7 +260,7 @@ export class CompanyService extends BaseService {
       newCompany,
       newUser: newAdminUser,
       newFirstForumMessage,
-    } = this.createAdminCompany(this.em, user, companyData.company);
+    } = this.createAdminCompany(user, companyData.company);
 
     this.em.persist([newCompany, newFirstForumMessage, newAdminUser]);
     await this.em.flush();
@@ -309,79 +309,26 @@ export class CompanyService extends BaseService {
     companyId?: string,
     companyCode?: string
   ): Promise<ServiceResponse> {
-    this.em.setFilterParams('companyContext', {
-      companyId: null,
-    });
-
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
-
+    if (!currentUser) throw new UnauthorizedError();
     if (!companyId && !companyCode) {
       throw new BadRequestError('Company ID or company code is required');
     }
 
-    const company = await this.em.findOne(
-      Company,
-      { $or: [{ id: companyId }, { code: companyCode }] },
-      { filters: false, populate: ['companyConfig'] }
+    this.em.setFilterParams('companyContext', { companyId: null });
+
+    const { company, user } = await this.resolveJoinEntities(
+      companyId,
+      companyCode,
+      currentUser.id
     );
 
-    if (!company) {
-      throw new NotFoundError('Company');
-    }
-
-    const user = await this.em.findOne(
-      User,
-      { id: currentUser.id },
-      {
-        populate: ['companies', 'pendingCompanies'],
-        filters: false,
-      }
-    );
-
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-
-    // Verificar si ya es miembro
-    const isMember = user.companies.contains(company);
-    if (isMember) {
-      throw new ConflictError('User is already a member of this company');
-    }
-
-    // Verificar si ya tiene solicitud pendiente
-    const isPending = user.pendingCompanies.contains(company);
-    if (isPending) {
-      throw new ConflictError('User request is already pending');
-    }
+    this.assertNotAlreadyRelated(user, company);
 
     if (company.companyConfig?.autoAcceptUsers) {
-      //a partir de aqui el contexto es el de la compañia destino
-      this.em.setFilterParams('companyContext', {
-        companyId: company.id,
-      });
-
-      const adminUser = await this.em.findOne(User, {
-        roles: {
-          role: UserRoleEnum.ADMIN,
-        },
-      });
-      if (!adminUser) {
-        throw new NotFoundError('User');
-      }
-      return await this.admitUserToCompany(
-        adminUser as unknown as CurrentUser,
-        company.id,
-        user.id,
-        UserRoleEnum.STANDARD,
-        false,
-        true
-      );
+      return this.handleAutoAccept(company, user);
     }
 
     user.pendingCompanies.add(company);
-
     await this.em.flush();
 
     // Enviar notificaciones a los ADMIN
@@ -395,17 +342,17 @@ export class CompanyService extends BaseService {
         { populate: ['user.pushTokens'] }
       );
 
+      const notificationService = new NotificationService(this.em);
       for (const role of adminRoles) {
         const admin = role.user;
-        if (admin?.pushTokens) {
-          for (const tokenEntity of admin.pushTokens) {
-            await sendPushNotification(
-              tokenEntity.token,
-              'Nueva solicitud de unión',
-              `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
-              { type: 'join_request', userId: user.id, companyId: company.id }
-            );
-          }
+        if (admin) {
+          await notificationService.sendToUser(
+            admin.id,
+            'Nueva solicitud de unión',
+            `${user.fullName || user.nickname} quiere unirse a ${company.name}`,
+            { type: 'join_request', userId: user.id, companyId: company.id },
+            company.id
+          );
         }
       }
     } catch (error) {
@@ -416,7 +363,9 @@ export class CompanyService extends BaseService {
     return createServiceResponse(200, 'Request sent successfully', true);
   }
 
-  // ============= MÉTODOS PRIVADOS =============
+  // ─────────────────────────────────────────────
+  // PRIVADOS
+  // ─────────────────────────────────────────────
 
   public async admitUserToCompany(
     currentUser: CurrentUser,
@@ -471,20 +420,19 @@ export class CompanyService extends BaseService {
   }
 
   public createAdminCompany(
-    em: EntityManager,
     user: User,
     company: CompanyProps
   ): AdminCompanyResponse {
-    const newCompany = em.create(Company, company);
+    const newCompany = this.em.create(Company, company);
 
     // Create UserRole as ADMIN for the creator
-    const newUserRole = em.create(UserRole, {
+    const newUserRole = this.em.create(UserRole, {
       user,
       company: newCompany,
       role: UserRoleEnum.ADMIN,
     });
 
-    const firstForumMessage = em.create(Message, {
+    const firstForumMessage = this.em.create(Message, {
       sender: user,
       receiver: null,
       text: `Welcome to the forum`,
@@ -501,6 +449,60 @@ export class CompanyService extends BaseService {
       newUser: user,
       newCompany,
     };
+  }
+
+  private async resolveJoinEntities(
+    companyId: string | undefined,
+    companyCode: string | undefined,
+    userId: string
+  ): Promise<{ company: Company; user: User }> {
+    const company = await this.em.findOne(
+      Company,
+      { $or: [{ id: companyId }, { code: companyCode }] },
+      { filters: false, populate: ['companyConfig'] }
+    );
+    if (!company) throw new NotFoundError('Company');
+
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { filters: false, populate: ['companies', 'pendingCompanies'] }
+    );
+    if (!user) throw new NotFoundError('User');
+
+    return { company, user };
+  }
+
+  private assertNotAlreadyRelated(user: User, company: Company): void {
+    if (user.companies.contains(company)) {
+      throw new ConflictError('User is already a member of this company');
+    }
+    if (user.pendingCompanies.contains(company)) {
+      throw new ConflictError('User request is already pending');
+    }
+  }
+
+  // ============= MÉTODOS PRIVADOS =============
+
+  private async handleAutoAccept(
+    company: Company,
+    user: User
+  ): Promise<ServiceResponse> {
+    this.em.setFilterParams('companyContext', { companyId: company.id });
+
+    const adminUser = await this.em.findOne(User, {
+      roles: { role: UserRoleEnum.ADMIN },
+    });
+    if (!adminUser) throw new NotFoundError('User');
+
+    return this.admitUserToCompany(
+      adminUser as unknown as CurrentUser,
+      company.id,
+      user.id,
+      UserRoleEnum.STANDARD,
+      false,
+      true
+    );
   }
 
   private async validateAdminPermission(
@@ -575,17 +577,13 @@ export class CompanyService extends BaseService {
     companyName: string,
     companyId: string
   ): Promise<void> {
-    if (!user.pushTokens?.length) return;
-
-    const notifications = user.pushTokens.map(token =>
-      sendPushNotification(
-        token.token,
-        'Solicitud aceptada',
-        `Has sido aceptado en ${companyName}`,
-        { type: 'company_admission', companyId }
-      ).catch(err => console.error('Push notification failed:', err))
+    const notificationService = new NotificationService(this.em);
+    await notificationService.sendToUser(
+      user.id,
+      'Solicitud aceptada',
+      `Has sido aceptado en ${companyName}`,
+      { type: 'company_admission', companyId },
+      companyId
     );
-
-    await Promise.allSettled(notifications);
   }
 }

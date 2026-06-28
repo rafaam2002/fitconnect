@@ -1,139 +1,134 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
 
+import { Invoice } from '../entities/Invoice';
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
-import { StripeCustomer } from '../entities/StripeCustomer';
-import {
-  Transaction,
-  TransactionStatus,
-  TransactionType,
-} from '../entities/Transaction';
+import { Subscription } from '../entities/Subscription';
+import { Transaction, TransactionStatus, TransactionType, } from '../entities/Transaction';
 import { User } from '../entities/User';
 import { ServiceResponse } from '../types/common.type';
-import {
-  BadRequestError,
-  createServiceResponse,
-  InternalServerError,
-  NotFoundError,
-} from '../utils/errors.util';
+import { BadRequestError, createServiceResponse, InternalServerError, NotFoundError, } from '../utils/errors.util';
 
 import { BaseService } from './base.service';
+import { PaymentProcessor } from './payment-processor.interface';
+import { StripeConnectService } from './stripe.connect.service';
+import { Customer } from '../entities/Customer';
 
-interface CreateChargeInput {
+// Porcentaje de comisión que te quedas en cada cobro de cliente a empresa (5%)
+const PLATFORM_FEE_PERCENT = 0.05;
+
+export interface CreateChargeInput {
   userId: string;
   amount: number;
   currency?: string;
   paymentMethodId?: string;
+  invoiceId?: string;
+  subscriptionId?: string;
   description?: string;
   metadata?: Record<string, any>;
+  companyId?: string;
 }
 
-interface RefundTransactionInput {
+export interface RefundTransactionInput {
   transactionId: string;
   amount?: number;
   reason?: string;
   metadata?: Record<string, any>;
 }
 
+/**
+ * TransactionService
+ *
+ * Registra y gestiona todos los movimientos de dinero del sistema.
+ * Delega la ejecución real del cobro/reembolso al PaymentProcessor inyectado,
+ * manteniendo en BD el registro canónico de cada operación.
+ *
+ */
 export class TransactionService extends BaseService {
-  constructor(em: EntityManager) {
-    super(em);
+  constructor(em: EntityManager, paymentProcessor: PaymentProcessor) {
+    super(em, paymentProcessor);
   }
 
+  // ─────────────────────────────────────────────
+  // COBROS
+  // ─────────────────────────────────────────────
+
   /**
-   * Crear cargo (charge) en Stripe
+   * Ejecuta un cargo usando el PaymentProcessor configurado y persiste
+   * la transacción resultante en la BD.
+   *
+   * Si amount = 0 → registra en BD sin llamar al procesador.
+   * Si companyId está presente → el cobro va a la cuenta Stripe del admin
+   *   y tu comisión (PLATFORM_FEE_PERCENT) se retiene automáticamente.
+   * Si no hay companyId → el cobro va a tu cuenta master (suscripción del admin).
    */
   public async createCharge(
     input: CreateChargeInput
   ): Promise<ServiceResponse> {
-    const user = await this.em.findOne(User, { id: input.userId });
-    if (!user) {
-      throw new NotFoundError('User');
+    if (input.amount < 0) {
+      throw new BadRequestError('Amount cannot be negative');
     }
 
-    // Validar amount
-    if (!input.amount || input.amount <= 0) {
-      throw new BadRequestError('Amount must be greater than 0');
-    }
+    const user = await this.resolveUser(input.userId);
+    const paymentMethod = await this.resolvePaymentMethod(
+      input.paymentMethodId
+    );
+    const invoice = await this.resolveInvoice(input.invoiceId);
+    const subscription = await this.resolveSubscription(input.subscriptionId);
 
-    let paymentMethod: PaymentMethod | null = null;
-    if (input.paymentMethodId) {
-      paymentMethod = await this.em.findOne(
-        PaymentMethod,
-        {
-          stripePaymentMethodId: input.paymentMethodId,
-          status: PaymentMethodStatus.ACTIVE,
-        },
-        {
-          populate: ['stripeCustomer'],
-        }
-      );
-
-      if (!paymentMethod) {
-        throw new NotFoundError('Payment method not found or inactive');
-      }
-    }
-
-    try {
-      // Crear PaymentIntent en Stripe
-      const paymentIntent: any = await this.stripe.paymentIntents.create(
-        {
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'never',
-          },
-          amount: input.amount,
-          currency: input.currency || 'eur',
-          payment_method: input.paymentMethodId,
-          customer: paymentMethod?.stripeCustomer.stripeCustomerId,
-          description: input.description,
-          confirm: !!input.paymentMethodId,
-          metadata: {
-            userId: user.id,
-            ...input.metadata,
-          },
-        },
-        {
-          idempotencyKey: this.generateIdempotencyKey(
-            'charge',
-            user.id,
-            input.amount.toString()
-          ),
-        }
-      );
-
-      // Crear transacción en BD
-      const transaction = this.em.create<Transaction>(Transaction, {
-        stripePaymentIntentId: paymentIntent.id,
-        stripeChargeId: paymentIntent.latest_charge,
+    // ── Plan gratuito: registrar en BD sin cobrar ──────────────────────────
+    if (input.amount === 0) {
+      const transaction = await this.createPendingTransaction(
+        input,
         user,
         paymentMethod,
-        type: TransactionType.CHARGE,
-        status: this.mapStripeStatusToTransactionStatus(paymentIntent.status),
-        amount: input.amount,
-        currency: input.currency || 'eur',
-        description: input.description,
-        metadata: paymentIntent.metadata,
-        company: user.activeCompanyId!,
-        amountRefunded: 0,
-      });
-
-      this.em.persist(transaction);
+        invoice,
+        subscription
+      );
+      transaction.status = TransactionStatus.SUCCEEDED;
+      transaction.metadata = {
+        ...transaction.metadata,
+        free: true,
+        note: 'Free plan — no charge required',
+      };
       await this.em.flush();
-
-      return createServiceResponse(200, 'Charge created successfully', true, {
+      return createServiceResponse(200, 'Free transaction recorded', true, {
         transaction,
       });
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      this.handleStripeError(error);
     }
+
+    // ── Plan de pago: cobrar via procesador ───────────────────────────────
+    const transaction = await this.createPendingTransaction(
+      input,
+      user,
+      paymentMethod,
+      invoice,
+      subscription
+    );
+
+    if (!paymentMethod?.externalToken) {
+      return createServiceResponse(
+        200,
+        'Charge created in pending state',
+        true,
+        { transaction }
+      );
+    }
+
+    await this.executeCharge(
+      input,
+      user,
+      transaction,
+      paymentMethod.externalToken
+    );
+    await this.em.flush();
+
+    return this.buildChargeResponse(transaction);
   }
 
-  /**
-   * Reembolsar transacción
-   */
+  // ─────────────────────────────────────────────
+  // PRIVADOS — createCharge
+  // ─────────────────────────────────────────────
+
   public async refundTransaction(
     input: RefundTransactionInput
   ): Promise<ServiceResponse> {
@@ -143,9 +138,7 @@ export class TransactionService extends BaseService {
         id: input.transactionId,
         status: TransactionStatus.SUCCEEDED,
       },
-      {
-        populate: ['user', 'paymentMethod'],
-      }
+      { populate: ['user', 'paymentMethod'] }
     );
 
     if (!originalTransaction) {
@@ -154,103 +147,113 @@ export class TransactionService extends BaseService {
       );
     }
 
-    if (!originalTransaction.stripeChargeId) {
-      throw new BadRequestError(
-        'No Stripe charge ID found for this transaction'
-      );
-    }
-
-    const refundAmount = input.amount || originalTransaction.amount;
-
-    if (refundAmount > originalTransaction.amount) {
-      throw new BadRequestError(
-        'Refund amount cannot exceed the net amount of the original transaction'
-      );
-    }
+    const netAmount =
+      originalTransaction.amount - originalTransaction.amountRefunded;
+    const refundAmount = input.amount ?? netAmount;
 
     if (refundAmount <= 0) {
       throw new BadRequestError('Refund amount must be greater than 0');
     }
+    if (refundAmount > netAmount) {
+      throw new BadRequestError(
+        'Refund amount cannot exceed the net refundable amount'
+      );
+    }
 
-    try {
-      // Crear reembolso en Stripe
-      const stripeRefund = await this.stripe.refunds.create(
-        {
-          charge: originalTransaction.stripeChargeId,
+    // Crear transacción de reembolso en estado PENDING
+    const refundTransaction = this.em.create<Transaction>(Transaction, {
+      user: originalTransaction.user,
+      paymentMethod: originalTransaction.paymentMethod,
+      type: TransactionType.REFUND,
+      status: TransactionStatus.PENDING,
+      amount: refundAmount,
+      currency: originalTransaction.currency,
+      description: `Refund for transaction ${originalTransaction.id}`,
+      metadata: {
+        originalTransactionId: originalTransaction.id,
+        reason: input.reason ?? '',
+        ...input.metadata,
+      },
+      company: originalTransaction.company,
+      amountRefunded: 0,
+    });
+
+    this.em.persist(refundTransaction);
+
+    // Llamar al procesador si hay ID externo
+    if (originalTransaction.externalTransactionId) {
+      try {
+        // Si el cobro original se enruto a la cuenta Stripe de una empresa
+        // (transfer_data.destination), hay que revertir esa transferencia
+        // y recuperar la comision de plataforma. Sin esto el reembolso al
+        // cliente saldria de tu cuenta master y el dinero ya transferido
+        // al admin nunca se recupera.
+        const wasConnectedCharge =
+          !!originalTransaction.metadata?.connectedAccountId;
+
+        const result = await this.paymentProcessor!.refund({
+          externalTransactionId: originalTransaction.externalTransactionId,
           amount: refundAmount,
-          reason: input.reason as any,
-          metadata: {
-            originalTransactionId: originalTransaction.id,
-            ...input.metadata,
-          },
-        },
-        {
+          reason: input.reason,
           idempotencyKey: this.generateIdempotencyKey(
             'refund',
             originalTransaction.id,
             refundAmount.toString()
           ),
+          reverseTransfer: wasConnectedCharge,
+          refundApplicationFee: wasConnectedCharge,
+        });
+
+        refundTransaction.status = result.success
+          ? TransactionStatus.SUCCEEDED
+          : TransactionStatus.FAILED;
+
+        if (result.externalRefundId) {
+          refundTransaction.externalTransactionId = result.externalRefundId;
         }
-      );
+      } catch (error: any) {
+        refundTransaction.status = TransactionStatus.FAILED;
+        refundTransaction.failureReason = error?.message ?? 'Refund failed';
+        await this.em.flush();
+        throw new InternalServerError(
+          `Refund failed: ${refundTransaction.failureReason}`
+        );
+      }
+    } else {
+      // Sin ID externo asumimos reembolso manual aprobado
+      refundTransaction.status = TransactionStatus.SUCCEEDED;
+    }
 
-      // Crear transacción de reembolso
-      const refundTransaction = this.em.create<Transaction>(Transaction, {
-        stripeChargeId: stripeRefund.charge as string,
-        user: originalTransaction.user,
-        paymentMethod: originalTransaction.paymentMethod,
-        type: TransactionType.REFUND,
-        status: TransactionStatus.SUCCEEDED,
-        amount: refundAmount,
-        currency: originalTransaction.currency,
-        description: `Refund for transaction ${originalTransaction.id}`,
-        metadata: stripeRefund.metadata,
-        company: originalTransaction.user.activeCompanyId!,
-        amountRefunded: 0,
-      });
-
-      // Actualizar transacción original
+    // Actualizar importes reembolsados en la transacción original
+    if (refundTransaction.status === TransactionStatus.SUCCEEDED) {
       originalTransaction.amountRefunded += refundAmount;
 
-      if (originalTransaction.amountRefunded >= originalTransaction.amount) {
-        originalTransaction.status = TransactionStatus.REFUNDED;
-      } else {
-        originalTransaction.status = TransactionStatus.PARTIALLY_REFUNDED;
-      }
-
-      this.em.persist(refundTransaction);
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Transaction refunded successfully',
-        true,
-        {
-          transaction: refundTransaction,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      this.handleStripeError(error);
+      originalTransaction.status =
+        originalTransaction.amountRefunded >= originalTransaction.amount
+          ? TransactionStatus.REFUNDED
+          : TransactionStatus.PARTIALLY_REFUNDED;
     }
+
+    await this.em.flush();
+
+    return createServiceResponse(
+      200,
+      'Transaction refunded successfully',
+      true,
+      {
+        transaction: refundTransaction,
+      }
+    );
   }
 
-  /**
-   * Obtener transacción por ID
-   */
   public async getTransaction(transactionId: string): Promise<ServiceResponse> {
     const transaction = await this.em.findOne(
       Transaction,
       { id: transactionId },
-      {
-        populate: ['user', 'paymentMethod', 'subscription'],
-      }
+      { populate: ['user', 'paymentMethod', 'subscription', 'invoice'] }
     );
 
-    if (!transaction) {
-      throw new NotFoundError('Transaction');
-    }
+    if (!transaction) throw new NotFoundError('Transaction');
 
     return createServiceResponse(
       200,
@@ -262,17 +265,12 @@ export class TransactionService extends BaseService {
     );
   }
 
-  /**
-   * Listar transacciones de usuario
-   */
   public async listUserTransactions(
     userId: string,
     limit: number = 50
   ): Promise<ServiceResponse> {
     const user = await this.em.findOne(User, { id: userId });
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     if (limit <= 0 || limit > 100) {
       throw new BadRequestError('Limit must be between 1 and 100');
@@ -294,16 +292,11 @@ export class TransactionService extends BaseService {
         }
       );
     } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
+      console.log(error);
       throw new InternalServerError('Error listing transactions');
     }
   }
 
-  /**
-   * Obtener transacciones por estado
-   */
   public async getTransactionsByStatus(
     userId: string,
     status: TransactionStatus,
@@ -313,95 +306,73 @@ export class TransactionService extends BaseService {
       throw new BadRequestError('Limit must be between 1 and 100');
     }
 
-    try {
-      const transactions = await this.em.find(
-        Transaction,
-        {
-          user: userId,
-          status,
-        },
-        {
-          populate: ['paymentMethod', 'subscription'],
-          orderBy: { created_at: QueryOrder.DESC },
-          limit,
-        }
-      );
-
-      return createServiceResponse(
-        200,
-        'Transactions listed successfully',
-        true,
-        {
-          transactions,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof BadRequestError) {
-        throw error;
+    const transactions = await this.em.find(
+      Transaction,
+      { user: userId, status },
+      {
+        populate: ['paymentMethod', 'subscription'],
+        orderBy: { created_at: QueryOrder.DESC },
+        limit,
       }
-      throw new InternalServerError('Error fetching transactions by status');
-    }
+    );
+
+    return createServiceResponse(
+      200,
+      'Transactions listed successfully',
+      true,
+      {
+        transactions,
+      }
+    );
   }
 
-  /**
-   * Obtener transacciones exitosas
-   */
   public async getSuccessfulTransactions(
     userId: string,
     limit: number = 50
   ): Promise<ServiceResponse> {
-    return await this.getTransactionsByStatus(
+    return this.getTransactionsByStatus(
       userId,
       TransactionStatus.SUCCEEDED,
       limit
     );
   }
 
-  /**
-   * Obtener transacciones fallidas
-   */
   public async getFailedTransactions(
     userId: string,
     limit: number = 50
   ): Promise<ServiceResponse> {
-    return await this.getTransactionsByStatus(
+    return this.getTransactionsByStatus(
       userId,
       TransactionStatus.FAILED,
       limit
     );
   }
 
-  /**
-   * Obtener resumen de transacciones de usuario
-   */
   public async getUserTransactionsSummary(
     userId: string
   ): Promise<ServiceResponse> {
     try {
-      const allTransactions = await this.em.find(Transaction, {
-        user: userId,
-      });
+      const allTransactions = await this.em.find(Transaction, { user: userId });
 
       const summary = {
         totalTransactions: allTransactions.length,
         successfulTransactions: allTransactions.filter(
-          (t: Transaction) => t.status === TransactionStatus.SUCCEEDED
+          t => t.status === TransactionStatus.SUCCEEDED
         ).length,
         failedTransactions: allTransactions.filter(
-          (t: Transaction) => t.status === TransactionStatus.FAILED
+          t => t.status === TransactionStatus.FAILED
         ).length,
         totalAmount: allTransactions
-          .filter((t: Transaction) => t.status === TransactionStatus.SUCCEEDED)
-          .reduce((sum: number, t: Transaction) => sum + t.amount, 0),
+          .filter(t => t.status === TransactionStatus.SUCCEEDED)
+          .reduce((sum, t) => sum + t.amount, 0),
         totalRefunded: allTransactions.reduce(
-          (sum: number, t: Transaction) => sum + t.amountRefunded,
+          (sum, t) => sum + t.amountRefunded,
           0
         ),
         lastTransaction:
           [...allTransactions].sort(
-            (a: Transaction, b: Transaction) =>
-              b.created_at.getTime() - a.created_at.getTime()
-          )[0] || null,
+            (a, b) => b.created_at.getTime() - a.created_at.getTime()
+          )[0] ?? null,
       };
 
       return createServiceResponse(200, 'Summary loaded successfully', true, {
@@ -409,64 +380,50 @@ export class TransactionService extends BaseService {
       });
     } catch (error: any) {
       throw new InternalServerError(
-        `Error fetching user transactions summary ${error.message}`
+        `Error fetching user transactions summary: ${error.message}`
       );
     }
   }
 
   /**
-   * Reintentar transacción fallida
+   * Reintenta un cargo fallido.
+   * Crea una nueva transacción en lugar de modificar la original.
    */
   public async retryFailedTransaction(
     transactionId: string
   ): Promise<ServiceResponse> {
-    const originalTransaction = await this.em.findOne(
+    const original = await this.em.findOne(
       Transaction,
       { id: transactionId },
       { populate: ['user', 'paymentMethod'] }
     );
 
-    if (!originalTransaction) {
-      throw new NotFoundError('Transaction');
-    }
+    if (!original) throw new NotFoundError('Transaction');
 
-    if (originalTransaction.status !== TransactionStatus.FAILED) {
+    if (original.status !== TransactionStatus.FAILED) {
       throw new BadRequestError('Transaction is not in failed state');
     }
 
-    try {
-      const newTransaction = await this.createCharge({
-        userId: originalTransaction.user.id,
-        amount: originalTransaction.amount,
-        currency: originalTransaction.currency,
-        paymentMethodId:
-          originalTransaction.paymentMethod?.stripePaymentMethodId,
-        description: `Retry of failed transaction ${originalTransaction.id}`,
-        metadata: {
-          ...originalTransaction.metadata,
-          retryOf: originalTransaction.id,
-          retryAttempt: (originalTransaction.metadata?.retryAttempt || 0) + 1,
-        },
-      });
-
-      return createServiceResponse(
-        200,
-        'Transaction retry initiated successfully',
-        true,
-        {
-          transaction: newTransaction,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      throw new InternalServerError('Error retrying failed transaction');
-    }
+    return this.createCharge({
+      userId: original.user.id,
+      amount: original.amount,
+      currency: original.currency,
+      paymentMethodId: original.paymentMethod?.id,
+      description: `Retry of failed transaction ${original.id}`,
+      metadata: {
+        ...original.metadata,
+        retryOf: original.id,
+        retryAttempt: ((original.metadata?.retryAttempt as number) || 0) + 1,
+      },
+    });
   }
 
+  // ─────────────────────────────────────────────
+  // LECTURA
+  // ─────────────────────────────────────────────
+
   /**
-   * Marcar transacción como reconciliada
+   * Marca una transacción como reconciliada manualmente.
    */
   public async markTransactionAsReconciled(
     transactionId: string,
@@ -476,139 +433,194 @@ export class TransactionService extends BaseService {
       id: transactionId,
     });
 
-    if (!transaction) {
-      throw new NotFoundError('Transaction');
-    }
+    if (!transaction) throw new NotFoundError('Transaction');
 
-    try {
-      // Actualizar metadata para marcar como reconciliado
-      transaction.metadata = {
-        ...transaction.metadata,
-        reconciledAt: new Date().toISOString(),
-        reconciledBy: reconciledBy || 'system',
-      };
+    transaction.metadata = {
+      ...transaction.metadata,
+      reconciledAt: new Date().toISOString(),
+      reconciledBy: reconciledBy ?? 'system',
+    };
 
-      await this.em.flush();
+    await this.em.flush();
 
-      return createServiceResponse(
-        200,
-        'Transaction reconciled successfully',
-        true,
-        {
-          transaction,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new InternalServerError('Error marking transaction as reconciled');
-    }
+    return createServiceResponse(
+      200,
+      'Transaction reconciled successfully',
+      true,
+      { transaction }
+    );
   }
 
-  /**
-   * Sincronizar transacción desde Stripe
-   */
-  public async syncTransactionFromStripe(
-    stripeChargeId: string
-  ): Promise<ServiceResponse> {
-    const stripeCharge = await this.stripe.charges.retrieve(stripeChargeId);
+  private async resolveUser(userId: string): Promise<User> {
+    const user = await this.em.findOne(User, { id: userId });
+    if (!user) throw new NotFoundError('User');
+    return user;
+  }
 
-    // Buscar si ya existe
-    let transaction = await this.em.findOne(Transaction, {
-      stripeChargeId,
-    });
+  private async resolvePaymentMethod(
+    paymentMethodId?: string
+  ): Promise<PaymentMethod | null> {
+    if (!paymentMethodId) return null;
 
-    // Buscar usuario por customer ID
-    const stripeCustomer = await this.em.findOne<StripeCustomer>(
-      StripeCustomer,
-      {
-        stripeCustomerId: stripeCharge.customer as string,
-      },
-      {
-        populate: ['user'] as any,
-      }
+    const pm = await this.em.findOne(
+      PaymentMethod,
+      { id: paymentMethodId, status: PaymentMethodStatus.ACTIVE },
+      { populate: ['customer'] }
     );
 
-    if (!stripeCustomer) {
-      throw new NotFoundError('Stripe customer not found for this charge');
-    }
+    if (!pm) throw new NotFoundError('Payment method not found or inactive');
+    return pm;
+  }
 
+  private async resolveInvoice(invoiceId?: string): Promise<Invoice | null> {
+    if (!invoiceId) return null;
+
+    const invoice = await this.em.findOne(Invoice, { id: invoiceId });
+    if (!invoice) throw new NotFoundError('Invoice');
+    return invoice;
+  }
+
+  private async resolveSubscription(
+    subscriptionId?: string
+  ): Promise<Subscription | null> {
+    if (!subscriptionId) return null;
+
+    const subscription = await this.em.findOne(Subscription, {
+      id: subscriptionId,
+    });
+    if (!subscription) throw new NotFoundError('Subscription');
+    return subscription;
+  }
+
+  private async createPendingTransaction(
+    input: CreateChargeInput,
+    user: User,
+    paymentMethod: PaymentMethod | null,
+    invoice: Invoice | null,
+    subscription: Subscription | null
+  ): Promise<Transaction> {
+    const transaction = this.em.create<Transaction>(Transaction, {
+      user,
+      paymentMethod: paymentMethod ?? undefined,
+      invoice: invoice ?? undefined,
+      subscription: subscription ?? undefined,
+      type: TransactionType.CHARGE,
+      status: TransactionStatus.PENDING,
+      amount: input.amount,
+      currency: input.currency ?? 'eur',
+      description: input.description,
+      metadata: { ...input.metadata },
+      company: input.companyId ?? user.activeCompanyId!,
+      amountRefunded: 0,
+    });
+
+    this.em.persist(transaction);
+    await this.em.flush();
+    return transaction;
+  }
+
+  // ─────────────────────────────────────────────
+  // OPERACIONES DE GESTIÓN
+  // ─────────────────────────────────────────────
+
+  private async executeCharge(
+    input: CreateChargeInput,
+    user: User,
+    transaction: Transaction,
+    token: string
+  ): Promise<void> {
     try {
-      // Buscar método de pago
-      let paymentMethod: PaymentMethod | null = null;
-      if (stripeCharge.payment_method) {
-        paymentMethod = await this.em.findOne(PaymentMethod, {
-          stripePaymentMethodId: stripeCharge.payment_method,
-        });
-      }
+      // ── Stripe Connect: resolver cuenta de la empresa ─────────────────────
+      // Si el cobro es para una empresa (cliente pagando al admin),
+      // enrutamos el pago a su cuenta Stripe y retenemos nuestra comision.
+      // Si no hay companyId, el cobro va a nuestra cuenta master
+      // (admin pagando su mensualidad a nosotros).
+      //
+      // IMPORTANTE: si hay companyId pero la empresa NO tiene Stripe
+      // conectado, el cobro debe FALLAR explicitamente. Procesarlo sin
+      // connectedAccountId significaria que el dinero del cliente cae
+      // integro en tu cuenta master en lugar de en la del admin, sin que
+      // nadie se entere. No se permite ese fallback silencioso.
+      let connectedAccountId: string | undefined;
+      let applicationFeeAmount: number | undefined;
+      const customer = await this.em.findOne(Customer, {
+        user,
+      });
 
-      if (transaction) {
-        // Actualizar existente
-        transaction.status = this.mapStripeStatusToTransactionStatus(
-          stripeCharge.status
+      if (!customer) {
+        throw new NotFoundError('Customer');
+      }
+      if (input.companyId) {
+        const connectService = new StripeConnectService(this.em);
+        // Sin catch: si la empresa no tiene Stripe conectado, esto lanza
+        // BadRequestError y el cobro se marca como FAILED con un motivo claro.
+        connectedAccountId = await connectService.getConnectedAccountId(
+          input.companyId
         );
-        transaction.amountRefunded = stripeCharge.amount_refunded;
+
+        // Calcular comision de plataforma (redondeada a centavos enteros)
+        applicationFeeAmount = Math.round(input.amount * PLATFORM_FEE_PERCENT);
+      }
+
+      const result = await this.paymentProcessor!.charge({
+        amount: input.amount * 100,
+        currency: input.currency ?? 'eur',
+        token,
+        description: input.description,
+        connectedAccountId,
+        applicationFeeAmount,
+        idempotencyKey: this.generateIdempotencyKey(
+          'charge',
+          user.id,
+          input.amount.toString(),
+          transaction.id
+        ),
+        metadata: {
+          processorCustomerId: customer.metadata!.processorCustomerId,
+          transactionId: transaction.id,
+          userId: user.id,
+          ...(input.companyId && { companyId: input.companyId }),
+        },
+      });
+
+      transaction.status = result.success
+        ? TransactionStatus.SUCCEEDED
+        : TransactionStatus.FAILED;
+
+      if (result.externalTransactionId) {
+        transaction.externalTransactionId = result.externalTransactionId;
+      }
+
+      if (!result.success) {
         transaction.failureReason =
-          stripeCharge.failure_message ?? 'Failed transaction';
-        transaction.metadata = stripeCharge.metadata;
-      } else {
-        // Crear nueva transacción
-        transaction = this.em.create<Transaction>(Transaction, {
-          stripeChargeId,
-          stripePaymentIntentId: stripeCharge.payment_intent as string,
-          user: stripeCustomer.user,
-          paymentMethod,
-          type: TransactionType.CHARGE,
-          status: this.mapStripeStatusToTransactionStatus(stripeCharge.status),
-          amount: stripeCharge.amount,
-          amountRefunded: stripeCharge.amount_refunded,
-          currency: stripeCharge.currency,
-          description: stripeCharge.description,
-          failureReason: stripeCharge.failure_message,
-          metadata: stripeCharge.metadata,
-          company: stripeCustomer.user.activeCompanyId!,
-        });
+          result.errorMessage ?? 'Payment processor declined the charge';
       }
 
-      this.em.persist(transaction);
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Transaction synchronized successfully',
-        true,
-        {
-          transaction,
-        }
-      );
+      // Guardar connectedAccountId en metadata para trazabilidad
+      if (connectedAccountId) {
+        transaction.metadata = {
+          ...transaction.metadata,
+          connectedAccountId,
+          applicationFeeAmount,
+          platformFeePercent: PLATFORM_FEE_PERCENT,
+        };
+      }
     } catch (error: any) {
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      this.handleStripeError(error);
+      transaction.status = TransactionStatus.FAILED;
+      transaction.failureReason =
+        error?.message ?? 'Unexpected processor error';
     }
   }
 
-  // ============= MÉTODOS PRIVADOS =============
-
-  /**
-   * Mapear estado de Stripe ha estado de transacción
-   */
-  private mapStripeStatusToTransactionStatus(
-    stripeStatus: string
-  ): TransactionStatus {
-    switch (stripeStatus) {
-      case 'succeeded':
-        return TransactionStatus.SUCCEEDED;
-      case 'pending':
-        return TransactionStatus.PENDING;
-      case 'failed':
-        return TransactionStatus.FAILED;
-      case 'canceled':
-        return TransactionStatus.CANCELED;
-      default:
-        return TransactionStatus.PENDING;
-    }
+  private buildChargeResponse(transaction: Transaction): ServiceResponse {
+    const succeeded = transaction.status === TransactionStatus.SUCCEEDED;
+    return createServiceResponse(
+      succeeded ? 200 : 402,
+      succeeded
+        ? 'Charge created successfully'
+        : `Charge failed: ${transaction.failureReason}`,
+      succeeded,
+      { transaction }
+    );
   }
 }

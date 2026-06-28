@@ -1,10 +1,10 @@
 import {
-  Entity,
-  Property,
-  OneToMany,
   Collection,
-  Index,
+  Entity,
   Enum,
+  Index,
+  OneToMany,
+  Property,
   Unique,
 } from '@mikro-orm/core';
 
@@ -26,6 +26,9 @@ export enum PermissionModule {
   STATS = 'stats',
   COMPANIES = 'companies',
   SUBSCRIPTIONS = 'subscriptions',
+  // Añadir aquí el valor que falta, por ejemplo:
+  TRANSACTIONS = 'transactions',
+  INVOICES = 'invoices',
 }
 
 export enum PermissionAction {

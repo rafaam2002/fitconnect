@@ -12,6 +12,10 @@ export const VAL_ERRORS = {
     'Schedule is outside the advance booking window',
   USER_ALREADY_IN_SCHEDULE: 'User is already registered for this schedule',
   INCORRECT_PASSWORD: 'Current password is incorrect',
+  SCHEDULE_HAS_USERS:
+    'Cannot delete schedule because it has registered or waitlisted users',
+  MAX_USERS_BELOW_CURRENT:
+    'Maximum users cannot be less than the number of registered users',
 } as const;
 
 export const NOT_FND_ERRORS = {
@@ -26,6 +30,48 @@ export const FORBIDDEN_ERRORS = {
 export const BAD_REQUEST_ERRORS = {
   USER_LOGGED_IN_TWO_COMPANIES:
     'User is logged in two companies at the same time',
+  OLD_SUB_AND_NEW_PLAN_REQUIRED: 'oldSubscriptionId and newPlanId are required',
+  SUBSCRIPTION_ID_REQUIRED: 'Subscription ID is required',
+  QUANTITY_MUST_BE_GREATER_THAN_0: 'Quantity must be greater than 0',
+  SUBSCRIPTION_NOT_ACTIVE: 'Subscription is not active',
+  ONLY_ACTIVE_SUBSCRIPTIONS_CAN_BE_PAUSED:
+    'Only active subscriptions can be paused',
+  SUBSCRIPTION_NOT_PAUSED: 'Subscription is not paused',
+  ADMIN_OVERRIDE_REASON_REQUIRED: 'A reason is required for admin overrides',
+  ADMIN_OVERRIDE_NO_CHANGES: 'No changes specified in admin override',
+  DAYS_MUST_BE_POSITIVE: 'Days must be a positive number',
+  REASON_REQUIRED: 'A reason is required',
+  CREDIT_AMOUNT_POSITIVE: 'Credit amount must be a positive number',
+  CREDIT_EXCEED_PLAN:
+    'Credit cannot exceed the plan amount. Use a refund instead.',
+  USER_ID_REQUIRED: 'User ID is required',
+  SUB_AND_PLAN_REQUIRED: 'subscriptionId and newPlanId are required',
+  ONLY_ACTIVE_OR_TRIAL_CAN_CHANGE_PLAN:
+    'Only active or trialing subscriptions can change plan',
+  NEW_PLAN_SAME_AS_CURRENT: 'New plan is the same as the current plan',
+  PRORATION_CHARGE_FAILED:
+    'Proration charge failed. Plan not changed. Please check your payment method.',
+  REQUIRED_FIELDS: 'userId, planId and companyId are required',
+  TRIAL_PERIOD_NEGATIVE: 'Trial period days cannot be negative',
+  INVALID_START_DATE: 'Invalid startDate',
+  START_DATE_PAST: 'startDate cannot be in the past',
+  CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE:
+    'Cannot schedule a plan change in the future',
+  CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED:
+    'Cannot schedule a future subscription when there is a pending canceled subscription',
+  VALID_PM_REQUIRED_REACTIVATE:
+    'A valid payment method is required to reactivate the subscription',
+  PAID_PLAN_CANNOT_START_IN_FUTURE:
+    'Paid subscriptions cannot be scheduled to start in the future',
+} as const;
+
+export const CONFLICT_ERRORS = {
+  USER_ALREADY_ACTIVE_IN_PLAN:
+    'User already has an active subscription to this plan',
+} as const;
+
+export const INTERNAL_ERRORS = {
+  ERROR_CALCULATING_STATS: 'Error calculating subscription stats',
 } as const;
 
 /**
@@ -199,7 +245,7 @@ export class GatewayTimeoutError extends AppError {
  */
 export const handleError = (error: any): ServiceResponse => {
   // Si es un AppError (ya es GraphQLError), simplemente propaga
-  if (error instanceof AppError) {
+  if (error instanceof AppError || error?.isOperational) {
     throw error; // Dejar que GraphQL lo maneje
   }
 

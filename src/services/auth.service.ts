@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { EntityManager } from '@mikro-orm/core';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import moment from 'moment';
 
 import { Company } from '../entities/Company';
 import { RefreshToken } from '../entities/RefreshToken';
@@ -526,7 +527,7 @@ export class AuthService extends BaseService {
    */
   public async generateRefreshToken(user: User): Promise<string> {
     const tokenString = crypto.randomBytes(64).toString('hex');
-    const expiresAt = new Date(Date.now() + this.refreshTokenExpiry);
+    const expiresAt = moment().add(this.refreshTokenExpiry, 'ms').toDate();
 
     const refreshToken = this.em.create(RefreshToken, {
       user,
@@ -628,7 +629,7 @@ export class AuthService extends BaseService {
       throw new UnauthorizedError('Invalid refresh token');
     }
 
-    if (storedRefreshToken.expiresAt < new Date()) {
+    if (moment(storedRefreshToken.expiresAt).isBefore(moment())) {
       this.em.remove(storedRefreshToken);
       await this.em.flush();
       throw new UnauthorizedError('Refresh token expired');
@@ -636,16 +637,27 @@ export class AuthService extends BaseService {
 
     const { user } = storedRefreshToken;
 
-    // Generar nuevo par de tokens (Rotación)
-    // Esto usa generateAccessToken internamente
-    const tokens = await this.createTokensPair(user);
+    // Si le quedan menos de 7 días de validez, extendemos el token
+    const daysUntilExpiry = moment(storedRefreshToken.expiresAt).diff(
+      moment(),
+      'days'
+    );
+    if (daysUntilExpiry < 7) {
+      storedRefreshToken.expiresAt = moment()
+        .add(this.refreshTokenExpiry, 'ms')
+        .toDate();
+      this.em.persist(storedRefreshToken);
+      await this.em.flush();
+    }
 
-    // Eliminar el token antiguo (completar rotación)
-    this.em.remove(storedRefreshToken);
-    await this.em.flush();
+    // Generar un nuevo accessToken limpio (sin permisos)
+    const token = this.generateAccessToken(user.id);
 
     return createServiceResponse(200, 'Token refreshed successfully', true, {
-      tokens,
+      tokens: {
+        token,
+        refreshToken: storedRefreshToken.token,
+      },
     });
   }
 
@@ -672,6 +684,16 @@ export class AuthService extends BaseService {
     const tokens = await this.em.find(RefreshToken, { user: userId });
     this.em.remove(tokens);
     await this.em.flush();
+  }
+
+  /**
+   * Eliminar todos los refresh tokens caducados de la base de datos
+   */
+  public async cleanExpiredRefreshTokens(): Promise<number> {
+    const deletedCount = await this.em.nativeDelete(RefreshToken, {
+      expiresAt: { $lt: moment().toDate() },
+    });
+    return deletedCount;
   }
 
   /**

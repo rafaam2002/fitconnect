@@ -1,62 +1,78 @@
 import './sentry/instrument';
 
 import { createServer } from 'node:http';
+import path from 'node:path';
 
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { Connection, EntityManager, IDatabaseDriver } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/core';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { useServer } from 'graphql-ws/use/ws';
-import jwt from 'jsonwebtoken';
 import moment from 'moment-timezone';
 import { WebSocketServer } from 'ws';
 
-import { Company } from './entities/Company';
-import { User } from './entities/User';
+import { graphqlCorsOptions, webhookCorsOptions } from './config/cors.config';
+import { registerBillingCrons } from './crons/billing.cron';
 import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { middleware } from './middlewares';
-import { AuthService } from './services/auth.service';
+import { registerRoutes } from './routes';
+import { PaymentProcessor } from './services/payment-processor.interface';
+import { StripeProcessor } from './services/stripe.processor';
 import { CurrentUser } from './types/common.type';
 import { cronFunctions } from './utils/cron.util';
 import { initORM } from './utils/mikro-orm.util';
 import { createRetryingEntityManager } from './utils/orm-retry';
-import { deleteAccountHtml, renderPage } from './utils/templates.util';
-import { stripeWebhookRouter } from './webhooks/stripe.webhook';
+import { createStripeWebhookRouter } from './webhooks/stripe.webhook';
+
+// ─────────────────────────────────────────────
+// CONFIGURACIÓN GLOBAL
+// ─────────────────────────────────────────────
 
 dotenv.config();
-
 moment.tz.setDefault('Europe/Madrid');
+
+// ─────────────────────────────────────────────
+// TIPOS
+// ─────────────────────────────────────────────
 
 export interface MyContext {
   em: EntityManager;
   currentUser: CurrentUser | null;
+  paymentProcessor: PaymentProcessor;
 }
 
+// ─────────────────────────────────────────────
+// PROCESADOR DE PAGOS — Stripe
+// ─────────────────────────────────────────────
+
+const stripeProcessor = new StripeProcessor({
+  secretKey: process.env.STRIPE_SECRET_KEY!,
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+  connectWebhookSecret: process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+});
+
+// ─────────────────────────────────────────────
+// SCHEMA Y SERVIDOR APOLLO
+// ─────────────────────────────────────────────
+
 const schema = makeExecutableSchema({ typeDefs, resolvers });
-const path = require('node:path');
 
 const app = express();
-// ===== 1. MIDDLEWARE PARA INYECTAR EntityManager EN WEBHOOKS =====
-const injectEntityManager = (orm: any) => {
-  return (req: any, res: any, next: any) => {
-    req.em = orm.em.fork(); // Inyectar EntityManager forked
-    next();
-  };
-};
-
 const httpServer = createServer(app);
 
 const apolloServer = new ApolloServer<MyContext>({
   schema,
+  csrfPrevention: true,
+  cache: 'bounded',
+  introspection: true,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
-    //ApolloServerPluginLandingPageLocalDefault({ embed: true }),
     {
       async requestDidStart() {
         return {
@@ -77,281 +93,115 @@ const apolloServer = new ApolloServer<MyContext>({
       },
     },
   ],
-  csrfPrevention: true,
-  cache: 'bounded',
-  introspection: true,
 });
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+const injectEntityManager = (orm: any) => (req: any, _res: any, next: any) => {
+  req.em = orm.em.fork();
+  next();
+};
+
+const buildHttpContext =
+  (orm: any) =>
+  async ({ req }: { req: express.Request }): Promise<MyContext> => {
+    const em = createRetryingEntityManager(orm);
+    const query = req.body?.query ?? '';
+
+    if (query.includes('__schema') || query.includes('IntrospectionQuery')) {
+      return { em, currentUser: null, paymentProcessor: stripeProcessor };
+    }
+
+    const authorization = req.headers.authorization ?? '';
+    const companyId = (req.headers['x-company-id'] as string) ?? '';
+
+    const ctx = await middleware(em, query, authorization, companyId);
+    return { ...ctx, paymentProcessor: stripeProcessor };
+  };
+
+const buildWsContext =
+  (orm: any) =>
+  async (ctx: any): Promise<MyContext> => {
+    const authorization = (ctx.connectionParams?.Authorization as string) ?? '';
+    const companyId = (ctx.connectionParams?.['x-company-id'] as string) ?? '';
+    const em = createRetryingEntityManager(orm);
+
+    const base = await middleware(em, '', authorization, companyId);
+    return { ...base, paymentProcessor: stripeProcessor };
+  };
+
+// ─────────────────────────────────────────────
+// ARRANQUE
+// ─────────────────────────────────────────────
 
 const startServer = async () => {
   const orm = await initORM();
-  // Imprime la configuración que MikroORM está usando
-  console.log('🔌 Conectado al Host:', orm.config.get('host'));
+
+  console.log('🔌 Host:     ', orm.config.get('host'));
   console.log('🗄️  Base de datos:', orm.config.get('dbName'));
-  console.log('👤 Usuario:', orm.config.get('user'));
+  console.log('👤 Usuario:  ', orm.config.get('user'));
 
-  const webhookCors = cors({
-    origin: '*', // Stripe puede llamar desde diferentes IPs
-    methods: ['POST'],
-    allowedHeaders: ['content-type', 'stripe-signature'],
-  });
-
-  // ===== WEBHOOKS PRIMERO (ANTES DE express.json()) =====
-  app.use('/webhooks', webhookCors);
+  // ── 1. Webhooks de Stripe (body crudo — antes de express.json) ────────
+  app.use('/webhooks', cors(webhookCorsOptions));
   app.use('/webhooks', injectEntityManager(orm));
-  app.use('/webhooks', stripeWebhookRouter);
+  // Stripe necesita el body como Buffer para verificar la firma
+  app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
+  app.use(createStripeWebhookRouter(orm, stripeProcessor));
 
-  // ===== MIDDLEWARE GENERAL DESPUÉS =====
-  app.use(cors());
+  // ── 2. Middleware general ─────────────────────────────────────────────
   app.use(express.json());
   app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-  //Ruta de verificación de email
-  app.get('/auth/verify-email', async (req, res) => {
-    const token = req.query.token as string;
-    try {
-      const decodedToken = jwt.verify(
-        token,
-        process.env.JWT_SECRET as string
-      ) as {
-        id: string;
-      };
+  // ── 3. Rutas REST ─────────────────────────────────────────────────────
+  // injectEntityManager antes de registerRoutes para que authMiddleware
+  // tenga acceso a req.em en las rutas de Stripe Connect OAuth
+  app.use(injectEntityManager(orm));
+  registerRoutes(app, orm);
 
-      const em: EntityManager<IDatabaseDriver<Connection>> =
-        createRetryingEntityManager(orm);
-      const user = await em.findOne(User, { email: decodedToken.id });
-      if (!user) {
-        return res
-          .status(400)
-          .send(
-            renderPage('Verificación fallida', 'Usuario no encontrado', false)
-          );
-      }
-      user.isVerified = true;
-      em.persist(user);
-      await em.flush();
-      // lógica que valida y activa al usuario
-      // Puedes devolver HTML, o redirigir a tu frontend:
-      return res
-        .status(200)
-        .send(
-          renderPage(
-            '¡Correo verificado!',
-            'Gracias por confirmar tu email. Ya puedes entrar en la app.',
-            true
-          )
-        );
-    } catch (err: any) {
-      return res
-        .status(400)
-        .send(
-          renderPage(
-            'Verificación fallida',
-            `Token inválido o caducado. ${err.message}`,
-            false
-          )
-        );
-    }
-  });
-
-  app.get('/admin/verify-company', async (req, res) => {
-    const token = req.query.token as string;
-    const verify = req.query.verify as string;
-
-    const decodedToken = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as {
-      id: string;
-    };
-
-    const em: EntityManager<IDatabaseDriver<Connection>> =
-      createRetryingEntityManager(orm);
-    const company = await em.findOne(Company, {
-      id: decodedToken.id,
-    });
-    if (!company) {
-      throw new Error('Compañía no encontrada');
-    }
-    try {
-      company.isValidated = verify === 'true';
-
-      em.persist(company);
-      await em.flush();
-      // lógica que valida y activa la compañía
-      // Puedes devolver HTML, o redirigir a tu frontend:
-
-      if (verify === 'true')
-        return res
-          .status(200)
-          .send(
-            renderPage(
-              '¡Compañía verificada!',
-              'La compañía ha sido verificada correctamente.',
-              true
-            )
-          );
-      else
-        return res
-          .status(200)
-          .send(
-            renderPage(
-              'Compañía rechazada',
-              'La compañía ha sido rechazada y no podrá acceder a la plataforma.',
-              true
-            )
-          );
-    } catch (err: any) {
-      return res
-        .status(400)
-        .send(
-          renderPage(
-            'Verificación fallida',
-            `Token inválido o caducado. ${err.message}`,
-            false
-          )
-        );
-    }
-  });
-
-  app.get('/auth/reset-password', async (req, res) => {
-    const token = req.query.token as string;
-    const em = createRetryingEntityManager(orm);
-    const authService = new AuthService(em);
-    const htmlResponse = await authService.resetRandomPassword(token);
-
-    // If htmlResponse contains "Cambio de contraseña completado" or "¡Correo verificado!", it's a success
-    // Actually, renderPage returns HTML. We can check if it was successful by looking at the title or just always returning 200/400.
-    // In the original, it returned 200 for success and 400 for errors.
-    const isSuccess = htmlResponse.includes(
-      '¡Cambio de contraseña completado!'
-    );
-    return res.status(isSuccess ? 200 : 400).send(htmlResponse);
-  });
-
-  app.get('/health', async (req, res) => {
-    try {
-      const isConnected = orm.isConnected();
-      if (!isConnected) {
-        return res.status(500).json({
-          status: 'ERROR',
-          database: 'disconnected',
-          timestamp: moment().toDate().toISOString(),
-        });
-      }
-      await orm.em.getConnection().execute('SELECT 1');
-      res.status(200).json({
-        status: 'OK',
-        database: 'connected',
-        timestamp: moment().toDate().toISOString(),
-        service: 'GraphQL + Webhooks Server',
-      });
-    } catch (dbError: any) {
-      res.status(500).json({
-        status: 'ERROR',
-        database: 'error',
-        error: dbError.message,
-        timestamp: moment().toDate().toISOString(),
-      });
-    }
-  });
-
-  app.get('/delete-account', (req, res) => {
-    res.status(200).send(deleteAccountHtml());
-  });
-
-  // app.get('/test-sentry', (req, res) => {
-  //   throw new Error('¡HOLA SENTRY! Si ves esto, la conexión funciona.');
-  // });
-
-  // ===== APOLLO SERVER =====
+  // ── 4. Apollo Server ──────────────────────────────────────────────────
   await apolloServer.start();
+
   app.use(
     '/',
-    cors<cors.CorsRequest>({
-      origin: '*', // O tus dominios permitidos
-      allowedHeaders: [
-        'x-company-id',
-        'content-type',
-        'authorization',
-        'sentry-trace',
-        'baggage',
-      ],
-    }),
-    express.json(), // Asegúrate de que esté aquí si no es global
-    expressMiddleware(apolloServer, {
-      context: async ({ req }) => {
-        const em = createRetryingEntityManager(orm);
-        const query = req.body?.query || '';
-
-        // 1. Si es introspección, dejar pasar sin auth
-        if (
-          query.includes('__schema') ||
-          query.includes('IntrospectionQuery')
-        ) {
-          return { em, currentUser: null };
-        }
-
-        const authorization = req.headers.authorization || '';
-        const companyId = req.headers['x-company-id'] as string;
-        return await middleware(em, query, authorization, companyId);
-      },
-    })
+    cors<cors.CorsRequest>(graphqlCorsOptions),
+    express.json(),
+    expressMiddleware(apolloServer, { context: buildHttpContext(orm) })
   );
-  // ===== WEBSOCKET SERVER =====
+
+  // ── 5. WebSocket Server ───────────────────────────────────────────────
   const wsServer = new WebSocketServer({
     server: httpServer,
     path: '/graphql',
   });
+  useServer({ schema, context: buildWsContext(orm) }, wsServer);
 
-  useServer(
-    {
-      schema,
-      context: async ctx => {
-        // Extraer el token de los connectionParams
-        const authorization =
-          (ctx.connectionParams?.Authorization as string) || '';
-
-        const companyId =
-          (ctx.connectionParams?.['x-company-id'] as string) || '';
-
-        // Crear un nuevo fork del EntityManager
-        const em: EntityManager<IDatabaseDriver<Connection>> =
-          createRetryingEntityManager(orm);
-
-        // Fix: Pass empty string for query to match the middleware signature
-        return await middleware(em, '', authorization, companyId);
-      },
-    },
-    wsServer
-  );
-
-  // ===== MANEJO DE ERRORES GLOBALES =====
+  // ── 6. Manejo global de errores ───────────────────────────────────────
   Sentry.setupExpressErrorHandler(app);
 
-  app.use((error: any, req: any, res: any, _: any) => {
-    console.error('Global error handler:', error);
-    if (req.path.startsWith('/webhooks')) {
-      // Para webhooks, responder con formato que Stripe espera
-      return res.status(500).json({
-        error: 'Internal server error',
-        timestamp: new Date().toISOString(),
-      });
-    }
-    res.status(500).json({ error: 'Internal server error' });
+  app.use((error: any, req: any, res: any, _next: any) => {
+    console.error('[Global error handler]', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      timestamp: new Date().toISOString(),
+    });
   });
 
-  const port = process.env.PORT || 4000;
+  // ── 7. CRONs ──────────────────────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'development') {
+    cronFunctions(orm);
+    registerBillingCrons(orm, stripeProcessor);
+  }
+
+  // ── 8. Escuchar ───────────────────────────────────────────────────────
+  const port = process.env.PORT ?? 4000;
   httpServer.listen(port, () => {
-    console.log(`🚀 Server ready at http://localhost:${port}/`);
-    console.log(`🚀 GraphQL ready at http://localhost:${port}/`);
-    console.log(
-      `🚀 Webhooks ready at http://localhost:${port}/webhooks/stripe`
-    );
-    console.log(`🚀 Subscriptions ready at ws://localhost:${port}/graphql`);
-    console.log(`🩺 Health check at http://localhost:${port}/health`);
+    console.log(`🚀 Server  → http://localhost:${port}/`);
+    console.log(`🚀 GraphQL → http://localhost:${port}/`);
+    console.log(`🚀 WS      → ws://localhost:${port}/graphql`);
+    console.log(`🩺 Health  → http://localhost:${port}/health`);
   });
-
-  cronFunctions(orm);
 };
 
 startServer();

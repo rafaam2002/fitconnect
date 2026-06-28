@@ -1,11 +1,10 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
-import { EntityManager as EM } from '@mikro-orm/postgresql';
 import moment from 'moment';
-import Stripe from 'stripe';
 
+import { Customer } from '../entities/Customer';
+import { Invoice } from '../entities/Invoice';
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
-import { Plan } from '../entities/Plan';
-import { StripeCustomer } from '../entities/StripeCustomer';
+import { Plan, PlanInterval } from '../entities/Plan';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import {
@@ -13,13 +12,16 @@ import {
   EmailConfig,
   ServiceResponse,
 } from '../types/common.type';
-import { UserRoleEnum } from '../types/enums';
 import {
   BadRequestError,
   ConflictError,
   createServiceResponse,
+  ForbiddenError,
   InternalServerError,
   NotFoundError,
+  BAD_REQUEST_ERRORS,
+  CONFLICT_ERRORS,
+  INTERNAL_ERRORS,
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendSubscriptionExpiryWarning } from '../utils/templates.util';
@@ -27,7 +29,14 @@ import { sendSubscriptionExpiryWarning } from '../utils/templates.util';
 import { BaseService } from './base.service';
 import { CustomerService } from './customer.service';
 import { EmailService } from './email.service';
+import { InvoiceService } from './invoice.service';
 import { NotificationService } from './notification.service';
+import { PaymentProcessor } from './payment-processor.interface';
+import { TransactionService } from './transaction.service';
+
+// ─────────────────────────────────────────────
+// TIPOS DE ENTRADA
+// ─────────────────────────────────────────────
 
 interface CreateSubscriptionInput {
   userId: string;
@@ -37,6 +46,7 @@ interface CreateSubscriptionInput {
   quantity?: number;
   metadata?: Record<string, any>;
   companyId: string;
+  startDate?: string | Date;
 }
 
 interface UpdateSubscriptionInput {
@@ -53,198 +63,322 @@ interface CancelSubscriptionInput {
   cancellationReason?: string;
 }
 
+/**
+ * Input para sustituir una suscripcion por otra (cancelar la vieja + crear la nueva).
+ * A diferencia de changePlan, este flujo es para cuando se trata de dos contratos
+ * distintos (ej: el usuario cambia de un plan mensual a uno anual de otra familia,
+ * o el admin le asigna manualmente un plan distinto).
+ */
+interface ReplaceSubscriptionInput {
+  oldSubscriptionId: string;
+  newPlanId: string;
+  paymentMethodId?: string;
+  trialPeriodDays?: number;
+  /**
+   * Si true, cancela la suscripcion vieja inmediatamente sin importar si le quedaba
+   * periodo pagado. Si false (default), respeta el periodo ya pagado y la nueva
+   * suscripcion no empieza hasta que termine - ver explicacion en replaceSubscription().
+   */
+  forceImmediateCancellation?: boolean;
+  cancellationReason?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Input para el cambio de plan con prorrateo.
+ * upgrade = cobra la diferencia ahora.
+ * downgrade = acredita los días restantes al siguiente período.
+ */
+interface ChangePlanInput {
+  subscriptionId: string;
+  newPlanId: string;
+  /** Si true cobra/acredita la diferencia proporcional de inmediato */
+  prorate?: boolean;
+}
+
+/**
+ * Input para operaciones administrativas sobre una suscripción.
+ */
+interface AdminOverrideInput {
+  subscriptionId: string;
+  /** Nuevo estado a forzar */
+  status?: SubscriptionStatus;
+  /** Nueva fecha de fin de período (extiende o acorta el período actual) */
+  currentPeriodEnd?: Date;
+  /** Fecha del próximo cobro */
+  nextBillingDate?: Date;
+  /** Resetea el contador de intentos fallidos */
+  resetFailedAttempts?: boolean;
+  /** Razón del cambio (queda en metadata.admin_history) */
+  reason: string;
+  /** ID del admin que realiza la operación */
+  adminId: string;
+}
+
+/**
+ * Parámetros de entrada de buildReplacementSubscription, extraídos como
+ * tipo nombrado en lugar de un objeto inline para que cada métdo auxiliar
+ * pueda recibir el subconjunto que necesita sin repetir la firma completa.
+ */
+interface ReplacementParams {
+  oldSubscription: Subscription;
+  newPlan: Plan;
+  paymentMethodId?: string;
+  trialPeriodDays?: number;
+  forceImmediateCancellation?: boolean;
+  cancellationReason?: string;
+  metadata?: Record<string, any>;
+  /**
+   * true cuando la suscripcion vieja ya estaba CANCELED antes de llegar
+   * aqui (caso createSubscription detectando una cancelacion previa).
+   * false cuando hay que cancelarla ahora mismo (caso replaceSubscription).
+   */
+  alreadyCanceled: boolean;
+}
+
+/**
+ * Resultado del cálculo de fechas/estado de la suscripción de reemplazo.
+ */
+interface ReplacementSchedule {
+  newPeriodStart: Date;
+  periodEnd: Date;
+  trialStart?: Date;
+  trialEnd?: Date;
+  status: SubscriptionStatus;
+  nextBillingDate: Date;
+}
+
+// ─────────────────────────────────────────────
+// CONFIGURACIÓN DE DUNNING
+// ─────────────────────────────────────────────
+
+const DUNNING_CONFIG = {
+  /** Número máximo de intentos antes de marcar como PAST_DUE */
+  maxAttempts: 3,
+  /** Días entre reintentos [intento 1, intento 2, intento 3] */
+  retryIntervalDays: [3, 5, 7],
+};
+
+// ─────────────────────────────────────────────
+// SERVICIO
+// ─────────────────────────────────────────────
+
+/**
+ * SubscriptionService
+ *
+ * Gestiona el ciclo de vida completo de las suscripciones.
+ *
+ * EL FRONTEND SOLO LLAMA A createSubscription. El backend decide
+ * automaticamente si eso significa crear desde cero, sustituir una
+ * suscripcion cancelada con periodo pendiente, o sustituir una suscripcion
+ * activa de otro plan en la misma empresa (lo que coloquialmente es "cambiar
+ * de plan"). Nunca deberian coexistir dos Subscription en estado ACTIVE o
+ * TRIALING para la misma empresa y el mismo usuario - ver
+ * findActiveSubscriptionForPlan() para la regla que lo garantiza.
+ */
 export class SubscriptionService extends BaseService {
   private readonly customerService: CustomerService;
+  private readonly invoiceService: InvoiceService;
+  private readonly transactionService: TransactionService;
   private readonly emailService: EmailService;
   private readonly notificationService: NotificationService;
 
-  constructor(em: EntityManager) {
-    super(em);
-
+  constructor(em: EntityManager, paymentProcessor: PaymentProcessor) {
+    super(em, paymentProcessor);
     this.customerService = new CustomerService(em);
+    this.invoiceService = new InvoiceService(em);
+    this.transactionService = new TransactionService(em, paymentProcessor);
     this.emailService = new EmailService();
     this.notificationService = new NotificationService(em);
   }
 
-  // ============= VALIDACIONES =============
+  // ═══════════════════════════════════════════
+  // OPERACIONES DE USUARIO
+  // ═══════════════════════════════════════════
 
+  /**
+   * Crea una suscripción nueva. Punto de entrada único desde el frontend.
+   *
+   * El backend decide automáticamente qué significa "crear" según el
+   * estado actual del usuario respecto a la empresa del plan elegido:
+   *
+   *  1. Ya tiene una suscripción ACTIVE/TRIALING al MISMO plan
+   *       → ConflictError. No tiene sentido volver a asignarle la misma
+   *         suscripción que ya tiene activa.
+   *
+   *  2. Ya tiene una suscripción ACTIVE/TRIALING a OTRO plan de la misma
+   *     empresa
+   *       → esto es un cambio de plan. Se delega a executePlanChange()
+   *         (el mismo núcleo que usa changePlan), que muta la suscripción
+   *         existente y aplica prorrateo si corresponde. No se crea una
+   *         entidad nueva.
+   *
+   *  3. Tiene una suscripción CANCELED (a cualquier plan de la misma
+   *     empresa) cuyo período pagado todavía no terminó
+   *       → se sustituye: la nueva Subscription no empieza hoy, empieza
+   *         exactamente cuando termine ese período ya pagado.
+   *
+   *  4. Ninguno de los casos anteriores
+   *       → se crea la suscripción desde cero.
+   */
   public async createSubscription(
     input: CreateSubscriptionInput
   ): Promise<ServiceResponse> {
-    this.validateCreateSubscriptionInput(input);
+    this.validateCreateInput(input);
 
-    try {
-      // Obtener entidades requeridas
-      const user = await this.getUserOrFail(input.userId);
-      const plan = await this.getActivePlanOrFail(input.planId);
-      const stripeCustomer = await this.getOrCreateAdminStripeCustomer(user);
+    const user = await this.getUserOrFail(input.userId);
+    const plan = await this.getActivePlanOrFail(input.planId);
+    this.validatePaidPlanStartDate(plan, input.startDate);
 
-      // Validaciones de negocio
-      await this.validateNoDuplicateSubscription(user, plan);
-      const paymentMethod = await this.getPaymentMethodIfProvided(
-        input.paymentMethodId,
-        stripeCustomer
-      );
-
-      // Crear en Stripe
-      const stripeSubData = this.buildStripeSubscriptionData(
-        stripeCustomer,
-        plan,
-        user,
-        input,
-        paymentMethod
-      );
-      const stripeSub = await this.stripe.subscriptions.create(stripeSubData, {
-        idempotencyKey: this.generateIdempotencyKey(
-          'subscription',
-          user.id,
-          plan.id
-        ),
-      });
-
-      // Persistir en BD
-      const subscription = this.createSubscriptionEntity(
-        stripeSub,
-        user,
-        stripeCustomer,
-        plan,
-        paymentMethod,
-        input.companyId
-      );
-      this.em.persist(subscription);
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Subscription created successfully',
-        true,
-        {
-          subscription,
+    const activeInCompany = await this.findActiveSubscriptionForPlan(
+      user,
+      plan
+    );
+    if (activeInCompany) {
+      if (input.startDate) {
+        const start = moment(input.startDate);
+        if (
+          !(
+            activeInCompany.plan.id === plan.id &&
+            this.isUnusedFutureSubscription(activeInCompany)
+          )
+        ) {
+          if (!start.isSame(moment(), 'day')) {
+            throw new BadRequestError(
+              BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE
+            );
+          }
         }
-      );
-    } catch (error: any) {
-      if (
-        error instanceof NotFoundError ||
-        error instanceof BadRequestError ||
-        error instanceof ConflictError
-      ) {
-        throw error;
       }
-      this.handleStripeError(error);
+      return this.resolveExistingActiveSubscription(
+        activeInCompany,
+        plan,
+        input
+      );
     }
+
+    const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
+      user,
+      plan
+    );
+    if (recentCanceled) {
+      if (input.startDate) {
+        const start = moment(input.startDate);
+        if (!start.isSame(moment(), 'day')) {
+          throw new BadRequestError(
+            BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED
+          );
+        }
+      }
+      return this.replaceCanceledSubscription(recentCanceled, plan, input);
+    }
+
+    return this.createSubscriptionFromScratch(user, plan, input);
   }
 
-  // ============= OBTENCIÓN DE ENTIDADES =============
+  /**
+   * Cambia el plan de una suscripción activa con prorrateo opcional.
+   * Punto de entrada público — resuelve la suscripción por ID y delega
+   * el trabajo real a executePlanChange().
+   */
+  public async changePlan(input: ChangePlanInput): Promise<ServiceResponse> {
+    const { subscription, newPlan } =
+      await this.resolveChangePlanTargets(input);
+
+    return this.executePlanChange(subscription, newPlan, input.prorate);
+  }
 
   /**
-   * Actualizar suscripción
+   * Sustituye una suscripcion por otra completamente nueva (dos contratos distintos).
+   * Llamada EXPLÍCITA, útil cuando el cambio es entre empresas distintas o cuando
+   * se quiere forzar la sustitución inmediata sin pasar por createSubscription.
+   *
+   * La fecha de inicio de la nueva suscripcion depende de si la vieja tenia
+   * periodo pagado vigente en el momento de la sustitucion:
+   *
+   *  - Si oldSubscription.currentPeriodEnd > ahora (el usuario aun tiene acceso
+   *    pagado), la nueva suscripcion NO empieza hoy - empieza exactamente cuando
+   *    termina el periodo que ya pago.
+   *
+   *  - Si no le queda periodo pagado vigente, la nueva suscripcion empieza
+   *    inmediatamente.
+   *
+   * Usar forceImmediateCancellation=true para saltarse esta logica.
+   */
+  public async replaceSubscription(
+    input: ReplaceSubscriptionInput
+  ): Promise<ServiceResponse> {
+    if (!input.oldSubscriptionId || !input.newPlanId) {
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.OLD_SUB_AND_NEW_PLAN_REQUIRED
+      );
+    }
+
+    const oldSubscription = await this.em.findOne(
+      Subscription,
+      { id: input.oldSubscriptionId },
+      { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
+    );
+    if (!oldSubscription) throw new NotFoundError('Subscription');
+
+    const newPlan = await this.getActivePlanOrFail(input.newPlanId);
+
+    return this.buildReplacementSubscription({
+      oldSubscription,
+      newPlan,
+      paymentMethodId: input.paymentMethodId,
+      trialPeriodDays: input.trialPeriodDays,
+      forceImmediateCancellation: input.forceImmediateCancellation,
+      cancellationReason: input.cancellationReason,
+      metadata: input.metadata,
+      alreadyCanceled: false,
+    });
+  }
+
+  /**
+   * Actualiza método de pago, cantidad o metadata de una suscripción.
+   * Para cambiar de plan usar changePlan() que gestiona el prorrateo.
    */
   public async updateSubscription(
     input: UpdateSubscriptionInput
   ): Promise<ServiceResponse> {
     if (!input.subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
-    }
-
-    if (input.quantity && input.quantity <= 0) {
-      throw new BadRequestError('Quantity must be greater than 0');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
     }
 
     const subscription = await this.em.findOne(
       Subscription,
-      {
-        id: input.subscriptionId,
-      },
-      {
-        populate: ['user', 'plan', 'stripeCustomer'],
-      }
+      { id: input.subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
     );
 
-    if (!subscription) {
-      throw new NotFoundError('Subscription');
-    }
+    if (!subscription) throw new NotFoundError('Subscription');
 
-    const updateData: any = {};
-
-    // Cambiar plan
-    if (input.planId) {
-      const newPlan = await this.em.findOne(Plan, {
-        id: input.planId,
-        isActive: true,
-      });
-      if (!newPlan) {
-        throw new NotFoundError('New plan not found or inactive');
+    if (input.quantity !== undefined) {
+      if (input.quantity <= 0) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.QUANTITY_MUST_BE_GREATER_THAN_0
+        );
       }
-
-      const stripeSubscriptionData = await this.stripe.subscriptions.retrieve(
-        subscription.stripeSubscriptionId
-      );
-
-      updateData.items = [
-        {
-          id: stripeSubscriptionData.items.data[0].id,
-          price: newPlan.stripePriceId,
-          quantity: input.quantity || subscription.quantity || 1,
-        },
-      ];
-
-      // Actualizar referencia en BD
-      subscription.plan = newPlan;
+      subscription.quantity = input.quantity;
     }
 
-    // Cambiar cantidad
-    if (input.quantity && !input.planId) {
-      const stripeSubscriptionData = await this.stripe.subscriptions.retrieve(
-        subscription.stripeSubscriptionId
-      );
-      updateData.items = [
-        {
-          id: stripeSubscriptionData.items.data[0].id,
-          quantity: input.quantity,
-        },
-      ];
-    }
-
-    // Cambiar método de pago por defecto
     if (input.paymentMethodId) {
-      const paymentMethod = await this.em.findOne(PaymentMethod, {
-        stripePaymentMethodId: input.paymentMethodId,
-        stripeCustomer: subscription.stripeCustomer,
-        status: PaymentMethodStatus.ACTIVE,
-      });
-
-      if (!paymentMethod) {
-        throw new NotFoundError('Payment method not found or inactive');
-      }
-
-      updateData.default_payment_method = input.paymentMethodId;
-      subscription.defaultPaymentMethod = paymentMethod;
+      subscription.defaultPaymentMethod = await this.getPaymentMethodOrFail(
+        input.paymentMethodId,
+        subscription.customer
+      );
+      this.appendHistory(
+        subscription,
+        'payment_method_updated',
+        'user',
+        'Payment method updated'
+      );
     }
 
-    // Metadatos
     if (input.metadata) {
-      updateData.metadata = { ...subscription.metadata, ...input.metadata };
-      subscription.metadata = updateData.metadata;
+      subscription.metadata = { ...subscription.metadata, ...input.metadata };
     }
-
-    // Actualizar en Stripe
-    const updatedStripeSubscription = await this.stripe.subscriptions.update(
-      subscription.stripeSubscriptionId,
-      updateData
-    );
-
-    // Actualizar campos en BD
-    subscription.status =
-      updatedStripeSubscription.status as SubscriptionStatus;
-    subscription.currentPeriodStart = new Date(
-      updatedStripeSubscription.current_period_start * 1000
-    );
-    subscription.currentPeriodEnd = new Date(
-      updatedStripeSubscription.current_period_end * 1000
-    );
-    subscription.quantity =
-      updatedStripeSubscription.items.data[0]?.quantity ||
-      subscription.quantity;
 
     await this.em.flush();
 
@@ -259,68 +393,46 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Cancelar suscripción
+   * Cancela una suscripción inmediatamente o al final del período actual.
    */
   public async cancelSubscription(
-    input: CancelSubscriptionInput
+    input: CancelSubscriptionInput,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!input.subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
     }
 
     const subscription = await this.em.findOne(Subscription, {
       id: input.subscriptionId,
     });
 
-    if (!subscription) {
-      throw new NotFoundError('Subscription');
-    }
-
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
-      throw new BadRequestError('Subscription is not active');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_NOT_ACTIVE);
     }
-
-    let updatedStripeSubscription;
 
     if (input.cancelAtPeriodEnd) {
-      // Cancelar al final del período actual
-      updatedStripeSubscription = await this.stripe.subscriptions.update(
-        subscription.stripeSubscriptionId,
-        {
-          cancel_at_period_end: true,
-          metadata: {
-            ...subscription.metadata,
-            cancellation_reason: input.cancellationReason ?? '',
-          },
-        }
+      subscription.cancelAtPeriodEnd = true;
+      this.appendHistory(
+        subscription,
+        'cancel_scheduled',
+        'user',
+        `Cancellation scheduled at period end. Reason: ${input.cancellationReason ?? 'not specified'}`
       );
     } else {
-      // Cancelar inmediatamente
-      await this.stripe.subscriptions.update(
-        subscription.stripeSubscriptionId,
-        {
-          metadata: {
-            cancellation_reason: input.cancellationReason ?? '',
-          },
-        }
-      );
-
-      updatedStripeSubscription = await this.stripe.subscriptions.cancel(
-        subscription.stripeSubscriptionId
+      subscription.status = SubscriptionStatus.CANCELED;
+      subscription.canceledAt = new Date();
+      subscription.endedAt = new Date();
+      subscription.nextBillingDate = undefined;
+      this.appendHistory(
+        subscription,
+        'canceled',
+        'user',
+        `Canceled immediately. Reason: ${input.cancellationReason ?? 'not specified'}`
       );
     }
-
-    // Actualizar en BD
-    subscription.status =
-      updatedStripeSubscription.status as SubscriptionStatus;
-    subscription.cancelAtPeriodEnd =
-      updatedStripeSubscription.cancel_at_period_end;
-    subscription.canceledAt = updatedStripeSubscription.canceled_at
-      ? new Date(updatedStripeSubscription.canceled_at * 1000)
-      : undefined;
-    subscription.endedAt = updatedStripeSubscription.ended_at
-      ? new Date(updatedStripeSubscription.ended_at * 1000)
-      : undefined;
 
     if (input.cancellationReason) {
       subscription.metadata = {
@@ -342,28 +454,35 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Pausar suscripción
+   * Pausa una suscripción activa.
+   * El CRON no la tocará mientras esté en estado PAUSED.
    */
   public async pauseSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
-    if (!subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
-    }
-
     const subscription = await this.em.findOne(Subscription, {
       id: subscriptionId,
     });
 
-    if (!subscription) {
-      throw new NotFoundError('Subscription');
-    }
-
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
-      throw new BadRequestError('Subscription is not active');
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.ONLY_ACTIVE_SUBSCRIPTIONS_CAN_BE_PAUSED
+      );
     }
 
-    subscription.status = SubscriptionStatus.PAUSED as SubscriptionStatus;
+    subscription.status = SubscriptionStatus.PAUSED;
+    subscription.nextBillingDate = undefined;
+
+    this.appendHistory(
+      subscription,
+      'paused',
+      'user',
+      'Subscription paused by user'
+    );
+
     await this.em.flush();
 
     return createServiceResponse(
@@ -377,75 +496,473 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Reanudar suscripción
+   * Reanuda una suscripción pausada.
+   * Recalcula nextBillingDate a partir de hoy y cobra inmediatamente
+   * si el período actual ya ha vencido.
    */
   public async resumeSubscription(
-    subscriptionId: string
+    subscriptionId: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
-    if (!subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['plan', 'user', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+    if (subscription.status !== SubscriptionStatus.PAUSED) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_NOT_PAUSED);
+    }
+
+    const now = new Date();
+    const isFree = subscription.plan.amount === 0;
+
+    subscription.status = SubscriptionStatus.ACTIVE;
+    subscription.currentPeriodStart = now;
+    subscription.currentPeriodEnd = this.calculatePeriodEnd(
+      now,
+      subscription.plan
+    );
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
+    subscription.failedPaymentAttempts = 0;
+
+    this.appendHistory(
+      subscription,
+      'resumed',
+      'user',
+      'Subscription resumed by user'
+    );
+
+    await this.em.flush();
+
+    if (
+      !isFree &&
+      subscription.currentPeriodEnd &&
+      subscription.currentPeriodEnd < now
+    ) {
+      await this.attemptCharge(subscription);
+    }
+
+    return createServiceResponse(
+      200,
+      'Subscription resumed successfully',
+      true,
+      {
+        subscription,
+      }
+    );
+  }
+
+  /**
+   * Reactiva una suscripción en estado PAST_DUE o CANCELED.
+   *
+   * Plan gratuito → ACTIVE directo, sin requerir método de pago.
+   * PAST_DUE → intenta cobrar las facturas pendientes y vuelve a ACTIVE.
+   * CANCELED → crea un período nuevo desde hoy e intenta cobrar.
+   *
+   * Requiere método de pago válido solo si el plan tiene coste.
+   */
+  public async reactivateSubscription(
+    subscriptionId: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    const reactivableStatuses = [
+      SubscriptionStatus.PAST_DUE,
+      SubscriptionStatus.CANCELED,
+      SubscriptionStatus.UNPAID,
+      SubscriptionStatus.INCOMPLETE_EXPIRED,
+    ];
+
+    if (!reactivableStatuses.includes(subscription.status)) {
+      throw new BadRequestError(
+        `Cannot reactivate a subscription in status "${subscription.status}". ` +
+          `Only ${reactivableStatuses.join(', ')} subscriptions can be reactivated.`
+      );
+    }
+
+    const isFree = subscription.plan.amount === 0;
+
+    if (!isFree) {
+      const pm =
+        subscription.defaultPaymentMethod ??
+        (await this.getDefaultPaymentMethod(subscription.customer));
+
+      const isPaymentMethodReady =
+        !!pm?.externalToken && pm?.status === PaymentMethodStatus.ACTIVE;
+      if (!isPaymentMethodReady) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.VALID_PM_REQUIRED_REACTIVATE
+        );
+      }
+
+      subscription.defaultPaymentMethod ??= pm;
+    }
+
+    const now = new Date();
+    subscription.status = isFree
+      ? SubscriptionStatus.ACTIVE
+      : SubscriptionStatus.INCOMPLETE;
+    subscription.failedPaymentAttempts = 0;
+    subscription.canceledAt = undefined;
+    subscription.endedAt = undefined;
+    subscription.cancelAtPeriodEnd = false;
+    subscription.currentPeriodStart = now;
+    subscription.currentPeriodEnd = this.calculatePeriodEnd(
+      now,
+      subscription.plan
+    );
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
+
+    this.appendHistory(
+      subscription,
+      'reactivation_attempted',
+      'user',
+      isFree
+        ? 'Free plan reactivated — no charge required'
+        : 'User requested reactivation'
+    );
+
+    await this.em.flush();
+
+    if (!isFree) {
+      await this.attemptCharge(subscription);
+      await this.em.refresh(subscription);
+    }
+
+    const success = subscription.status === SubscriptionStatus.ACTIVE;
+
+    return createServiceResponse(
+      success ? 200 : 402,
+      success
+        ? 'Subscription reactivated successfully'
+        : 'Reactivation failed: payment could not be processed',
+      success,
+      { subscription }
+    );
+  }
+
+  /**
+   * Actualiza el método de pago de una suscripción PAST_DUE e intenta
+   * cobrar las facturas pendientes de inmediato.
+   */
+  public async updatePaymentMethodAndRetry(
+    subscriptionId: string,
+    paymentMethodId: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    const allowedStatuses = [
+      SubscriptionStatus.PAST_DUE,
+      SubscriptionStatus.UNPAID,
+      SubscriptionStatus.INCOMPLETE,
+    ];
+
+    if (!allowedStatuses.includes(subscription.status)) {
+      throw new BadRequestError(
+        `This operation is only available for subscriptions in status: ${allowedStatuses.join(', ')}`
+      );
+    }
+
+    subscription.defaultPaymentMethod = await this.getPaymentMethodOrFail(
+      paymentMethodId,
+      subscription.customer
+    );
+    subscription.failedPaymentAttempts = 0;
+
+    this.appendHistory(
+      subscription,
+      'payment_method_updated',
+      'user',
+      'Payment method updated and immediate retry triggered'
+    );
+
+    await this.em.flush();
+
+    await this.attemptCharge(subscription);
+    await this.em.refresh(subscription);
+
+    const success = subscription.status === SubscriptionStatus.ACTIVE;
+
+    return createServiceResponse(
+      success ? 200 : 402,
+      success
+        ? 'Payment method updated and subscription reactivated'
+        : 'Payment method updated but charge still failed',
+      success,
+      { subscription }
+    );
+  }
+
+  /**
+   * Permite a un administrador forzar cambios en una suscripción.
+   * Todos los cambios quedan registrados en el audit log (metadata.history).
+   */
+  public async adminOverride(
+    input: AdminOverrideInput,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    if (!input.reason) {
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.ADMIN_OVERRIDE_REASON_REQUIRED
+      );
+    }
+
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: input.subscriptionId },
+      { populate: ['plan', 'user'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    const changes: string[] = [];
+
+    if (input.status !== undefined && input.status !== subscription.status) {
+      const oldStatus = subscription.status;
+      subscription.status = input.status;
+
+      if (input.status === SubscriptionStatus.CANCELED) {
+        subscription.canceledAt = new Date();
+        subscription.endedAt = new Date();
+        subscription.nextBillingDate = undefined;
+      } else if (input.status === SubscriptionStatus.ACTIVE) {
+        subscription.canceledAt = undefined;
+        subscription.endedAt = undefined;
+      }
+
+      changes.push(`status: ${oldStatus} → ${input.status}`);
+    }
+
+    if (input.currentPeriodEnd !== undefined) {
+      const old = subscription.currentPeriodEnd?.toISOString() ?? 'none';
+      subscription.currentPeriodEnd = input.currentPeriodEnd;
+      changes.push(
+        `currentPeriodEnd: ${old} → ${input.currentPeriodEnd.toISOString()}`
+      );
+    }
+
+    if (input.nextBillingDate !== undefined) {
+      const old = subscription.nextBillingDate?.toISOString() ?? 'none';
+      subscription.nextBillingDate = input.nextBillingDate;
+      changes.push(
+        `nextBillingDate: ${old} → ${input.nextBillingDate.toISOString()}`
+      );
+    }
+
+    if (input.resetFailedAttempts) {
+      changes.push(
+        `failedPaymentAttempts: ${subscription.failedPaymentAttempts} → 0`
+      );
+      subscription.failedPaymentAttempts = 0;
+    }
+
+    if (changes.length === 0) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.ADMIN_OVERRIDE_NO_CHANGES);
+    }
+
+    this.appendHistory(
+      subscription,
+      'admin_override',
+      input.adminId,
+      `[ADMIN] ${input.reason} — Changes: ${changes.join(', ')}`
+    );
+
+    await this.em.flush();
+
+    return createServiceResponse(
+      200,
+      'Admin override applied successfully',
+      true,
+      {
+        subscription,
+        changes,
+      }
+    );
+  }
+
+  /**
+   * Fuerza la renovación de una suscripción activa ahora mismo.
+   */
+  public async forceRenewal(
+    subscriptionId: string,
+    adminId: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    const validStatuses = [
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.PAST_DUE,
+      SubscriptionStatus.UNPAID,
+    ];
+
+    if (!validStatuses.includes(subscription.status)) {
+      throw new BadRequestError(
+        `Cannot force renewal on a subscription with status "${subscription.status}"`
+      );
+    }
+
+    this.appendHistory(
+      subscription,
+      'force_renewal',
+      adminId,
+      'Admin forced immediate renewal'
+    );
+
+    await this.em.flush();
+    await this.attemptCharge(subscription);
+    await this.em.refresh(subscription);
+
+    const success = subscription.status === SubscriptionStatus.ACTIVE;
+
+    return createServiceResponse(
+      success ? 200 : 402,
+      success ? 'Renewal successful' : 'Renewal charge failed',
+      success,
+      { subscription }
+    );
+  }
+
+  /**
+   * Extiende el período actual de una suscripción añadiendo días gratuitos.
+   */
+  public async extendPeriod(
+    subscriptionId: string,
+    days: number,
+    adminId: string,
+    reason: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    if (!days || days <= 0) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.DAYS_MUST_BE_POSITIVE);
+    }
+    if (!reason) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
     }
 
     const subscription = await this.em.findOne(Subscription, {
       id: subscriptionId,
     });
 
-    if (!subscription) {
-      throw new NotFoundError('Subscription');
-    }
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
-    if (subscription.status !== SubscriptionStatus.PAUSED) {
-      throw new BadRequestError('Subscription is not paused');
-    }
-    try {
-      const updatedStripeSubscription = await this.stripe.subscriptions.update(
-        subscription.stripeSubscriptionId,
-        {
-          pause_collection: null as any,
-        }
-      );
+    const oldEnd = subscription.currentPeriodEnd ?? new Date();
+    const newEnd = this.addDays(oldEnd, days);
 
-      subscription.status =
-        updatedStripeSubscription.status as SubscriptionStatus;
-      await this.em.flush();
+    subscription.currentPeriodEnd = newEnd;
+    subscription.nextBillingDate = newEnd;
 
-      return createServiceResponse(
-        200,
-        'Subscription resumed successfully',
-        true,
-        {
-          subscription,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      this.handleStripeError(error);
-    }
+    this.appendHistory(
+      subscription,
+      'period_extended',
+      adminId,
+      `[ADMIN] Period extended by ${days} days. New end: ${newEnd.toISOString()}. Reason: ${reason}`
+    );
+
+    await this.em.flush();
+
+    return createServiceResponse(200, `Period extended by ${days} days`, true, {
+      subscription,
+    });
   }
 
   /**
-   * Obtener suscripción por ID
+   * Aplica un crédito al siguiente cobro de una suscripción.
    */
-  public async getSubscription(
-    subscriptionId: string
+  public async applyCredit(
+    subscriptionId: string,
+    amountInCents: number,
+    adminId: string,
+    reason: string,
+    requesterCompanyId?: string
   ): Promise<ServiceResponse> {
-    if (!subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
+    if (!amountInCents || amountInCents <= 0) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.CREDIT_AMOUNT_POSITIVE);
+    }
+    if (!reason) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
     }
 
     const subscription = await this.em.findOne(
       Subscription,
       { id: subscriptionId },
-      {
-        populate: ['user', 'plan', 'stripeCustomer', 'defaultPaymentMethod'],
-      }
+      { populate: ['plan'] }
     );
 
-    if (!subscription) {
-      throw new NotFoundError('Subscription');
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    if (amountInCents > subscription.plan.amount) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.CREDIT_EXCEED_PLAN);
     }
+
+    const existing = subscription.metadata?.pendingCredit ?? 0;
+    subscription.metadata = {
+      ...subscription.metadata,
+      pendingCredit: existing + amountInCents,
+      pendingCreditReason: reason,
+    };
+
+    this.appendHistory(
+      subscription,
+      'credit_applied',
+      adminId,
+      `[ADMIN] Credit of ${amountInCents} cents applied. Reason: ${reason}`
+    );
+
+    await this.em.flush();
+
+    return createServiceResponse(
+      200,
+      `Credit of ${(amountInCents / 100).toFixed(2)} applied to next billing`,
+      true,
+      { subscription }
+    );
+  }
+
+  public async getSubscription(
+    subscriptionId: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    if (!subscriptionId)
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
+
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     return createServiceResponse(
       200,
@@ -457,20 +974,11 @@ export class SubscriptionService extends BaseService {
     );
   }
 
-  // ============= CONSTRUCCIÓN DE DATOS =============
-
-  /**
-   * Listar suscripciones de usuario
-   */
   public async listUserSubscriptions(userId: string): Promise<ServiceResponse> {
-    if (!userId) {
-      throw new BadRequestError('User ID is required');
-    }
+    if (!userId) throw new BadRequestError(BAD_REQUEST_ERRORS.USER_ID_REQUIRED);
 
     const user = await this.em.findOne(User, { id: userId });
-    if (!user) {
-      throw new NotFoundError('User');
-    }
+    if (!user) throw new NotFoundError('User');
 
     const subscriptions = await this.em.find(Subscription, { user }, {
       populate: ['plan', 'defaultPaymentMethod'],
@@ -479,7 +987,7 @@ export class SubscriptionService extends BaseService {
 
     return createServiceResponse(
       200,
-      'User subscriptions fetched successfully',
+      'Subscriptions fetched successfully',
       true,
       {
         subscriptions,
@@ -487,391 +995,66 @@ export class SubscriptionService extends BaseService {
     );
   }
 
-  /**
-   * Obtener suscripción activa de usuario
-   */
   public async getActiveSubscription(userId: string): Promise<ServiceResponse> {
-    if (!userId) {
-      throw new BadRequestError('User ID is required');
-    }
+    if (!userId) throw new BadRequestError(BAD_REQUEST_ERRORS.USER_ID_REQUIRED);
 
     const user = await this.em.findOne(User, { id: userId });
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-    try {
-      const subscriptions = await this.em.find(Subscription, { user }, {
-        populate: ['plan', 'defaultPaymentMethod'],
-        orderBy: { created_at: QueryOrder.DESC },
-      } as any);
+    if (!user) throw new NotFoundError('User');
 
-      const activeSubscription =
-        subscriptions.find(sub => sub.isActive) ?? null;
+    const subscriptions = await this.em.find(Subscription, { user }, {
+      populate: ['plan', 'defaultPaymentMethod'],
+      orderBy: { created_at: QueryOrder.DESC },
+    } as any);
 
-      return createServiceResponse(
-        200,
-        'Active subscription fetched successfully',
-        true,
-        {
-          subscription: activeSubscription,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      throw new InternalServerError('Error fetching active subscription');
-    }
-  }
+    const activeSubscription = subscriptions.find(s => s.isActive) ?? null;
 
-  public async syncSubscriptionFromStripe(
-    stripeSubscriptionId: string
-  ): Promise<ServiceResponse> {
-    if (!stripeSubscriptionId) {
-      throw new BadRequestError('Stripe subscription ID is required');
-    }
-
-    try {
-      const stripeSub =
-        await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
-      const priceId = stripeSub.items.data[0].price.id;
-
-      // Obtener dependencias
-      const stripeCustomer = await this.getStripeCustomerOrFail(
-        stripeSub.customer as string
-      );
-      const plan = await this.getPlanByPriceIdOrFail(priceId);
-
-      // Buscar o crear suscripción
-      let subscription = await this.em.findOne(Subscription, {
-        stripeSubscriptionId,
-      });
-      const mappedData = this.mapStripeSubscriptionData(stripeSub);
-
-      if (subscription) {
-        this.em.assign(subscription, mappedData);
-      } else {
-        subscription = this.em.create(Subscription, {
-          stripeSubscriptionId,
-          user: stripeCustomer.user,
-          stripeCustomer,
-          plan,
-          ...mappedData,
-        } as Subscription);
-      }
-
-      this.em.persist(subscription);
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Subscription synchronized successfully',
-        true,
-        {
-          subscription,
-        }
-      );
-    } catch (error: any) {
-      if (error instanceof NotFoundError || error instanceof BadRequestError) {
-        throw error;
-      }
-      this.handleStripeError(error);
-    }
-  }
-
-  public async notifyExpiringSubscriptions(): Promise<number> {
-    const tomorrow = moment().add(1, 'days');
-    const from = tomorrow.startOf('days').toDate();
-    const to = tomorrow.endOf('days').toDate();
-
-    // Traemos suscripciones activas que vencen mañana
-    const expiringSubscriptions = await this.em.find(
-      Subscription,
+    return createServiceResponse(
+      200,
+      'Active subscription fetched successfully',
+      true,
       {
-        status: SubscriptionStatus.ACTIVE,
-        endedAt: { $gte: from, $lte: to },
-      },
-      {
-        populate: ['user', 'user.pushTokens'],
-        filters: false,
+        subscription: activeSubscription,
       }
     );
-
-    if (!expiringSubscriptions.length) {
-      console.log('[CRON] Ninguna suscripción expira mañana.');
-      return 0;
-    }
-
-    console.log(
-      `[CRON] Found ${expiringSubscriptions.length} subscripciones expiran mañana.`
-    );
-
-    await Promise.allSettled(
-      expiringSubscriptions.map(subscription => this.notifyUser(subscription))
-    );
-
-    return expiringSubscriptions.length;
-  }
-
-  private validateCreateSubscriptionInput(
-    input: CreateSubscriptionInput
-  ): void {
-    if (!input.userId || !input.planId || !input.companyId) {
-      throw new BadRequestError('User ID, Plan ID and Company ID are required');
-    }
-
-    if (input.quantity && input.quantity <= 0) {
-      throw new BadRequestError('Quantity must be greater than 0');
-    }
-
-    if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
-      throw new BadRequestError('Trial period days cannot be negative');
-    }
-  }
-
-  private async getUserOrFail(userId: string): Promise<User> {
-    const user = await this.em.findOne(User, { id: userId });
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-    return user;
-  }
-
-  private async getActivePlanOrFail(planId: string): Promise<Plan> {
-    const plan = await this.em.findOne(
-      Plan,
-      { id: planId, isActive: true },
-      { filters: { companyContext: false } }
-    );
-    if (!plan) {
-      throw new NotFoundError('Plan not found or inactive');
-    }
-    return plan;
-  }
-
-  private async getOrCreateAdminStripeCustomer(
-    user: User
-  ): Promise<StripeCustomer> {
-    const sqlEm = this.em as unknown as EM;
-
-    let stripeCustomer = await sqlEm
-      .createQueryBuilder(StripeCustomer, 'sc')
-      .join('sc.user', 'u')
-      .join('u.roles', 'r')
-      .join('sc.paymentMethods', 'pm')
-      .where({ 'r.role': UserRoleEnum.ADMIN })
-      .getSingleResult();
-
-    if (stripeCustomer) {
-      await this.em.populate(stripeCustomer, [
-        'paymentMethods',
-        'user',
-        'user.roles',
-      ]);
-      return stripeCustomer;
-    }
-
-    await this.customerService.createCustomer({
-      userId: user.id,
-      email: user.email,
-      name: user.name || 'Usuario',
-      phone: user.phoneNumber || '+34 1234 45 67 89',
-    });
-
-    // Re-fetch después de crear
-    return this.getOrCreateAdminStripeCustomer(user);
-  }
-
-  private async validateNoDuplicateSubscription(
-    user: User,
-    plan: Plan
-  ): Promise<void> {
-    const existing = await this.em.findOne(Subscription, {
-      user,
-      plan,
-      status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
-    });
-
-    if (existing) {
-      throw new ConflictError(
-        'User already has an active subscription to this plan'
-      );
-    }
-  }
-
-  private async getPaymentMethodIfProvided(
-    paymentMethodId: string | undefined,
-    stripeCustomer: StripeCustomer
-  ): Promise<PaymentMethod | null> {
-    if (!paymentMethodId) return null;
-
-    const paymentMethod = await this.em.findOne(PaymentMethod, {
-      stripePaymentMethodId: paymentMethodId,
-      stripeCustomer,
-      status: PaymentMethodStatus.ACTIVE,
-    });
-
-    if (!paymentMethod) {
-      throw new NotFoundError('Payment method not found or inactive');
-    }
-
-    return paymentMethod;
-  }
-
-  private buildStripeSubscriptionData(
-    stripeCustomer: StripeCustomer,
-    plan: Plan,
-    user: User,
-    input: CreateSubscriptionInput,
-    paymentMethod: PaymentMethod | null
-  ): Stripe.SubscriptionCreateParams {
-    const data: Stripe.SubscriptionCreateParams = {
-      customer: stripeCustomer.stripeCustomerId,
-      default_payment_method:
-        paymentMethod?.stripePaymentMethodId ??
-        stripeCustomer.paymentMethods[0]?.stripePaymentMethodId,
-      items: [{ price: plan.stripePriceId, quantity: input.quantity || 1 }],
-      metadata: {
-        userId: user.id,
-        planId: plan.id,
-        ...input.metadata,
-      },
-    };
-
-    if (input.trialPeriodDays === undefined) return data;
-
-    if (input.trialPeriodDays > 0) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + input.trialPeriodDays);
-      data.trial_end = Math.floor(trialEnd.getTime() / 1000);
-    } else {
-      data.trial_period_days = 0;
-    }
-
-    return data;
-  }
-
-  private createSubscriptionEntity(
-    stripeSub: Stripe.Subscription,
-    user: User,
-    stripeCustomer: StripeCustomer,
-    plan: Plan,
-    paymentMethod: PaymentMethod | null,
-    companyId: string
-  ): Subscription {
-    return this.em.create(Subscription, {
-      stripeSubscriptionId: stripeSub.id,
-      user,
-      stripeCustomer,
-      plan,
-      defaultPaymentMethod: paymentMethod,
-      company: companyId,
-      status: stripeSub.status as SubscriptionStatus,
-      currentPeriodStart: this.stripeTimestampToDate(
-        stripeSub.current_period_start
-      )!,
-      currentPeriodEnd: this.stripeTimestampToDate(
-        stripeSub.current_period_end
-      )!,
-      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
-      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
-      quantity: stripeSub.items.data[0]?.quantity || 1,
-      metadata: stripeSub.metadata,
-      isInTrial: false,
-      isPastDue: false,
-    });
-  }
-
-  // ============= HELPERS =============
-
-  private stripeTimestampToDate(
-    timestamp: number | null | undefined
-  ): Date | undefined {
-    return timestamp ? new Date(timestamp * 1000) : undefined;
-  }
-
-  private async getStripeCustomerOrFail(
-    customerId: string
-  ): Promise<StripeCustomer> {
-    const customer = await this.em.findOne(
-      StripeCustomer,
-      { stripeCustomerId: customerId },
-      { populate: ['user'] as any }
-    );
-
-    if (!customer) {
-      throw new NotFoundError('Stripe customer not found in database');
-    }
-
-    return customer;
-  }
-
-  private async getPlanByPriceIdOrFail(priceId: string): Promise<Plan> {
-    const plan = await this.em.findOne(Plan, { stripePriceId: priceId });
-
-    if (!plan) {
-      throw new NotFoundError('Plan not found in database');
-    }
-
-    return plan;
-  }
-
-  private mapStripeSubscriptionData(
-    stripeSub: Stripe.Subscription
-  ): Partial<Subscription> {
-    const item = stripeSub.items.data[0];
-
-    return {
-      status: stripeSub.status as SubscriptionStatus,
-      currentPeriodStart: this.stripeTimestampToDate(
-        stripeSub.current_period_start
-      )!,
-      currentPeriodEnd: this.stripeTimestampToDate(
-        stripeSub.current_period_end
-      )!,
-      trialStart: this.stripeTimestampToDate(stripeSub.trial_start),
-      trialEnd: this.stripeTimestampToDate(stripeSub.trial_end),
-      canceledAt: this.stripeTimestampToDate(stripeSub.canceled_at),
-      cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-      endedAt: this.stripeTimestampToDate(stripeSub.ended_at),
-      quantity: item?.quantity || 1,
-      metadata: stripeSub.metadata,
-    };
   }
 
   /**
-   * Obtener estadísticas de suscripciones activas del mes calendario actual agrupadas por plan
+   * Devuelve el audit log de cambios de estado de una suscripción.
    */
+  public async getSubscriptionHistory(
+    subscriptionId: string
+  ): Promise<ServiceResponse> {
+    const subscription = await this.em.findOne(Subscription, {
+      id: subscriptionId,
+    });
+
+    if (!subscription) throw new NotFoundError('Subscription');
+
+    const history = subscription.metadata?.history ?? [];
+
+    return createServiceResponse(200, 'History fetched successfully', true, {
+      history,
+    });
+  }
+
   public async getSubscriptionsStats(
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
-    if (!currentUser) {
-      throw new UnauthorizedError();
-    }
+    if (!currentUser) throw new UnauthorizedError();
 
     try {
-      const SubscriptionRepo = this.em.getRepository(Subscription);
+      const subscriptions = await this.em
+        .getRepository(Subscription)
+        .find(
+          { status: SubscriptionStatus.ACTIVE },
+          { fields: ['plan.id', 'plan.name'] }
+        );
 
-      // Rango de fechas para el mes calendario actual
-      // const startOfMonth = moment().startOf('month').toDate();
-      // const endOfMonth = moment().endOf('month').toDate();
-
-      // Consultar suscripciones activas creadas en el mes actual, seleccionando solo plan.id y plan.name
-      const subscriptions = await SubscriptionRepo.find(
-        {
-          status: SubscriptionStatus.ACTIVE,
-          // created_at: { $gte: startOfMonth, $lte: endOfMonth },
-        },
-        { fields: ['plan.id', 'plan.name'] }
-      );
-
-      // Agrupar en un Map por plan para eficiencia O(N)
       const grouped = new Map<string, { planName: string; count: number }>();
 
       for (const sub of subscriptions) {
         const plan = sub.plan;
         if (!plan) continue;
-
         const existing = grouped.get(plan.id);
         if (existing) {
           existing.count += 1;
@@ -886,25 +1069,1353 @@ export class SubscriptionService extends BaseService {
         count: data.count,
       }));
 
-      return createServiceResponse(
-        200,
-        'Subscription stats calculated successfully',
-        true,
-        {
-          stats,
-        }
-      );
+      return createServiceResponse(200, 'Stats calculated successfully', true, {
+        stats,
+      });
     } catch (error: any) {
-      if (error instanceof UnauthorizedError) {
-        throw error;
+      console.error(error);
+      throw new InternalServerError(INTERNAL_ERRORS.ERROR_CALCULATING_STATS);
+    }
+  }
+
+  /**
+   * Punto de entrada del CRON de billing — ejecutar una vez al día (02:00 UTC).
+   */
+  public async processBillingCycle(): Promise<void> {
+    console.log('[CRON] processBillingCycle — start');
+    const now = moment().toDate();
+
+    const pendingCancellations = await this.em.find(
+      Subscription,
+      {
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: { $lte: now },
+      },
+      { populate: ['user'] }
+    );
+
+    console.log(`[CRON] ${pendingCancellations.length} deferred cancellations`);
+    for (const sub of pendingCancellations) {
+      sub.status = SubscriptionStatus.CANCELED;
+      sub.canceledAt = now;
+      sub.endedAt = now;
+      sub.nextBillingDate = undefined;
+      this.appendHistory(
+        sub,
+        'canceled',
+        'system',
+        'Canceled at period end (scheduled)'
+      );
+    }
+
+    if (pendingCancellations.length > 0) {
+      await this.em.flush();
+    }
+
+    const expiringTrials = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.TRIALING,
+        trialEnd: { $lte: now },
+      },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    console.log(`[CRON] ${expiringTrials.length} trials expiring`);
+    for (const sub of expiringTrials) {
+      await this.transitionTrialToActive(sub);
+    }
+
+    const dueSubscriptions = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.ACTIVE,
+        nextBillingDate: { $lte: now },
+        // plan: { amount: { $gt: 0 } },
+      },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    console.log(
+      `[CRON] ${dueSubscriptions.length} subscriptions due for renewal`
+    );
+    for (const sub of dueSubscriptions) {
+      await this.attemptCharge(sub);
+    }
+
+    console.log('[CRON] processBillingCycle — done');
+  }
+
+  /**
+   * Notifica a los usuarios cuya suscripción vence mañana.
+   */
+  public async notifyExpiringSubscriptions(): Promise<number> {
+    const tomorrow = moment().add(1, 'days');
+    const from = tomorrow.clone().startOf('day').toDate();
+    const to = tomorrow.clone().endOf('day').toDate();
+
+    const expiringSubscriptions = await this.em.find(
+      Subscription,
+      {
+        status: SubscriptionStatus.ACTIVE,
+        endedAt: { $gte: from, $lte: to },
+      },
+      { populate: ['user', 'user.pushTokens'], filters: false }
+    );
+
+    if (!expiringSubscriptions.length) {
+      console.log('[CRON] No subscriptions expiring tomorrow');
+      return 0;
+    }
+
+    console.log(
+      `[CRON] Notifying ${expiringSubscriptions.length} expiring subscriptions`
+    );
+
+    await Promise.allSettled(
+      expiringSubscriptions.map(sub => this.notifyUser(sub))
+    );
+    return expiringSubscriptions.length;
+  }
+
+  // ═══════════════════════════════════════════
+  // OPERACIONES DE ADMIN
+  // ═══════════════════════════════════════════
+
+  /**
+   * Caso 1 y 2: el usuario ya tiene una suscripción activa relevante.
+   * Si es al mismo plan, es un conflicto real. Si es a otro plan de la
+   * misma empresa, se trata como cambio de plan (sin prorrateo, ya que
+   * createSubscription no expone ese parámetro al frontend — para
+   * prorratear explícitamente, el frontend debe llamar a changePlan).
+   */
+  private isUnusedFutureSubscription(subscription: Subscription): boolean {
+    const now = moment();
+    const currentStart = moment(subscription.currentPeriodStart);
+    return now.isBefore(currentStart, 'day');
+  }
+
+  private async updateFutureSubscriptionDate(
+    subscription: Subscription,
+    newPlan: Plan,
+    newStartDate?: string | Date
+  ): Promise<void> {
+    const newStart = newStartDate ? moment(newStartDate) : moment();
+    const newStartJS = newStart.toDate();
+    const newEndJS = this.calculatePeriodEnd(newStartJS, newPlan);
+
+    subscription.currentPeriodStart = newStartJS;
+    subscription.currentPeriodEnd = newEndJS;
+    subscription.nextBillingDate = newEndJS;
+
+    if (subscription.trialStart && subscription.trialEnd) {
+      const trialDays = moment(subscription.trialEnd).diff(
+        moment(subscription.trialStart),
+        'days'
+      );
+      subscription.trialStart = newStartJS;
+      subscription.trialEnd = this.addDays(newStartJS, trialDays);
+      subscription.currentPeriodEnd = subscription.trialEnd;
+      subscription.nextBillingDate = subscription.trialEnd;
+    }
+
+    await this.em.flush();
+  }
+
+  private async resolveExistingActiveSubscription(
+    activeSubscription: Subscription,
+    newPlan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    if (activeSubscription.plan.id === newPlan.id) {
+      if (this.isUnusedFutureSubscription(activeSubscription)) {
+        await this.updateFutureSubscriptionDate(
+          activeSubscription,
+          newPlan,
+          input.startDate
+        );
+
+        return createServiceResponse(
+          200,
+          'Subscription start date updated successfully',
+          true,
+          { subscription: activeSubscription }
+        );
       }
-      throw new InternalServerError('Error calculating subscription stats');
+
+      throw new ConflictError(CONFLICT_ERRORS.USER_ALREADY_ACTIVE_IN_PLAN);
+    }
+
+    return this.executePlanChange(activeSubscription, newPlan, false);
+  }
+
+  /**
+   * Caso 3: hay una suscripción CANCELED (a cualquier plan de la misma
+   * empresa) con período pagado pendiente. Se sustituye respetando ese
+   * período — ver buildReplacementSubscription.
+   */
+  private async replaceCanceledSubscription(
+    canceledSubscription: Subscription,
+    newPlan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const isSamePlan = canceledSubscription.plan.id === newPlan.id;
+
+    return this.buildReplacementSubscription({
+      oldSubscription: canceledSubscription,
+      newPlan,
+      paymentMethodId: input.paymentMethodId,
+      trialPeriodDays: input.trialPeriodDays,
+      metadata: input.metadata,
+      forceImmediateCancellation: false,
+      cancellationReason: isSamePlan
+        ? 'Superseded by new subscription to the same plan'
+        : `Superseded by new subscription to a different plan (${newPlan.name})`,
+      alreadyCanceled: true,
+    });
+  }
+
+  /**
+   * Caso 4: no hay nada que sustituir ni cambiar — se crea la suscripción
+   * desde cero, con o sin trial según el plan.
+   */
+  private async createSubscriptionFromScratch(
+    user: User,
+    plan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const customer = await this.customerService.getOrCreateCustomer(user);
+    const billingCompanyId = this.resolveBillingCompanyId(
+      plan,
+      input.companyId
+    );
+
+    const paymentMethod = input.paymentMethodId
+      ? await this.getPaymentMethodOrFail(input.paymentMethodId, customer)
+      : await this.getDefaultPaymentMethod(customer);
+
+    const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
+    const now = moment().toDate();
+    const baseStart = input.startDate ? moment(input.startDate).toDate() : now;
+    const isTrialing = trialDays > 0;
+
+    const trialStart = isTrialing ? baseStart : undefined;
+    const trialEnd = isTrialing
+      ? this.addDays(baseStart, trialDays)
+      : undefined;
+    const periodEnd = isTrialing
+      ? trialEnd!
+      : this.calculatePeriodEnd(baseStart, plan);
+
+    const subscription = this.em.create(Subscription, {
+      user,
+      customer,
+      plan,
+      defaultPaymentMethod: paymentMethod ?? undefined,
+      company: billingCompanyId,
+      status: isTrialing
+        ? SubscriptionStatus.TRIALING
+        : SubscriptionStatus.INCOMPLETE,
+      currentPeriodStart: baseStart,
+      currentPeriodEnd: periodEnd,
+      trialStart,
+      trialEnd,
+      nextBillingDate: periodEnd,
+      quantity: input.quantity ?? 1,
+      failedPaymentAttempts: 0,
+      // TEMPORAL: toda suscripcion nueva nace marcada para cancelarse al
+      // terminar su periodo actual. El CRON (processBillingCycle) ya
+      // respeta este flag y la pasara a CANCELED en cuanto currentPeriodEnd
+      // se cumpla, sin renovacion automatica. Pendiente: cuando se
+      // implemente el flujo de renovacion real en produccion, este valor
+      // dejara de ser fijo y pasara a depender de la decision del usuario
+      // (ej. un toggle de "renovacion automatica" en el input).
+      cancelAtPeriodEnd: true,
+      metadata: {
+        ...input.metadata,
+        history: [
+          this.buildHistoryEntry('created', 'system', 'Subscription created'),
+        ],
+      },
+    });
+
+    this.em.persist(subscription);
+    await this.em.flush();
+
+    if (!isTrialing) {
+      await this.attemptCharge(subscription);
+    }
+
+    return createServiceResponse(
+      201,
+      'Subscription created successfully',
+      true,
+      { subscription }
+    );
+  }
+
+  /**
+   * Núcleo del cambio de plan, sin resolución de IDs: recibe la
+   * Subscription y el Plan ya cargados.
+   *
+   * Reutilizado por:
+   *  - changePlan() — cuando el frontend pide explícitamente un cambio
+   *  - createSubscription() — cuando detecta que el usuario ya tiene esta
+   *    suscripción activa a otro plan de la misma empresa y, en vez de
+   *    crear una segunda entidad, debe migrar la existente con prorrateo.
+   *
+   * Dividido en pasos privados con nombre propio para mantener la
+   * complejidad cognitiva baja.
+   */
+  private async executePlanChange(
+    subscription: Subscription,
+    newPlan: Plan,
+    prorate?: boolean
+  ): Promise<ServiceResponse> {
+    const oldPlan = subscription.plan;
+    const now = new Date();
+
+    if (prorate) {
+      await this.applyPlanChangeProration(subscription, oldPlan, newPlan, now);
+    }
+
+    this.applyNewPlanToSubscription(subscription, newPlan, now);
+
+    this.appendHistory(
+      subscription,
+      'plan_changed',
+      'user',
+      `Plan changed from "${oldPlan.name}" to "${newPlan.name}"${
+        prorate ? ' with proration' : ''
+      }`
+    );
+
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Plan changed successfully', true, {
+      subscription,
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // LECTURA
+  // ═══════════════════════════════════════════
+
+  /**
+   * Resuelve y valida la suscripción y el plan nuevo para changePlan.
+   * Agrupa las cuatro validaciones de entrada en un solo paso.
+   */
+  private async resolveChangePlanTargets(
+    input: ChangePlanInput
+  ): Promise<{ subscription: Subscription; newPlan: Plan }> {
+    if (!input.subscriptionId || !input.newPlanId) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUB_AND_PLAN_REQUIRED);
+    }
+
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: input.subscriptionId },
+      { populate: ['user', 'plan', 'customer', 'defaultPaymentMethod'] }
+    );
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    if (!subscription.isActive) {
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.ONLY_ACTIVE_OR_TRIAL_CAN_CHANGE_PLAN
+      );
+    }
+
+    const newPlan = await this.em.findOne(
+      Plan,
+      { id: input.newPlanId, isActive: true },
+      { filters: { companyContext: false }, populate: ['company'] }
+    );
+
+    if (!newPlan) throw new NotFoundError('New plan not found or inactive');
+    if (newPlan.id === subscription.plan.id) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.NEW_PLAN_SAME_AS_CURRENT);
+    }
+
+    return { subscription, newPlan };
+  }
+
+  /**
+   * Calcula la fracción de período restante y la diferencia prorrateada
+   * entre el plan viejo y el nuevo en el instante `now`.
+   */
+  private calculateProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    now: Date
+  ): { fractionRemaining: number; proratedDiff: number } | null {
+    if (!subscription.currentPeriodStart || !subscription.currentPeriodEnd) {
+      return null;
+    }
+
+    const periodTotal =
+      subscription.currentPeriodEnd.getTime() -
+      subscription.currentPeriodStart.getTime();
+    const periodElapsed =
+      now.getTime() - subscription.currentPeriodStart.getTime();
+    const periodRemaining = Math.max(0, periodTotal - periodElapsed);
+    const fractionRemaining = periodRemaining / periodTotal;
+
+    const oldPlanCredit = Math.round(oldPlan.amount * fractionRemaining);
+    const newPlanCharge = Math.round(newPlan.amount * fractionRemaining);
+
+    return {
+      fractionRemaining,
+      proratedDiff: newPlanCharge - oldPlanCredit,
+    };
+  }
+
+  /**
+   * Orquesta el prorrateo: si es upgrade cobra la diferencia ahora, si es
+   * downgrade acredita la diferencia para el siguiente cobro.
+   * No hace nada si no se puede calcular el prorrateo (faltan fechas de
+   * período) o si la diferencia es cero.
+   */
+  private async applyPlanChangeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    now: Date
+  ): Promise<void> {
+    const proration = this.calculateProration(
+      subscription,
+      oldPlan,
+      newPlan,
+      now
+    );
+    if (!proration) return;
+
+    const { proratedDiff, fractionRemaining } = proration;
+
+    if (proratedDiff > 0) {
+      await this.chargePlanUpgradeProration(
+        subscription,
+        oldPlan,
+        newPlan,
+        proratedDiff,
+        fractionRemaining,
+        now
+      );
+    } else if (proratedDiff < 0) {
+      this.creditPlanDowngradeProration(
+        subscription,
+        oldPlan,
+        newPlan,
+        proratedDiff
+      );
+    }
+  }
+
+  /**
+   * Cobra la diferencia prorrateada de un upgrade: crea la Invoice, ejecuta
+   * el cargo, y la marca pagada o la anula según el resultado.
+   * Si no hay métdo de pago válido, no hace nada (el plan se aplicará sin
+   * cobro retroactivo — comportamiento previo conservado).
+   */
+  private async chargePlanUpgradeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    proratedDiff: number,
+    fractionRemaining: number,
+    now: Date
+  ): Promise<void> {
+    const pm = subscription.defaultPaymentMethod;
+    const isPaymentMethodReady =
+      !!pm?.externalToken && pm?.status === PaymentMethodStatus.ACTIVE;
+    if (!isPaymentMethodReady) {
+      return;
+    }
+
+    const description = `Plan upgrade proration: ${oldPlan.name} → ${newPlan.name}`;
+    const companyId = this.extractCompanyId(subscription.company);
+
+    const prorationInvoice = await this.invoiceService.createInvoice({
+      userId: subscription.user.id,
+      subscriptionId: subscription.id,
+      subtotal: proratedDiff,
+      currency: newPlan.currency,
+      dueDate: now,
+      description,
+      lineItems: [
+        {
+          description: `Prorated upgrade from "${oldPlan.name}" to "${newPlan.name}"`,
+          amount: proratedDiff,
+          currency: newPlan.currency,
+          fractionRemaining,
+        },
+      ],
+      companyId,
+    });
+
+    const chargeResult = await this.transactionService.createCharge({
+      userId: subscription.user.id,
+      amount: proratedDiff,
+      currency: newPlan.currency,
+      paymentMethodId: pm.id,
+      invoiceId: prorationInvoice.id,
+      subscriptionId: subscription.id,
+      description,
+      companyId,
+    });
+
+    const { transaction } = chargeResult.data as {
+      transaction?: { status?: string };
+    };
+
+    if (transaction?.status !== 'succeeded') {
+      await this.invoiceService.voidInvoice(prorationInvoice.id);
+      throw new BadRequestError(BAD_REQUEST_ERRORS.PRORATION_CHARGE_FAILED);
+    }
+
+    await this.invoiceService.markAsPaid(prorationInvoice.id, now);
+  }
+
+  /**
+   * Acredita en metadata.pendingCredit la diferencia de un downgrade, para
+   * descontarla del siguiente cobro de renovación.
+   */
+  private creditPlanDowngradeProration(
+    subscription: Subscription,
+    oldPlan: Plan,
+    newPlan: Plan,
+    proratedDiff: number
+  ): void {
+    const credit = Math.abs(proratedDiff);
+    subscription.metadata = {
+      ...subscription.metadata,
+      pendingCredit: (subscription.metadata?.pendingCredit ?? 0) + credit,
+      pendingCreditReason: `Plan downgrade: ${oldPlan.name} → ${newPlan.name}`,
+    };
+  }
+
+  // ═══════════════════════════════════════════
+  // CRON: CICLO DE FACTURACIÓN
+  // ═══════════════════════════════════════════
+
+  /**
+   * Aplica el nuevo plan a la suscripción y recalcula su período/próximo cobro.
+   */
+  private applyNewPlanToSubscription(
+    subscription: Subscription,
+    newPlan: Plan,
+    now: Date
+  ): void {
+    subscription.plan = newPlan;
+    subscription.currentPeriodEnd = this.calculatePeriodEnd(
+      subscription.currentPeriodStart ?? now,
+      newPlan
+    );
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
+  }
+
+  /**
+   * Logica compartida entre replaceSubscription() y el flujo automatico de
+   * createSubscription() cuando detecta una suscripcion que debe sustituirse.
+   *
+   * Cancela (o reconoce ya cancelada) la suscripcion vieja y crea la nueva
+   * respetando el periodo ya pagado: si a la vieja le quedaba periodo
+   * vigente, la nueva no empieza hoy, empieza cuando ese periodo termine.
+   *
+   * Dividido en pasos privados con nombre propio para mantener la
+   * complejidad cognitiva baja (cada paso es lineal, sin anidamiento, y
+   * se puede leer/testear de forma aislada).
+   */
+  private async buildReplacementSubscription(
+    params: ReplacementParams
+  ): Promise<ServiceResponse> {
+    const now = new Date();
+    const hasRemainingPeriod = this.hasRemainingPaidPeriod(params, now);
+
+    if (!params.alreadyCanceled) {
+      this.cancelOldSubscriptionForReplacement(
+        params.oldSubscription,
+        params.newPlan,
+        hasRemainingPeriod,
+        params.cancellationReason,
+        now
+      );
+    }
+
+    const newSubscription = await this.createReplacementSubscription(
+      params,
+      hasRemainingPeriod,
+      now
+    );
+
+    if (
+      !hasRemainingPeriod &&
+      !this.isTrialingNow(params, hasRemainingPeriod)
+    ) {
+      await this.attemptCharge(newSubscription);
+    }
+
+    return this.buildReplacementResponse(
+      params.oldSubscription,
+      newSubscription,
+      hasRemainingPeriod
+    );
+  }
+
+  /**
+   * ¿La suscripcion vieja todavia tiene periodo pagado vigente?
+   * Si forceImmediateCancellation es true, se ignora aunque le quedara
+   * periodo, para forzar el corte inmediato.
+   */
+  private hasRemainingPaidPeriod(
+    params: ReplacementParams,
+    now: Date
+  ): boolean {
+    const { oldSubscription, forceImmediateCancellation, alreadyCanceled } =
+      params;
+
+    return (
+      !forceImmediateCancellation &&
+      !!oldSubscription.currentPeriodEnd &&
+      oldSubscription.currentPeriodEnd > now &&
+      (alreadyCanceled || oldSubscription.isActive)
+    );
+  }
+
+  /**
+   * Marca la suscripcion vieja como CANCELED, respetando el periodo ya
+   * pagado en endedAt si correspondia, y deja constancia en el audit log.
+   */
+  private cancelOldSubscriptionForReplacement(
+    oldSubscription: Subscription,
+    newPlan: Plan,
+    hasRemainingPeriod: boolean,
+    cancellationReason: string | undefined,
+    now: Date
+  ): void {
+    oldSubscription.status = SubscriptionStatus.CANCELED;
+    oldSubscription.canceledAt = now;
+    oldSubscription.endedAt = hasRemainingPeriod
+      ? oldSubscription.currentPeriodEnd
+      : now;
+    oldSubscription.nextBillingDate = undefined;
+
+    this.appendHistory(
+      oldSubscription,
+      'replaced',
+      'system',
+      `Replaced by a new subscription to plan "${newPlan.name}". ` +
+        `Reason: ${cancellationReason ?? 'not specified'}`
+    );
+  }
+
+  /**
+   * Calcula si la suscripcion nueva debe arrancar en trial.
+   * Solo aplica si empieza ya (no hay periodo pendiente que respetar).
+   */
+  private isTrialingNow(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean
+  ): boolean {
+    const trialDays =
+      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
+    return trialDays > 0 && !hasRemainingPeriod;
+  }
+
+  /**
+   * Resuelve el metodo de pago a usar en la nueva suscripcion: el indicado
+   * explicitamente, o si no se indica, el de la suscripcion vieja, o si
+   * tampoco existe, el default del Customer.
+   */
+  private async resolveReplacementPaymentMethod(
+    oldSubscription: Subscription,
+    paymentMethodId?: string
+  ): Promise<PaymentMethod | null> {
+    if (paymentMethodId) {
+      return this.getPaymentMethodOrFail(
+        paymentMethodId,
+        oldSubscription.customer
+      );
+    }
+    return (
+      oldSubscription.defaultPaymentMethod ??
+      (await this.getDefaultPaymentMethod(oldSubscription.customer))
+    );
+  }
+
+  /**
+   * Resuelve el estado inicial de la suscripcion de reemplazo.
+   * Extraido como statement independiente (S3358) en lugar de un ternario
+   * anidado: ACTIVE si aun queda periodo pagado por respetar, TRIALING si
+   * arranca ya y tiene trial, INCOMPLETE en cualquier otro caso.
+   */
+  private resolveReplacementStatus(
+    hasRemainingPeriod: boolean,
+    isTrialing: boolean
+  ): SubscriptionStatus {
+    if (hasRemainingPeriod) return SubscriptionStatus.ACTIVE;
+    if (isTrialing) return SubscriptionStatus.TRIALING;
+    return SubscriptionStatus.INCOMPLETE;
+  }
+
+  /**
+   * Construye el objeto de fechas/trial/periodo de la nueva suscripcion.
+   * Se aisla en su propio metodo porque mezclar este calculo dentro de
+   * createReplacementSubscription elevaba demasiado la complejidad de esa
+   * funcion.
+   */
+  private buildReplacementSchedule(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean,
+    now: Date
+  ): ReplacementSchedule {
+    const newPeriodStart = hasRemainingPeriod
+      ? params.oldSubscription.currentPeriodEnd!
+      : now;
+
+    const isTrialing = this.isTrialingNow(params, hasRemainingPeriod);
+    const trialDays =
+      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
+
+    const trialStart = isTrialing ? newPeriodStart : undefined;
+    const trialEnd = isTrialing
+      ? this.addDays(newPeriodStart, trialDays)
+      : undefined;
+    const periodEnd = isTrialing
+      ? trialEnd!
+      : this.calculatePeriodEnd(newPeriodStart, params.newPlan);
+
+    const status = this.resolveReplacementStatus(
+      hasRemainingPeriod,
+      isTrialing
+    );
+
+    return {
+      newPeriodStart,
+      periodEnd,
+      trialStart,
+      trialEnd,
+      status,
+      nextBillingDate: hasRemainingPeriod ? newPeriodStart : periodEnd,
+    };
+  }
+
+  /**
+   * Construye el texto del primer evento de audit log de la suscripcion
+   * nueva, explicando si empieza ya o si espera al fin del periodo viejo.
+   */
+  private buildReplacementCreationNote(
+    oldSubscriptionId: string,
+    hasRemainingPeriod: boolean,
+    newPeriodStart: Date
+  ): string {
+    if (hasRemainingPeriod) {
+      return (
+        `Created to replace subscription ${oldSubscriptionId}. ` +
+        `Starts on ${newPeriodStart.toISOString()} (after old period ends).`
+      );
+    }
+    return `Created to replace subscription ${oldSubscriptionId}. Starts immediately.`;
+  }
+
+  /**
+   * Crea y persiste la entidad Subscription nueva que sustituye a la vieja.
+   */
+  private async createReplacementSubscription(
+    params: ReplacementParams,
+    hasRemainingPeriod: boolean,
+    now: Date
+  ): Promise<Subscription> {
+    const { oldSubscription, newPlan, paymentMethodId, metadata } = params;
+
+    const billingCompanyId = this.resolveBillingCompanyId(
+      newPlan,
+      this.extractCompanyId(oldSubscription.company)
+    );
+
+    const paymentMethod = await this.resolveReplacementPaymentMethod(
+      oldSubscription,
+      paymentMethodId
+    );
+
+    const schedule = this.buildReplacementSchedule(
+      params,
+      hasRemainingPeriod,
+      now
+    );
+
+    const creationNote = this.buildReplacementCreationNote(
+      oldSubscription.id,
+      hasRemainingPeriod,
+      schedule.newPeriodStart
+    );
+
+    const newSubscription = this.em.create(Subscription, {
+      user: oldSubscription.user,
+      customer: oldSubscription.customer,
+      plan: newPlan,
+      defaultPaymentMethod: paymentMethod ?? undefined,
+      company: billingCompanyId,
+      status: schedule.status,
+      currentPeriodStart: schedule.newPeriodStart,
+      currentPeriodEnd: schedule.periodEnd,
+      trialStart: schedule.trialStart,
+      trialEnd: schedule.trialEnd,
+      nextBillingDate: schedule.nextBillingDate,
+      failedPaymentAttempts: 0,
+      quantity: oldSubscription.quantity ?? 1,
+      // TEMPORAL: misma regla que en createSubscriptionFromScratch — ver
+      // ese comentario para el contexto completo.
+      cancelAtPeriodEnd: true,
+      metadata: {
+        ...metadata,
+        replacedSubscriptionId: oldSubscription.id,
+        history: [this.buildHistoryEntry('created', 'system', creationNote)],
+      },
+    });
+
+    this.em.persist(newSubscription);
+    await this.em.flush();
+
+    return newSubscription;
+  }
+
+  /**
+   * Construye la ServiceResponse final de buildReplacementSubscription.
+   */
+  private buildReplacementResponse(
+    oldSubscription: Subscription,
+    newSubscription: Subscription,
+    hasRemainingPeriod: boolean
+  ): ServiceResponse {
+    const message = hasRemainingPeriod
+      ? `Subscription replaced. New plan starts on ${newSubscription.currentPeriodStart!.toLocaleDateString()}.`
+      : 'Subscription replaced successfully';
+
+    return createServiceResponse(201, message, true, {
+      oldSubscription,
+      newSubscription,
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // LÓGICA DE COBRO Y DUNNING
+  // ═══════════════════════════════════════════
+
+  private async attemptCharge(subscription: Subscription): Promise<void> {
+    const now = moment().toDate();
+    const isFuture =
+      subscription.currentPeriodStart && subscription.currentPeriodStart > now;
+
+    if (subscription.plan.amount === 0) {
+      subscription.status = SubscriptionStatus.ACTIVE;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
+      this.appendHistory(
+        subscription,
+        'renewed',
+        'system',
+        'Free plan — no charge required'
+      );
+      await this.em.flush();
+      return;
+    }
+
+    let invoice: Invoice;
+    try {
+      invoice = await this.invoiceService.createForSubscription(subscription);
+    } catch (err: any) {
+      console.error(
+        `[Billing] Could not create invoice for subscription ${subscription.id}:`,
+        err.message
+      );
+      return;
+    }
+
+    const pm = subscription.defaultPaymentMethod;
+
+    if (!pm?.externalToken || pm.status !== PaymentMethodStatus.ACTIVE) {
+      console.warn(
+        `[Billing] Subscription ${subscription.id} has no valid payment method`
+      );
+      await this.handleFailedPayment(subscription, invoice);
+      return;
+    }
+
+    const pendingCredit: number = subscription.metadata?.pendingCredit ?? 0;
+    const baseAmount = subscription.plan.amount;
+    const chargeAmount = Math.max(0, baseAmount - pendingCredit);
+
+    if (chargeAmount === 0) {
+      await this.invoiceService.markAsPaid(invoice.id, now);
+
+      subscription.status = SubscriptionStatus.ACTIVE;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
+      subscription.failedPaymentAttempts = 0;
+      subscription.metadata = {
+        ...subscription.metadata,
+        pendingCredit: 0,
+        pendingCreditReason: undefined,
+      };
+
+      this.appendHistory(
+        subscription,
+        'renewed',
+        'system',
+        'Renewed using pending credit (no charge)'
+      );
+      await this.em.flush();
+      return;
+    }
+
+    const chargeResponse = await this.transactionService.createCharge({
+      userId: subscription.user.id,
+      amount: chargeAmount,
+      currency: subscription.plan.currency,
+      paymentMethodId: pm.id,
+      invoiceId: invoice.id,
+      subscriptionId: subscription.id,
+      description: `Renewal — ${subscription.plan.name}`,
+      companyId: this.extractCompanyId(subscription.company),
+    });
+
+    const { transaction } = chargeResponse as {
+      transaction?: { status?: string };
+    };
+
+    if (transaction?.status === 'succeeded') {
+      await this.invoiceService.markAsPaid(invoice.id, now);
+
+      subscription.status = SubscriptionStatus.ACTIVE;
+      if (!isFuture) {
+        subscription.currentPeriodStart = now;
+        subscription.currentPeriodEnd = this.calculatePeriodEnd(
+          now,
+          subscription.plan
+        );
+        subscription.nextBillingDate = subscription.currentPeriodEnd;
+      }
+      subscription.failedPaymentAttempts = 0;
+
+      if (pendingCredit > 0) {
+        subscription.metadata = {
+          ...subscription.metadata,
+          pendingCredit: 0,
+          pendingCreditReason: undefined,
+        };
+      }
+
+      this.appendHistory(
+        subscription,
+        'renewed',
+        'system',
+        `Renewed successfully. Charged: ${chargeAmount} cents`
+      );
+      await this.em.flush();
+
+      console.log(
+        `[Billing] Subscription ${subscription.id} renewed successfully`
+      );
+    } else {
+      await this.handleFailedPayment(subscription, invoice);
+    }
+  }
+
+  private async handleFailedPayment(
+    subscription: Subscription,
+    _invoice: Invoice
+  ): Promise<void> {
+    subscription.failedPaymentAttempts += 1;
+
+    const attempt = subscription.failedPaymentAttempts;
+    const { maxAttempts, retryIntervalDays } = DUNNING_CONFIG;
+
+    if (attempt >= maxAttempts) {
+      subscription.status = SubscriptionStatus.PAST_DUE;
+      subscription.nextBillingDate = undefined;
+
+      this.appendHistory(
+        subscription,
+        'past_due',
+        'system',
+        `Moved to PAST_DUE after ${attempt} failed payment attempts`
+      );
+
+      console.warn(
+        `[Billing] Subscription ${subscription.id} → PAST_DUE after ${attempt} attempts`
+      );
+
+      await this.notifyPaymentFailed(subscription);
+    } else {
+      const daysUntilRetry =
+        retryIntervalDays[attempt - 1] ?? retryIntervalDays.at(-1)!;
+
+      subscription.nextBillingDate = this.addDays(new Date(), daysUntilRetry);
+
+      this.appendHistory(
+        subscription,
+        'payment_failed',
+        'system',
+        `Payment attempt ${attempt}/${maxAttempts} failed. Next retry in ${daysUntilRetry} days`
+      );
+
+      console.warn(
+        `[Billing] Subscription ${subscription.id} charge failed ` +
+          `(attempt ${attempt}/${maxAttempts}). Next retry in ${daysUntilRetry} days`
+      );
+    }
+
+    await this.em.flush();
+  }
+
+  private async transitionTrialToActive(
+    subscription: Subscription
+  ): Promise<void> {
+    const now = new Date();
+    const isFree = subscription.plan.amount === 0;
+    subscription.status = SubscriptionStatus.ACTIVE;
+    subscription.currentPeriodStart = now;
+    subscription.currentPeriodEnd = this.calculatePeriodEnd(
+      now,
+      subscription.plan
+    );
+    subscription.failedPaymentAttempts = 0;
+    subscription.nextBillingDate = subscription.currentPeriodEnd;
+
+    this.appendHistory(
+      subscription,
+      'trial_ended',
+      'system',
+      'Trial period ended — transitioning to active'
+    );
+
+    await this.em.flush();
+
+    if (isFree) {
+      console.log(
+        `[Billing] Trial ended for free subscription ${subscription.id}. No charge needed.`
+      );
+    } else {
+      console.log(
+        `[Billing] Trial ended for subscription ${subscription.id}. Attempting first charge.`
+      );
+      await this.attemptCharge(subscription);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // AUDIT LOG
+  // ═══════════════════════════════════════════
+
+  private appendHistory(
+    subscription: Subscription,
+    event: string,
+    actor: string,
+    detail: string
+  ): void {
+    const entry = this.buildHistoryEntry(event, actor, detail);
+    const current: any[] = subscription.metadata?.history ?? [];
+    subscription.metadata = {
+      ...subscription.metadata,
+      history: [...current, entry],
+    };
+  }
+
+  private buildHistoryEntry(
+    event: string,
+    actor: string,
+    detail: string
+  ): Record<string, any> {
+    return {
+      event,
+      actor,
+      detail,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // ═══════════════════════════════════════════
+  // HELPERS PRIVADOS
+  // ═══════════════════════════════════════════
+
+  private validateCreateInput(input: CreateSubscriptionInput): void {
+    if (!input.userId || !input.planId || !input.companyId) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REQUIRED_FIELDS);
+    }
+    if (input.quantity !== undefined && input.quantity <= 0) {
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.QUANTITY_MUST_BE_GREATER_THAN_0
+      );
+    }
+    if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.TRIAL_PERIOD_NEGATIVE);
+    }
+    if (input.startDate) {
+      const start = moment(input.startDate);
+      if (!start.isValid()) {
+        throw new BadRequestError(BAD_REQUEST_ERRORS.INVALID_START_DATE);
+      }
+      if (start.isBefore(moment(), 'day')) {
+        throw new BadRequestError(BAD_REQUEST_ERRORS.START_DATE_PAST);
+      }
+    }
+  }
+
+  private validatePaidPlanStartDate(
+    plan: Plan,
+    startDate?: string | Date
+  ): void {
+    if (plan.amount > 0 && startDate) {
+      const start = moment(startDate);
+      if (!start.isSame(moment(), 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.PAID_PLAN_CANNOT_START_IN_FUTURE
+        );
+      }
+    }
+  }
+
+  private async getUserOrFail(userId: string): Promise<User> {
+    const user = await this.em.findOne(User, { id: userId });
+    if (!user) throw new NotFoundError('User');
+    return user;
+  }
+
+  private async getActivePlanOrFail(planId: string): Promise<Plan> {
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId, isActive: true },
+      { filters: { companyContext: false }, populate: ['company'] }
+    );
+    if (!plan) throw new NotFoundError('Plan not found or inactive');
+    return plan;
+  }
+
+  /**
+   * Extrae de forma segura el ID de una relacion ManyToOne sin importar si
+   * llego populada (objeto con .id), como Reference sin inicializar de
+   * MikroORM, o ya como string plano.
+   *
+   * Centraliza la logica que antes estaba duplicada (y rota) en 5 sitios
+   * distintos como (entity.relation as any)?.id ?? entity.relation ??
+   * undefined - ese patron fallaba silenciosamente cuando la relacion no
+   * estaba populada, devolviendo undefined en vez del id real.
+   */
+  private extractCompanyId(relation: unknown): string | undefined {
+    if (!relation) return undefined;
+    if (typeof relation === 'string') return relation;
+    if (typeof relation === 'object' && 'id' in (relation as any)) {
+      return (relation as any).id as string;
+    }
+    const ref = relation as any;
+    if (typeof ref.getEntity === 'function') {
+      try {
+        return ref.getEntity()?.id;
+      } catch {
+        // entidad no cargada en memoria - seguimos con el siguiente accesor
+      }
+    }
+    if (typeof ref.unwrap === 'function') {
+      return ref.unwrap()?.id;
+    }
+    return undefined;
+  }
+
+  /**
+   * Resuelve a que empresa pertenece el cobro de una suscripcion.
+   *
+   * Regla: si el plan pertenece a una empresa (plan.company), esa empresa
+   * es SIEMPRE la que debe recibir el dinero via Stripe Connect -
+   * independientemente de cual sea la empresa activa del usuario que se
+   * suscribe. Si el plan es global (sin empresa, plan.company es null),
+   * se respeta el companyId recibido en el input.
+   */
+  private resolveBillingCompanyId(
+    plan: Plan,
+    inputCompanyId?: string
+  ): string | undefined {
+    const planCompanyId = this.extractCompanyId(plan.company);
+
+    if (planCompanyId) {
+      if (inputCompanyId && inputCompanyId !== planCompanyId) {
+        console.warn(
+          `[SubscriptionService] companyId mismatch: plan belongs to company ` +
+            `${planCompanyId} but request came from company ${inputCompanyId}. ` +
+            `Using the plan's company for billing.`
+        );
+      }
+      return planCompanyId;
+    }
+
+    return inputCompanyId;
+  }
+
+  /**
+   * Verifica que una suscripcion pertenece a la empresa activa del usuario
+   * que esta intentando operarla.
+   */
+  private assertBelongsToCompany(
+    subscription: Subscription,
+    requesterCompanyId?: string
+  ): void {
+    if (!requesterCompanyId) return;
+
+    const subscriptionCompanyId = this.extractCompanyId(subscription.company);
+
+    if (!subscriptionCompanyId) return;
+
+    if (subscriptionCompanyId !== requesterCompanyId) {
+      throw new ForbiddenError(
+        'This subscription does not belong to your active company'
+      );
+    }
+  }
+
+  /**
+   * Busca si el usuario ya tiene una suscripcion ACTIVE/TRIALING relevante
+   * para el plan que intenta crear, y decide que hacer con ella.
+   *
+   * - Plan SIN empresa (global): solo bloquea si es exactamente el mismo
+   *   plan.
+   * - Plan CON empresa: busca cualquier suscripcion activa o en trial en
+   *   esa misma empresa, sin importar el plan exacto. Esto es lo que
+   *   permite que createSubscription() la detecte y la trate como un
+   *   cambio de plan en lugar de dejar coexistir dos membresias activas
+   *   pagando a la vez en el mismo gym.
+   *
+   * IMPORTANTE: requiere que `plan` venga con 'company' populado (ver
+   * getActivePlanOrFail) - de lo contrario planCompanyId sale undefined
+   * y esta funcion compara por plan exacto en lugar de por empresa,
+   * dejando pasar el bug que origino esta correccion.
+   */
+  private async findActiveSubscriptionForPlan(
+    user: User,
+    plan: Plan
+  ): Promise<Subscription | null> {
+    const planCompanyId = this.extractCompanyId(plan.company);
+
+    if (!planCompanyId) {
+      return this.em.findOne(
+        Subscription,
+        {
+          user,
+          plan,
+          status: {
+            $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+        },
+        { populate: ['plan'] }
+      );
+    }
+
+    return this.em.findOne(
+      Subscription,
+      {
+        user,
+        company: planCompanyId,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
+    );
+  }
+
+  /**
+   * Busca una suscripcion CANCELED reciente del usuario (a CUALQUIER plan,
+   * no solo al mismo) que todavia tiene periodo pagado pendiente.
+   *
+   * Restriccion de seguridad: si el plan nuevo pertenece a una empresa
+   * distinta a la de la suscripcion cancelada, NO se considera una
+   * sustitucion.
+   */
+  private async findRecentCanceledWithPendingPeriod(
+    user: User,
+    newPlan: Plan
+  ): Promise<Subscription | null> {
+    const now = new Date();
+    const lookbackWindow = this.addDays(now, -3);
+
+    const candidate = await this.em.findOne(
+      Subscription,
+      {
+        user,
+        status: SubscriptionStatus.CANCELED,
+        canceledAt: { $gte: lookbackWindow },
+        currentPeriodEnd: { $gt: now },
+      },
+      {
+        populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'],
+        orderBy: { canceledAt: 'DESC' } as any,
+      }
+    );
+
+    if (!candidate) return null;
+
+    const oldCompanyId = this.extractCompanyId(candidate.company);
+    const newCompanyId = this.extractCompanyId(newPlan.company);
+
+    if (oldCompanyId && newCompanyId && oldCompanyId !== newCompanyId) {
+      return null;
+    }
+
+    return candidate;
+  }
+
+  private async getPaymentMethodOrFail(
+    paymentMethodId: string,
+    customer: Customer
+  ): Promise<PaymentMethod> {
+    const pm = await this.em.findOne(PaymentMethod, {
+      id: paymentMethodId,
+      customer,
+      status: PaymentMethodStatus.ACTIVE,
+    });
+    if (!pm) throw new NotFoundError('Payment method not found or inactive');
+    return pm;
+  }
+
+  private async getDefaultPaymentMethod(
+    customer: Customer
+  ): Promise<PaymentMethod | null> {
+    return this.em.findOne(PaymentMethod, {
+      customer,
+      isDefault: true,
+      status: PaymentMethodStatus.ACTIVE,
+    });
+  }
+
+  private calculatePeriodEnd(start: Date, plan: Plan): Date {
+    const count = plan.intervalCount ?? 1;
+    switch (plan.interval) {
+      case PlanInterval.DAY:
+        return this.addDays(start, count);
+      case PlanInterval.WEEK:
+        return this.addDays(start, count * 7);
+      case PlanInterval.MONTH:
+        return this.addMonths(start, count);
+      case PlanInterval.YEAR:
+        return this.addYears(start, count);
+      default:
+        return this.addMonths(start, 1);
     }
   }
 
   private async notifyUser(subscription: Subscription): Promise<void> {
     const { user } = subscription;
-
     const expiryDate = subscription.endedAt?.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'long',
@@ -914,18 +2425,40 @@ export class SubscriptionService extends BaseService {
     const config: EmailConfig = {
       from: process.env.GMAIL_USER!,
       to: user.email!,
-      subject: 'Change your password',
+      subject: 'Tu suscripción está a punto de vencer',
       html: sendSubscriptionExpiryWarning(
-        expiryDate || moment().format('YYYY-MM-DD')
+        expiryDate ?? moment().format('YYYY-MM-DD')
       ),
     };
-    // Email y push en paralelo
+
     await Promise.allSettled([
       this.emailService.sendEmail(config),
       this.notificationService.sendToUser(
         user.id,
         '⚠️ Suscripción por vencer',
         `Tu suscripción vence el ${expiryDate}. Contacta con el administrador para renovarla.`
+      ),
+    ]);
+  }
+
+  private async notifyPaymentFailed(subscription: Subscription): Promise<void> {
+    const { user } = subscription;
+
+    const config: EmailConfig = {
+      from: process.env.GMAIL_USER!,
+      to: user.email!,
+      subject: 'No hemos podido procesar tu pago',
+      html: `<p>Hola ${user.name},</p>
+             <p>No hemos podido cobrar la renovación de tu suscripción <strong>${subscription.plan.name}</strong>.</p>
+             <p>Por favor actualiza tu método de pago para continuar disfrutando del servicio.</p>`,
+    };
+
+    await Promise.allSettled([
+      this.emailService.sendEmail(config),
+      this.notificationService.sendToUser(
+        user.id,
+        '❌ Pago fallido',
+        'No hemos podido procesar el pago de tu suscripción. Actualiza tu método de pago.'
       ),
     ]);
   }

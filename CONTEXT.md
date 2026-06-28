@@ -19,3 +19,5 @@ An array of threshold percentages stored on a schedule to track which quota warn
 **Waitlist (Lista de espera)**:
 A list of users waiting to join a schedule when its maximum capacity has been reached. When a slot becomes available, the first user in the waitlist is promoted, subject to business logic validation.
 
+**Future Subscription (Suscripción Futura)**:
+A subscription created from scratch with a start date (startDate) set in the future. It is saved in the database as ACTIVE or TRIALING, but the user cannot access its permissions until the start date is reached, due to current period validation filters.

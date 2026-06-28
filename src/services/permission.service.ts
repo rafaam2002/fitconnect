@@ -1,4 +1,5 @@
 import { EntityManager } from '@mikro-orm/core';
+import moment from 'moment';
 
 import {
   Permission,
@@ -10,7 +11,7 @@ import { PlanPermission } from '../entities/PlanPermission';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
-import { UserRoleEnum, Currency } from '../types/enums';
+import { Currency, UserRoleEnum } from '../types/enums';
 import {
   CompanyPermissionsContext,
   LoginPermissionsContext,
@@ -38,32 +39,23 @@ export class PermissionService extends BaseService {
     super(em);
   }
 
-  /**
-   * Obtener la suscripción activa de administrador para una empresa (compartida)
-   */
+  // ─────────────────────────────────────────────
+  // SUSCRIPCIÓN ACTIVA DE ADMIN
+  // ─────────────────────────────────────────────
+
   async getCompanyActiveAdminSubscription(
     companyId: string
   ): Promise<Subscription | null> {
     const adminRoles = await this.em.find(
       UserRole,
-      {
-        company: companyId,
-        role: UserRoleEnum.ADMIN,
-      },
-      {
-        fields: ['user'] as any,
-        filters: {
-          companyContext: false,
-        },
-      }
+      { company: companyId, role: UserRoleEnum.ADMIN },
+      { fields: ['user'] as any, filters: { companyContext: false } }
     );
 
     const adminUserIds = adminRoles.map(r => r.user.id);
-    if (adminUserIds.length === 0) {
-      return null;
-    }
+    if (adminUserIds.length === 0) return null;
 
-    return await this.em.findOne(
+    return this.em.findOne(
       Subscription,
       {
         company: companyId,
@@ -84,12 +76,12 @@ export class PermissionService extends BaseService {
     );
   }
 
-  /**
-   * Crear o actualizar un permiso
-   */
+  // ─────────────────────────────────────────────
+  // CRUD DE PERMISOS
+  // ─────────────────────────────────────────────
+
   async createPermission(input: CreatePermissionInput): Promise<Permission> {
     const name = Permission.generateName(input.module, input.action);
-
     let permission = await this.em.findOne(Permission, { name });
 
     if (permission) {
@@ -109,9 +101,6 @@ export class PermissionService extends BaseService {
     return permission;
   }
 
-  /**
-   * Asignar permisos a un plan
-   */
   async assignPermissionsToPlan(
     planId: string,
     permissionNames: string[]
@@ -125,11 +114,8 @@ export class PermissionService extends BaseService {
       }
     );
 
-    if (!plan) {
-      throw new Error('Plan not found');
-    }
+    if (!plan) throw new Error('Plan not found');
 
-    // Obtener permisos por nombre
     const permissions = await this.em.find(Permission, {
       name: { $in: permissionNames },
       isActive: true,
@@ -141,17 +127,15 @@ export class PermissionService extends BaseService {
       console.warn(`Some permissions not found: ${missing.join(', ')}`);
     }
 
-    // Desactivar permisos actuales que no están en la nueva lista
     const currentPlanPermissions = plan.planPermissions.getItems();
+
     for (const pp of currentPlanPermissions) {
       if (!permissionNames.includes(pp.permission.name)) {
         pp.isActive = false;
       }
     }
 
-    // Agregar o reactivar permisos
     for (const permission of permissions) {
-      // CORRECCIÓN: El tipo debe ser PlanPermission, no Plan
       const existing: PlanPermission | undefined = currentPlanPermissions.find(
         (pp: PlanPermission) => pp.permission.id === permission.id
       );
@@ -171,10 +155,6 @@ export class PermissionService extends BaseService {
     await this.em.flush();
   }
 
-  /**
-   * Sincronizar permisos desde metadata de Stripe
-   * Espera metadata con formato: { permissions: "users:create,users:read,schedules:manage" }
-   */
   async syncPermissionsFromMetadata(
     planId: string,
     metadata: Record<string, any>
@@ -200,11 +180,10 @@ export class PermissionService extends BaseService {
     );
   }
 
-  // ============= MÉTODOS NUEVOS: GESTIÓN POR EMPRESA =============
+  // ─────────────────────────────────────────────
+  // CONSULTAS POR EMPRESA
+  // ─────────────────────────────────────────────
 
-  /**
-   * Obtener el plan activo de un usuario en una empresa específica
-   */
   async getUserActivePlanInCompany(
     userId: string,
     companyId: string
@@ -218,22 +197,19 @@ export class PermissionService extends BaseService {
           $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
         },
       },
-      {
-        populate: ['plan'] as any,
-      }
+      { populate: ['plan'] as any }
     );
 
     return subscription?.plan || null;
   }
 
-  /**
-   * Obtener la suscripción activa de un usuario en una empresa
-   */
   async getUserActiveSubscriptionInCompany(
     userId: string,
     companyId: string
   ): Promise<Subscription | null> {
-    return await this.em.findOne(
+    const now = moment().toDate();
+
+    return this.em.findOne(
       Subscription,
       {
         user: userId,
@@ -241,6 +217,8 @@ export class PermissionService extends BaseService {
         status: {
           $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
         },
+        currentPeriodStart: { $lte: now },
+        currentPeriodEnd: { $gte: now },
       },
       {
         populate: [
@@ -254,10 +232,6 @@ export class PermissionService extends BaseService {
     );
   }
 
-  /**
-   * Verificar si un usuario tiene un permiso específico en una empresa
-   * VERSIÓN MEJORADA: companyId es requerido
-   */
   async userHasPermissionInCompany(
     userId: string,
     permissionName: string,
@@ -270,8 +244,6 @@ export class PermissionService extends BaseService {
 
     if (userRole?.role === UserRoleEnum.COACH) {
       if (this.coachPermissionNames.includes(permissionName)) return true;
-      if (this.coachPermissionNames.includes('*:*')) return true;
-
       const [module] = permissionName.split(':');
       return this.coachPermissionNames.includes(`${module}:manage`);
     }
@@ -279,19 +251,15 @@ export class PermissionService extends BaseService {
     if (userRole?.role === UserRoleEnum.ADMIN) {
       const adminSubscription =
         await this.getCompanyActiveAdminSubscription(companyId);
-      if (!adminSubscription) {
-        return false;
-      }
+      if (!adminSubscription) return false;
 
       const plan = adminSubscription.plan;
       await plan.planPermissions.init();
 
       return plan.planPermissions.getItems().some(pp => {
         if (!pp.isActive || !pp.permission.isActive) return false;
-
         if (pp.permission.name === permissionName) return true;
         if (pp.permission.name === '*:*') return true;
-
         const [module] = permissionName.split(':');
         return pp.permission.name === `${module}:manage`;
       });
@@ -301,28 +269,20 @@ export class PermissionService extends BaseService {
       userId,
       companyId
     );
-
-    if (!subscription) {
-      return false;
-    }
+    if (!subscription) return false;
 
     const plan = subscription.plan;
     await plan.planPermissions.init();
 
     return plan.planPermissions.getItems().some(pp => {
       if (!pp.isActive || !pp.permission.isActive) return false;
-
       if (pp.permission.name === permissionName) return true;
       if (pp.permission.name === '*:*') return true;
-
       const [module] = permissionName.split(':');
       return pp.permission.name === `${module}:manage`;
     });
   }
 
-  /**
-   * Obtener todos los permisos de un usuario en una empresa específica
-   */
   async getUserPermissionsInCompany(
     userId: string,
     companyId: string
@@ -333,7 +293,7 @@ export class PermissionService extends BaseService {
     });
 
     if (userRole?.role === UserRoleEnum.COACH) {
-      return await this.em.find(Permission, {
+      return this.em.find(Permission, {
         name: { $in: this.coachPermissionNames },
         isActive: true,
       });
@@ -342,9 +302,7 @@ export class PermissionService extends BaseService {
     if (userRole?.role === UserRoleEnum.ADMIN) {
       const adminSubscription =
         await this.getCompanyActiveAdminSubscription(companyId);
-      if (!adminSubscription) {
-        return [];
-      }
+      if (!adminSubscription) return [];
 
       const plan = adminSubscription.plan;
       await plan.planPermissions.init();
@@ -359,10 +317,7 @@ export class PermissionService extends BaseService {
       userId,
       companyId
     );
-
-    if (!subscription) {
-      return [];
-    }
+    if (!subscription) return [];
 
     const plan = subscription.plan;
     await plan.planPermissions.init();
@@ -373,11 +328,8 @@ export class PermissionService extends BaseService {
       .map(pp => pp.permission);
   }
 
-  /**
-   * Obtener todas las suscripciones activas de un usuario (todas las empresas)
-   */
   async getUserActiveSubscriptions(userId: string): Promise<Subscription[]> {
-    return await this.em.find(
+    return this.em.find(
       Subscription,
       {
         user: userId,
@@ -396,9 +348,6 @@ export class PermissionService extends BaseService {
     );
   }
 
-  /**
-   * Verificar múltiples permisos a la vez en una empresa
-   */
   async userHasAllPermissions(
     userId: string,
     permissionNames: string[],
@@ -413,15 +362,11 @@ export class PermissionService extends BaseService {
     return permissionNames.every(name => {
       if (userPermissionNames.has(name)) return true;
       if (userPermissionNames.has('*:*')) return true;
-
       const [module] = name.split(':');
       return userPermissionNames.has(`${module}:manage`);
     });
   }
 
-  /**
-   * Verificar si el usuario tiene al menos uno de los permisos especificados
-   */
   async userHasAnyPermission(
     userId: string,
     permissionNames: string[],
@@ -436,45 +381,32 @@ export class PermissionService extends BaseService {
     return permissionNames.some(name => {
       if (userPermissionNames.has(name)) return true;
       if (userPermissionNames.has('*:*')) return true;
-
       const [module] = name.split(':');
       return userPermissionNames.has(`${module}:manage`);
     });
   }
 
-  // ============= MÉTODOS ORIGINALES (RETROCOMPATIBILIDAD) =============
-
-  /**
-   * Verificar si un usuario tiene un permiso específico
-   * @deprecated Usar userHasPermissionInCompany para mayor claridad
-   */
+  /** @deprecated Use userHasPermissionInCompany */
   async userHasPermission(
     userId: string,
     permissionName: string,
     companyId?: string
   ): Promise<boolean> {
     if (!companyId) {
-      console.warn(
-        'userHasPermission called without companyId. Consider using userHasPermissionInCompany.'
-      );
+      console.warn('userHasPermission called without companyId.');
       return false;
     }
-
     return this.userHasPermissionInCompany(userId, permissionName, companyId);
   }
 
-  // ============= MÉTODOS DE ADMINISTRACIÓN =============
+  // ─────────────────────────────────────────────
+  // ADMINISTRACIÓN
+  // ─────────────────────────────────────────────
 
-  /**
-   * Listar todos los permisos disponibles en el sistema
-   */
   async listAllPermissions(): Promise<Permission[]> {
-    return await this.em.find(Permission, { isActive: true });
+    return this.em.find(Permission, { isActive: true });
   }
 
-  /**
-   * Obtener permisos agrupados por módulo
-   */
   async getPermissionsByModule(): Promise<Map<PermissionModule, Permission[]>> {
     const permissions = await this.listAllPermissions();
     const grouped = new Map<PermissionModule, Permission[]>();
@@ -489,21 +421,14 @@ export class PermissionService extends BaseService {
     return grouped;
   }
 
-  /**
-   * Obtener todos los permisos de un plan específico
-   */
   async getPlanPermissions(planId: string): Promise<Permission[]> {
     const plan = await this.em.findOne(
       Plan,
       { id: planId },
-      {
-        populate: ['planPermissions', 'planPermissions.permission'],
-      }
+      { populate: ['planPermissions', 'planPermissions.permission'] }
     );
 
-    if (!plan) {
-      throw new Error('Plan not found');
-    }
+    if (!plan) throw new Error('Plan not found');
 
     return plan.planPermissions
       .getItems()
@@ -511,9 +436,6 @@ export class PermissionService extends BaseService {
       .map((pp: PlanPermission) => pp.permission);
   }
 
-  /**
-   * Verificar si un plan tiene un permiso específico
-   */
   async planHasPermission(
     planId: string,
     permissionName: string
@@ -522,9 +444,6 @@ export class PermissionService extends BaseService {
     return permissions.some(p => p.name === permissionName);
   }
 
-  /**
-   * Inicializar permisos básicos del sistema
-   */
   async seedPermissions(): Promise<void> {
     const modules = Object.values(PermissionModule) as PermissionModule[];
     const actions = Object.values(PermissionAction) as PermissionAction[];
@@ -542,10 +461,6 @@ export class PermissionService extends BaseService {
     console.log('Permissions seeded successfully');
   }
 
-  /**
-   * Sincronizar permisos faltantes en la base de datos basándose en los enums
-   * Solo crea los que no existen, no modifica los existentes
-   */
   async syncMissingPermissions(): Promise<void> {
     const modules = Object.values(PermissionModule) as PermissionModule[];
     const actions = Object.values(PermissionAction) as PermissionAction[];
@@ -571,42 +486,28 @@ export class PermissionService extends BaseService {
     console.log('Missing permissions synchronized successfully');
   }
 
-  /**
-   * Desactivar un permiso (soft delete)
-   */
   async deactivatePermission(permissionId: string): Promise<void> {
     const permission = await this.em.findOne(Permission, { id: permissionId });
-
-    if (!permission) {
-      throw new Error('Permission not found');
-    }
+    if (!permission) throw new Error('Permission not found');
 
     permission.isActive = false;
     await this.em.flush();
-
     console.log(`Permission ${permission.name} deactivated`);
   }
 
-  /**
-   * Reactivar un permiso
-   */
   async activatePermission(permissionId: string): Promise<void> {
     const permission = await this.em.findOne(Permission, { id: permissionId });
-
-    if (!permission) {
-      throw new Error('Permission not found');
-    }
+    if (!permission) throw new Error('Permission not found');
 
     permission.isActive = true;
     await this.em.flush();
-
     console.log(`Permission ${permission.name} activated`);
   }
 
-  /**
-   * Obtener información completa de permisos para el login
- sarás en la autenticación
-   */
+  // ─────────────────────────────────────────────
+  // CONTEXTO DE LOGIN
+  // ─────────────────────────────────────────────
+
   async getLoginPermissionsContext(
     user: User,
     companyId: string
@@ -625,15 +526,8 @@ export class PermissionService extends BaseService {
 
     const userRole = await this.em.findOne(
       UserRole,
-      {
-        user: user.id,
-        company: companyId,
-      },
-      {
-        filters: {
-          companyContext: false,
-        },
-      }
+      { user: user.id, company: companyId },
+      { filters: { companyContext: false } }
     );
 
     if (userRole?.role === UserRoleEnum.COACH) {
@@ -647,7 +541,6 @@ export class PermissionService extends BaseService {
         plan: {
           id: 'coach-free-plan',
           name: 'Plan de Entrenador',
-          stripePriceId: '',
           amount: 0,
           currency: Currency.EUR,
           interval: 'lifetime',
@@ -684,20 +577,17 @@ export class PermissionService extends BaseService {
         .filter(pp => pp.isActive && pp.permission.isActive)
         .map(pp => pp.permission);
 
-      const permissionNames = permissions.map(p => p.name);
-
       return {
         hasActiveSubscription: true,
         plan: {
           id: plan.id,
           name: plan.name,
-          stripePriceId: plan.stripePriceId,
           amount: plan.amount,
           currency: plan.currency,
           interval: plan.interval,
         },
         permissions,
-        permissionNames,
+        permissionNames: permissions.map(p => p.name),
         subscriptionStatus: adminSubscription.status,
         subscriptionId: adminSubscription.id,
         trialEndsAt: adminSubscription.trialEnd,
@@ -724,26 +614,22 @@ export class PermissionService extends BaseService {
     }
 
     const plan = subscription.plan;
-
     const permissions = plan.planPermissions
       .getItems()
       .filter(pp => pp.isActive && pp.permission.isActive)
       .map(pp => pp.permission);
-
-    const permissionNames = permissions.map(p => p.name);
 
     return {
       hasActiveSubscription: true,
       plan: {
         id: plan.id,
         name: plan.name,
-        stripePriceId: plan.stripePriceId,
         amount: plan.amount,
         currency: plan.currency,
         interval: plan.interval,
       },
       permissions,
-      permissionNames,
+      permissionNames: permissions.map(p => p.name),
       subscriptionStatus: subscription.status,
       subscriptionId: subscription.id,
       trialEndsAt: subscription.trialEnd,
@@ -752,10 +638,6 @@ export class PermissionService extends BaseService {
     };
   }
 
-  /**
-   * Versión simplificada que solo devuelve los nombres de permisos
-   * Útil para incluir en el JWT token
-   */
   async getLoginPermissionNames(
     user: User,
     companyId: string
@@ -764,15 +646,10 @@ export class PermissionService extends BaseService {
     return context.permissionNames;
   }
 
-  /**
-   * Obtener todas las empresas con sus permisos para un usuario
-   * Útil cuando el usuario puede cambiar de empresa en la UI
-   */
   async getUserCompaniesWithPermissions(
     userId: string
   ): Promise<CompanyPermissionsContext[]> {
     const subscriptions = await this.getUserActiveSubscriptions(userId);
-
     const companiesContext: CompanyPermissionsContext[] = [];
 
     for (const subscription of subscriptions) {
@@ -801,7 +678,7 @@ export class PermissionService extends BaseService {
       });
     }
 
-    // Buscar empresas donde el usuario tenga rol de COACH
+    // Roles COACH
     const coachRoles = await this.em.find(
       UserRole,
       { user: userId, role: UserRoleEnum.COACH },
@@ -810,9 +687,7 @@ export class PermissionService extends BaseService {
 
     for (const coachRole of coachRoles) {
       const company = coachRole.company;
-      if (companiesContext.some(c => c.companyId === company.id)) {
-        continue;
-      }
+      if (companiesContext.some(c => c.companyId === company.id)) continue;
 
       companiesContext.push({
         companyId: company.id,
@@ -831,7 +706,7 @@ export class PermissionService extends BaseService {
       });
     }
 
-    // Buscar empresas donde el usuario tenga rol de ADMIN
+    // Roles ADMIN
     const adminRoles = await this.em.find(
       UserRole,
       { user: userId, role: UserRoleEnum.ADMIN },
@@ -840,16 +715,12 @@ export class PermissionService extends BaseService {
 
     for (const adminRole of adminRoles) {
       const company = adminRole.company;
-      if (companiesContext.some(c => c.companyId === company.id)) {
-        continue;
-      }
+      if (companiesContext.some(c => c.companyId === company.id)) continue;
 
       const adminSubscription = await this.getCompanyActiveAdminSubscription(
         company.id
       );
-      if (!adminSubscription) {
-        continue; // Si no hay suscripción activa de administrador, no tiene acceso a esa empresa
-      }
+      if (!adminSubscription) continue;
 
       const plan = adminSubscription.plan;
       await plan.planPermissions.init();

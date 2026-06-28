@@ -1,165 +1,162 @@
 export const graphqlInputs = `
 
 input CreateProductInput {
-    name: String!,
-    description: String!,
-    price: Float!,
+    name: String!
+    description: String!
+    price: Float!
 }
 
 input AddUserWeightInput {
-    userId: ID!,
-    weight: Float!,
+    userId: ID!
+    weight: Float!
     date: String!
 }
 
 input CreateTrainingTaskInput {
-    content: String!,
-    userId: ID,
-    date: String!,
+    content: String!
+    userId: ID
+    date: String!
     repeat: Boolean!
 }
 
 input UpdateUserInput {
-    id: ID!,
-    name: String,
-    surname: String,
-    email: String!,
-    phoneNumber: String,
-    nickname: String!,
-    isBlocked: Boolean,
-    role: UserRoleEnum,
+    id: ID!
+    name: String
+    surname: String
+    email: String!
+    phoneNumber: String
+    nickname: String!
+    isBlocked: Boolean
+    role: UserRoleEnum
     activeCompanyId: String
 }
 
 input CreateCompanyInput {
-name : String!,
-phoneNumber: String!,
-email: String!,
-address: String!,
+    name: String!
+    phoneNumber: String!
+    email: String!
+    address: String!
 }
 
 input CompanyDataInput {
-    name: String,
-    address: String,
-    phoneNumber: String,
-    email: String,
-    code: String,
+    name: String
+    address: String
+    phoneNumber: String
+    email: String
+    code: String
     companyConfig: CompanyConfigInput
 }
 
 input CompanyConfigInput {
-    pollsEnabled: Boolean,
-    productsEnabled: Boolean,
-    chatEnabled: Boolean,
+    pollsEnabled: Boolean
+    productsEnabled: Boolean
+    chatEnabled: Boolean
     trainingEnabled: Boolean
 }
 
 input ScheduleOptionsInput {
-    maxActiveReservations: Int,
-    maxAdvanceBookingDays: Int,
-    sameDayBookingAllowed: Boolean,
-    fullOpenHours: Int,
-    bookingCutoffMinutes: Int,
-    minBookingsRequired: Int,
-    quotaWarningThresholds: [Int],
+    maxActiveReservations: Int
+    maxAdvanceBookingDays: Int
+    sameDayBookingAllowed: Boolean
+    fullOpenHours: Int
+    bookingCutoffMinutes: Int
+    minBookingsRequired: Int
 }
 
 input UpdateScheduleInput {
-    id: ID!,
-    title: String,
-    description: String,
-    age: Int,
-    type: ScheduleType,
-    startHour: String,
-    endHour: String,
-    maxUsers: Int,
-    admin: ID,
-    date: String,
+    id: ID!
+    title: String
+    description: String
+    age: Int
+    type: ScheduleType
+    startHour: String
+    endHour: String
+    maxUsers: Int
+    admin: ID
+    date: String
 }
 
 input UpdateScheduleProgrammedInput {
-    id: ID!,
-    daysOfWeek: [Int],
-    startHour: String,
-    endHour: String,
-    maxUsers: Int,
-    admin: ID,
-    title: String,
-    description: String,
-    type: ScheduleType,
+    id: ID!
+    daysOfWeek: [Int]
+    startHour: String
+    endHour: String
+    maxUsers: Int
+    admin: ID
+    title: String
+    description: String
+    type: ScheduleType
     age: Int
 }
 
 input CreateUserInput {
-    email: String!,
-    nickname: String!,
-    password: String!,
-    role: UserRoleEnum!,
+    email: String!
+    nickname: String!
+    password: String!
+    role: UserRoleEnum!
 }
 
 input CreatePollVoteInput {
-    pollId: ID!,
+    pollId: ID!
     option: Int!
 }
 
 input UpdatePasswordInput {
-    currentPassword: String!,
-    newPassword: String!,
+    currentPassword: String!
+    newPassword: String!
     confirmPassword: String!
 }
 
 input CreateScheduleInput {
-    title: String!,
-    description: String!,
-    age: Int,
-    type: ScheduleType!,
-    startHour: String!,
-    endHour: String!,
-    days: [Int]!,
-    repeat: Boolean,
-    maxUsers: Int!,
-    admin: ID!,
-    date: String,
+    title: String!
+    description: String!
+    age: Int
+    type: ScheduleType!
+    startHour: String!
+    endHour: String!
+    days: [Int]!
+    repeat: Boolean
+    maxUsers: Int!
+    admin: ID!
+    date: String
 }
 
 input UpdateScheduleOptionsInput {
-    maxActiveReservations: Int!,
-    maxAdvanceBookingDays: Int!,
-    sameDayBookingAllowed: Boolean!,
-    fullOpenHours: Int!,
-    bookingCutoffMinutes: Int!,
-    minBookingsRequired: Int!,
-    quotaWarningThresholds: [Int]!,
+    maxActiveReservations: Int!
+    maxAdvanceBookingDays: Int!
+    sameDayBookingAllowed: Boolean!
+    fullOpenHours: Int!
+    bookingCutoffMinutes: Int!
+    minBookingsRequired: Int!
 }
 
 input CreateScheduleDevelopmentInput {
-    title: String!,
-    startTime: String,
-    endTime: String,
-    maxUsers: Int!,
-    state: ScheduleState,
+    title: String!
+    startTime: String
+    endTime: String
+    maxUsers: Int!
+    state: ScheduleState
 }
 
 input PollFilter {
-    since: String!,
+    since: String!
 }
 
-
 input CreatePollInput {
-    title: String!,
-    options: [String]!,
+    title: String!
+    options: [String]!
     endDate: String!
 }
 
 input CreateMessageInput {
-    text: String!,
-    receiverId: ID,
-    isFixed: Boolean,
-    fixedDuration: Boolean,
+    text: String!
+    receiverId: ID
+    isFixed: Boolean
+    fixedDuration: Boolean
     isForumMessage: Boolean
 }
 
-input UserInput{
+input UserInput {
     name: String!
     surname: String!
     password: String!
@@ -172,8 +169,54 @@ input ChangePasswordInput {
     newPassword: String!
 }
 
-input FindPlanInput {
-    planId: ID!
+input SendNotificationInput {
+    title: String!
+    body: String!
+    forAll: Boolean!
+}
+
+input PlanFilterInput {
+    id: ID!
+    condition: PlanFilterConditionEnum!
+}
+
+# ── BILLING ──────────────────────────────────────────────────────────
+
+input CreatePlanInput {
+    name: String!
+    description: String
+    amount: Float!
+    currency: Currency
+    interval: PlanInterval!
+    intervalCount: Int
+    trialPeriodDays: Int
+    features: [String]
+    metadata: JSON
+}
+
+input UpdatePlanInput {
+    id: ID!
+    name: String
+    description: String
+    amount: Float
+    features: [String]
+    metadata: JSON
+    status: PlanStatus
+    isActive: Boolean
+}
+
+input CreateCustomerInput {
+    userId: ID!
+    currency: Currency
+    metadata: JSON
+}
+
+
+input UpdateCustomerInput {
+    customerId: ID!
+    currency: Currency
+    isActive: Boolean
+    metadata: JSON
 }
 
 input CreateSubscriptionInput {
@@ -183,83 +226,60 @@ input CreateSubscriptionInput {
     trialPeriodDays: Int
     quantity: Int
     metadata: JSON
+    startDate: String
 }
 
 input UpdateSubscriptionInput {
     subscriptionId: ID!
-    planId: ID!
+    planId: ID
     paymentMethodId: ID
     quantity: Int
     metadata: JSON
 }
 
 input CancelSubscriptionInput {
-    subscriptionId: String,
+    subscriptionId: ID!
     cancelAtPeriodEnd: Boolean
     cancellationReason: String
 }
 
-input SendNotificationInput {
-    title: String!
-    body: String!
-    forAll: Boolean!
+input ChangePlanInput {
+    subscriptionId: ID!
+    newPlanId: ID!
+    prorate: Boolean
 }
 
-input CreatePaymentMethodInput {
-    stripeCustomerId: String!
-    type: PaymentMethodType!
-    card: CardInput
-    setAsDefault: Boolean
-}
 
-input CreateCustomerInput {
-    userId: ID!
-    email: String
-    name: String
-    phoneNumber: String
-}
-
-input UpdateCustomerInput {
-    stripeCustomerId: ID!
-    email: String
-    name: String
-    phoneNumber: String
-}
-
-input CreatePlanInput {
-    id: ID
-    name: String
-    description: String
-    amount: Float
-    currency: Currency
-    interval: PlanInterval
-    intervalCount: Int
+input ReplaceSubscriptionInput {
+    oldSubscriptionId: ID!
+    newPlanId: ID!
+    paymentMethodId: ID
     trialPeriodDays: Int
-    features: [String]
-    status: PlanStatus
+    forceImmediateCancellation: Boolean
+    cancellationReason: String
     metadata: JSON
 }
 
-input CardInput {
-    number: String!
-    exp_month: Int!
-    exp_year: Int!
-    cvc: String!
-}
 
-input AttachPaymentMethodInput {
-    paymentMethodId: ID!
-    stripeCustomerId: ID!
-    setAsDefault: Boolean
+input AdminOverrideSubscriptionInput {
+    subscriptionId: ID!
+    status: SubscriptionStatus
+    currentPeriodEnd: String
+    nextBillingDate: String
+    resetFailedAttempts: Boolean
+    """Obligatorio — queda en el audit log"""
+    reason: String!
 }
 
 input CreateChargeInput {
     userId: ID!
-    amount: Int
+    amount: Int!
     currency: Currency
     paymentMethodId: ID
+    invoiceId: ID
+    subscriptionId: ID
     description: String
-    metadata: JSON  
+    metadata: JSON
 }
 
 input RefundTransactionInput {
@@ -269,8 +289,5 @@ input RefundTransactionInput {
     metadata: JSON
 }
 
-input PlanFilterInput {
-    id: ID!
-    condition: PlanFilterConditionEnum!
-}
+
 `;

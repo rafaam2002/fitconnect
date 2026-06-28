@@ -25,12 +25,13 @@ export enum TransactionStatus {
 
 @Entity()
 export class Transaction extends BaseEntity {
-  @Property({ length: 100, nullable: true })
+  /**
+   * ID de la operación en el procesador externo (Redsys, Braintree, Adyen…).
+   * Opcional — en operaciones internas puede quedar vacío.
+   */
+  @Property({ length: 200, nullable: true })
   @Index()
-  stripeChargeId?: string; // ch_xxxxx
-
-  @Property({ length: 100, nullable: true })
-  stripePaymentIntentId?: string; // pi_xxxxx
+  externalTransactionId?: string;
 
   @ManyToOne(() => User)
   @Index()
@@ -63,8 +64,8 @@ export class Transaction extends BaseEntity {
   @Property({ type: 'bigint', default: 0 })
   amountRefunded: number = 0;
 
-  @Property({ length: 10, default: 'usd' })
-  currency: string = 'usd';
+  @Property({ length: 10, default: 'eur' })
+  currency: string = 'eur';
 
   @Property({ type: 'text', nullable: true })
   description?: string;

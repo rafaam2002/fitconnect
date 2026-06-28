@@ -1,5 +1,5 @@
 {
-  "namespaces": ["auth", "realtime", "storage", "public", "vault"],
+  "namespaces": ["auth", "realtime", "storage", "public"],
   "name": "public",
   "tables": [
     {
@@ -1455,6 +1455,86 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "string"
+        },
+        "stripe_account_id": {
+          "name": "stripe_account_id",
+          "type": "varchar(100)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 100,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stripe_access_token": {
+          "name": "stripe_access_token",
+          "type": "varchar(500)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 500,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stripe_refresh_token": {
+          "name": "stripe_refresh_token",
+          "type": "varchar(500)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 500,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stripe_account_status": {
+          "name": "stripe_account_status",
+          "type": "varchar(50)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 50,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stripe_connected_at": {
+          "name": "stripe_connected_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         }
       },
       "name": "company",
@@ -1474,14 +1554,6 @@
           "constraint": true,
           "keyName": "company_company_config_id_unique",
           "unique": true,
-          "primary": false
-        },
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "company_created_at_index",
-          "unique": false,
           "primary": false
         },
         {
@@ -1506,6 +1578,14 @@
           "constraint": true,
           "keyName": "company_schedule_options_id_unique",
           "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": ["stripe_account_id"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "company_stripe_account_id_index",
+          "unique": false,
           "primary": false
         }
       ],
@@ -1745,14 +1825,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "company_config_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -1865,8 +1937,8 @@
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "enumItems": ["oauth2", "oidc"],
+          "mappedType": "enum"
         },
         "identifier": {
           "name": "identifier",
@@ -2273,8 +2345,337 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "custom_oauth_providers_authorization_url_https",
+          "columnName": "authorization_url",
+          "definition": "CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text)))",
+          "expression": "(authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_authorization_url_length",
+          "columnName": "authorization_url",
+          "definition": "CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048)))",
+          "expression": "(authorization_url IS NULL) OR (char_length(authorization_url) <= 2048)"
+        },
+        {
+          "name": "custom_oauth_providers_client_id_length",
+          "columnName": "client_id",
+          "definition": "CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512)))",
+          "expression": "(char_length(client_id) >= 1) AND (char_length(client_id) <= 512)"
+        },
+        {
+          "name": "custom_oauth_providers_discovery_url_length",
+          "columnName": "discovery_url",
+          "definition": "CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048)))",
+          "expression": "(discovery_url IS NULL) OR (char_length(discovery_url) <= 2048)"
+        },
+        {
+          "name": "custom_oauth_providers_identifier_format",
+          "columnName": "identifier",
+          "definition": "CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text))",
+          "expression": "identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text"
+        },
+        {
+          "name": "custom_oauth_providers_issuer_length",
+          "columnName": "issuer",
+          "definition": "CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048))))",
+          "expression": "(issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048))"
+        },
+        {
+          "name": "custom_oauth_providers_jwks_uri_https",
+          "columnName": "jwks_uri",
+          "definition": "CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text)))",
+          "expression": "(jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_jwks_uri_length",
+          "columnName": "jwks_uri",
+          "definition": "CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048)))",
+          "expression": "(jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048)"
+        },
+        {
+          "name": "custom_oauth_providers_name_length",
+          "columnName": "name",
+          "definition": "CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100)))",
+          "expression": "(char_length(name) >= 1) AND (char_length(name) <= 100)"
+        },
+        {
+          "name": "custom_oauth_providers_oauth2_requires_endpoints",
+          "columnName": "token_url",
+          "definition": "CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL))))",
+          "expression": "(provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL))"
+        },
+        {
+          "name": "custom_oauth_providers_oidc_discovery_url_https",
+          "columnName": "discovery_url",
+          "definition": "CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text)))",
+          "expression": "(provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_oidc_issuer_https",
+          "columnName": "provider_type",
+          "definition": "CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text)))",
+          "expression": "(provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_oidc_requires_issuer",
+          "columnName": "provider_type",
+          "definition": "CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL)))",
+          "expression": "(provider_type <> 'oidc'::text) OR (issuer IS NOT NULL)"
+        },
+        {
+          "name": "custom_oauth_providers_token_url_https",
+          "columnName": "token_url",
+          "definition": "CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text)))",
+          "expression": "(token_url IS NULL) OR (token_url ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_token_url_length",
+          "columnName": "token_url",
+          "definition": "CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048)))",
+          "expression": "(token_url IS NULL) OR (char_length(token_url) <= 2048)"
+        },
+        {
+          "name": "custom_oauth_providers_userinfo_url_https",
+          "columnName": "userinfo_url",
+          "definition": "CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text)))",
+          "expression": "(userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text)"
+        },
+        {
+          "name": "custom_oauth_providers_userinfo_url_length",
+          "columnName": "userinfo_url",
+          "definition": "CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))",
+          "expression": "(userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)"
+        }
+      ],
       "foreignKeys": {},
+      "nativeEnums": {
+        "auth.aal_level": {
+          "name": "aal_level",
+          "schema": "auth",
+          "items": ["aal1", "aal2", "aal3"]
+        },
+        "realtime.action": {
+          "name": "action",
+          "schema": "realtime",
+          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
+        },
+        "storage.buckettype": {
+          "name": "buckettype",
+          "schema": "storage",
+          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
+        },
+        "auth.code_challenge_method": {
+          "name": "code_challenge_method",
+          "schema": "auth",
+          "items": ["s256", "plain"]
+        },
+        "realtime.equality_op": {
+          "name": "equality_op",
+          "schema": "realtime",
+          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
+        },
+        "auth.factor_status": {
+          "name": "factor_status",
+          "schema": "auth",
+          "items": ["unverified", "verified"]
+        },
+        "auth.factor_type": {
+          "name": "factor_type",
+          "schema": "auth",
+          "items": ["totp", "webauthn", "phone"]
+        },
+        "auth.oauth_authorization_status": {
+          "name": "oauth_authorization_status",
+          "schema": "auth",
+          "items": ["pending", "approved", "denied", "expired"]
+        },
+        "auth.oauth_client_type": {
+          "name": "oauth_client_type",
+          "schema": "auth",
+          "items": ["public", "confidential"]
+        },
+        "auth.oauth_registration_type": {
+          "name": "oauth_registration_type",
+          "schema": "auth",
+          "items": ["dynamic", "manual"]
+        },
+        "auth.oauth_response_type": {
+          "name": "oauth_response_type",
+          "schema": "auth",
+          "items": ["code"]
+        },
+        "auth.one_time_token_type": {
+          "name": "one_time_token_type",
+          "schema": "auth",
+          "items": [
+            "confirmation_token",
+            "reauthentication_token",
+            "recovery_token",
+            "email_change_token_new",
+            "email_change_token_current",
+            "phone_change_token"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "default_currency": {
+          "name": "default_currency",
+          "type": "varchar(10)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 10,
+          "precision": null,
+          "scale": null,
+          "default": "'eur'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        }
+      },
+      "name": "customer",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": ["is_active"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "customer_is_active_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": ["id"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "customer_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": ["user_id"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "customer_user_id_index",
+          "unique": false,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "customer_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "customer_user_id_foreign",
+          "localTableName": "public.customer",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
       "nativeEnums": {
         "auth.aal_level": {
           "name": "aal_level",
@@ -3216,22 +3617,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_invoice_id": {
-          "name": "stripe_invoice_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "invoice_number": {
           "name": "invoice_number",
           "type": "varchar(50)",
@@ -3387,7 +3772,7 @@
           "length": 10,
           "precision": null,
           "scale": null,
-          "default": "'usd'",
+          "default": "'eur'",
           "comment": null,
           "enumItems": [],
           "mappedType": "string"
@@ -3525,18 +3910,18 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "invoice_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["due_date"],
           "composite": false,
           "constraint": false,
           "keyName": "invoice_due_date_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": ["invoice_number"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "invoice_invoice_number_index",
           "unique": false,
           "primary": false
         },
@@ -3553,14 +3938,6 @@
           "composite": false,
           "constraint": false,
           "keyName": "invoice_status_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_invoice_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "invoice_stripe_invoice_id_index",
           "unique": false,
           "primary": false
         },
@@ -4056,14 +4433,6 @@
       "name": "message",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "message_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -5373,19 +5742,19 @@
         },
         "type": {
           "name": "type",
-          "type": "varchar(255)",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "unique": false,
-          "length": 255,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
+          "enumItems": ["message", "warning", "error", "info"],
+          "mappedType": "enum"
         },
         "message": {
           "name": "message",
@@ -5409,7 +5778,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": 255,
           "precision": null,
@@ -5441,7 +5810,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
@@ -5450,16 +5819,48 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "read": {
+          "name": "read",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
         }
       },
       "name": "notification",
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
+          "columnNames": ["company_id"],
           "composite": false,
           "constraint": false,
-          "keyName": "notification_created_at_index",
+          "keyName": "notification_company_id_index",
           "unique": false,
           "primary": false
         },
@@ -5470,10 +5871,37 @@
           "keyName": "notification_pkey",
           "unique": true,
           "primary": true
+        },
+        {
+          "columnNames": ["user_id"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "notification_user_id_index",
+          "unique": false,
+          "primary": false
         }
       ],
       "checks": [],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "notification_company_id_foreign": {
+          "columnNames": ["company_id"],
+          "constraintName": "notification_company_id_foreign",
+          "localTableName": "public.notification",
+          "referencedTableName": "public.company",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
+        "notification_user_id_foreign": {
+          "columnNames": ["user_id"],
+          "constraintName": "notification_user_id_foreign",
+          "localTableName": "public.notification",
+          "referencedTableName": "public.user",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
       "nativeEnums": {
         "auth.aal_level": {
           "name": "aal_level",
@@ -5860,7 +6288,56 @@
           "primary": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "oauth_authorizations_authorization_code_length",
+          "columnName": "authorization_code",
+          "definition": "CHECK ((char_length(authorization_code) <= 255))",
+          "expression": "char_length(authorization_code) <= 255"
+        },
+        {
+          "name": "oauth_authorizations_code_challenge_length",
+          "columnName": "code_challenge",
+          "definition": "CHECK ((char_length(code_challenge) <= 128))",
+          "expression": "char_length(code_challenge) <= 128"
+        },
+        {
+          "name": "oauth_authorizations_expires_at_future",
+          "columnName": "expires_at",
+          "definition": "CHECK ((expires_at > created_at))",
+          "expression": "expires_at > created_at"
+        },
+        {
+          "name": "oauth_authorizations_nonce_length",
+          "columnName": "nonce",
+          "definition": "CHECK ((char_length(nonce) <= 255))",
+          "expression": "char_length(nonce) <= 255"
+        },
+        {
+          "name": "oauth_authorizations_redirect_uri_length",
+          "columnName": "redirect_uri",
+          "definition": "CHECK ((char_length(redirect_uri) <= 2048))",
+          "expression": "char_length(redirect_uri) <= 2048"
+        },
+        {
+          "name": "oauth_authorizations_resource_length",
+          "columnName": "resource",
+          "definition": "CHECK ((char_length(resource) <= 2048))",
+          "expression": "char_length(resource) <= 2048"
+        },
+        {
+          "name": "oauth_authorizations_scope_length",
+          "columnName": "scope",
+          "definition": "CHECK ((char_length(scope) <= 4096))",
+          "expression": "char_length(scope) <= 4096"
+        },
+        {
+          "name": "oauth_authorizations_state_length",
+          "columnName": "state",
+          "definition": "CHECK ((char_length(state) <= 4096))",
+          "expression": "char_length(state) <= 4096"
+        }
+      ],
       "foreignKeys": {
         "oauth_authorizations_client_id_fkey": {
           "columnNames": ["client_id"],
@@ -6321,8 +6798,8 @@
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "enumItems": ["client_secret_basic", "client_secret_post", "none"],
+          "mappedType": "enum"
         }
       },
       "name": "oauth_clients",
@@ -6345,7 +6822,26 @@
           "primary": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "oauth_clients_client_name_length",
+          "columnName": "client_name",
+          "definition": "CHECK ((char_length(client_name) <= 1024))",
+          "expression": "char_length(client_name) <= 1024"
+        },
+        {
+          "name": "oauth_clients_client_uri_length",
+          "columnName": "client_uri",
+          "definition": "CHECK ((char_length(client_uri) <= 2048))",
+          "expression": "char_length(client_uri) <= 2048"
+        },
+        {
+          "name": "oauth_clients_logo_uri_length",
+          "columnName": "logo_uri",
+          "definition": "CHECK ((char_length(logo_uri) <= 2048))",
+          "expression": "char_length(logo_uri) <= 2048"
+        }
+      ],
       "foreignKeys": {},
       "nativeEnums": {
         "auth.aal_level": {
@@ -6563,7 +7059,26 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "oauth_consents_revoked_after_granted",
+          "columnName": "granted_at",
+          "definition": "CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at)))",
+          "expression": "(revoked_at IS NULL) OR (revoked_at >= granted_at)"
+        },
+        {
+          "name": "oauth_consents_scopes_length",
+          "columnName": "scopes",
+          "definition": "CHECK ((char_length(scopes) <= 2048))",
+          "expression": "char_length(scopes) <= 2048"
+        },
+        {
+          "name": "oauth_consents_scopes_not_empty",
+          "columnName": "scopes",
+          "definition": "CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))",
+          "expression": "char_length(TRIM(BOTH FROM scopes)) > 0"
+        }
+      ],
       "foreignKeys": {
         "oauth_consents_client_id_fkey": {
           "columnNames": ["client_id"],
@@ -7138,7 +7653,14 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "one_time_tokens_token_hash_check",
+          "columnName": "token_hash",
+          "definition": "CHECK ((char_length(token_hash) > 0))",
+          "expression": "char_length(token_hash) > 0"
+        }
+      ],
       "foreignKeys": {
         "one_time_tokens_user_id_fkey": {
           "columnNames": ["user_id"],
@@ -7271,24 +7793,8 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_payment_method_id": {
-          "name": "stripe_payment_method_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "stripe_customer_id": {
-          "name": "stripe_customer_id",
+        "customer_id": {
+          "name": "customer_id",
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
@@ -7462,6 +7968,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "json"
+        },
+        "external_token": {
+          "name": "external_token",
+          "type": "varchar(200)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 200,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
         }
       },
       "name": "payment_method",
@@ -7476,10 +7998,10 @@
           "primary": false
         },
         {
-          "columnNames": ["created_at"],
+          "columnNames": ["customer_id"],
           "composite": false,
           "constraint": false,
-          "keyName": "payment_method_created_at_index",
+          "keyName": "payment_method_customer_id_index",
           "unique": false,
           "primary": false
         },
@@ -7496,6 +8018,14 @@
           "composite": false,
           "constraint": false,
           "keyName": "payment_method_expiry_year_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": ["external_token"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "payment_method_external_token_index",
           "unique": false,
           "primary": false
         },
@@ -7522,39 +8052,15 @@
           "keyName": "payment_method_pkey",
           "unique": true,
           "primary": true
-        },
-        {
-          "columnNames": ["stripe_customer_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "payment_method_stripe_customer_id_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_payment_method_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "payment_method_stripe_payment_method_id_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_payment_method_id"],
-          "composite": false,
-          "constraint": true,
-          "keyName": "payment_method_stripe_payment_method_id_unique",
-          "unique": true,
-          "primary": false
         }
       ],
       "checks": [],
       "foreignKeys": {
-        "payment_method_stripe_customer_id_foreign": {
-          "columnNames": ["stripe_customer_id"],
-          "constraintName": "payment_method_stripe_customer_id_foreign",
+        "payment_method_customer_id_foreign": {
+          "columnNames": ["customer_id"],
+          "constraintName": "payment_method_customer_id_foreign",
           "localTableName": "public.payment_method",
-          "referencedTableName": "public.stripe_customer",
+          "referencedTableName": "public.customer",
           "referencedColumnNames": ["id"],
           "updateRule": "cascade",
           "deleteRule": "no action"
@@ -7740,7 +8246,9 @@
             "user_weights",
             "stats",
             "companies",
-            "subscriptions"
+            "subscriptions",
+            "transactions",
+            "invoices"
           ],
           "mappedType": "enum"
         },
@@ -7780,14 +8288,6 @@
       "name": "permission",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "permission_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["module"],
           "composite": false,
@@ -8013,14 +8513,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "picture_url_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["name"],
           "composite": false,
           "constraint": true,
@@ -8178,38 +8670,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "stripe_price_id": {
-          "name": "stripe_price_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "stripe_product_id": {
-          "name": "stripe_product_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
         },
         "name": {
           "name": "name",
@@ -8408,14 +8868,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "plan_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["is_active"],
           "composite": false,
           "constraint": false,
@@ -8444,14 +8896,6 @@
           "composite": false,
           "constraint": false,
           "keyName": "plan_status_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_price_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "plan_stripe_price_id_index",
           "unique": false,
           "primary": false
         }
@@ -8657,14 +9101,6 @@
       "name": "plan_permission",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "plan_permission_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["permission_id"],
           "composite": false,
@@ -8924,14 +9360,6 @@
       "name": "poll",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "poll_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -9307,14 +9735,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "product_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -9573,14 +9993,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "promotion_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -9758,14 +10170,6 @@
       "name": "push_token",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "push_token_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -9960,14 +10364,6 @@
       "name": "refresh_token",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "refresh_token_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -10482,22 +10878,6 @@
         },
         "user_metadata": {
           "name": "user_metadata",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "metadata": {
-          "name": "metadata",
           "type": "jsonb",
           "unsigned": false,
           "autoincrement": false,
@@ -11058,7 +11438,26 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "entity_id not empty",
+          "columnName": "entity_id",
+          "definition": "CHECK ((char_length(entity_id) > 0))",
+          "expression": "char_length(entity_id) > 0"
+        },
+        {
+          "name": "metadata_url not empty",
+          "columnName": "metadata_url",
+          "definition": "CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0)))",
+          "expression": "(metadata_url = NULL::text) OR (char_length(metadata_url) > 0)"
+        },
+        {
+          "name": "metadata_xml not empty",
+          "columnName": "metadata_xml",
+          "definition": "CHECK ((char_length(metadata_xml) > 0))",
+          "expression": "char_length(metadata_xml) > 0"
+        }
+      ],
       "foreignKeys": {
         "saml_providers_sso_provider_id_fkey": {
           "columnNames": ["sso_provider_id"],
@@ -11308,7 +11707,14 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "request_id not empty",
+          "columnName": "request_id",
+          "definition": "CHECK ((char_length(request_id) > 0))",
+          "expression": "char_length(request_id) > 0"
+        }
+      ],
       "foreignKeys": {
         "saml_relay_states_flow_state_id_fkey": {
           "columnNames": ["flow_state_id"],
@@ -11647,14 +12053,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "schedule_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -11930,14 +12328,6 @@
       "name": "schedule_options",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "schedule_options_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -12235,14 +12625,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "schedule_programmed_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -12502,6 +12884,118 @@
       "columns": {
         "version": {
           "name": "version",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
+        }
+      },
+      "name": "schema_migrations",
+      "schema": "auth",
+      "indexes": [
+        {
+          "columnNames": ["version"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "schema_migrations_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": ["version"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "schema_migrations_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {
+        "auth.aal_level": {
+          "name": "aal_level",
+          "schema": "auth",
+          "items": ["aal1", "aal2", "aal3"]
+        },
+        "realtime.action": {
+          "name": "action",
+          "schema": "realtime",
+          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
+        },
+        "storage.buckettype": {
+          "name": "buckettype",
+          "schema": "storage",
+          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
+        },
+        "auth.code_challenge_method": {
+          "name": "code_challenge_method",
+          "schema": "auth",
+          "items": ["s256", "plain"]
+        },
+        "realtime.equality_op": {
+          "name": "equality_op",
+          "schema": "realtime",
+          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
+        },
+        "auth.factor_status": {
+          "name": "factor_status",
+          "schema": "auth",
+          "items": ["unverified", "verified"]
+        },
+        "auth.factor_type": {
+          "name": "factor_type",
+          "schema": "auth",
+          "items": ["totp", "webauthn", "phone"]
+        },
+        "auth.oauth_authorization_status": {
+          "name": "oauth_authorization_status",
+          "schema": "auth",
+          "items": ["pending", "approved", "denied", "expired"]
+        },
+        "auth.oauth_client_type": {
+          "name": "oauth_client_type",
+          "schema": "auth",
+          "items": ["public", "confidential"]
+        },
+        "auth.oauth_registration_type": {
+          "name": "oauth_registration_type",
+          "schema": "auth",
+          "items": ["dynamic", "manual"]
+        },
+        "auth.oauth_response_type": {
+          "name": "oauth_response_type",
+          "schema": "auth",
+          "items": ["code"]
+        },
+        "auth.one_time_token_type": {
+          "name": "one_time_token_type",
+          "schema": "auth",
+          "items": [
+            "confirmation_token",
+            "reauthentication_token",
+            "recovery_token",
+            "email_change_token_new",
+            "email_change_token_current",
+            "phone_change_token"
+          ]
+        }
+      },
+      "comment": "Auth: Manages updates to the auth system."
+    },
+    {
+      "columns": {
+        "version": {
+          "name": "version",
           "type": "int8",
           "unsigned": false,
           "autoincrement": false,
@@ -12625,343 +13119,6 @@
         }
       },
       "comment": null
-    },
-    {
-      "columns": {
-        "version": {
-          "name": "version",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        }
-      },
-      "name": "schema_migrations",
-      "schema": "auth",
-      "indexes": [
-        {
-          "columnNames": ["version"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "schema_migrations_pkey",
-          "unique": true,
-          "primary": true
-        },
-        {
-          "columnNames": ["version"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "schema_migrations_pkey",
-          "unique": true,
-          "primary": true
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {},
-      "nativeEnums": {
-        "auth.aal_level": {
-          "name": "aal_level",
-          "schema": "auth",
-          "items": ["aal1", "aal2", "aal3"]
-        },
-        "realtime.action": {
-          "name": "action",
-          "schema": "realtime",
-          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
-        },
-        "storage.buckettype": {
-          "name": "buckettype",
-          "schema": "storage",
-          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
-        },
-        "auth.code_challenge_method": {
-          "name": "code_challenge_method",
-          "schema": "auth",
-          "items": ["s256", "plain"]
-        },
-        "realtime.equality_op": {
-          "name": "equality_op",
-          "schema": "realtime",
-          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
-        },
-        "auth.factor_status": {
-          "name": "factor_status",
-          "schema": "auth",
-          "items": ["unverified", "verified"]
-        },
-        "auth.factor_type": {
-          "name": "factor_type",
-          "schema": "auth",
-          "items": ["totp", "webauthn", "phone"]
-        },
-        "auth.oauth_authorization_status": {
-          "name": "oauth_authorization_status",
-          "schema": "auth",
-          "items": ["pending", "approved", "denied", "expired"]
-        },
-        "auth.oauth_client_type": {
-          "name": "oauth_client_type",
-          "schema": "auth",
-          "items": ["public", "confidential"]
-        },
-        "auth.oauth_registration_type": {
-          "name": "oauth_registration_type",
-          "schema": "auth",
-          "items": ["dynamic", "manual"]
-        },
-        "auth.oauth_response_type": {
-          "name": "oauth_response_type",
-          "schema": "auth",
-          "items": ["code"]
-        },
-        "auth.one_time_token_type": {
-          "name": "one_time_token_type",
-          "schema": "auth",
-          "items": [
-            "confirmation_token",
-            "reauthentication_token",
-            "recovery_token",
-            "email_change_token_new",
-            "email_change_token_current",
-            "phone_change_token"
-          ]
-        }
-      },
-      "comment": "Auth: Manages updates to the auth system."
-    },
-    {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "gen_random_uuid()",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "''",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "key_id": {
-          "name": "key_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "nonce": {
-          "name": "nonce",
-          "type": "bytea",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "vault._crypto_aead_det_noncegen()",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "blob"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz(6)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": "CURRENT_TIMESTAMP",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamptz(6)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": "CURRENT_TIMESTAMP",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        }
-      },
-      "name": "secrets",
-      "schema": "vault",
-      "indexes": [
-        {
-          "columnNames": ["name"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "secrets_name_idx",
-          "unique": true,
-          "primary": false,
-          "expression": "CREATE UNIQUE INDEX secrets_name_idx ON vault.secrets USING btree (name) WHERE (name IS NOT NULL)"
-        },
-        {
-          "columnNames": ["id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "secrets_pkey",
-          "unique": true,
-          "primary": true
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {},
-      "nativeEnums": {
-        "auth.aal_level": {
-          "name": "aal_level",
-          "schema": "auth",
-          "items": ["aal1", "aal2", "aal3"]
-        },
-        "realtime.action": {
-          "name": "action",
-          "schema": "realtime",
-          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
-        },
-        "storage.buckettype": {
-          "name": "buckettype",
-          "schema": "storage",
-          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
-        },
-        "auth.code_challenge_method": {
-          "name": "code_challenge_method",
-          "schema": "auth",
-          "items": ["s256", "plain"]
-        },
-        "realtime.equality_op": {
-          "name": "equality_op",
-          "schema": "realtime",
-          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
-        },
-        "auth.factor_status": {
-          "name": "factor_status",
-          "schema": "auth",
-          "items": ["unverified", "verified"]
-        },
-        "auth.factor_type": {
-          "name": "factor_type",
-          "schema": "auth",
-          "items": ["totp", "webauthn", "phone"]
-        },
-        "auth.oauth_authorization_status": {
-          "name": "oauth_authorization_status",
-          "schema": "auth",
-          "items": ["pending", "approved", "denied", "expired"]
-        },
-        "auth.oauth_client_type": {
-          "name": "oauth_client_type",
-          "schema": "auth",
-          "items": ["public", "confidential"]
-        },
-        "auth.oauth_registration_type": {
-          "name": "oauth_registration_type",
-          "schema": "auth",
-          "items": ["dynamic", "manual"]
-        },
-        "auth.oauth_response_type": {
-          "name": "oauth_response_type",
-          "schema": "auth",
-          "items": ["code"]
-        },
-        "auth.one_time_token_type": {
-          "name": "one_time_token_type",
-          "schema": "auth",
-          "items": [
-            "confirmation_token",
-            "reauthentication_token",
-            "recovery_token",
-            "email_change_token_new",
-            "email_change_token_current",
-            "phone_change_token"
-          ]
-        }
-      },
-      "comment": "Table with encrypted `secret` column for storing sensitive information on disk."
     },
     {
       "columns": {
@@ -13251,7 +13408,14 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "sessions_scopes_length",
+          "columnName": "scopes",
+          "definition": "CHECK ((char_length(scopes) <= 4096))",
+          "expression": "char_length(scopes) <= 4096"
+        }
+      ],
       "foreignKeys": {
         "sessions_oauth_client_id_fkey": {
           "columnNames": ["oauth_client_id"],
@@ -13455,7 +13619,14 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "domain not empty",
+          "columnName": "domain",
+          "definition": "CHECK ((char_length(domain) > 0))",
+          "expression": "char_length(domain) > 0"
+        }
+      ],
       "foreignKeys": {
         "sso_domains_sso_provider_id_fkey": {
           "columnNames": ["sso_provider_id"],
@@ -13650,7 +13821,14 @@
           "primary": false
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "resource_id not empty",
+          "columnName": "resource_id",
+          "definition": "CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))",
+          "expression": "(resource_id = NULL::text) OR (char_length(resource_id) > 0)"
+        }
+      ],
       "foreignKeys": {},
       "nativeEnums": {
         "auth.aal_level": {
@@ -13773,22 +13951,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "stripe_customer_id": {
-          "name": "stripe_customer_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
@@ -13805,513 +13967,8 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
-        "is_active": {
-          "name": "is_active",
-          "type": "bool",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "true",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "default_currency": {
-          "name": "default_currency",
-          "type": "varchar(10)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 10,
-          "precision": null,
-          "scale": null,
-          "default": "'usd'",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        }
-      },
-      "name": "stripe_customer",
-      "schema": "public",
-      "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "stripe_customer_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["is_active"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "stripe_customer_is_active_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "stripe_customer_pkey",
-          "unique": true,
-          "primary": true
-        },
-        {
-          "columnNames": ["stripe_customer_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "stripe_customer_stripe_customer_id_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_customer_id"],
-          "composite": false,
-          "constraint": true,
-          "keyName": "stripe_customer_stripe_customer_id_unique",
-          "unique": true,
-          "primary": false
-        },
-        {
-          "columnNames": ["user_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "stripe_customer_user_id_index",
-          "unique": false,
-          "primary": false
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {
-        "stripe_customer_user_id_foreign": {
-          "columnNames": ["user_id"],
-          "constraintName": "stripe_customer_user_id_foreign",
-          "localTableName": "public.stripe_customer",
-          "referencedTableName": "public.user",
-          "referencedColumnNames": ["id"],
-          "updateRule": "cascade",
-          "deleteRule": "cascade"
-        }
-      },
-      "nativeEnums": {
-        "auth.aal_level": {
-          "name": "aal_level",
-          "schema": "auth",
-          "items": ["aal1", "aal2", "aal3"]
-        },
-        "realtime.action": {
-          "name": "action",
-          "schema": "realtime",
-          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
-        },
-        "storage.buckettype": {
-          "name": "buckettype",
-          "schema": "storage",
-          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
-        },
-        "auth.code_challenge_method": {
-          "name": "code_challenge_method",
-          "schema": "auth",
-          "items": ["s256", "plain"]
-        },
-        "realtime.equality_op": {
-          "name": "equality_op",
-          "schema": "realtime",
-          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
-        },
-        "auth.factor_status": {
-          "name": "factor_status",
-          "schema": "auth",
-          "items": ["unverified", "verified"]
-        },
-        "auth.factor_type": {
-          "name": "factor_type",
-          "schema": "auth",
-          "items": ["totp", "webauthn", "phone"]
-        },
-        "auth.oauth_authorization_status": {
-          "name": "oauth_authorization_status",
-          "schema": "auth",
-          "items": ["pending", "approved", "denied", "expired"]
-        },
-        "auth.oauth_client_type": {
-          "name": "oauth_client_type",
-          "schema": "auth",
-          "items": ["public", "confidential"]
-        },
-        "auth.oauth_registration_type": {
-          "name": "oauth_registration_type",
-          "schema": "auth",
-          "items": ["dynamic", "manual"]
-        },
-        "auth.oauth_response_type": {
-          "name": "oauth_response_type",
-          "schema": "auth",
-          "items": ["code"]
-        },
-        "auth.one_time_token_type": {
-          "name": "one_time_token_type",
-          "schema": "auth",
-          "items": [
-            "confirmation_token",
-            "reauthentication_token",
-            "recovery_token",
-            "email_change_token_new",
-            "email_change_token_current",
-            "phone_change_token"
-          ]
-        }
-      },
-      "comment": null
-    },
-    {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int8",
-          "unsigned": true,
-          "autoincrement": true,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": 64,
-          "scale": 0,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "bigint",
-          "generated": "identity"
-        },
-        "subscription_id": {
-          "name": "subscription_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "entity": {
-          "name": "entity",
-          "type": "regclass",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "unknown"
-        },
-        "filters": {
-          "name": "filters",
-          "type": "user_defined_filter[]",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "'{}'",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "array"
-        },
-        "claims": {
-          "name": "claims",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "claims_role": {
-          "name": "claims_role",
-          "type": "regrole",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "unknown",
-          "generated": "realtime.to_regrole((claims ->> 'role'::text)) stored"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(6)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": "timezone('utc'::text, now())",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "action_filter": {
-          "name": "action_filter",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "'*'",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        }
-      },
-      "name": "subscription",
-      "schema": "realtime",
-      "indexes": [
-        {
-          "columnNames": ["entity"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "ix_realtime_subscription_entity",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "pk_subscription",
-          "unique": true,
-          "primary": true
-        },
-        {
-          "columnNames": [
-            "subscription_id",
-            "entity",
-            "filters",
-            "action_filter"
-          ],
-          "composite": true,
-          "constraint": false,
-          "keyName": "subscription_subscription_id_entity_filters_action_filter_key",
-          "unique": true,
-          "primary": false
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {},
-      "nativeEnums": {
-        "auth.aal_level": {
-          "name": "aal_level",
-          "schema": "auth",
-          "items": ["aal1", "aal2", "aal3"]
-        },
-        "realtime.action": {
-          "name": "action",
-          "schema": "realtime",
-          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
-        },
-        "storage.buckettype": {
-          "name": "buckettype",
-          "schema": "storage",
-          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
-        },
-        "auth.code_challenge_method": {
-          "name": "code_challenge_method",
-          "schema": "auth",
-          "items": ["s256", "plain"]
-        },
-        "realtime.equality_op": {
-          "name": "equality_op",
-          "schema": "realtime",
-          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
-        },
-        "auth.factor_status": {
-          "name": "factor_status",
-          "schema": "auth",
-          "items": ["unverified", "verified"]
-        },
-        "auth.factor_type": {
-          "name": "factor_type",
-          "schema": "auth",
-          "items": ["totp", "webauthn", "phone"]
-        },
-        "auth.oauth_authorization_status": {
-          "name": "oauth_authorization_status",
-          "schema": "auth",
-          "items": ["pending", "approved", "denied", "expired"]
-        },
-        "auth.oauth_client_type": {
-          "name": "oauth_client_type",
-          "schema": "auth",
-          "items": ["public", "confidential"]
-        },
-        "auth.oauth_registration_type": {
-          "name": "oauth_registration_type",
-          "schema": "auth",
-          "items": ["dynamic", "manual"]
-        },
-        "auth.oauth_response_type": {
-          "name": "oauth_response_type",
-          "schema": "auth",
-          "items": ["code"]
-        },
-        "auth.one_time_token_type": {
-          "name": "one_time_token_type",
-          "schema": "auth",
-          "items": [
-            "confirmation_token",
-            "reauthentication_token",
-            "recovery_token",
-            "email_change_token_new",
-            "email_change_token_current",
-            "phone_change_token"
-          ]
-        }
-      },
-      "comment": null
-    },
-    {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": true,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz(6)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamptz(6)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "stripe_subscription_id": {
-          "name": "stripe_subscription_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "stripe_customer_id": {
-          "name": "stripe_customer_id",
+        "customer_id": {
+          "name": "customer_id",
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
@@ -14542,6 +14199,38 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "next_billing_date": {
+          "name": "next_billing_date",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "failed_payment_attempts": {
+          "name": "failed_payment_attempts",
+          "type": "int2",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": 16,
+          "scale": 0,
+          "default": "0",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "smallint"
         }
       },
       "name": "subscription",
@@ -14556,18 +14245,18 @@
           "primary": false
         },
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "subscription_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["current_period_end"],
           "composite": false,
           "constraint": false,
           "keyName": "subscription_current_period_end_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": ["next_billing_date"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "subscription_next_billing_date_index",
           "unique": false,
           "primary": false
         },
@@ -14584,14 +14273,6 @@
           "composite": false,
           "constraint": false,
           "keyName": "subscription_status_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_subscription_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "subscription_stripe_subscription_id_index",
           "unique": false,
           "primary": false
         },
@@ -14615,6 +14296,15 @@
           "updateRule": "cascade",
           "deleteRule": "set null"
         },
+        "subscription_customer_id_foreign": {
+          "columnNames": ["customer_id"],
+          "constraintName": "subscription_customer_id_foreign",
+          "localTableName": "public.subscription",
+          "referencedTableName": "public.customer",
+          "referencedColumnNames": ["id"],
+          "updateRule": "cascade",
+          "deleteRule": "no action"
+        },
         "subscription_default_payment_method_id_foreign": {
           "columnNames": ["default_payment_method_id"],
           "constraintName": "subscription_default_payment_method_id_foreign",
@@ -14633,15 +14323,6 @@
           "updateRule": "cascade",
           "deleteRule": "no action"
         },
-        "subscription_stripe_customer_id_foreign": {
-          "columnNames": ["stripe_customer_id"],
-          "constraintName": "subscription_stripe_customer_id_foreign",
-          "localTableName": "public.subscription",
-          "referencedTableName": "public.stripe_customer",
-          "referencedColumnNames": ["id"],
-          "updateRule": "cascade",
-          "deleteRule": "no action"
-        },
         "subscription_user_id_foreign": {
           "columnNames": ["user_id"],
           "constraintName": "subscription_user_id_foreign",
@@ -14652,6 +14333,245 @@
           "deleteRule": "cascade"
         }
       },
+      "nativeEnums": {
+        "auth.aal_level": {
+          "name": "aal_level",
+          "schema": "auth",
+          "items": ["aal1", "aal2", "aal3"]
+        },
+        "realtime.action": {
+          "name": "action",
+          "schema": "realtime",
+          "items": ["INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR"]
+        },
+        "storage.buckettype": {
+          "name": "buckettype",
+          "schema": "storage",
+          "items": ["STANDARD", "ANALYTICS", "VECTOR"]
+        },
+        "auth.code_challenge_method": {
+          "name": "code_challenge_method",
+          "schema": "auth",
+          "items": ["s256", "plain"]
+        },
+        "realtime.equality_op": {
+          "name": "equality_op",
+          "schema": "realtime",
+          "items": ["eq", "neq", "lt", "lte", "gt", "gte", "in"]
+        },
+        "auth.factor_status": {
+          "name": "factor_status",
+          "schema": "auth",
+          "items": ["unverified", "verified"]
+        },
+        "auth.factor_type": {
+          "name": "factor_type",
+          "schema": "auth",
+          "items": ["totp", "webauthn", "phone"]
+        },
+        "auth.oauth_authorization_status": {
+          "name": "oauth_authorization_status",
+          "schema": "auth",
+          "items": ["pending", "approved", "denied", "expired"]
+        },
+        "auth.oauth_client_type": {
+          "name": "oauth_client_type",
+          "schema": "auth",
+          "items": ["public", "confidential"]
+        },
+        "auth.oauth_registration_type": {
+          "name": "oauth_registration_type",
+          "schema": "auth",
+          "items": ["dynamic", "manual"]
+        },
+        "auth.oauth_response_type": {
+          "name": "oauth_response_type",
+          "schema": "auth",
+          "items": ["code"]
+        },
+        "auth.one_time_token_type": {
+          "name": "one_time_token_type",
+          "schema": "auth",
+          "items": [
+            "confirmation_token",
+            "reauthentication_token",
+            "recovery_token",
+            "email_change_token_new",
+            "email_change_token_current",
+            "phone_change_token"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int8",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": 64,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "bigint",
+          "generated": "identity"
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "entity": {
+          "name": "entity",
+          "type": "regclass",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "unknown"
+        },
+        "filters": {
+          "name": "filters",
+          "type": "user_defined_filter[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "claims": {
+          "name": "claims",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "claims_role": {
+          "name": "claims_role",
+          "type": "regrole",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "unknown",
+          "generated": "realtime.to_regrole((claims ->> 'role'::text)) stored"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "timezone('utc'::text, now())",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "action_filter": {
+          "name": "action_filter",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'*'",
+          "comment": null,
+          "enumItems": ["*", "INSERT", "UPDATE", "DELETE"],
+          "mappedType": "enum"
+        }
+      },
+      "name": "subscription",
+      "schema": "realtime",
+      "indexes": [
+        {
+          "columnNames": ["entity"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "ix_realtime_subscription_entity",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": ["id"],
+          "composite": false,
+          "constraint": false,
+          "keyName": "pk_subscription",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "subscription_id",
+            "entity",
+            "filters",
+            "action_filter"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "subscription_subscription_id_entity_filters_action_filter_key",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
       "nativeEnums": {
         "auth.aal_level": {
           "name": "aal_level",
@@ -14858,14 +14778,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "training_task_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -15018,22 +14930,6 @@
         },
         "stripe_charge_id": {
           "name": "stripe_charge_id",
-          "type": "varchar(100)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 100,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
-        "stripe_payment_intent_id": {
-          "name": "stripe_payment_intent_id",
           "type": "varchar(100)",
           "unsigned": false,
           "autoincrement": false,
@@ -15210,7 +15106,7 @@
           "length": 10,
           "precision": null,
           "scale": null,
-          "default": "'usd'",
+          "default": "'eur'",
           "comment": null,
           "enumItems": [],
           "mappedType": "string"
@@ -15262,16 +15158,32 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "json"
+        },
+        "external_transaction_id": {
+          "name": "external_transaction_id",
+          "type": "varchar(200)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 200,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
         }
       },
       "name": "transaction",
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
+          "columnNames": ["external_transaction_id"],
           "composite": false,
           "constraint": false,
-          "keyName": "transaction_created_at_index",
+          "keyName": "transaction_external_transaction_id_index",
           "unique": false,
           "primary": false
         },
@@ -15296,14 +15208,6 @@
           "composite": false,
           "constraint": false,
           "keyName": "transaction_status_index",
-          "unique": false,
-          "primary": false
-        },
-        {
-          "columnNames": ["stripe_charge_id"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "transaction_stripe_charge_id_index",
           "unique": false,
           "primary": false
         },
@@ -15685,22 +15589,6 @@
           "enumItems": [],
           "mappedType": "string"
         },
-        "stripe_customer_id": {
-          "name": "stripe_customer_id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 255,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
-        },
         "picture_url_id": {
           "name": "picture_url_id",
           "type": "uuid",
@@ -15748,6 +15636,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "string"
+        },
+        "customer": {
+          "name": "customer",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "string"
         }
       },
       "name": "user",
@@ -15767,14 +15671,6 @@
           "constraint": true,
           "keyName": "user_apple_id_unique",
           "unique": true,
-          "primary": false
-        },
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "user_created_at_index",
-          "unique": false,
           "primary": false
         },
         {
@@ -16282,14 +16178,6 @@
       "schema": "public",
       "indexes": [
         {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "user_role_created_at_index",
-          "unique": false,
-          "primary": false
-        },
-        {
           "columnNames": ["id"],
           "composite": false,
           "constraint": false,
@@ -16655,14 +16543,6 @@
       "name": "user_weight",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "user_weight_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,
@@ -17427,7 +17307,14 @@
           "primary": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "users_email_change_confirm_status_check",
+          "columnName": "email_change_confirm_status",
+          "definition": "CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))",
+          "expression": "(email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)"
+        }
+      ],
       "foreignKeys": {},
       "nativeEnums": {
         "auth.aal_level": {
@@ -17797,8 +17684,8 @@
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "enumItems": ["signup", "registration", "authentication"],
+          "mappedType": "enum"
         },
         "session_data": {
           "name": "session_data",
@@ -18480,14 +18367,6 @@
       "name": "webhook_event_log",
       "schema": "public",
       "indexes": [
-        {
-          "columnNames": ["created_at"],
-          "composite": false,
-          "constraint": false,
-          "keyName": "webhook_event_log_created_at_index",
-          "unique": false,
-          "primary": false
-        },
         {
           "columnNames": ["id"],
           "composite": false,

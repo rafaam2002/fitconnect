@@ -24,14 +24,15 @@ export interface CreatePlanInput {
   companyId?: string;
 }
 
-interface UpdatePlanInput {
+export interface UpdatePlanInput {
   id: string;
   name?: string;
   description?: string;
+  amount?: number;
   features?: string[];
   metadata?: Record<string, any>;
   status?: PlanStatus;
-  isActive: boolean;
+  isActive?: boolean;
 }
 
 export class PlanService extends BaseService {
@@ -42,187 +43,157 @@ export class PlanService extends BaseService {
     this.permissionService = new PermissionService(em);
   }
 
+  /**
+   * Crea un nuevo plan de suscripción.
+   */
   async createPlan(input: CreatePlanInput): Promise<ServiceResponse> {
-    try {
-      // Crear producto en Stripe
-      const stripeProduct = await this.stripe.products.create({
+    if (
+      !input.name ||
+      !input.interval ||
+      input.amount === undefined ||
+      input.amount === null
+    ) {
+      throw new BadRequestError('name, amount and interval are required');
+    }
+
+    if (input.amount < 0) {
+      throw new BadRequestError('amount must be greater than or equal to 0');
+    }
+
+    // Verificar nombre único por empresa
+    const existing = await this.em.findOne(
+      Plan,
+      {
         name: input.name,
-        description: input.description,
-        metadata: input.metadata || {},
-      });
+        company: input.companyId ?? null,
+      },
+      { filters: false }
+    );
 
-      // Crear precio en Stripe
-      const stripePrice = await this.stripe.prices.create(
-        {
-          product: stripeProduct.id,
-          unit_amount: input.amount,
-          currency: input.currency || 'usd',
-          recurring: {
-            interval: input.interval,
-            interval_count: input.intervalCount || 1,
-            trial_period_days: input.trialPeriodDays,
-          },
-          metadata: input.metadata || {},
-        },
-        {
-          idempotencyKey: this.generateIdempotencyKey(
-            'plan',
-            input.name,
-            input.amount.toString()
-          ),
-        }
+    if (existing) {
+      throw new BadRequestError(
+        `A plan with the name "${input.name}" already exists`
       );
-
-      const {
-        name,
-        currency,
-        description,
-        amount,
-        interval,
-        intervalCount,
-        trialPeriodDays,
-        features,
-        metadata,
-        companyId,
-      } = input;
-
-      // Crear en base de datos
-      const plan = this.em.create<Plan>(Plan, {
-        stripePriceId: stripePrice.id,
-        stripeProductId: stripeProduct.id,
-        name,
-        description,
-        amount,
-        currency: currency || 'EUR',
-        interval,
-        intervalCount: intervalCount || 1,
-        trialPeriodDays,
-        features,
-        metadata,
-        company: companyId,
-        status: PlanStatus.ACTIVE,
-      });
-
-      this.em.persist(plan);
-
-      await this.em.flush();
-
-      // Sincronizar permisos si existen en metadata
-      if (metadata?.permissions) {
-        await this.permissionService.syncPermissionsFromMetadata(
-          plan.id,
-          metadata
-        );
-      }
-
-      return createServiceResponse(200, 'Plan has been created', true, plan);
-    } catch (error) {
-      this.handleStripeError(error);
     }
+
+    const plan = this.em.create<Plan>(Plan, {
+      name: input.name,
+      description: input.description,
+      amount: input.amount,
+      currency: input.currency ?? 'eur',
+      interval: input.interval,
+      intervalCount: input.intervalCount ?? 1,
+      trialPeriodDays: input.trialPeriodDays,
+      features: input.features,
+      metadata: input.metadata,
+      company: input.companyId,
+      status: PlanStatus.ACTIVE,
+      isActive: true,
+    });
+
+    this.em.persist(plan);
+    await this.em.flush();
+
+    // Sincronizar permisos si vienen en metadata
+    if (input.metadata?.permissions) {
+      await this.permissionService.syncPermissionsFromMetadata(
+        plan.id,
+        input.metadata
+      );
+    }
+
+    return createServiceResponse(201, 'Plan created successfully', true, {
+      plan,
+    });
   }
 
+  /**
+   * Actualiza un plan existente.
+   *
+   * Nota: cambiar el `amount` de un plan no afecta a las suscripciones activas
+   * — estas siguen con el precio original hasta que se renueven o se migren
+   * explícitamente. Implementa esa lógica en SubscriptionService si la necesitas.
+   */
   async updatePlan(input: UpdatePlanInput): Promise<ServiceResponse> {
-    const plan = await this.em.findOne(Plan, { id: input.id });
+    if (!input.id) {
+      throw new BadRequestError('Plan ID is required');
+    }
 
+    const plan = await this.em.findOne(
+      Plan,
+      { id: input.id },
+      { filters: false, populate: ['company'] }
+    );
     if (!plan) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan');
     }
 
-    try {
-      // Actualizar producto en Stripe
-      if (input.name || input.description || input.metadata) {
-        await this.stripe.products.update(plan.stripeProductId as string, {
-          name: input.name,
-          description: input.description,
-          metadata: input.metadata,
-          active: input.status === PlanStatus.ACTIVE,
-        });
-
-        await this.stripe.prices.update(plan.stripePriceId, {
-          active: input.status === PlanStatus.ACTIVE,
-        });
-      }
-
-      // Actualizar en base de datos
-      if (input.name) plan.name = input.name;
-      if (input.description) plan.description = input.description;
-      if (input.features) plan.features = input.features;
-      if (input.metadata)
-        plan.metadata = { ...plan.metadata, ...input.metadata };
-      if (input.isActive !== undefined)
-        plan.isActive = input.status === PlanStatus.ACTIVE;
-      if (input.status) plan.status = input.status;
-
-      await this.em.flush();
-
-      // Sincronizar permisos si cambiaron
-      if (input.metadata?.permissions) {
-        await this.permissionService.syncPermissionsFromMetadata(
-          plan.id,
-          input.metadata
-        );
-      }
-
-      return createServiceResponse(200, 'Plan has been updated', true, plan);
-    } catch (error) {
-      this.handleStripeError(error);
+    if (input.name !== undefined) plan.name = input.name;
+    if (input.description !== undefined) plan.description = input.description;
+    if (input.amount !== undefined) {
+      if (input.amount < 0)
+        throw new BadRequestError('amount must be greater than or equal to 0');
+      plan.amount = input.amount;
     }
+    if (input.features !== undefined) plan.features = input.features;
+    if (input.metadata !== undefined) {
+      plan.metadata = { ...plan.metadata, ...input.metadata };
+    }
+    if (input.status !== undefined) {
+      plan.status = input.status;
+      plan.isActive = input.status === PlanStatus.ACTIVE;
+    }
+    if (input.isActive !== undefined) {
+      plan.isActive = input.isActive;
+      if (!input.isActive && plan.status === PlanStatus.ACTIVE) {
+        plan.status = PlanStatus.INACTIVE;
+      }
+    }
+
+    await this.em.flush();
+
+    // Sincronizar permisos si cambiaron en metadata
+    if (input.metadata?.permissions) {
+      await this.permissionService.syncPermissionsFromMetadata(
+        plan.id,
+        input.metadata
+      );
+    }
+
+    return createServiceResponse(200, 'Plan updated successfully', true, {
+      plan,
+    });
   }
 
+  /**
+   * Obtiene un plan por su ID.
+   */
   async getPlan(planId: string): Promise<ServiceResponse> {
     if (!planId) {
-      throw new BadRequestError('Plan Id is required');
+      throw new BadRequestError('Plan ID is required');
     }
 
-    const plan = await this.em.findOne(Plan, { id: planId });
-
-    if (!plan) {
-      throw new NotFoundError('Plan');
-    }
-
-    return createServiceResponse(200, 'Plan has been fetched', true, plan);
-  }
-
-  async getPlanByStripeId(stripePriceId: string): Promise<ServiceResponse> {
-    const plan = await this.em.findOne(Plan, { stripePriceId });
-
-    if (!stripePriceId) {
-      throw new BadRequestError('Stripe price Id is required');
-    }
-
-    if (!plan) {
-      throw new NotFoundError('Plan');
-    }
-
-    return createServiceResponse(
-      200,
-      ' Stripe plan has been loaded',
-      true,
-      plan
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId },
+      {
+        filters: false,
+        populate: ['planPermissions', 'planPermissions.permission', 'company'],
+      }
     );
-  }
-
-  async getPlanByStripeProductId(
-    stripeProductId: string
-  ): Promise<ServiceResponse> {
-    if (!stripeProductId) {
-      throw new BadRequestError('Stripe product Id is required');
-    }
-
-    const plan = await this.em.findOne(Plan, { stripeProductId });
 
     if (!plan) {
       throw new NotFoundError('Plan');
     }
 
-    return createServiceResponse(
-      200,
-      ' Stripe plan has been loaded',
-      true,
-      plan
-    );
+    return createServiceResponse(200, 'Plan fetched successfully', true, {
+      plan,
+    });
   }
 
+  /**
+   * Lista planes con filtros opcionales.
+   */
   async listPlans(
     onlyActive: boolean = true,
     showGlobal: boolean = false
@@ -237,219 +208,81 @@ export class PlanService extends BaseService {
 
     const plans = await this.em.find<Plan>(Plan, where, {
       orderBy: { amount: QueryOrder.ASC },
-      populate: ['subscriptions'] as any,
+      populate: ['subscriptions', 'company'] as any,
       filters: !showGlobal,
     });
 
-    return createServiceResponse(200, 'Plans has been fetched', true, {
+    return createServiceResponse(200, 'Plans fetched successfully', true, {
       plans,
     });
   }
 
+  /**
+   * Desactiva un plan. Las suscripciones activas no se ven afectadas
+   * hasta su próxima renovación, momento en que deberían migrarse o cancelarse.
+   */
   async deactivatePlan(planId: string): Promise<ServiceResponse> {
-    const plan = await this.em.findOne(Plan, { id: planId });
-
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId },
+      { filters: false, populate: ['company'] }
+    );
     if (!plan) {
       throw new NotFoundError('Plan');
     }
 
-    if (!plan.stripeProductId)
-      throw new BadRequestError('Stripe product Id is required');
+    plan.isActive = false;
+    plan.status = PlanStatus.INACTIVE;
+    await this.em.flush();
 
-    try {
-      // Desactivar precio en Stripe
-      await this.stripe.prices.update(plan.stripePriceId, {
-        active: false,
-      });
-
-      await this.stripe.products.update(plan.stripeProductId, {
-        active: false,
-      });
-
-      // Actualizar en base de datos
-      plan.isActive = false;
-      plan.status = PlanStatus.INACTIVE;
-
-      await this.em.flush();
-
-      return createServiceResponse(
-        200,
-        'Plan has been deactivated',
-        true,
-        plan
-      );
-    } catch (error) {
-      this.handleStripeError(error);
-    }
-  }
-
-  async syncPlanFromStripe(stripePriceId: string): Promise<ServiceResponse> {
-    try {
-      const stripePrice = await this.stripe.prices.retrieve(stripePriceId);
-      const stripeProduct = await this.stripe.products.retrieve(
-        stripePrice.product as string
-      );
-
-      let plan = await this.em.findOne(Plan, { stripePriceId });
-
-      if (plan) {
-        // Actualizar existente
-        plan.name = stripeProduct.name;
-        plan.description = stripeProduct.description || undefined;
-        plan.isActive = stripePrice.active;
-        plan.status = stripePrice.active
-          ? PlanStatus.ACTIVE
-          : PlanStatus.INACTIVE;
-        plan.metadata = stripeProduct.metadata;
-      } else {
-        // Crear nuevo plan
-        plan = this.em.create<Plan>(Plan, {
-          stripePriceId: stripePrice.id,
-          stripeProductId: stripeProduct.id,
-          name: stripeProduct.name,
-          description: stripeProduct.description || undefined,
-          amount: stripePrice.unit_amount || 0,
-          currency: stripePrice.currency,
-          interval: stripePrice.recurring?.interval as PlanInterval,
-          intervalCount: stripePrice.recurring?.interval_count || 1,
-          trialPeriodDays:
-            stripePrice.recurring?.trial_period_days || undefined,
-          isActive: stripePrice.active,
-          status: stripePrice.active ? PlanStatus.ACTIVE : PlanStatus.INACTIVE,
-          metadata: stripeProduct.metadata,
-        });
-      }
-
-      this.em.persist(plan);
-      await this.em.flush();
-
-      // Sincronizar permisos desde metadata
-      if (stripeProduct.metadata?.permissions) {
-        await this.permissionService.syncPermissionsFromMetadata(
-          plan.id,
-          stripeProduct.metadata
-        );
-      }
-
-      return createServiceResponse(200, 'Plan has been synced', true, plan);
-    } catch (error) {
-      this.handleStripeError(error);
-    }
-  }
-
-  // ============= MÉTODOS PARA WEBHOOKS =============
-
-  /**
-   * Sincronizar plan cuando el producto de Stripe cambia
-   */
-  async syncPlanFromProduct(stripeProductId: string): Promise<Plan | null> {
-    try {
-      console.log(`Syncing plan from product: ${stripeProductId}`);
-
-      const product = await this.stripe.products.retrieve(stripeProductId);
-
-      // Buscar plan existente por productId
-      let { data: plan } = await this.getPlanByStripeProductId(stripeProductId);
-
-      if (!plan) {
-        // El plan podría no existir aún si el precio no se ha creado
-        console.log(
-          `No plan found for product ${stripeProductId}, waiting for price event`
-        );
-        return null;
-      }
-
-      // Actualizar información del producto
-      plan.name = product.name;
-      plan.description = product.description || undefined;
-      plan.metadata = product.metadata;
-      plan.isActive = product.active;
-
-      this.em.persist(plan);
-      await this.em.flush();
-
-      // Sincronizar permisos desde metadata
-      if (product.metadata?.permissions) {
-        await this.permissionService.syncPermissionsFromMetadata(
-          plan.id,
-          product.metadata
-        );
-        console.log(
-          `Synced permissions for plan ${plan.id} from product metadata`
-        );
-      }
-
-      console.log(
-        `Successfully synced plan ${plan.id} from product ${stripeProductId}`
-      );
-      return plan;
-    } catch (error: any) {
-      console.error(
-        `Error syncing plan from product ${stripeProductId}:`,
-        error.message
-      );
-      this.handleStripeError(error);
-    }
+    return createServiceResponse(200, 'Plan deactivated successfully', true, {
+      plan,
+    });
   }
 
   /**
-   * Archivar plan cuando el producto es eliminado
+   * Archiva un plan de forma permanente.
+   * Un plan archivado no puede reactivarse — crear uno nuevo si es necesario.
    */
-  async archivePlanFromProduct(stripeProductId: string): Promise<void> {
-    try {
-      const { data: plan } =
-        await this.getPlanByStripeProductId(stripeProductId);
-
-      if (!plan) {
-        console.log(`No plan found for deleted product ${stripeProductId}`);
-        return;
-      }
-
-      plan.isActive = false;
-      plan.status = PlanStatus.ARCHIVED;
-
-      this.em.persist(plan);
-      await this.em.flush();
-
-      console.log(
-        `Archived plan ${plan.id} due to product deletion ${stripeProductId}`
-      );
-    } catch (error: any) {
-      console.error(
-        `Error archiving plan from product ${stripeProductId}:`,
-        error.message
-      );
-      throw error;
+  async archivePlan(planId: string): Promise<ServiceResponse> {
+    const plan = await this.em.findOne(
+      Plan,
+      { id: planId },
+      { filters: false, populate: ['company'] }
+    );
+    if (!plan) {
+      throw new NotFoundError('Plan');
     }
+
+    plan.isActive = false;
+    plan.status = PlanStatus.ARCHIVED;
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Plan archived successfully', true, {
+      plan,
+    });
   }
 
   /**
-   * Archivar plan cuando el precio es eliminado
+   * Obtiene el plan activo vinculado a una empresa.
+   * Útil para contextos multi-tenant donde cada empresa puede tener planes propios.
    */
-  async archivePlanFromPrice(stripePriceId: string): Promise<void> {
-    try {
-      const { data: plan } = await this.getPlanByStripeId(stripePriceId);
-
-      if (!plan) {
-        console.log(`No plan found for deleted price ${stripePriceId}`);
-        return;
-      }
-
-      plan.isActive = false;
-      plan.status = PlanStatus.ARCHIVED;
-
-      this.em.persist(plan);
-      await this.em.flush();
-
-      console.log(
-        `Archived plan ${plan.id} due to price deletion ${stripePriceId}`
-      );
-    } catch (error: any) {
-      console.error(
-        `Error archiving plan from price ${stripePriceId}:`,
-        error.message
-      );
-      throw error;
+  async getPlansByCompany(companyId: string): Promise<ServiceResponse> {
+    if (!companyId) {
+      throw new BadRequestError('Company ID is required');
     }
+
+    const plans = await this.em.find<Plan>(
+      Plan,
+      { company: companyId, status: PlanStatus.ACTIVE },
+      {
+        orderBy: { amount: QueryOrder.ASC },
+        filters: false,
+      }
+    );
+
+    return createServiceResponse(200, 'Plans fetched successfully', true, {
+      plans,
+    });
   }
 }

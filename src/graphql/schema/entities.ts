@@ -53,6 +53,7 @@ type Company {
     companyConfig: CompanyConfig
     amIPending: Boolean
 }
+
 type User {
     id: ID!
     name: String
@@ -142,7 +143,6 @@ type Poll {
     options: [String]!
     admin: User!
     pollVotes: [PollVote]
-
 }
 
 type PollVote { 
@@ -155,7 +155,7 @@ type Message {
     id: ID!
     created_at: String!
     text: String!
-    isFixed:Boolean
+    isFixed: Boolean
     fixedEndDate: String
     fixedAdmin: UserResumeResponse
     sender: UserResumeResponse!
@@ -168,64 +168,170 @@ type Conversation {
     messages: [Message]
 }
 
+# ── BILLING ──────────────────────────────────────────────────────────
+
+"""
+Perfil de facturación de un usuario.
+"""
+type Customer {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    user: User
+    isActive: Boolean!
+    defaultCurrency: Currency!
+    paymentMethods: [PaymentMethod]
+}
+
+"""
+Método de pago almacenado (card-on-file).
+El token de la tarjeta lo gestiona el procesador externo (Stripe).
+Nunca se exponen datos sensibles de la tarjeta.
+"""
+type PaymentMethod {
+    id: ID!
+    created_at: String!
+    customer: Customer!
+    type: PaymentMethodType!
+    status: PaymentMethodStatus!
+    brand: String
+    last4: String
+    expiryMonth: Int
+    expiryYear: Int
+    fingerprint: String
+    country: String
+    isDefault: Boolean!
+    displayName: String
+    isExpired: Boolean
+    metadata: JSON
+}
+
 type Plan {
     id: ID!
     created_at: String!
     updated_at: String!
     name: String!
-    description: String!
+    description: String
     amount: Float!
     currency: Currency!
     interval: PlanInterval!
-    intervalCount: Int
+    intervalCount: Int!
     trialPeriodDays: Int
     status: PlanStatus!
     isActive: Boolean!
-    features: [String]!
+    features: [String]
     subscriptions: [Subscription]
     metadata: JSON
 }
 
-type Notification {
-    id: ID!,
-    created_at: String!
-    updated_at: String!
-    type: NotificationType!
-    message: String! 
-    link: String!
-    user: IdResponse!
-}
-
+"""
+Suscripción de un usuario a un plan.
+nextBillingDate y failedPaymentAttempts controlan el ciclo de cobro propio.
+"""
 type Subscription {
     id: ID!
-    created_at: String!
-    updated_at: String!
-    user: IdResponse !
+    created_at: DateTime!
+    updated_at: DateTime!
+    user: IdResponse!
+    customer: Customer!
+    plan: Plan!
+    defaultPaymentMethod: PaymentMethod
     status: SubscriptionStatus!
+    currentPeriodStart: DateTime
+    currentPeriodEnd: DateTime
+    trialStart: DateTime
+    trialEnd: DateTime
+    canceledAt: DateTime
+    cancelAtPeriodEnd: Boolean
+    endedAt: DateTime
+    quantity: Int
+    nextBillingDate: DateTime
+    failedPaymentAttempts: Int!
+    isActive: Boolean
+    isInTrial: Boolean
+    isPastDue: Boolean
+    daysUntilRenewal: Int
+    metadata: JSON
     transactions: [Transaction]
 }
 
-type Card {
-    number: String!
-    exp_month: String!
-    exp_year: String!
-    cvc: Int!
+"""
+Factura generada por el sistema de billing interno.
+El número de factura (INV-YYYY-NNNNN) lo genera el propio sistema.
+"""
+type Invoice {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    invoiceNumber: String
+    user: User!
+    subscription: Subscription
+    status: InvoiceStatus!
+    subtotal: Float!
+    tax: Float!
+    total: Float!
+    amountPaid: Float!
+    amountRemaining: Float!
+    currency: Currency!
+    dueDate: String
+    paidAt: String
+    periodStart: String
+    periodEnd: String
+    description: String
+    lineItems: JSON
+    isPaid: Boolean!
+    isOverdue: Boolean!
+    formattedTotal: String!
 }
 
+"""
+Registro de cada movimiento de dinero.
+externalTransactionId referencia la operación en Stripe (PaymentIntent.id).
+"""
 type Transaction {
     id: ID!
-    stripeChargeId: ID
-    stripePaymentId: ID
+    created_at: String!
+    externalTransactionId: String
     user: User
     paymentMethod: PaymentMethod
-    type: TransactionType
-    status: TransactionStatus
-    formattedAmount: Float
-    currency: Currency
+    subscription: Subscription
+    invoice: Invoice
+    type: TransactionType!
+    status: TransactionStatus!
+    amount: Float!
+    amountRefunded: Float!
+    currency: Currency!
     description: String
-    isSuccessful: Boolean
+    failureReason: String
     metadata: JSON
+}
+
+
+
+type Notification {
+    id: ID!
     created_at: String!
+    updated_at: String!
+    type: NotificationType!
+    title: String!
+    message: String! 
+    link: String
+    read: Boolean!
+    user: IdResponse!
+    company: Company
+}
+
+type Stats {
+    total: Int
+    active: Int
+    expired: Int
+    hasDefault: Boolean
+    byBrand: JSON
+}
+
+type Tokens {
+    token: String
+    refreshToken: String
 }
 
 type UserStats {
@@ -254,53 +360,5 @@ type GroupUser {
 type ExpoPushToken {
     id: ID!
     token: String!
-}
-
-type Card {
-    id: ID!
-    created_at: String
-    user: User
-    cardBrand: String
-    cardLast4: Int
-    cardExpMonth: String
-    cardExpYear: String
-    status: PaymentMethodStatus
-}
-
-type StripeCustomer {
-    id: ID!
-    created_at: String!
-    updated_at: String!
-    stripeCustomerId: String!
-    user: User
-    isActive: Boolean
-    defaultCurrency: Currency
-}
-
-type PaymentMethod {
-    id: ID!
-    stripeCustomer: StripeCustomer!
-    type: PaymentMethodType
-    status: PaymentMethodStatus
-    brand: String
-    last4: String
-    expiryMonth: String
-    expiryYear: String
-    country: String
-    isDefault: Boolean
-    stripePaymentMethodId: String 
-}
-
-type Stats {
-    total: Int
-    active: Int
-    expired: Int
-    hasDefault: Boolean
-    byBrand: JSON
-}
-
-type Tokens {
-    token: String
-    refreshToken: String
 }
 `;

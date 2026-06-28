@@ -2,6 +2,7 @@ import {
   Collection,
   Entity,
   Enum,
+  Filter,
   Index,
   ManyToOne,
   OneToMany,
@@ -10,10 +11,10 @@ import {
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
+import { Customer } from './Customer';
 import { Invoice } from './Invoice';
 import { PaymentMethod } from './PaymentMethod';
 import { Plan } from './Plan';
-import { StripeCustomer } from './StripeCustomer';
 import { Transaction } from './Transaction';
 import { User } from './User';
 
@@ -29,17 +30,21 @@ export enum SubscriptionStatus {
 }
 
 @Entity()
+@Filter({
+  name: 'companyContext',
+  cond: args => (args.companyId ? { company: args.companyId } : {}),
+  default: true,
+})
 export class Subscription extends BaseEntity {
-  @Property({ length: 100 })
-  @Index()
-  stripeSubscriptionId!: string; // sub_xxxxx
-
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   @Index()
   user!: User;
 
-  @ManyToOne(() => StripeCustomer)
-  stripeCustomer!: StripeCustomer;
+  /**
+   * Relación al perfil de facturación del usuario.
+   */
+  @ManyToOne(() => Customer)
+  customer!: Customer;
 
   @ManyToOne(() => Plan)
   plan!: Plan;
@@ -79,6 +84,22 @@ export class Subscription extends BaseEntity {
   @Property({ type: 'bigint', nullable: true })
   quantity?: number;
 
+  /**
+   * Fecha en que se debe ejecutar el próximo cobro.
+   * El CRON de billing filtra por este campo cada día.
+   */
+  @Property({ type: 'datetime', nullable: true })
+  @Index()
+  nextBillingDate?: Date;
+
+  /**
+   * Contador de intentos de cobro fallidos consecutivos.
+   * Se resetea a 0 cuando un cobro tiene éxito.
+   * La lógica de dunning usa este valor para decidir reintentos o cancelación.
+   */
+  @Property({ type: 'smallint', default: 0 })
+  failedPaymentAttempts: number = 0;
+
   @Property({ type: 'json', nullable: true })
   metadata?: Record<string, any>;
 
@@ -86,7 +107,6 @@ export class Subscription extends BaseEntity {
   @Index()
   company: Company;
 
-  // Relaciones
   @OneToMany(() => Invoice, invoice => invoice.subscription)
   invoices = new Collection<Invoice>(this);
 

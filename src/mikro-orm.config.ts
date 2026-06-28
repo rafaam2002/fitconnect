@@ -5,8 +5,10 @@ import dotenv from 'dotenv';
 import { Article } from './entities/Article';
 import { Company } from './entities/Company';
 import { CompanyConfig } from './entities/CompanyConfig';
+import { Customer } from './entities/Customer';
 import { Invoice } from './entities/Invoice';
 import { Message } from './entities/Message';
+import { Notification } from './entities/Notification';
 import { PaymentMethod } from './entities/PaymentMethod';
 import { Plan } from './entities/Plan';
 import { Poll } from './entities/Poll';
@@ -18,14 +20,12 @@ import { RefreshToken } from './entities/RefreshToken';
 import { Schedule } from './entities/Schedule';
 import { ScheduleOptions } from './entities/ScheduleOptions';
 import { ScheduleProgrammed } from './entities/ScheduleProgrammed';
-import { StripeCustomer } from './entities/StripeCustomer';
 import { Subscription } from './entities/Subscription';
 import { TrainingTask } from './entities/TraningITask';
 import { Transaction } from './entities/Transaction';
 import { User } from './entities/User';
 import { UserRole } from './entities/UserRole';
 import { UserWeight } from './entities/UserWeight';
-import { WebhookEventLog } from './entities/WebhookEventLog';
 
 dotenv.config();
 
@@ -49,14 +49,14 @@ export default {
     Schedule,
     ScheduleOptions,
     ScheduleProgrammed,
-    StripeCustomer,
+    Customer,
     Subscription,
     TrainingTask,
     Transaction,
     User,
     UserRole,
     UserWeight,
-    WebhookEventLog,
+    Notification,
   ],
   clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
   dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,

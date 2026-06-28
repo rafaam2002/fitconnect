@@ -1,5 +1,5 @@
 export const graphqlEnums = `
-enum NotificationType{
+enum NotificationType {
     message
     warning
     error
@@ -20,23 +20,48 @@ enum ScheduleType {
     competition
 }
 
-enum PaymentMethodType {
-    card
-    apple_pay
-    google_pay
-}
-
-enum PaymentType {
-    mensual
-    anual
-}
-
 enum ScheduleState {
     available
     cancelled
 }
 
-enum SubscriptionStatus{
+enum Currency {
+    eur
+    usd
+    gbp
+}
+
+enum LogicalOperator {
+    and
+    or
+}
+
+enum PaymentMethodType {
+    card
+    sepa_debit
+    us_bank_account
+}
+
+enum PaymentMethodStatus {
+    active
+    inactive
+    expired
+}
+
+enum PlanInterval {
+    day
+    week
+    month
+    year
+}
+
+enum PlanStatus {
+    active
+    inactive
+    archived
+}
+
+enum SubscriptionStatus {
     incomplete
     incomplete_expired
     trialing
@@ -47,49 +72,12 @@ enum SubscriptionStatus{
     paused
 }
 
-enum CreditCardType {
-    credit
-    debit
-}
-
-enum CreditCardProvider{
-    visa
-    mastercard
-}
-
-enum PaymentMethodEnum {
-    credit_card
-    apple_pay
-    google_pay
-}
-
-enum Currency {
-    eur
-    usd
-}
-
-enum LogicalOperator {
-  and
-  or
-}
-
-enum PaymentMethodStatus {
-  active
-  inactive
-  expired
-}
-
-enum PlanInterval {
-   day
-   week
-   month
-   year
-}
-
-enum PlanStatus {
-    active
-    inactive
-    archived
+enum InvoiceStatus {
+    draft
+    open
+    paid
+    uncollectible
+    void
 }
 
 enum TransactionStatus {
@@ -106,6 +94,16 @@ enum TransactionType {
     refund
     payment
     subscription
+}
+
+enum PlanFilterConditionEnum {
+    with
+    without
+}
+
+enum PaymentType {
+    mensual
+    anual
 }
 
 enum PlanFilterConditionEnum {

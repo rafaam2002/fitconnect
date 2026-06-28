@@ -20,7 +20,6 @@ import {
   NOT_FND_ERRORS,
   FORBIDDEN_ERRORS,
 } from '../utils/errors.util';
-import { sendPushNotification } from '../utils/notification.util';
 import {
   createDateWithTime,
   createInitialSchedules,
@@ -28,6 +27,7 @@ import {
 } from '../utils/schedules.util';
 
 import { BaseService } from './base.service';
+import { NotificationService } from './notification.service';
 
 export type createScheduleDataType = {
   currentUser: CurrentUser;
@@ -915,7 +915,7 @@ export class ScheduleService extends BaseService {
         const scheduleRepo = tem.getRepository(Schedule);
         const schedule = await scheduleRepo.findOne(
           { id: id },
-          { populate: ['admin'] }
+          { populate: ['admin', 'users', 'waitListUsers'] }
         );
 
         if (!schedule) {
@@ -956,7 +956,13 @@ export class ScheduleService extends BaseService {
           }
         }
 
-        if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
+        const oldMaxUsers = schedule.maxUsers;
+        if (maxUsers !== undefined) {
+          if (maxUsers < schedule.users.length) {
+            throw new ValidationError(VAL_ERRORS.MAX_USERS_BELOW_CURRENT);
+          }
+          schedule.maxUsers = maxUsers;
+        }
         if (type !== undefined) schedule.type = type;
         if (state !== undefined) schedule.state = state;
 
@@ -966,6 +972,22 @@ export class ScheduleService extends BaseService {
 
         if (admin !== undefined) {
           schedule.admin = tem.getReference(User, admin);
+        }
+
+        if (maxUsers !== undefined && maxUsers > oldMaxUsers) {
+          const company = await tem.findOne(
+            Company,
+            { id: { $ne: null } },
+            { populate: ['scheduleOptions'] }
+          );
+          const scheduleOptions = company?.scheduleOptions || null;
+
+          while (
+            schedule.users.length < schedule.maxUsers &&
+            schedule.waitListUsers.length > 0
+          ) {
+            await this.promoteNextUser(schedule, scheduleOptions, tem);
+          }
         }
 
         await tem.flush();
@@ -980,9 +1002,11 @@ export class ScheduleService extends BaseService {
         );
       } catch (error: any) {
         if (
+          error?.isOperational ||
           error instanceof ForbiddenError ||
           error instanceof UnauthorizedError ||
-          error instanceof NotFoundError
+          error instanceof NotFoundError ||
+          error instanceof ValidationError
         ) {
           throw error;
         }
@@ -1038,6 +1062,8 @@ export class ScheduleService extends BaseService {
       { populate: ['scheduleOptions'] }
     );
     const scheduleOptions = company?.scheduleOptions || null;
+    console.log('DEBUG scheduleOptions:', scheduleOptions);
+    console.log('DEBUG user schedules:', user.schedules.getItems());
 
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;
@@ -1261,7 +1287,9 @@ export class ScheduleService extends BaseService {
    */
   public async changeScheduleStatus(
     currentUser: CurrentUser,
-    scheduleId: string
+    scheduleId: string,
+    status: ScheduleState,
+    reason?: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
@@ -1284,19 +1312,24 @@ export class ScheduleService extends BaseService {
       throw new ForbiddenError('You are not authorized to perform this action');
     }
 
-    const newState =
-      schedule.state === ScheduleState.AVAILABLE
-        ? ScheduleState.CANCELLED
-        : ScheduleState.AVAILABLE;
-    schedule.state = newState;
+    if (schedule.state === status) {
+      return createServiceResponse(
+        200,
+        'Schedule status is already ' + status,
+        true,
+        {
+          schedule,
+        }
+      );
+    }
+
+    schedule.state = status;
 
     this.em.persist(schedule);
     await this.em.flush();
 
-    // Enviar notificaciones si fue cancelado
-    if (newState === ScheduleState.CANCELLED) {
-      await this.sendScheduleCancellationNotifications(schedule);
-    }
+    // Enviar notificaciones de cualquier cambio de estado
+    await this.sendScheduleStatusChangeNotifications(schedule, status, reason);
 
     return createServiceResponse(
       200,
@@ -1322,7 +1355,7 @@ export class ScheduleService extends BaseService {
     const scheduleRepo = this.em.getRepository(Schedule);
     const schedule = await scheduleRepo.findOne(
       { id: scheduleId },
-      { populate: ['admin'] }
+      { populate: ['admin', 'users', 'waitListUsers'] }
     );
 
     if (!schedule) {
@@ -1334,6 +1367,10 @@ export class ScheduleService extends BaseService {
       currentUser.contextRole !== UserRoleEnum.ADMIN
     ) {
       throw new ForbiddenError('You are not authorized to perform this action');
+    }
+
+    if (schedule.users.length > 0 || schedule.waitListUsers.length > 0) {
+      throw new ValidationError(VAL_ERRORS.SCHEDULE_HAS_USERS);
     }
 
     this.em.remove(schedule);
@@ -1532,23 +1569,20 @@ export class ScheduleService extends BaseService {
 
             const admin = schedule.admin;
             if (admin) {
-              await admin.pushTokens.init();
-              for (const pushToken of admin.pushTokens) {
-                try {
-                  await sendPushNotification(pushToken.token, title, body, {
-                    scheduleId: schedule.id,
-                    threshold,
-                    type: 'QUOTA_WARNING',
-                  });
-                  warningsSent++;
-                } catch (err) {
-                  console.error(
-                    `Error sending push notification to admin:`,
-                    err
-                  );
-                }
-              }
+              const notificationService = new NotificationService(this.em);
+              await notificationService.sendToUser(
+                admin.id,
+                title,
+                body,
+                {
+                  scheduleId: schedule.id,
+                  threshold,
+                  type: 'warning',
+                },
+                schedule.company?.id
+              );
             }
+            warningsSent++;
 
             newNotified.push(threshold);
             hasNewNotification = true;
@@ -1608,7 +1642,8 @@ export class ScheduleService extends BaseService {
     user: User,
     currentSchedule: Schedule,
     maxReached: boolean,
-    todayReached: boolean
+    todayReached: boolean,
+    em: EntityManager = this.em
   ): Promise<void> {
     const waitlists = user.waitListSchedules.getItems();
     for (const s of waitlists) {
@@ -1635,7 +1670,7 @@ export class ScheduleService extends BaseService {
         }
         s.waitListUsers.remove(user);
         user.waitListSchedules.remove(s);
-        this.em.persist(s);
+        em.persist(s);
       }
     }
   }
@@ -1645,12 +1680,13 @@ export class ScheduleService extends BaseService {
    */
   private async promoteNextUser(
     schedule: Schedule,
-    scheduleOptions: ScheduleOptions | null
+    scheduleOptions: ScheduleOptions | null,
+    em: EntityManager = this.em
   ): Promise<void> {
     while (schedule.waitListUsers.length > 0) {
       const nextUser = schedule.waitListUsers.getItems()[0];
       try {
-        const user = await this.em.findOne(
+        const user = await em.findOne(
           User,
           { id: nextUser.id },
           {
@@ -1677,17 +1713,18 @@ export class ScheduleService extends BaseService {
             user,
             schedule,
             isMaxUserBookingsReached,
-            isMaxUserBookingsTodayReached
+            isMaxUserBookingsTodayReached,
+            em
           );
-          this.em.persist(schedule);
-          this.em.persist(user);
+          em.persist(schedule);
+          em.persist(user);
           continue;
         }
 
         schedule.waitListUsers.remove(user);
         schedule.users.add(user);
 
-        await this.sendWaitlistPromotionNotification(schedule, user);
+        await this.sendWaitlistPromotionNotification(schedule, user, em);
 
         const limitsAfterPromotion = this.checkUserBookingLimits(
           user,
@@ -1702,12 +1739,13 @@ export class ScheduleService extends BaseService {
             user,
             schedule,
             limitsAfterPromotion.isMaxUserBookingsReached,
-            limitsAfterPromotion.isMaxUserBookingsTodayReached
+            limitsAfterPromotion.isMaxUserBookingsTodayReached,
+            em
           );
         }
 
-        this.em.persist(schedule);
-        this.em.persist(user);
+        em.persist(schedule);
+        em.persist(user);
         break;
       } catch (error) {
         console.error(
@@ -1724,21 +1762,21 @@ export class ScheduleService extends BaseService {
    */
   private async sendWaitlistPromotionNotification(
     schedule: Schedule,
-    user: User
+    user: User,
+    em: EntityManager = this.em
   ): Promise<void> {
     try {
-      const title = '¡Tienes plaza!';
-      const body = `Has sido movido de la lista de espera al horario "${schedule.title}".`;
-      const data = {
-        type: 'schedule_waitlist_promotion',
-        scheduleId: schedule.id,
-      };
-
-      if (user.pushTokens && user.pushTokens.length > 0) {
-        user.pushTokens.getItems().forEach(pushToken => {
-          sendPushNotification(pushToken.token, title, body, data);
-        });
-      }
+      const notificationService = new NotificationService(em);
+      await notificationService.sendToUser(
+        user.id,
+        '¡Tienes plaza!',
+        `Has sido movido de la lista de espera al horario "${schedule.title}".`,
+        {
+          type: 'info',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
     } catch (error) {
       console.error('Error sending waitlist promotion notification:', error);
     }
@@ -1754,21 +1792,64 @@ export class ScheduleService extends BaseService {
     try {
       const title = 'Horario cancelado';
       const body = `El horario "${schedule.title}" ha sido cancelado. ${description}`;
-      const data = {
-        type: 'schedule_cancelled',
-        scheduleId: schedule.id,
-      };
 
-      [...schedule.users.getItems(), schedule.admin].forEach(user => {
-        if (user.pushTokens && user.pushTokens.length > 0) {
-          user.pushTokens.getItems().forEach(pushToken => {
-            sendPushNotification(pushToken.token, title, body, data);
-          });
-        }
-      });
+      const userIds = [...schedule.users.getItems(), schedule.admin]
+        .filter(user => user !== undefined)
+        .map(user => user.id);
+
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToUsers(
+        userIds,
+        title,
+        body,
+        {
+          type: 'warning',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
     } catch (error) {
       console.error(
         'Error sending schedule cancellation notifications:',
+        error
+      );
+      // No lanzar error - las notificaciones son secundarias
+    }
+  }
+
+  /**
+   * Enviar notificaciones de cambio de estado de schedule
+   */
+  private async sendScheduleStatusChangeNotifications(
+    schedule: Schedule,
+    status: ScheduleState,
+    reason?: string
+  ): Promise<void> {
+    try {
+      const isCancelled = status === ScheduleState.CANCELLED;
+      const title = isCancelled ? 'Horario cancelado' : 'Horario disponible';
+      const body = isCancelled
+        ? `El horario "${schedule.title}" ha sido cancelado.${reason ? ' ' + reason : ''}`
+        : `El horario "${schedule.title}" vuelve a estar disponible.${reason ? ' ' + reason : ''}`;
+
+      const userIds = [...schedule.users.getItems(), schedule.admin]
+        .filter(user => user !== undefined)
+        .map(user => user.id);
+
+      const notificationService = new NotificationService(this.em);
+      await notificationService.sendToUsers(
+        userIds,
+        title,
+        body,
+        {
+          type: isCancelled ? 'warning' : 'info',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
+    } catch (error) {
+      console.error(
+        'Error sending schedule status change notifications:',
         error
       );
       // No lanzar error - las notificaciones son secundarias

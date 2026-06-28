@@ -1,4 +1,5 @@
 import { EntityManager } from '@mikro-orm/core';
+import { NextFunction, Request, Response } from 'express';
 import jwt, { TokenExpiredError } from 'jsonwebtoken';
 
 import { User } from '../entities/User';
@@ -6,6 +7,16 @@ import { PermissionService } from '../services/permission.service';
 import { CurrentUser } from '../types/common.type';
 import { LoginPermissionsContext } from '../types/permissions';
 import { UnauthorizedError } from '../utils/errors.util';
+
+// Extiende el tipo Request de Express para incluir propiedades custom
+declare global {
+  namespace Express {
+    interface Request {
+      currentUser?: CurrentUser;
+      em?: EntityManager;
+    }
+  }
+}
 
 export const authenticateUser = async (
   em: EntityManager,
@@ -51,7 +62,6 @@ export const authenticateUser = async (
         ...currentUser,
         ...permissions,
         contextRole: currentUser.contextRole || 'standard',
-        // Make sure mandatory fields from CurrentUser are include
       };
 
       return currentUserWithPermissions as CurrentUser;
@@ -64,4 +74,36 @@ export const authenticateUser = async (
     }
   }
   throw new UnauthorizedError('No token provided');
+};
+
+/**
+ * Middleware Express que verifica el JWT de la cabecera Authorization.
+ * Usado en rutas REST que requieren autenticación (ej: Stripe Connect OAuth).
+ * Adjunta el usuario autenticado a req.currentUser.
+ */
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authorization = req.headers.authorization;
+    const companyId = req.headers['x-company-id'] as string | undefined;
+    const em = req.em;
+
+    if (!em) {
+      res
+        .status(500)
+        .json({ success: false, message: 'No EntityManager in request' });
+      return;
+    }
+
+    const currentUser = await authenticateUser(em, authorization, companyId);
+    req.currentUser = currentUser ?? undefined;
+    next();
+  } catch (error: any) {
+    res
+      .status(401)
+      .json({ success: false, message: error?.message ?? 'Unauthorized' });
+  }
 };

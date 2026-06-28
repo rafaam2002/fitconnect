@@ -1,13 +1,15 @@
 import { EntityManager } from '@mikro-orm/core';
 
+import { Notification } from '../entities/Notification';
 import { User } from '../entities/User';
 import { PushNotificationData } from '../types/common.type';
+import { NotificationType } from '../types/enums';
 import { sendPushNotification } from '../utils/notification.util';
 
 import { BaseService } from './base.service';
 
 /**
- * Notification Service - Handles push notifications
+ * Notification Service - Handles in-app and push notifications
  */
 export class NotificationService extends BaseService {
   constructor(em: EntityManager) {
@@ -15,74 +17,277 @@ export class NotificationService extends BaseService {
   }
 
   /**
-   * Send notification to a specific user
+   * Send notification to a specific user and save to database
    */
   public async sendToUser(
     userId: string,
     title: string,
     body: string,
-    data?: PushNotificationData
+    data?: PushNotificationData,
+    companyId?: string | null
   ): Promise<void> {
+    let targetUserId = userId;
+    if (process.env.NODE_ENV === 'development') {
+      targetUserId = '0a7fcee9-64d1-4875-9a49-11c3778457df';
+    }
+
     const user = await this.em.findOne(
       User,
-      { id: userId },
+      { id: targetUserId },
       { populate: ['pushTokens'] }
     );
 
-    if (!user?.pushTokens || user.pushTokens.length === 0) {
+    if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[NotificationService] Test user with ID '${targetUserId}' not found in development mode.`
+        );
+      }
       return;
     }
 
-    const tokens = user.pushTokens.getItems();
-    await this.sendToTokens(
-      tokens.map(t => t.token),
+    let notificationType = NotificationType.INFO;
+    if (data?.type) {
+      const typeStr = String(data.type).toLowerCase();
+      if (
+        Object.values(NotificationType).includes(typeStr as NotificationType)
+      ) {
+        notificationType = typeStr as NotificationType;
+      }
+    }
+
+    // Persist to database
+    const notification = this.em.create(Notification, {
+      user: user.id,
+      type: notificationType,
       title,
-      body,
-      data
-    );
+      message: body,
+      link: data?.link || null,
+      company: companyId || null,
+      read: false,
+    });
+    this.em.persist(notification);
+    await this.em.flush();
+
+    // Send push notification if user has tokens
+    if (user.pushTokens && user.pushTokens.length > 0) {
+      const tokens = user.pushTokens.getItems();
+      await this.sendToTokens(
+        tokens.map(t => t.token),
+        title,
+        body,
+        data
+      );
+    }
   }
 
   /**
-   * Send notification to multiple users
+   * Send notification to multiple users and save to database
    */
   public async sendToUsers(
     userIds: string[],
     title: string,
     body: string,
-    data?: PushNotificationData
+    data?: PushNotificationData,
+    companyId?: string | null
   ): Promise<void> {
+    let targetUserIds = userIds;
+    if (process.env.NODE_ENV === 'development') {
+      targetUserIds = ['0a7fcee9-64d1-4875-9a49-11c3778457df'];
+    }
+
     const users = await this.em.find(
       User,
-      { id: { $in: userIds } },
+      { id: { $in: targetUserIds } },
       { populate: ['pushTokens'] }
     );
 
+    if (process.env.NODE_ENV === 'development' && users.length === 0) {
+      console.warn(
+        `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+      );
+      return;
+    }
+
+    let notificationType = NotificationType.INFO;
+    if (data?.type) {
+      const typeStr = String(data.type).toLowerCase();
+      if (
+        Object.values(NotificationType).includes(typeStr as NotificationType)
+      ) {
+        notificationType = typeStr as NotificationType;
+      }
+    }
+
+    // Persist to database
+    for (const user of users) {
+      const notification = this.em.create(Notification, {
+        user: user.id,
+        type: notificationType,
+        title,
+        message: body,
+        link: data?.link || null,
+        company: companyId || null,
+        read: false,
+      });
+      this.em.persist(notification);
+    }
+    await this.em.flush();
+
+    // Send push notifications
     await this.sendToUserEntities(users, title, body, data);
   }
 
   /**
-   * Send notification to all active users
+   * Send notification to all active users and save to database
    */
   public async sendToAllActiveUsers(
     title: string,
     body: string,
     data?: PushNotificationData,
-    excludeUserId?: string
+    excludeUserId?: string,
+    companyId?: string | null
   ): Promise<void> {
-    const filter: any = {
-      isBlocked: false,
-      isActive: true,
-    };
+    let users: User[];
 
-    if (excludeUserId) {
-      filter.id = { $ne: excludeUserId };
+    if (process.env.NODE_ENV === 'development') {
+      const testUser = await this.em.findOne(
+        User,
+        { id: '0a7fcee9-64d1-4875-9a49-11c3778457df' },
+        { populate: ['pushTokens'] }
+      );
+      if (!testUser) {
+        console.warn(
+          `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+        );
+        return;
+      }
+      users = [testUser];
+    } else {
+      const filter: any = {
+        isBlocked: false,
+        isActive: true,
+      };
+
+      if (excludeUserId) {
+        filter.id = { $ne: excludeUserId };
+      }
+
+      users = await this.em.find(User, filter, {
+        populate: ['pushTokens'],
+      });
     }
 
-    const users = await this.em.find(User, filter, {
-      populate: ['pushTokens'],
+    let notificationType = NotificationType.INFO;
+    if (data?.type) {
+      const typeStr = String(data.type).toLowerCase();
+      if (
+        Object.values(NotificationType).includes(typeStr as NotificationType)
+      ) {
+        notificationType = typeStr as NotificationType;
+      }
+    }
+
+    // Persist to database
+    for (const user of users) {
+      const notification = this.em.create(Notification, {
+        user: user.id,
+        type: notificationType,
+        title,
+        message: body,
+        link: data?.link || null,
+        company: companyId || null,
+        read: false,
+      });
+      this.em.persist(notification);
+    }
+    await this.em.flush();
+
+    // Send push notifications
+    await this.sendToUserEntities(users, title, body, data);
+  }
+
+  /**
+   * Get paginated notifications for a user
+   */
+  public async getUserNotifications(
+    userId: string,
+    limit: number = 20,
+    page: number = 1
+  ): Promise<{ notifications: Notification[]; hasMore: boolean }> {
+    const offset = (page - 1) * limit;
+
+    const notifications = await this.em.find(
+      Notification,
+      { user: userId },
+      {
+        limit: limit + 1,
+        offset,
+        orderBy: { created_at: 'DESC' },
+        populate: ['company', 'user'],
+      }
+    );
+
+    const hasMore = notifications.length > limit;
+    if (hasMore) {
+      notifications.pop();
+    }
+
+    return {
+      notifications,
+      hasMore,
+    };
+  }
+
+  /**
+   * Mark a notification as read
+   */
+  public async markAsRead(
+    notificationId: string,
+    userId: string
+  ): Promise<Notification> {
+    const notification = await this.em.findOne(
+      Notification,
+      { id: notificationId, user: userId },
+      { populate: ['company', 'user'] }
+    );
+
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
+    notification.read = true;
+    await this.em.flush();
+
+    return notification;
+  }
+
+  /**
+   * Mark all notifications of a user as read
+   */
+  public async markAllAsRead(userId: string): Promise<void> {
+    const notifications = await this.em.find(Notification, {
+      user: userId,
+      read: false,
     });
 
-    await this.sendToUserEntities(users, title, body, data);
+    for (const notification of notifications) {
+      notification.read = true;
+    }
+
+    await this.em.flush();
+  }
+
+  /**
+   * Clean old notifications (older than X days)
+   */
+  public async cleanOldNotifications(days: number = 30): Promise<void> {
+    const cutOffDate = new Date();
+    cutOffDate.setDate(cutOffDate.getDate() - days);
+
+    await this.em.nativeDelete(Notification, {
+      created_at: { $lt: cutOffDate },
+    });
   }
 
   /**

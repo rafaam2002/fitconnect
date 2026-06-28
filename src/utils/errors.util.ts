@@ -61,6 +61,8 @@ export const BAD_REQUEST_ERRORS = {
     'Cannot schedule a future subscription when there is a pending canceled subscription',
   VALID_PM_REQUIRED_REACTIVATE:
     'A valid payment method is required to reactivate the subscription',
+  PAID_PLAN_CANNOT_START_IN_FUTURE:
+    'Paid subscriptions cannot be scheduled to start in the future',
 } as const;
 
 export const CONFLICT_ERRORS = {

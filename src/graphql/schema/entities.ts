@@ -230,22 +230,22 @@ nextBillingDate y failedPaymentAttempts controlan el ciclo de cobro propio.
 """
 type Subscription {
     id: ID!
-    created_at: String!
-    updated_at: String!
+    created_at: DateTime!
+    updated_at: DateTime!
     user: IdResponse!
     customer: Customer!
     plan: Plan!
     defaultPaymentMethod: PaymentMethod
     status: SubscriptionStatus!
-    currentPeriodStart: String
-    currentPeriodEnd: String
-    trialStart: String
-    trialEnd: String
-    canceledAt: String
+    currentPeriodStart: DateTime
+    currentPeriodEnd: DateTime
+    trialStart: DateTime
+    trialEnd: DateTime
+    canceledAt: DateTime
     cancelAtPeriodEnd: Boolean
-    endedAt: String
+    endedAt: DateTime
     quantity: Int
-    nextBillingDate: String
+    nextBillingDate: DateTime
     failedPaymentAttempts: Int!
     isActive: Boolean
     isInTrial: Boolean

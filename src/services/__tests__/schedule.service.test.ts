@@ -107,7 +107,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 
       const user = new User({} as any);
       user.id = 'user-1';
-      const today = moment().add(1, 'day');
+      const today = moment().add(1, 'day').startOf('day').add(10, 'hours');
       user.schedules = createMockCollection([
         {
           id: 'sch-old-1',

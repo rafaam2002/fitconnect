@@ -228,6 +228,7 @@ export class SubscriptionService extends BaseService {
 
     const user = await this.getUserOrFail(input.userId);
     const plan = await this.getActivePlanOrFail(input.planId);
+    this.validatePaidPlanStartDate(plan, input.startDate);
 
     const activeInCompany = await this.findActiveSubscriptionForPlan(
       user,
@@ -1005,16 +1006,7 @@ export class SubscriptionService extends BaseService {
       orderBy: { created_at: QueryOrder.DESC },
     } as any);
 
-    const now = moment().toDate();
-    const activeSubscription =
-      subscriptions.find(
-        s =>
-          s.isActive &&
-          s.currentPeriodStart &&
-          s.currentPeriodStart <= now &&
-          s.currentPeriodEnd &&
-          s.currentPeriodEnd >= now
-      ) ?? null;
+    const activeSubscription = subscriptions.find(s => s.isActive) ?? null;
 
     return createServiceResponse(
       200,
@@ -2178,6 +2170,20 @@ export class SubscriptionService extends BaseService {
       }
       if (start.isBefore(moment(), 'day')) {
         throw new BadRequestError(BAD_REQUEST_ERRORS.START_DATE_PAST);
+      }
+    }
+  }
+
+  private validatePaidPlanStartDate(
+    plan: Plan,
+    startDate?: string | Date
+  ): void {
+    if (plan.amount > 0 && startDate) {
+      const start = moment(startDate);
+      if (!start.isSame(moment(), 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.PAID_PLAN_CANNOT_START_IN_FUTURE
+        );
       }
     }
   }

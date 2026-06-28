@@ -19,6 +19,9 @@ import {
   ForbiddenError,
   InternalServerError,
   NotFoundError,
+  BAD_REQUEST_ERRORS,
+  CONFLICT_ERRORS,
+  INTERNAL_ERRORS,
   UnauthorizedError,
 } from '../utils/errors.util';
 import { sendSubscriptionExpiryWarning } from '../utils/templates.util';
@@ -235,7 +238,7 @@ export class SubscriptionService extends BaseService {
         const start = moment(input.startDate);
         if (!start.isSame(moment(), 'day')) {
           throw new BadRequestError(
-            'Cannot schedule a plan change in the future'
+            BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE
           );
         }
       }
@@ -251,7 +254,7 @@ export class SubscriptionService extends BaseService {
         const start = moment(input.startDate);
         if (!start.isSame(moment(), 'day')) {
           throw new BadRequestError(
-            'Cannot schedule a future subscription when there is a pending canceled subscription'
+            BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED
           );
         }
       }
@@ -294,7 +297,9 @@ export class SubscriptionService extends BaseService {
     input: ReplaceSubscriptionInput
   ): Promise<ServiceResponse> {
     if (!input.oldSubscriptionId || !input.newPlanId) {
-      throw new BadRequestError('oldSubscriptionId and newPlanId are required');
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.OLD_SUB_AND_NEW_PLAN_REQUIRED
+      );
     }
 
     const oldSubscription = await this.em.findOne(
@@ -326,7 +331,7 @@ export class SubscriptionService extends BaseService {
     input: UpdateSubscriptionInput
   ): Promise<ServiceResponse> {
     if (!input.subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
     }
 
     const subscription = await this.em.findOne(
@@ -339,7 +344,9 @@ export class SubscriptionService extends BaseService {
 
     if (input.quantity !== undefined) {
       if (input.quantity <= 0) {
-        throw new BadRequestError('Quantity must be greater than 0');
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.QUANTITY_MUST_BE_GREATER_THAN_0
+        );
       }
       subscription.quantity = input.quantity;
     }
@@ -381,7 +388,7 @@ export class SubscriptionService extends BaseService {
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!input.subscriptionId) {
-      throw new BadRequestError('Subscription ID is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
     }
 
     const subscription = await this.em.findOne(Subscription, {
@@ -391,7 +398,7 @@ export class SubscriptionService extends BaseService {
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
-      throw new BadRequestError('Subscription is not active');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_NOT_ACTIVE);
     }
 
     if (input.cancelAtPeriodEnd) {
@@ -449,7 +456,9 @@ export class SubscriptionService extends BaseService {
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (!subscription.isActive) {
-      throw new BadRequestError('Only active subscriptions can be paused');
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.ONLY_ACTIVE_SUBSCRIPTIONS_CAN_BE_PAUSED
+      );
     }
 
     subscription.status = SubscriptionStatus.PAUSED;
@@ -492,7 +501,7 @@ export class SubscriptionService extends BaseService {
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);
     if (subscription.status !== SubscriptionStatus.PAUSED) {
-      throw new BadRequestError('Subscription is not paused');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_NOT_PAUSED);
     }
 
     const now = new Date();
@@ -581,7 +590,7 @@ export class SubscriptionService extends BaseService {
         !!pm?.externalToken && pm?.status === PaymentMethodStatus.ACTIVE;
       if (!isPaymentMethodReady) {
         throw new BadRequestError(
-          'A valid payment method is required to reactivate the subscription'
+          BAD_REQUEST_ERRORS.VALID_PM_REQUIRED_REACTIVATE
         );
       }
 
@@ -700,7 +709,9 @@ export class SubscriptionService extends BaseService {
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!input.reason) {
-      throw new BadRequestError('A reason is required for admin overrides');
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.ADMIN_OVERRIDE_REASON_REQUIRED
+      );
     }
 
     const subscription = await this.em.findOne(
@@ -754,7 +765,7 @@ export class SubscriptionService extends BaseService {
     }
 
     if (changes.length === 0) {
-      throw new BadRequestError('No changes specified in admin override');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.ADMIN_OVERRIDE_NO_CHANGES);
     }
 
     this.appendHistory(
@@ -838,10 +849,10 @@ export class SubscriptionService extends BaseService {
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!days || days <= 0) {
-      throw new BadRequestError('Days must be a positive number');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.DAYS_MUST_BE_POSITIVE);
     }
     if (!reason) {
-      throw new BadRequestError('A reason is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
     }
 
     const subscription = await this.em.findOne(Subscription, {
@@ -882,10 +893,10 @@ export class SubscriptionService extends BaseService {
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!amountInCents || amountInCents <= 0) {
-      throw new BadRequestError('Credit amount must be a positive number');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.CREDIT_AMOUNT_POSITIVE);
     }
     if (!reason) {
-      throw new BadRequestError('A reason is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
     }
 
     const subscription = await this.em.findOne(
@@ -898,9 +909,7 @@ export class SubscriptionService extends BaseService {
     this.assertBelongsToCompany(subscription, requesterCompanyId);
 
     if (amountInCents > subscription.plan.amount) {
-      throw new BadRequestError(
-        'Credit cannot exceed the plan amount. Use a refund instead.'
-      );
+      throw new BadRequestError(BAD_REQUEST_ERRORS.CREDIT_EXCEED_PLAN);
     }
 
     const existing = subscription.metadata?.pendingCredit ?? 0;
@@ -932,7 +941,7 @@ export class SubscriptionService extends BaseService {
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
     if (!subscriptionId)
-      throw new BadRequestError('Subscription ID is required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
 
     const subscription = await this.em.findOne(
       Subscription,
@@ -954,7 +963,7 @@ export class SubscriptionService extends BaseService {
   }
 
   public async listUserSubscriptions(userId: string): Promise<ServiceResponse> {
-    if (!userId) throw new BadRequestError('User ID is required');
+    if (!userId) throw new BadRequestError(BAD_REQUEST_ERRORS.USER_ID_REQUIRED);
 
     const user = await this.em.findOne(User, { id: userId });
     if (!user) throw new NotFoundError('User');
@@ -975,7 +984,7 @@ export class SubscriptionService extends BaseService {
   }
 
   public async getActiveSubscription(userId: string): Promise<ServiceResponse> {
-    if (!userId) throw new BadRequestError('User ID is required');
+    if (!userId) throw new BadRequestError(BAD_REQUEST_ERRORS.USER_ID_REQUIRED);
 
     const user = await this.em.findOne(User, { id: userId });
     if (!user) throw new NotFoundError('User');
@@ -1062,7 +1071,7 @@ export class SubscriptionService extends BaseService {
       });
     } catch (error: any) {
       console.error(error);
-      throw new InternalServerError('Error calculating subscription stats');
+      throw new InternalServerError(INTERNAL_ERRORS.ERROR_CALCULATING_STATS);
     }
   }
 
@@ -1182,9 +1191,7 @@ export class SubscriptionService extends BaseService {
     newPlan: Plan
   ): Promise<ServiceResponse> {
     if (activeSubscription.plan.id === newPlan.id) {
-      throw new ConflictError(
-        'User already has an active subscription to this plan'
-      );
+      throw new ConflictError(CONFLICT_ERRORS.USER_ALREADY_ACTIVE_IN_PLAN);
     }
 
     return this.executePlanChange(activeSubscription, newPlan, false);
@@ -1350,7 +1357,7 @@ export class SubscriptionService extends BaseService {
     input: ChangePlanInput
   ): Promise<{ subscription: Subscription; newPlan: Plan }> {
     if (!input.subscriptionId || !input.newPlanId) {
-      throw new BadRequestError('subscriptionId and newPlanId are required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUB_AND_PLAN_REQUIRED);
     }
 
     const subscription = await this.em.findOne(
@@ -1362,7 +1369,7 @@ export class SubscriptionService extends BaseService {
     if (!subscription) throw new NotFoundError('Subscription');
     if (!subscription.isActive) {
       throw new BadRequestError(
-        'Only active or trialing subscriptions can change plan'
+        BAD_REQUEST_ERRORS.ONLY_ACTIVE_OR_TRIAL_CAN_CHANGE_PLAN
       );
     }
 
@@ -1374,7 +1381,7 @@ export class SubscriptionService extends BaseService {
 
     if (!newPlan) throw new NotFoundError('New plan not found or inactive');
     if (newPlan.id === subscription.plan.id) {
-      throw new BadRequestError('New plan is the same as the current plan');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.NEW_PLAN_SAME_AS_CURRENT);
     }
 
     return { subscription, newPlan };
@@ -1511,9 +1518,7 @@ export class SubscriptionService extends BaseService {
 
     if (transaction?.status !== 'succeeded') {
       await this.invoiceService.voidInvoice(prorationInvoice.id);
-      throw new BadRequestError(
-        'Proration charge failed. Plan not changed. Please check your payment method.'
-      );
+      throw new BadRequestError(BAD_REQUEST_ERRORS.PRORATION_CHARGE_FAILED);
     }
 
     await this.invoiceService.markAsPaid(prorationInvoice.id, now);
@@ -2096,21 +2101,23 @@ export class SubscriptionService extends BaseService {
 
   private validateCreateInput(input: CreateSubscriptionInput): void {
     if (!input.userId || !input.planId || !input.companyId) {
-      throw new BadRequestError('userId, planId and companyId are required');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REQUIRED_FIELDS);
     }
     if (input.quantity !== undefined && input.quantity <= 0) {
-      throw new BadRequestError('Quantity must be greater than 0');
+      throw new BadRequestError(
+        BAD_REQUEST_ERRORS.QUANTITY_MUST_BE_GREATER_THAN_0
+      );
     }
     if (input.trialPeriodDays !== undefined && input.trialPeriodDays < 0) {
-      throw new BadRequestError('Trial period days cannot be negative');
+      throw new BadRequestError(BAD_REQUEST_ERRORS.TRIAL_PERIOD_NEGATIVE);
     }
     if (input.startDate) {
       const start = moment(input.startDate);
       if (!start.isValid()) {
-        throw new BadRequestError('Invalid startDate');
+        throw new BadRequestError(BAD_REQUEST_ERRORS.INVALID_START_DATE);
       }
       if (start.isBefore(moment(), 'day')) {
-        throw new BadRequestError('startDate cannot be in the past');
+        throw new BadRequestError(BAD_REQUEST_ERRORS.START_DATE_PAST);
       }
     }
   }

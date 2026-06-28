@@ -1,5 +1,6 @@
 import { EntityManager, FilterQuery } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
+import moment from 'moment';
 
 import { Company } from '../entities/Company';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
@@ -662,23 +663,26 @@ export class UserService extends BaseService {
     }
 
     if (planFilter) {
+      const now = moment().toDate();
+      const subscriptionFilter: any = {
+        plan: planFilter.id,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+        currentPeriodStart: { $lte: now },
+        currentPeriodEnd: { $gte: now },
+      };
+
+      if (currentUser?.activeCompanyId) {
+        subscriptionFilter.company = currentUser.activeCompanyId;
+      }
+
       if (planFilter.condition === 'with') {
-        where.subscriptions = {
-          plan: planFilter.id,
-          status: {
-            $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-          },
-        };
+        where.subscriptions = subscriptionFilter;
       } else {
-        const activeSubUsers = await this.em.getRepository(Subscription).find(
-          {
-            plan: planFilter.id,
-            status: {
-              $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-            },
-          },
-          { fields: ['user.id'] }
-        );
+        const activeSubUsers = await this.em
+          .getRepository(Subscription)
+          .find(subscriptionFilter, { fields: ['user.id'] });
         const activeUserIds = activeSubUsers.map(sub => sub.user.id);
         if (activeUserIds.length > 0) {
           where.id = { $nin: activeUserIds };

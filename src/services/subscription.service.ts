@@ -236,13 +236,24 @@ export class SubscriptionService extends BaseService {
     if (activeInCompany) {
       if (input.startDate) {
         const start = moment(input.startDate);
-        if (!start.isSame(moment(), 'day')) {
-          throw new BadRequestError(
-            BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE
-          );
+        if (
+          !(
+            activeInCompany.plan.id === plan.id &&
+            this.isUnusedFutureSubscription(activeInCompany)
+          )
+        ) {
+          if (!start.isSame(moment(), 'day')) {
+            throw new BadRequestError(
+              BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE
+            );
+          }
         }
       }
-      return this.resolveExistingActiveSubscription(activeInCompany, plan);
+      return this.resolveExistingActiveSubscription(
+        activeInCompany,
+        plan,
+        input
+      );
     }
 
     const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
@@ -1186,11 +1197,60 @@ export class SubscriptionService extends BaseService {
    * createSubscription no expone ese parámetro al frontend — para
    * prorratear explícitamente, el frontend debe llamar a changePlan).
    */
+  private isUnusedFutureSubscription(subscription: Subscription): boolean {
+    const now = moment();
+    const currentStart = moment(subscription.currentPeriodStart);
+    return now.isBefore(currentStart, 'day');
+  }
+
+  private async updateFutureSubscriptionDate(
+    subscription: Subscription,
+    newPlan: Plan,
+    newStartDate?: string | Date
+  ): Promise<void> {
+    const newStart = newStartDate ? moment(newStartDate) : moment();
+    const newStartJS = newStart.toDate();
+    const newEndJS = this.calculatePeriodEnd(newStartJS, newPlan);
+
+    subscription.currentPeriodStart = newStartJS;
+    subscription.currentPeriodEnd = newEndJS;
+    subscription.nextBillingDate = newEndJS;
+
+    if (subscription.trialStart && subscription.trialEnd) {
+      const trialDays = moment(subscription.trialEnd).diff(
+        moment(subscription.trialStart),
+        'days'
+      );
+      subscription.trialStart = newStartJS;
+      subscription.trialEnd = this.addDays(newStartJS, trialDays);
+      subscription.currentPeriodEnd = subscription.trialEnd;
+      subscription.nextBillingDate = subscription.trialEnd;
+    }
+
+    await this.em.flush();
+  }
+
   private async resolveExistingActiveSubscription(
     activeSubscription: Subscription,
-    newPlan: Plan
+    newPlan: Plan,
+    input: CreateSubscriptionInput
   ): Promise<ServiceResponse> {
     if (activeSubscription.plan.id === newPlan.id) {
+      if (this.isUnusedFutureSubscription(activeSubscription)) {
+        await this.updateFutureSubscriptionDate(
+          activeSubscription,
+          newPlan,
+          input.startDate
+        );
+
+        return createServiceResponse(
+          200,
+          'Subscription start date updated successfully',
+          true,
+          { subscription: activeSubscription }
+        );
+      }
+
       throw new ConflictError(CONFLICT_ERRORS.USER_ALREADY_ACTIVE_IN_PLAN);
     }
 

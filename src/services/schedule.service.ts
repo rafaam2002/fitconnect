@@ -915,7 +915,7 @@ export class ScheduleService extends BaseService {
         const scheduleRepo = tem.getRepository(Schedule);
         const schedule = await scheduleRepo.findOne(
           { id: id },
-          { populate: ['admin'] }
+          { populate: ['admin', 'users', 'waitListUsers'] }
         );
 
         if (!schedule) {
@@ -956,7 +956,13 @@ export class ScheduleService extends BaseService {
           }
         }
 
-        if (maxUsers !== undefined) schedule.maxUsers = maxUsers;
+        const oldMaxUsers = schedule.maxUsers;
+        if (maxUsers !== undefined) {
+          if (maxUsers < schedule.users.length) {
+            throw new ValidationError(VAL_ERRORS.MAX_USERS_BELOW_CURRENT);
+          }
+          schedule.maxUsers = maxUsers;
+        }
         if (type !== undefined) schedule.type = type;
         if (state !== undefined) schedule.state = state;
 
@@ -966,6 +972,22 @@ export class ScheduleService extends BaseService {
 
         if (admin !== undefined) {
           schedule.admin = tem.getReference(User, admin);
+        }
+
+        if (maxUsers !== undefined && maxUsers > oldMaxUsers) {
+          const company = await tem.findOne(
+            Company,
+            { id: { $ne: null } },
+            { populate: ['scheduleOptions'] }
+          );
+          const scheduleOptions = company?.scheduleOptions || null;
+
+          while (
+            schedule.users.length < schedule.maxUsers &&
+            schedule.waitListUsers.length > 0
+          ) {
+            await this.promoteNextUser(schedule, scheduleOptions, tem);
+          }
         }
 
         await tem.flush();
@@ -982,7 +1004,8 @@ export class ScheduleService extends BaseService {
         if (
           error instanceof ForbiddenError ||
           error instanceof UnauthorizedError ||
-          error instanceof NotFoundError
+          error instanceof NotFoundError ||
+          error instanceof ValidationError
         ) {
           throw error;
         }
@@ -1616,7 +1639,8 @@ export class ScheduleService extends BaseService {
     user: User,
     currentSchedule: Schedule,
     maxReached: boolean,
-    todayReached: boolean
+    todayReached: boolean,
+    em: EntityManager = this.em
   ): Promise<void> {
     const waitlists = user.waitListSchedules.getItems();
     for (const s of waitlists) {
@@ -1643,7 +1667,7 @@ export class ScheduleService extends BaseService {
         }
         s.waitListUsers.remove(user);
         user.waitListSchedules.remove(s);
-        this.em.persist(s);
+        em.persist(s);
       }
     }
   }
@@ -1653,12 +1677,13 @@ export class ScheduleService extends BaseService {
    */
   private async promoteNextUser(
     schedule: Schedule,
-    scheduleOptions: ScheduleOptions | null
+    scheduleOptions: ScheduleOptions | null,
+    em: EntityManager = this.em
   ): Promise<void> {
     while (schedule.waitListUsers.length > 0) {
       const nextUser = schedule.waitListUsers.getItems()[0];
       try {
-        const user = await this.em.findOne(
+        const user = await em.findOne(
           User,
           { id: nextUser.id },
           {
@@ -1685,17 +1710,18 @@ export class ScheduleService extends BaseService {
             user,
             schedule,
             isMaxUserBookingsReached,
-            isMaxUserBookingsTodayReached
+            isMaxUserBookingsTodayReached,
+            em
           );
-          this.em.persist(schedule);
-          this.em.persist(user);
+          em.persist(schedule);
+          em.persist(user);
           continue;
         }
 
         schedule.waitListUsers.remove(user);
         schedule.users.add(user);
 
-        await this.sendWaitlistPromotionNotification(schedule, user);
+        await this.sendWaitlistPromotionNotification(schedule, user, em);
 
         const limitsAfterPromotion = this.checkUserBookingLimits(
           user,
@@ -1710,12 +1736,13 @@ export class ScheduleService extends BaseService {
             user,
             schedule,
             limitsAfterPromotion.isMaxUserBookingsReached,
-            limitsAfterPromotion.isMaxUserBookingsTodayReached
+            limitsAfterPromotion.isMaxUserBookingsTodayReached,
+            em
           );
         }
 
-        this.em.persist(schedule);
-        this.em.persist(user);
+        em.persist(schedule);
+        em.persist(user);
         break;
       } catch (error) {
         console.error(
@@ -1732,10 +1759,11 @@ export class ScheduleService extends BaseService {
    */
   private async sendWaitlistPromotionNotification(
     schedule: Schedule,
-    user: User
+    user: User,
+    em: EntityManager = this.em
   ): Promise<void> {
     try {
-      const notificationService = new NotificationService(this.em);
+      const notificationService = new NotificationService(em);
       await notificationService.sendToUser(
         user.id,
         '¡Tienes plaza!',

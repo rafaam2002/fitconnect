@@ -14,6 +14,8 @@ export const VAL_ERRORS = {
   INCORRECT_PASSWORD: 'Current password is incorrect',
   SCHEDULE_HAS_USERS:
     'Cannot delete schedule because it has registered or waitlisted users',
+  MAX_USERS_BELOW_CURRENT:
+    'Maximum users cannot be less than the number of registered users',
 } as const;
 
 export const NOT_FND_ERRORS = {

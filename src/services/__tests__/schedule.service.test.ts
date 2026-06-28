@@ -52,6 +52,10 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
       findOne: jest.fn(),
       persist: jest.fn(),
       flush: jest.fn(async () => {}),
+      create: jest.fn((entity: any, data: any) => ({ ...data, ...entity })),
+      transactional: jest.fn(async (cb: any) => {
+        return await cb(mockEntityManager);
+      }),
     };
 
     scheduleService = new ScheduleService(mockEntityManager as any);
@@ -331,6 +335,85 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
       expect(response.success).toBe(true);
       expect(mockEntityManager.remove).toHaveBeenCalledWith(schedule);
       expect(mockEntityManager.flush).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateSchedule', () => {
+    it('should throw ValidationError when new maxUsers is less than current registered users', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const schedule = new Schedule({
+        admin: { id: 'admin-1' } as any,
+        maxUsers: 5,
+      } as any);
+      schedule.id = 'sch-1';
+      schedule.users = createMockCollection([
+        { id: 'user-1' },
+        { id: 'user-2' },
+      ]);
+      schedule.waitListUsers = createMockCollection([]);
+
+      mockScheduleRepo.findOne.mockResolvedValue(schedule);
+
+      await expect(
+        scheduleService.updateSchedule({
+          currentUser: currentUser as any,
+          id: 'sch-1',
+          maxUsers: 1,
+        })
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('should update maxUsers successfully and promote users from waitlist when capacity increases', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const schedule = new Schedule({
+        admin: { id: 'admin-1' } as any,
+        maxUsers: 2,
+      } as any);
+      schedule.id = 'sch-1';
+
+      const user1 = {
+        id: 'u-1',
+        schedules: createMockCollection(),
+        waitListSchedules: createMockCollection(),
+        pushTokens: createMockCollection(),
+      };
+      const user2 = {
+        id: 'u-2',
+        schedules: createMockCollection(),
+        waitListSchedules: createMockCollection(),
+        pushTokens: createMockCollection(),
+      };
+
+      schedule.users = createMockCollection([
+        { id: 'registered-1' },
+        { id: 'registered-2' },
+      ]);
+      schedule.waitListUsers = createMockCollection([user1, user2]);
+
+      mockScheduleRepo.findOne.mockResolvedValue(schedule);
+
+      mockEntityManager.findOne.mockImplementation(
+        (entity: any, query: any) => {
+          if (entity === User) {
+            if (query.id === 'u-1') return user1;
+            if (query.id === 'u-2') return user2;
+          }
+          if (entity === Company) return { scheduleOptions };
+          return null;
+        }
+      );
+
+      const response = await scheduleService.updateSchedule({
+        currentUser: currentUser as any,
+        id: 'sch-1',
+        maxUsers: 4,
+      });
+
+      expect(response.success).toBe(true);
+      expect(schedule.maxUsers).toBe(4);
+      expect(schedule.users.getItems().some(u => u.id === 'u-1')).toBe(true);
+      expect(schedule.users.getItems().some(u => u.id === 'u-2')).toBe(true);
+      expect(schedule.waitListUsers.length).toBe(0);
     });
   });
 });

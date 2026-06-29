@@ -1080,12 +1080,21 @@ export class SubscriptionService extends BaseService {
     const user = await this.em.findOne(User, { id: userId });
     if (!user) throw new NotFoundError('User');
 
-    const subscriptions = await this.em.find(Subscription, { user }, {
-      populate: ['plan', 'defaultPaymentMethod'],
-      orderBy: { created_at: QueryOrder.DESC },
-    } as any);
+    const activeSubscriptions = await this.em.find(
+      Subscription,
+      {
+        user,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+      },
+      {
+        populate: ['plan', 'defaultPaymentMethod'],
+        orderBy: { currentPeriodStart: QueryOrder.ASC },
+      } as any
+    );
 
-    const activeSubscription = subscriptions.find(s => s.isActive) ?? null;
+    const activeSubscription = activeSubscriptions[0] ?? null;
 
     return createServiceResponse(
       200,
@@ -1093,6 +1102,7 @@ export class SubscriptionService extends BaseService {
       true,
       {
         subscription: activeSubscription,
+        subscriptions: activeSubscriptions,
       }
     );
   }

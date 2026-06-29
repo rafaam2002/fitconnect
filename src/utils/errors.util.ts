@@ -63,11 +63,15 @@ export const BAD_REQUEST_ERRORS = {
     'A valid payment method is required to reactivate the subscription',
   PAID_PLAN_CANNOT_START_IN_FUTURE:
     'Paid subscriptions cannot be scheduled to start in the future',
+  FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED:
+    'There is already a future subscription scheduled for this user',
 } as const;
 
 export const CONFLICT_ERRORS = {
   USER_ALREADY_ACTIVE_IN_PLAN:
     'User already has an active subscription to this plan',
+  FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED:
+    'There is already a future subscription scheduled for this user',
 } as const;
 
 export const INTERNAL_ERRORS = {

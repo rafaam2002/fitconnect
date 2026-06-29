@@ -174,7 +174,7 @@ const DUNNING_CONFIG = {
  * activa de otro plan en la misma empresa (lo que coloquialmente es "cambiar
  * de plan"). Nunca deberian coexistir dos Subscription en estado ACTIVE o
  * TRIALING para la misma empresa y el mismo usuario - ver
- * findActiveSubscriptionForPlan() para la regla que lo garantiza.
+ * findActiveAndFutureSubscriptions() para la regla que lo garantiza.
  */
 export class SubscriptionService extends BaseService {
   private readonly customerService: CustomerService;
@@ -230,33 +230,99 @@ export class SubscriptionService extends BaseService {
     const plan = await this.getActivePlanOrFail(input.planId);
     this.validatePaidPlanStartDate(plan, input.startDate);
 
-    const activeInCompany = await this.findActiveSubscriptionForPlan(
+    // Obtener todas las suscripciones de la empresa en estado ACTIVE o TRIALING
+    const companySubscriptions = await this.findActiveAndFutureSubscriptions(
       user,
       plan
     );
-    if (activeInCompany) {
+
+    // Clasificar las suscripciones en:
+    // - currentActive: Suscripción que está activa/vigente hoy
+    // - futureActive: Suscripción programada para empezar en el futuro
+    const currentActive = companySubscriptions.find(
+      s => !this.isUnusedFutureSubscription(s)
+    );
+    const futureActive = companySubscriptions.find(s =>
+      this.isUnusedFutureSubscription(s)
+    );
+
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 1: Ya existe una suscripción futura programada
+    // ────────────────────────────────────────────────────────────────
+    if (futureActive) {
+      // Si el plan coincide y se provee startDate, permitimos actualizar su fecha de inicio
+      if (futureActive.plan.id === plan.id && input.startDate) {
+        const start = moment(input.startDate);
+        // Validamos que el nuevo inicio no colisione con el período de la suscripción actual en curso
+        if (
+          currentActive &&
+          !start.isAfter(moment(currentActive.currentPeriodEnd), 'day')
+        ) {
+          throw new BadRequestError(
+            BAD_REQUEST_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
+          );
+        }
+        await this.updateFutureSubscriptionDate(
+          futureActive,
+          plan,
+          input.startDate
+        );
+
+        return createServiceResponse(
+          200,
+          'Subscription start date updated successfully',
+          true,
+          { subscription: futureActive }
+        );
+      }
+
+      // No permitimos programar múltiples suscripciones futuras (evitamos solapamientos ilimitados)
+      throw new ConflictError(
+        CONFLICT_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
+      );
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 2: Existe una suscripción en curso actualmente
+    // ────────────────────────────────────────────────────────────────
+    if (currentActive) {
       if (input.startDate) {
         const start = moment(input.startDate);
-        if (
-          !(
-            activeInCompany.plan.id === plan.id &&
-            this.isUnusedFutureSubscription(activeInCompany)
-          )
-        ) {
+        // CASO A: La fecha de inicio es posterior al período de la suscripción actual.
+        // Se programa la futura y se marca la actual para no renovarse automáticamente.
+        if (start.isAfter(moment(currentActive.currentPeriodEnd), 'day')) {
+          currentActive.cancelAtPeriodEnd = true;
+          this.appendHistory(
+            currentActive,
+            'cancel_scheduled',
+            'system',
+            `Scheduled to cancel at period end due to future subscription starting on ${start.format('YYYY-MM-DD')}`
+          );
+          await this.em.flush();
+
+          return this.createSubscriptionFromScratch(user, plan, input);
+        } else {
+          // CASO B: La fecha es en el futuro pero solapa con el período activo actual
           if (!start.isSame(moment(), 'day')) {
+            if (currentActive.plan.id === plan.id) {
+              throw new ConflictError(
+                CONFLICT_ERRORS.USER_ALREADY_ACTIVE_IN_PLAN
+              );
+            }
             throw new BadRequestError(
               BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE
             );
           }
         }
       }
-      return this.resolveExistingActiveSubscription(
-        activeInCompany,
-        plan,
-        input
-      );
+
+      // CASO C: Inicio hoy/inmediato. Se trata como cambio de plan normal de la suscripción activa
+      return this.resolveExistingActiveSubscription(currentActive, plan, input);
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 3: Existe una suscripción cancelada con período pendiente
+    // ────────────────────────────────────────────────────────────────
     const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
       user,
       plan
@@ -264,15 +330,24 @@ export class SubscriptionService extends BaseService {
     if (recentCanceled) {
       if (input.startDate) {
         const start = moment(input.startDate);
-        if (!start.isSame(moment(), 'day')) {
+        // CASO A: Inicio posterior al fin del período de la cancelada.
+        // La creamos desde cero (no hay colisión de renovación ya que está cancelada).
+        if (start.isAfter(moment(recentCanceled.currentPeriodEnd), 'day')) {
+          return this.createSubscriptionFromScratch(user, plan, input);
+        } else if (!start.isSame(moment(), 'day')) {
+          // CASO B: Solapa con el período restante
           throw new BadRequestError(
             BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED
           );
         }
       }
+      // CASO C: Reemplazo normal respetando el periodo restante
       return this.replaceCanceledSubscription(recentCanceled, plan, input);
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 4: Ninguna suscripción activa, futura o cancelada reciente
+    // ────────────────────────────────────────────────────────────────
     return this.createSubscriptionFromScratch(user, plan, input);
   }
 
@@ -2301,14 +2376,14 @@ export class SubscriptionService extends BaseService {
    * y esta funcion compara por plan exacto en lugar de por empresa,
    * dejando pasar el bug que origino esta correccion.
    */
-  private async findActiveSubscriptionForPlan(
+  private async findActiveAndFutureSubscriptions(
     user: User,
     plan: Plan
-  ): Promise<Subscription | null> {
+  ): Promise<Subscription[]> {
     const planCompanyId = this.extractCompanyId(plan.company);
 
     if (!planCompanyId) {
-      return this.em.findOne(
+      return this.em.find(
         Subscription,
         {
           user,
@@ -2321,7 +2396,7 @@ export class SubscriptionService extends BaseService {
       );
     }
 
-    return this.em.findOne(
+    return this.em.find(
       Subscription,
       {
         user,

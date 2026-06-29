@@ -1275,7 +1275,9 @@ export class SubscriptionService extends BaseService {
     newPlan: Plan,
     newStartDate?: string | Date
   ): Promise<void> {
-    const newStart = newStartDate ? moment(newStartDate) : moment();
+    const newStart = newStartDate
+      ? moment(newStartDate).startOf('day')
+      : moment().startOf('day');
     const newStartJS = newStart.toDate();
     const newEndJS = this.calculatePeriodEnd(newStartJS, newPlan);
 
@@ -1370,8 +1372,10 @@ export class SubscriptionService extends BaseService {
       : await this.getDefaultPaymentMethod(customer);
 
     const trialDays = input.trialPeriodDays ?? plan.trialPeriodDays ?? 0;
-    const now = moment().toDate();
-    const baseStart = input.startDate ? moment(input.startDate).toDate() : now;
+    const now = moment().startOf('day').toDate();
+    const baseStart = input.startDate
+      ? moment(input.startDate).startOf('day').toDate()
+      : now;
     const isTrialing = trialDays > 0;
 
     const trialStart = isTrialing ? baseStart : undefined;

@@ -256,7 +256,7 @@ export class SubscriptionService extends BaseService {
         // Validamos que el nuevo inicio no colisione con el período de la suscripción actual en curso
         if (
           currentActive &&
-          !start.isAfter(moment(currentActive.currentPeriodEnd), 'day')
+          start.isBefore(moment(currentActive.currentPeriodEnd), 'day')
         ) {
           throw new BadRequestError(
             BAD_REQUEST_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
@@ -290,7 +290,9 @@ export class SubscriptionService extends BaseService {
         const start = moment(input.startDate);
         // CASO A: La fecha de inicio es posterior al período de la suscripción actual.
         // Se programa la futura y se marca la actual para no renovarse automáticamente.
-        if (start.isAfter(moment(currentActive.currentPeriodEnd), 'day')) {
+        if (
+          start.isSameOrAfter(moment(currentActive.currentPeriodEnd), 'day')
+        ) {
           currentActive.cancelAtPeriodEnd = true;
           this.appendHistory(
             currentActive,
@@ -332,7 +334,9 @@ export class SubscriptionService extends BaseService {
         const start = moment(input.startDate);
         // CASO A: Inicio posterior al fin del período de la cancelada.
         // La creamos desde cero (no hay colisión de renovación ya que está cancelada).
-        if (start.isAfter(moment(recentCanceled.currentPeriodEnd), 'day')) {
+        if (
+          start.isSameOrAfter(moment(recentCanceled.currentPeriodEnd), 'day')
+        ) {
           return this.createSubscriptionFromScratch(user, plan, input);
         } else if (!start.isSame(moment(), 'day')) {
           // CASO B: Solapa con el período restante
@@ -1417,11 +1421,6 @@ export class SubscriptionService extends BaseService {
         ],
       },
     });
-
-    console.log(
-      '🚀 ~ SubscriptionService ~ createSubscriptionFromScratch ~ subscription:',
-      subscription
-    );
 
     this.em.persist(subscription);
     await this.em.flush();

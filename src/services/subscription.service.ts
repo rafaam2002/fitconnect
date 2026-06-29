@@ -1418,6 +1418,11 @@ export class SubscriptionService extends BaseService {
       },
     });
 
+    console.log(
+      '🚀 ~ SubscriptionService ~ createSubscriptionFromScratch ~ subscription:',
+      subscription
+    );
+
     this.em.persist(subscription);
     await this.em.flush();
 
@@ -1982,7 +1987,7 @@ export class SubscriptionService extends BaseService {
   // ═══════════════════════════════════════════
 
   private async attemptCharge(subscription: Subscription): Promise<void> {
-    const now = moment().toDate();
+    const now = moment().startOf('day').toDate();
     const isFuture =
       subscription.currentPeriodStart && subscription.currentPeriodStart > now;
 

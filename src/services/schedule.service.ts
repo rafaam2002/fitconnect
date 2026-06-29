@@ -1062,8 +1062,6 @@ export class ScheduleService extends BaseService {
       { populate: ['scheduleOptions'] }
     );
     const scheduleOptions = company?.scheduleOptions || null;
-    console.log('DEBUG scheduleOptions:', scheduleOptions);
-    console.log('DEBUG user schedules:', user.schedules.getItems());
 
     // Validaciones
     const isStateDisabled = schedule.state !== ScheduleState.AVAILABLE;

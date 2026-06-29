@@ -250,36 +250,42 @@ export class SubscriptionService extends BaseService {
     // VERTIENTE 1: Ya existe una suscripción futura programada
     // ────────────────────────────────────────────────────────────────
     if (futureActive) {
-      // Si el plan coincide y se provee startDate, permitimos actualizar su fecha de inicio
-      if (futureActive.plan.id === plan.id && input.startDate) {
-        const start = moment(input.startDate);
-        // Validamos que el nuevo inicio no colisione con el período de la suscripción actual en curso
-        if (
-          currentActive &&
-          start.isBefore(moment(currentActive.currentPeriodEnd), 'day')
-        ) {
-          throw new BadRequestError(
-            BAD_REQUEST_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
+      const isFutureInput =
+        input.startDate && moment(input.startDate).isAfter(moment(), 'day');
+      const isImmediatePlanChange = currentActive && !isFutureInput;
+
+      if (!isImmediatePlanChange) {
+        // Si el plan coincide y se provee startDate, permitimos actualizar su fecha de inicio
+        if (futureActive.plan.id === plan.id && input.startDate) {
+          const start = moment(input.startDate);
+          // Validamos que el nuevo inicio no colisione con el período de la suscripción actual en curso
+          if (
+            currentActive &&
+            start.isBefore(moment(currentActive.currentPeriodEnd), 'day')
+          ) {
+            throw new BadRequestError(
+              BAD_REQUEST_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
+            );
+          }
+          await this.updateFutureSubscriptionDate(
+            futureActive,
+            plan,
+            input.startDate
+          );
+
+          return createServiceResponse(
+            200,
+            'Subscription start date updated successfully',
+            true,
+            { subscription: futureActive }
           );
         }
-        await this.updateFutureSubscriptionDate(
-          futureActive,
-          plan,
-          input.startDate
-        );
 
-        return createServiceResponse(
-          200,
-          'Subscription start date updated successfully',
-          true,
-          { subscription: futureActive }
+        // No permitimos programar múltiples suscripciones futuras (evitamos solapamientos ilimitados)
+        throw new ConflictError(
+          CONFLICT_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
         );
       }
-
-      // No permitimos programar múltiples suscripciones futuras (evitamos solapamientos ilimitados)
-      throw new ConflictError(
-        CONFLICT_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
-      );
     }
 
     // ────────────────────────────────────────────────────────────────

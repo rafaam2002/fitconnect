@@ -521,6 +521,9 @@ export class PermissionService extends BaseService {
         subscriptionStatus: null,
         trialEndsAt: null,
         renewsAt: null,
+        startDate: null,
+        endDate: null,
+        cancelAtPeriodEnd: null,
       };
     }
 
@@ -552,6 +555,9 @@ export class PermissionService extends BaseService {
         trialEndsAt: null,
         renewsAt: null,
         isInTrial: false,
+        startDate: null,
+        endDate: null,
+        cancelAtPeriodEnd: null,
       };
     }
 
@@ -568,6 +574,9 @@ export class PermissionService extends BaseService {
           subscriptionStatus: null,
           trialEndsAt: null,
           renewsAt: null,
+          startDate: null,
+          endDate: null,
+          cancelAtPeriodEnd: null,
         };
       }
 
@@ -593,6 +602,15 @@ export class PermissionService extends BaseService {
         trialEndsAt: adminSubscription.trialEnd,
         renewsAt: adminSubscription.currentPeriodEnd,
         isInTrial: adminSubscription.isInTrial,
+        startDate:
+          adminSubscription.currentPeriodStart ||
+          adminSubscription.trialStart ||
+          null,
+        endDate:
+          adminSubscription.currentPeriodEnd ||
+          adminSubscription.trialEnd ||
+          null,
+        cancelAtPeriodEnd: adminSubscription.cancelAtPeriodEnd ?? null,
       };
     }
 
@@ -610,6 +628,9 @@ export class PermissionService extends BaseService {
         subscriptionStatus: null,
         trialEndsAt: null,
         renewsAt: null,
+        startDate: null,
+        endDate: null,
+        cancelAtPeriodEnd: null,
       };
     }
 
@@ -635,6 +656,10 @@ export class PermissionService extends BaseService {
       trialEndsAt: subscription.trialEnd,
       renewsAt: subscription.currentPeriodEnd,
       isInTrial: subscription.isInTrial,
+      startDate:
+        subscription.currentPeriodStart || subscription.trialStart || null,
+      endDate: subscription.currentPeriodEnd || subscription.trialEnd || null,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? null,
     };
   }
 

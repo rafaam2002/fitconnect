@@ -17,6 +17,9 @@ export interface LoginPermissionsContext {
   trialEndsAt?: Date | null;
   renewsAt?: Date | null;
   isInTrial?: boolean;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  cancelAtPeriodEnd?: boolean | null;
 }
 
 export interface CompanyPermissionsContext {

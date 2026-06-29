@@ -728,6 +728,9 @@ export class AuthService extends BaseService {
         status: permissionsContext.subscriptionStatus,
         isInTrial: permissionsContext.isInTrial || false,
         trialEndsAt: permissionsContext.trialEndsAt || null,
+        startDate: permissionsContext.startDate || null,
+        endDate: permissionsContext.endDate || null,
+        cancelAtPeriodEnd: permissionsContext.cancelAtPeriodEnd ?? null,
       },
       permissions: permissionsContext.permissionNames,
     });
@@ -742,6 +745,9 @@ export class AuthService extends BaseService {
         status: permissionsContext.subscriptionStatus,
         isInTrial: permissionsContext.isInTrial || false,
         trialEndsAt: permissionsContext.trialEndsAt || null,
+        startDate: permissionsContext.startDate || null,
+        endDate: permissionsContext.endDate || null,
+        cancelAtPeriodEnd: permissionsContext.cancelAtPeriodEnd ?? null,
       },
       permissions: permissionsContext.permissionNames,
     });

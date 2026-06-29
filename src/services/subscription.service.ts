@@ -250,21 +250,20 @@ export class SubscriptionService extends BaseService {
     // VERTIENTE 1: Ya existe una suscripción futura programada
     // ────────────────────────────────────────────────────────────────
     if (futureActive) {
-      const isFutureInput =
-        input.startDate && moment(input.startDate).isAfter(moment(), 'day');
+      const startInput = input.startDate ? moment(input.startDate) : moment();
+      const isFutureInput = startInput.isAfter(moment(), 'day');
       const isImmediatePlanChange = currentActive && !isFutureInput;
 
       if (!isImmediatePlanChange) {
-        // Si el plan coincide y se provee startDate, permitimos actualizar su fecha de inicio
-        if (futureActive.plan.id === plan.id && input.startDate) {
-          const start = moment(input.startDate);
+        // Si el plan coincide, permitimos actualizar su fecha de inicio
+        if (futureActive.plan.id === plan.id) {
           // Validamos que el nuevo inicio no colisione con el período de la suscripción actual en curso
           if (
             currentActive &&
-            start.isBefore(moment(currentActive.currentPeriodEnd), 'day')
+            startInput.isBefore(moment(currentActive.currentPeriodEnd), 'day')
           ) {
-            throw new BadRequestError(
-              BAD_REQUEST_ERRORS.FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED
+            throw new ConflictError(
+              CONFLICT_ERRORS.USER_ALREADY_ACTIVE_IN_PLAN
             );
           }
           await this.updateFutureSubscriptionDate(

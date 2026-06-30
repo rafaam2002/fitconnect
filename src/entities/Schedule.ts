@@ -10,6 +10,7 @@ import {
 } from '@mikro-orm/core';
 
 import { ScheduleState, ScheduleType } from '../types/enums';
+import { ValidationError, VAL_ERRORS } from '../utils/errors.util';
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
@@ -87,7 +88,7 @@ export class Schedule extends BaseEntity {
   @BeforeUpdate()
   validate() {
     if (this.startDate >= this.endDate) {
-      throw new Error('startDate must be before endDate.');
+      throw new ValidationError(VAL_ERRORS.START_DATE_MUST_BE_BEFORE_END_DATE);
     }
   }
 }

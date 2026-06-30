@@ -922,6 +922,11 @@ export class ScheduleService extends BaseService {
           throw new NotFoundError('Schedule');
         }
 
+        const originalStart = schedule.startDate
+          ? moment(schedule.startDate)
+          : null;
+        const originalEnd = schedule.endDate ? moment(schedule.endDate) : null;
+
         // Solo el admin o el propio coach pueden editar
         if (
           currentUser.contextRole !== UserRoleEnum.ADMIN &&
@@ -991,6 +996,20 @@ export class ScheduleService extends BaseService {
         }
 
         await tem.flush();
+
+        const dateOrHourChanged =
+          (originalStart &&
+            schedule.startDate &&
+            !originalStart.isSame(moment(schedule.startDate))) ||
+          (originalEnd &&
+            schedule.endDate &&
+            !originalEnd.isSame(moment(schedule.endDate)));
+        const hasUsers =
+          schedule.users.length > 0 || schedule.waitListUsers.length > 0;
+
+        if (dateOrHourChanged && hasUsers) {
+          await this.sendScheduleDateChangeNotifications(schedule, tem);
+        }
 
         return createServiceResponse(
           200,
@@ -1850,6 +1869,52 @@ export class ScheduleService extends BaseService {
         'Error sending schedule status change notifications:',
         error
       );
+      // No lanzar error - las notificaciones son secundarias
+    }
+  }
+
+  /**
+   * Enviar notificaciones de cambio de fecha/hora de un schedule
+   */
+  private async sendScheduleDateChangeNotifications(
+    schedule: Schedule,
+    em: EntityManager = this.em
+  ): Promise<void> {
+    try {
+      const title = 'Cambio de fecha/hora';
+      const formattedDate = moment(schedule.startDate).format('DD/MM/YYYY');
+      const formattedStartHour = moment(schedule.startDate).format('HH:mm');
+      const formattedEndHour = moment(schedule.endDate).format('HH:mm');
+
+      const body = `El horario "${schedule.title}" ha cambiado de fecha/hora. Nueva fecha: ${formattedDate} de ${formattedStartHour} a ${formattedEndHour}.`;
+
+      const adminId = schedule.admin?.id;
+      const enrolledUserIds = schedule.users.getItems().map(user => user.id);
+      const waitListUserIds = schedule.waitListUsers
+        .getItems()
+        .map(user => user.id);
+
+      const userIds = [
+        ...new Set([...enrolledUserIds, ...waitListUserIds]),
+      ].filter(id => id !== adminId);
+
+      if (userIds.length === 0) {
+        return;
+      }
+
+      const notificationService = new NotificationService(em);
+      await notificationService.sendToUsers(
+        userIds,
+        title,
+        body,
+        {
+          type: 'info',
+          scheduleId: schedule.id,
+        },
+        schedule.company?.id
+      );
+    } catch (error) {
+      console.error('Error sending schedule date change notifications:', error);
       // No lanzar error - las notificaciones son secundarias
     }
   }

@@ -61,6 +61,7 @@ input ScheduleOptionsInput {
     fullOpenHours: Int
     bookingCutoffMinutes: Int
     minBookingsRequired: Int
+    quotaWarningThresholds: [Int]
 }
 
 input UpdateScheduleInput {

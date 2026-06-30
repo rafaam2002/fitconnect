@@ -12,6 +12,9 @@ import { BaseService } from './base.service';
  * Notification Service - Handles in-app and push notifications
  */
 export class NotificationService extends BaseService {
+  private readonly isDev = process.env.NODE_ENV === 'development';
+  private readonly testUserId = '0a7fcee9-64d1-4875-9a49-11c3778457df';
+
   constructor(em: EntityManager) {
     super(em);
   }
@@ -27,8 +30,8 @@ export class NotificationService extends BaseService {
     companyId?: string | null
   ): Promise<void> {
     let targetUserId = userId;
-    if (process.env.NODE_ENV === 'development') {
-      targetUserId = '0a7fcee9-64d1-4875-9a49-11c3778457df';
+    if (this.isDev) {
+      targetUserId = this.testUserId;
     }
 
     const user = await this.em.findOne(
@@ -38,7 +41,7 @@ export class NotificationService extends BaseService {
     );
 
     if (!user) {
-      if (process.env.NODE_ENV === 'development') {
+      if (this.isDev) {
         console.warn(
           `[NotificationService] Test user with ID '${targetUserId}' not found in development mode.`
         );
@@ -92,8 +95,8 @@ export class NotificationService extends BaseService {
     companyId?: string | null
   ): Promise<void> {
     let targetUserIds = userIds;
-    if (process.env.NODE_ENV === 'development') {
-      targetUserIds = ['0a7fcee9-64d1-4875-9a49-11c3778457df'];
+    if (this.isDev) {
+      targetUserIds = [this.testUserId];
     }
 
     const users = await this.em.find(
@@ -102,9 +105,9 @@ export class NotificationService extends BaseService {
       { populate: ['pushTokens'] }
     );
 
-    if (process.env.NODE_ENV === 'development' && users.length === 0) {
+    if (this.isDev && users.length === 0) {
       console.warn(
-        `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+        `[NotificationService] Test user with ID '${this.testUserId}' not found in development mode.`
       );
       return;
     }
@@ -150,15 +153,15 @@ export class NotificationService extends BaseService {
   ): Promise<void> {
     let users: User[];
 
-    if (process.env.NODE_ENV === 'development') {
+    if (this.isDev) {
       const testUser = await this.em.findOne(
         User,
-        { id: '0a7fcee9-64d1-4875-9a49-11c3778457df' },
+        { id: this.testUserId },
         { populate: ['pushTokens'] }
       );
       if (!testUser) {
         console.warn(
-          `[NotificationService] Test user with ID '0a7fcee9-64d1-4875-9a49-11c3778457df' not found in development mode.`
+          `[NotificationService] Test user with ID '${this.testUserId}' not found in development mode.`
         );
         return;
       }

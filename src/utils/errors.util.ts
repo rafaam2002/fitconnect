@@ -16,6 +16,7 @@ export const VAL_ERRORS = {
     'Cannot delete schedule because it has registered or waitlisted users',
   MAX_USERS_BELOW_CURRENT:
     'Maximum users cannot be less than the number of registered users',
+  START_DATE_MUST_BE_BEFORE_END_DATE: 'startDate must be before endDate.',
 } as const;
 
 export const NOT_FND_ERRORS = {

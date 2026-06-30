@@ -184,6 +184,9 @@ export type UpdateCompanyProps = {
     maxAdvanceBookingDays?: number;
     sameDayBookingAllowed?: boolean;
     fullOpenHours?: number;
+    bookingCutoffMinutes?: number;
+    minBookingsRequired?: number;
+    quotaWarningThresholds?: number[];
   };
 };
 

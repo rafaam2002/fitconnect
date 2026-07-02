@@ -788,7 +788,15 @@ export class ScheduleService extends BaseService {
       const scheduleProgrammedRepo = tem.getRepository(ScheduleProgrammed);
       const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
         { id },
-        { populate: ['schedules', 'admin', 'company'] }
+        {
+          populate: [
+            'schedules',
+            'schedules.users',
+            'schedules.waitListUsers',
+            'admin',
+            'company',
+          ],
+        }
       );
 
       if (!scheduleProgrammed) {
@@ -835,18 +843,27 @@ export class ScheduleService extends BaseService {
       const daysToKeep = oldDays.filter(day => newDays.includes(day));
       const daysToCreate = newDays.filter(day => !oldDays.includes(day));
 
-      // 1. Cancelar schedules futuros en los días eliminados
+      // 1. Cancelar o eliminar schedules futuros en los días eliminados
       for (const futureSchedule of futureSchedules) {
         const dayOfWeek = moment(futureSchedule.startDate).day();
         if (daysToCancel.includes(dayOfWeek)) {
-          if (futureSchedule.state !== ScheduleState.CANCELLED) {
-            await this.changeScheduleStatus(
-              currentUser,
-              futureSchedule.id,
-              ScheduleState.CANCELLED,
-              'Cambio de días en la programación semanal',
-              tem
-            );
+          const hasUsers =
+            futureSchedule.users.length > 0 ||
+            futureSchedule.waitListUsers.length > 0;
+
+          if (hasUsers) {
+            if (futureSchedule.state !== ScheduleState.CANCELLED) {
+              await this.changeScheduleStatus(
+                currentUser,
+                futureSchedule.id,
+                ScheduleState.CANCELLED,
+                'Cambio de días en la programación semanal',
+                tem
+              );
+            }
+          } else {
+            scheduleProgrammed.schedules.remove(futureSchedule);
+            (tem || this.em).remove(futureSchedule);
           }
         }
       }

@@ -52,6 +52,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
       getRepository: jest.fn(() => mockScheduleRepo),
       findOne: jest.fn(),
       persist: jest.fn(),
+      remove: jest.fn(),
       flush: jest.fn(async () => {}),
       create: jest.fn((entity: any, data: any) => ({ ...data, ...entity })),
       transactional: jest.fn(async (cb: any) => {
@@ -851,6 +852,200 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
         expect.any(Object)
       );
 
+      updateScheduleSpy.mockRestore();
+    });
+
+    it('should delete removed days instead of cancelling when future schedules have no users and no waitlisted users', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+
+      const admin = { id: 'admin-1' } as any;
+      const company = { id: 'comp-1' } as any;
+
+      const scheduleProgrammed = {
+        id: 'sp-1',
+        daysOfWeek: [1, 2], // Mon, Tue
+        startHour: '09:00',
+        endHour: '10:00',
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        company,
+        schedules: createMockCollection(),
+      } as any;
+
+      const mondaySchedule = {
+        id: 'sch-monday',
+        startDate: moment().day(1).add(2, 'weeks').toDate(),
+        endDate: moment().day(1).add(2, 'weeks').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection([{ id: 'user-1' }]),
+        waitListUsers: createMockCollection(),
+        company,
+      } as any;
+
+      // Tuesday schedule has no users and no waitlist users
+      const tuesdaySchedule = {
+        id: 'sch-tuesday',
+        startDate: moment().day(2).add(2, 'weeks').toDate(),
+        endDate: moment().day(2).add(2, 'weeks').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection(),
+        waitListUsers: createMockCollection(),
+        company,
+      } as any;
+
+      scheduleProgrammed.schedules.add(mondaySchedule);
+      scheduleProgrammed.schedules.add(tuesdaySchedule);
+
+      mockScheduleProgrammedRepo.findOne.mockResolvedValue(scheduleProgrammed);
+      mockScheduleRepo.findOne.mockImplementation((criteria: any) => {
+        if (criteria.id === 'sch-monday')
+          return Promise.resolve(mondaySchedule);
+        if (criteria.id === 'sch-tuesday')
+          return Promise.resolve(tuesdaySchedule);
+        return Promise.resolve(null);
+      });
+
+      const changeStatusSpy = jest
+        .spyOn(scheduleService, 'changeScheduleStatus')
+        .mockResolvedValue({ success: true } as any);
+
+      const updateScheduleSpy = jest
+        .spyOn(scheduleService, 'updateSchedule')
+        .mockResolvedValue({ success: true } as any);
+
+      mockEntityManager.findOne.mockResolvedValue(null);
+
+      // Change from Mon, Tue [1, 2] to Mon [1]
+      const response = await scheduleService.updateScheduleProgrammed({
+        currentUser: currentUser as any,
+        id: 'sp-1',
+        daysOfWeek: [1],
+        title: 'New Title',
+      });
+
+      expect(response.success).toBe(true);
+      expect(scheduleProgrammed.daysOfWeek).toEqual([1]);
+
+      // Tuesday (day 2) is removed. Since it has no users, it should be deleted, not cancelled.
+      expect(changeStatusSpy).not.toHaveBeenCalledWith(
+        currentUser,
+        'sch-tuesday',
+        expect.any(String),
+        expect.any(String),
+        expect.any(Object)
+      );
+
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(tuesdaySchedule);
+
+      changeStatusSpy.mockRestore();
+      updateScheduleSpy.mockRestore();
+    });
+
+    it('should cancel removed days when future schedules have waitlist users but no registered users', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+
+      const admin = { id: 'admin-1' } as any;
+      const company = { id: 'comp-1' } as any;
+
+      const scheduleProgrammed = {
+        id: 'sp-1',
+        daysOfWeek: [1, 2], // Mon, Tue
+        startHour: '09:00',
+        endHour: '10:00',
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        company,
+        schedules: createMockCollection(),
+      } as any;
+
+      const mondaySchedule = {
+        id: 'sch-monday',
+        startDate: moment().day(1).add(2, 'weeks').toDate(),
+        endDate: moment().day(1).add(2, 'weeks').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection([{ id: 'user-1' }]),
+        waitListUsers: createMockCollection(),
+        company,
+      } as any;
+
+      // Tuesday schedule has no regular users, but has 1 user in waitlist
+      const tuesdaySchedule = {
+        id: 'sch-tuesday',
+        startDate: moment().day(2).add(2, 'weeks').toDate(),
+        endDate: moment().day(2).add(2, 'weeks').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        title: 'Original Title',
+        description: 'Original Desc',
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection(),
+        waitListUsers: createMockCollection([{ id: 'waitlisted-user-1' }]),
+        company,
+      } as any;
+
+      scheduleProgrammed.schedules.add(mondaySchedule);
+      scheduleProgrammed.schedules.add(tuesdaySchedule);
+
+      mockScheduleProgrammedRepo.findOne.mockResolvedValue(scheduleProgrammed);
+      mockScheduleRepo.findOne.mockImplementation((criteria: any) => {
+        if (criteria.id === 'sch-monday')
+          return Promise.resolve(mondaySchedule);
+        if (criteria.id === 'sch-tuesday')
+          return Promise.resolve(tuesdaySchedule);
+        return Promise.resolve(null);
+      });
+
+      const changeStatusSpy = jest
+        .spyOn(scheduleService, 'changeScheduleStatus')
+        .mockResolvedValue({ success: true } as any);
+
+      const updateScheduleSpy = jest
+        .spyOn(scheduleService, 'updateSchedule')
+        .mockResolvedValue({ success: true } as any);
+
+      mockEntityManager.findOne.mockResolvedValue(null);
+
+      // Change from Mon, Tue [1, 2] to Mon [1]
+      const response = await scheduleService.updateScheduleProgrammed({
+        currentUser: currentUser as any,
+        id: 'sp-1',
+        daysOfWeek: [1],
+        title: 'New Title',
+      });
+
+      expect(response.success).toBe(true);
+      expect(scheduleProgrammed.daysOfWeek).toEqual([1]);
+
+      // Tuesday (day 2) is removed. Since it has waitlist users, it must be cancelled.
+      expect(changeStatusSpy).toHaveBeenCalledWith(
+        currentUser,
+        'sch-tuesday',
+        ScheduleState.CANCELLED,
+        'Cambio de días en la programación semanal',
+        expect.any(Object)
+      );
+
+      expect(mockEntityManager.remove).not.toHaveBeenCalledWith(
+        tuesdaySchedule
+      );
+
+      changeStatusSpy.mockRestore();
       updateScheduleSpy.mockRestore();
     });
   });

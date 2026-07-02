@@ -2,13 +2,13 @@ import {
   BeforeDelete,
   BeforeUpdate,
   Entity,
-  EventArgs,
   ManyToOne,
   OneToOne,
   Property,
   t,
   Unique,
 } from '@mikro-orm/core';
+import type { EventArgs } from '@mikro-orm/core';
 
 import { deleteBucketPicture } from '../utils/s3client.util';
 

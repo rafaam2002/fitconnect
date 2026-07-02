@@ -7,6 +7,9 @@ Domain glossary and terms for the Fitconnect backend system.
 **Schedule**:
 A planned session or class at a gym/company, which has a specific capacity (maximum users) and an assigned administrator.
 
+**Schedule Programmed (Programación Semanal)**:
+A weekly recurring template that defines the days of the week, hours, capacity, and administrator (coach) for a type of session. It serves as the baseline to automatically spawn individual Schedule instances for future weeks.
+
 **Schedule Options**:
 Settings configured per company/gym that dictate rules for booking, capacity requirements, and administrative warnings.
 

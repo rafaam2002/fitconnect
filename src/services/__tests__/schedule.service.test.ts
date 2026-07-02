@@ -1049,4 +1049,140 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
       updateScheduleSpy.mockRestore();
     });
   });
+
+  describe('deleteSchedulesProgrammed', () => {
+    let mockScheduleProgrammedRepo: any;
+
+    beforeEach(() => {
+      mockScheduleProgrammedRepo = {
+        findOne: jest.fn(),
+      };
+      const originalGetRepository = mockEntityManager.getRepository;
+      mockEntityManager.getRepository = jest.fn((entity: any) => {
+        if (entity === ScheduleProgrammed) return mockScheduleProgrammedRepo;
+        return originalGetRepository(entity);
+      });
+    });
+
+    it('should delete empty future schedules and cancel future schedules with users/waitlist', async () => {
+      const currentUser = { id: 'admin-1', contextRole: UserRoleEnum.ADMIN };
+      const admin = { id: 'admin-1' } as any;
+      const company = { id: 'comp-1' } as any;
+
+      const scheduleProgrammed = {
+        id: 'sp-1',
+        daysOfWeek: [1],
+        startHour: '09:00',
+        endHour: '10:00',
+        maxUsers: 5,
+        admin,
+        title: 'Title',
+        description: 'Desc',
+        company,
+        schedules: createMockCollection(),
+      } as any;
+
+      // 1. Past schedule (should be unlinked, not deleted)
+      const pastSchedule = {
+        id: 'sch-past',
+        startDate: moment().subtract(1, 'day').toDate(),
+        endDate: moment().subtract(1, 'day').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection(),
+        waitListUsers: createMockCollection(),
+        scheduleProgrammed,
+      } as any;
+
+      // 2. Future schedule with enrolled users (should be cancelled and unlinked)
+      const futureWithUsers = {
+        id: 'sch-future-users',
+        startDate: moment().add(2, 'days').toDate(),
+        endDate: moment().add(2, 'days').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection([{ id: 'user-1' }]),
+        waitListUsers: createMockCollection(),
+        scheduleProgrammed,
+      } as any;
+
+      // 3. Future schedule with waitlisted users (should be cancelled and unlinked)
+      const futureWithWaitlist = {
+        id: 'sch-future-waitlist',
+        startDate: moment().add(3, 'days').toDate(),
+        endDate: moment().add(3, 'days').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection(),
+        waitListUsers: createMockCollection([{ id: 'user-2' }]),
+        scheduleProgrammed,
+      } as any;
+
+      // 4. Future schedule empty (should be physically deleted)
+      const futureEmpty = {
+        id: 'sch-future-empty',
+        startDate: moment().add(4, 'days').toDate(),
+        endDate: moment().add(4, 'days').add(1, 'hour').toDate(),
+        maxUsers: 5,
+        admin,
+        state: ScheduleState.AVAILABLE,
+        users: createMockCollection(),
+        waitListUsers: createMockCollection(),
+        scheduleProgrammed,
+      } as any;
+
+      scheduleProgrammed.schedules.add(pastSchedule);
+      scheduleProgrammed.schedules.add(futureWithUsers);
+      scheduleProgrammed.schedules.add(futureWithWaitlist);
+      scheduleProgrammed.schedules.add(futureEmpty);
+
+      mockScheduleProgrammedRepo.findOne.mockResolvedValue(scheduleProgrammed);
+
+      const changeStatusSpy = jest
+        .spyOn(scheduleService, 'changeScheduleStatus')
+        .mockResolvedValue({ success: true } as any);
+
+      const response = await scheduleService.deleteSchedulesProgrammed(
+        currentUser as any,
+        ['sp-1']
+      );
+
+      expect(response.success).toBe(true);
+
+      // Verify that changeScheduleStatus was called for future sessions with users or waitlist
+      expect(changeStatusSpy).toHaveBeenCalledWith(
+        currentUser,
+        'sch-future-users',
+        ScheduleState.CANCELLED,
+        'Eliminación de horario',
+        expect.any(Object)
+      );
+
+      expect(changeStatusSpy).toHaveBeenCalledWith(
+        currentUser,
+        'sch-future-waitlist',
+        ScheduleState.CANCELLED,
+        'Eliminación de horario',
+        expect.any(Object)
+      );
+
+      // Verify empty future schedule was deleted
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(futureEmpty);
+
+      // Verify past schedule was unlinked
+      expect(pastSchedule.scheduleProgrammed).toBeUndefined();
+
+      // Verify future schedules with users/waitlist were unlinked
+      expect(futureWithUsers.scheduleProgrammed).toBeUndefined();
+      expect(futureWithWaitlist.scheduleProgrammed).toBeUndefined();
+
+      // Verify scheduleProgrammed itself was deleted
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(scheduleProgrammed);
+
+      changeStatusSpy.mockRestore();
+    });
+  });
 });

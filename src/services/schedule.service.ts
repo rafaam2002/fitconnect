@@ -730,7 +730,13 @@ export class ScheduleService extends BaseService {
       for (const id of ids) {
         const scheduleProgrammed = await scheduleProgrammedRepo.findOne(
           { id },
-          { populate: ['schedules'] }
+          {
+            populate: [
+              'schedules',
+              'schedules.users',
+              'schedules.waitListUsers',
+            ],
+          }
         );
 
         if (!scheduleProgrammed) {
@@ -742,9 +748,27 @@ export class ScheduleService extends BaseService {
         const futureSchedules = schedules.filter(s => s.startDate > now);
         const pastSchedules = schedules.filter(s => s.startDate <= now);
 
-        // Eliminar horarios futuros
+        // Procesar horarios futuros
         for (const futureSchedule of futureSchedules) {
-          tem.remove(futureSchedule);
+          const hasUsers =
+            futureSchedule.users.length > 0 ||
+            futureSchedule.waitListUsers.length > 0;
+
+          if (hasUsers) {
+            if (futureSchedule.state !== ScheduleState.CANCELLED) {
+              await this.changeScheduleStatus(
+                currentUser,
+                futureSchedule.id,
+                ScheduleState.CANCELLED,
+                'Eliminación de horario',
+                tem
+              );
+            }
+            futureSchedule.scheduleProgrammed = undefined;
+          } else {
+            scheduleProgrammed.schedules.remove(futureSchedule);
+            tem.remove(futureSchedule);
+          }
         }
 
         // Desvincular horarios pasados
@@ -811,13 +835,15 @@ export class ScheduleService extends BaseService {
         throw new ForbiddenError(FORBIDDEN_ERRORS.NOT_AUTHORIZED);
       }
 
-      const oldDays = [...scheduleProgrammed.daysOfWeek];
+      const oldDays = scheduleProgrammed.daysOfWeek.map(day => Number(day));
       const newDays =
-        updateData.daysOfWeek !== undefined ? updateData.daysOfWeek : oldDays;
+        updateData.daysOfWeek !== undefined
+          ? updateData.daysOfWeek.map((day: any) => Number(day))
+          : oldDays;
 
       // Actualizar metadata
       if (updateData.daysOfWeek !== undefined)
-        scheduleProgrammed.daysOfWeek = updateData.daysOfWeek;
+        scheduleProgrammed.daysOfWeek = newDays;
       if (updateData.startHour !== undefined)
         scheduleProgrammed.startHour = updateData.startHour;
       if (updateData.endHour !== undefined)

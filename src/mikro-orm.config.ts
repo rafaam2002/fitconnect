@@ -71,9 +71,11 @@ export default {
     pathTs: './src/migrations',
     dropTables: false, // Do not drop tables that are not defined in entities
     safe: true, // Only allow additive changes if possible (optional but good)
+    snapshot: isLocal,
   },
   schemaGenerator: {
     disableForeignKeys: false,
+    ignoreSchema: ['auth', 'realtime', 'storage', 'vault'],
   },
   extensions: [Migrator, SeedManager],
   debug: false, //process.env.NODE_ENV !== 'production',

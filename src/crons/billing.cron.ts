@@ -1,12 +1,15 @@
 // src/crons/billing.cron.ts
 
 import { MikroORM } from '@mikro-orm/core';
+import moment from 'moment';
+import cron from 'node-cron';
 
 import { PaymentMethod, PaymentMethodStatus } from '../entities/PaymentMethod';
 import { Subscription, SubscriptionStatus } from '../entities/Subscription';
 import { NotificationService } from '../services/notification.service';
 import { PaymentProcessor } from '../services/payment-processor.interface';
 import { SubscriptionService } from '../services/subscription.service';
+import { createRetryingEntityManager } from '../utils/orm-retry';
 
 /**
  * Registra todos los CRON jobs del módulo de billing.
@@ -25,58 +28,50 @@ export function registerBillingCrons(
   // Cada día a las 02:00 UTC
   // Cobra renovaciones vencidas, transiciona trials expirados
   // y ejecuta cancelaciones diferidas.
-  scheduleDailyAt('02:00', 'processBillingCycle', async () => {
-    const em = orm.em.fork();
-    const service = new SubscriptionService(em, paymentProcessor);
-    await service.processBillingCycle();
-  });
+  cron.schedule(
+    '0 2 * * *',
+    () =>
+      runSafely('processBillingCycle', async () => {
+        const em = createRetryingEntityManager(orm, true);
+        const service = new SubscriptionService(em, paymentProcessor);
+        await service.processBillingCycle();
+      }),
+    { timezone: 'UTC' }
+  );
 
   // ── Notificaciones de expiración ────────────────────────────────
   // Cada día a las 10:00 UTC
   // Avisa a los usuarios cuya suscripción vence mañana.
-  scheduleDailyAt('10:00', 'notifyExpiringSubscriptions', async () => {
-    const em = orm.em.fork();
-    const service = new SubscriptionService(em, paymentProcessor);
-    await service.notifyExpiringSubscriptions();
-  });
+  cron.schedule(
+    '0 10 * * *',
+    () =>
+      runSafely('notifyExpiringSubscriptions', async () => {
+        const em = createRetryingEntityManager(orm, true);
+        const service = new SubscriptionService(em, paymentProcessor);
+        await service.notifyExpiringSubscriptions();
+      }),
+    { timezone: 'UTC' }
+  );
 
   // ── Tarjetas expiradas ───────────────────────────────────────────
   // Cada día a las 03:00 UTC
   // Marca como EXPIRED las tarjetas cuya fecha de caducidad ya pasó
   // y notifica a los usuarios con suscripciones activas afectadas.
-  // eslint-disable-next-line no-secrets/no-secrets
-  scheduleDailyAt('03:00', 'markExpiredPaymentMethods', async () => {
-    const em = orm.em.fork();
-    await markExpiredPaymentMethods(em);
-  });
+  cron.schedule(
+    '0 3 * * *',
+    () =>
+      // eslint-disable-next-line no-secrets/no-secrets
+      runSafely('markExpiredPaymentMethods', async () => {
+        const em = createRetryingEntityManager(orm, true);
+        await markExpiredPaymentMethods(em);
+      }),
+    { timezone: 'UTC' }
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // IMPLEMENTACIÓN INTERNA
 // ─────────────────────────────────────────────────────────────────────
-
-/**
- * Planifica una función para que se ejecute cada día a una hora fija (UTC).
- * Calcula el ms hasta el próximo disparo y usa setInterval de 24h.
- */
-function scheduleDailyAt(
-  time: string, // "HH:MM"
-  label: string,
-  task: () => Promise<void>
-): void {
-  const msUntilFirst = msUntilNextUtc(time);
-
-  console.log(
-    `[CRON] "${label}" scheduled — first run in ${formatMs(msUntilFirst)} (daily at ${time} UTC)`
-  );
-
-  // Primer disparo exacto
-  setTimeout(() => {
-    runSafely(label, task);
-    // A partir de ahí, cada 24 horas
-    setInterval(() => runSafely(label, task), 24 * 60 * 60 * 1000);
-  }, msUntilFirst);
-}
 
 /**
  * Envuelve la tarea en try/catch para que un error no tumbe el proceso.
@@ -85,48 +80,13 @@ async function runSafely(
   label: string,
   task: () => Promise<void>
 ): Promise<void> {
-  console.log(`[CRON] "${label}" — starting at ${new Date().toISOString()}`);
+  console.log(`[CRON] "${label}" — starting at ${moment().toISOString()}`);
   try {
     await task();
     console.log(`[CRON] "${label}" — completed`);
   } catch (error: any) {
     console.error(`[CRON] "${label}" — failed:`, error?.message ?? error);
   }
-}
-
-/**
- * Calcula los milisegundos hasta la próxima ocurrencia de HH:MM en UTC.
- */
-function msUntilNextUtc(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  const now = new Date();
-
-  const next = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      hours,
-      minutes,
-      0,
-      0
-    )
-  );
-
-  // Si ya pasó hoy, programar para mañana
-  if (next.getTime() <= now.getTime()) {
-    next.setUTCDate(next.getUTCDate() + 1);
-  }
-
-  return next.getTime() - now.getTime();
-}
-
-function formatMs(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${h}h ${m}m ${s}s`;
 }
 
 /**
@@ -140,9 +100,9 @@ function formatMs(ms: number): string {
  * Planes gratuitos (amount = 0) se ignoran — no necesitan método de pago.
  */
 async function markExpiredPaymentMethods(em: any): Promise<void> {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1; // getMonth() es 0-indexed
+  const now = moment();
+  const currentYear = now.year();
+  const currentMonth = now.month() + 1; // month() es 0-indexed
 
   // Una tarjeta expira cuando su año ya pasó,
   // o cuando es el año actual pero el mes ya pasó.

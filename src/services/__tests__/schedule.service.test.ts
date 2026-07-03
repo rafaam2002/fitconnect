@@ -1157,7 +1157,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
         currentUser,
         'sch-future-users',
         ScheduleState.CANCELLED,
-        'Eliminación de horario',
+        'Cambio en la programación semanal',
         expect.any(Object)
       );
 
@@ -1165,7 +1165,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
         currentUser,
         'sch-future-waitlist',
         ScheduleState.CANCELLED,
-        'Eliminación de horario',
+        'Cambio en la programación semanal',
         expect.any(Object)
       );
 

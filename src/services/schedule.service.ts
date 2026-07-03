@@ -760,7 +760,7 @@ export class ScheduleService extends BaseService {
                 currentUser,
                 futureSchedule.id,
                 ScheduleState.CANCELLED,
-                'Eliminación de horario',
+                'Cambio en la programación semanal',
                 tem
               );
             }

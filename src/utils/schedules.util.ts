@@ -97,7 +97,8 @@ export const createScheduleProgrammed = async (
  */
 export const createInitialSchedules = async (
   scheduleProgrammed: ScheduleProgrammed,
-  em: EntityManager
+  em: EntityManager,
+  specificDays?: number[]
 ): Promise<void> => {
   const now = moment();
 
@@ -105,7 +106,9 @@ export const createInitialSchedules = async (
     .split(':')
     .map(Number);
 
-  const promises = scheduleProgrammed.daysOfWeek.map(async day => {
+  const daysToCreate = specificDays || scheduleProgrammed.daysOfWeek;
+
+  const promises = daysToCreate.map(async day => {
     // Crear horarios para los dos días futuros más cercanos
     let createdCount = 0;
     let i = 0;

@@ -1,5 +1,4 @@
 import {
-  Cascade,
   Collection,
   Entity,
   EntityRepositoryType,
@@ -25,7 +24,7 @@ import { User } from './User';
 @Entity({ repository: () => CustomScheduleProgrammedRepository })
 export class ScheduleProgrammed extends BaseEntity {
   [EntityRepositoryType]?: CustomScheduleProgrammedRepository;
-  @Property()
+  @Property({ columnType: 'integer[]' })
   daysOfWeek: number[];
 
   @Property({ type: 'time' })
@@ -52,9 +51,7 @@ export class ScheduleProgrammed extends BaseEntity {
   @Property({ nullable: true })
   age: number | null;
 
-  @OneToMany(() => Schedule, schedule => schedule.scheduleProgrammed, {
-    cascade: [Cascade.REMOVE],
-  })
+  @OneToMany(() => Schedule, schedule => schedule.scheduleProgrammed)
   schedules = new Collection<Schedule>(this);
 
   @ManyToOne(() => Company)

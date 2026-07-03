@@ -2291,6 +2291,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "custom_claims_allowlist": {
+          "name": "custom_claims_allowlist",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
         }
       },
       "name": "custom_oauth_providers",

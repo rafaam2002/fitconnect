@@ -16,6 +16,7 @@ import { PollVote } from './entities/PollVote';
 import { Product } from './entities/Product';
 import { Promotion } from './entities/Promotion';
 import { PushToken } from './entities/PushToken';
+import { Rating } from './entities/Rating';
 import { RefreshToken } from './entities/RefreshToken';
 import { Schedule } from './entities/Schedule';
 import { ScheduleOptions } from './entities/ScheduleOptions';
@@ -45,6 +46,7 @@ export default {
     Product,
     Promotion,
     PushToken,
+    Rating,
     RefreshToken,
     Schedule,
     ScheduleOptions,

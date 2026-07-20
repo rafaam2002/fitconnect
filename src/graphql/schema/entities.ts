@@ -40,6 +40,21 @@ type Product {
     pictures: [PictureUrl]
 }
 
+type Promotion {
+    id: ID!
+    title: String!
+    description: String!
+    discountTag: String!
+    originalPrice: Float!
+    newPrice: Float!
+    expiresAt: String!
+    accentColor: String
+    isHero: Boolean!
+    isActive: Boolean!
+    created_at: String!
+    updated_at: String!
+}
+
 type Company {
     id: ID!
     name: String!
@@ -145,10 +160,19 @@ type Poll {
     pollVotes: [PollVote]
 }
 
-type PollVote { 
+type PollVote {
     poll: IdResponse!
     user: User!
     optionSelected: String!
+}
+
+type Rating {
+    id: ID!
+    created_at: String!
+    updated_at: String!
+    score: Int!
+    comment: String
+    user: User!
 }
 
 type Message {

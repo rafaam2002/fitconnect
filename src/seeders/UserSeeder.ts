@@ -3,7 +3,6 @@ import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
 import { Company } from '../entities/Company';
-import { Promotion } from '../entities/Promotion';
 import { Schedule } from '../entities/Schedule';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
@@ -21,7 +20,6 @@ export class UserSeeder extends Seeder {
 
     try {
       const schedules = await em.find(Schedule, {}, { filters: false });
-      const promotions = await em.find(Promotion, {}, { filters: false });
       const companies = new CompanyFactory(em).make(3);
 
       em.persist(companies);
@@ -103,10 +101,6 @@ export class UserSeeder extends Seeder {
         })
         .make(50, {
           schedules: faker.helpers.arrayElements(schedules, {
-            min: 5,
-            max: 10,
-          }),
-          promotions: faker.helpers.arrayElements(promotions, {
             min: 5,
             max: 10,
           }),

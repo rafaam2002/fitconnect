@@ -1,15 +1,7 @@
-import {
-  Collection,
-  Entity,
-  Filter,
-  ManyToMany,
-  ManyToOne,
-  Property,
-} from '@mikro-orm/core';
+import { Entity, Filter, ManyToOne, Property, t } from '@mikro-orm/core';
 
 import { BaseEntity } from './BaseEntity';
 import { Company } from './Company';
-import { User } from './User';
 
 @Entity()
 @Filter({
@@ -18,27 +10,33 @@ import { User } from './User';
   default: true,
 })
 export class Promotion extends BaseEntity {
-  @Property()
+  @Property({ type: t.string })
   title!: string;
 
-  @Property()
-  startDate!: Date;
-
-  @Property()
-  endDate!: Date; // in minutes
-
-  @Property()
-  price!: number;
-
-  @Property({ nullable: true })
-  picture: string;
-
-  @Property()
+  @Property({ type: t.string })
   description!: string;
+
+  @Property({ type: t.string })
+  discountTag!: string;
+
+  @Property({ type: t.float })
+  originalPrice!: number;
+
+  @Property({ type: t.float })
+  newPrice!: number;
+
+  @Property()
+  expiresAt!: Date;
+
+  @Property({ type: t.string, nullable: true })
+  accentColor?: string | null;
+
+  @Property({ type: t.boolean, default: false })
+  isHero: boolean = false;
+
+  @Property({ type: t.boolean, default: true })
+  isActive: boolean = true;
 
   @ManyToOne(() => Company, { nullable: true })
   company: Company;
-
-  @ManyToMany(() => User, user => user.promotions)
-  users = new Collection<User>(this);
 }

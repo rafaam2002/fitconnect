@@ -21,7 +21,6 @@ import { Message } from './Message';
 import { PictureUrl } from './PictureUrl';
 import { Poll } from './Poll';
 import { PollVote } from './PollVote';
-import { Promotion } from './Promotion';
 import { PushToken } from './PushToken';
 import { RefreshToken } from './RefreshToken';
 import { Schedule } from './Schedule';
@@ -141,11 +140,6 @@ export class User extends BaseEntity {
     mappedBy: 'waitListUsers',
   })
   waitListSchedules = new Collection<Schedule>(this);
-
-  @ManyToMany(() => Promotion, promotion => promotion.users, {
-    owner: true,
-  })
-  promotions = new Collection<Promotion>(this);
 
   // Relación OneToMany con Schedule (admin)
   @OneToMany(() => Schedule, schedule => schedule.admin, { lazy: true })

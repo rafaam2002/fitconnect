@@ -234,18 +234,6 @@ export class UserService extends BaseService {
     return createServiceResponse(200, 'User found', true, { user });
   }
 
-  public async getPromotions(currentUser: CurrentUser): Promise<any> {
-    if (!currentUser) throw new UnauthorizedError();
-
-    const userRepo = this.em.getRepository(User);
-    const user = await userRepo.findOne(
-      { id: currentUser.id },
-      { populate: ['promotions'] }
-    );
-
-    return user!.promotions;
-  }
-
   public async createUser(
     userData: any,
     companyData?: any

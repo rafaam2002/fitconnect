@@ -38,6 +38,29 @@ export type UpdateCompanyPictureProps = {
   picture: string;
 };
 
+export type CreatePromotionInput = {
+  title: string;
+  description: string;
+  discountTag: string;
+  originalPrice: number;
+  newPrice: number;
+  expiresAt: string;
+  accentColor?: string | null;
+  isHero?: boolean;
+  isActive?: boolean;
+};
+
+export type UpdatePromotionInput = Partial<CreatePromotionInput>;
+
+export type CreatePromotionProps = {
+  promotion: CreatePromotionInput;
+};
+
+export type UpdatePromotionProps = {
+  id: string;
+  promotion: UpdatePromotionInput;
+};
+
 export type MessageProps = {
   message: {
     text: string;
@@ -163,6 +186,17 @@ export type VoteProps = {
 
 export type DeletePollProps = {
   pollId: string;
+};
+
+export type CreateOrUpdateRatingProps = {
+  rating: {
+    score: number;
+    comment?: string;
+  };
+};
+
+export type GetCompanyRatingsProps = {
+  companyId?: string;
 };
 
 export type GetCompanyProps = {

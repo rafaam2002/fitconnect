@@ -39,6 +39,10 @@ type Mutation {
     deletePollVote(pollId: ID!): PollResponse!
     removePolls(ids: [String]!): PollResponse!
 
+    # ── Rating ────────────────────────────────────────────────────────
+    createOrUpdateRating(rating: CreateOrUpdateRatingInput!): RatingResponse!
+    deleteRating: RatingResponse!
+
     # ── Plan ──────────────────────────────────────────────────────────
     createPlan(plan: CreatePlanInput!): PlanResponse!
     updatePlan(plan: UpdatePlanInput!): PlanResponse!
@@ -119,6 +123,11 @@ type Mutation {
     createProduct(product: CreateProductInput!): ProductResponse!
     updateProductPicture(imageName: String!, productId: String!): ProductResponse!
     removeProduct(ids: [String]!): ProductResponse!
+
+    # ── Promotion ─────────────────────────────────────────────────────
+    createPromotion(promotion: CreatePromotionInput!): PromotionResponse!
+    updatePromotion(id: ID!, promotion: UpdatePromotionInput!): PromotionResponse!
+    deletePromotion(id: ID!): PromotionResponse!
 
     # ── Token / Push ──────────────────────────────────────────────────
     registerToken(token: String!): RegisterTokenResponse!

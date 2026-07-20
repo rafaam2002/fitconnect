@@ -178,7 +178,13 @@ export class PlanService extends BaseService {
       { id: planId },
       {
         filters: false,
-        populate: ['planPermissions', 'planPermissions.permission', 'company'],
+        populate: [
+          'planPermissions',
+          'planPermissions.permission',
+          'company',
+          'subscriptions',
+          'subscriptions.user',
+        ],
       }
     );
 

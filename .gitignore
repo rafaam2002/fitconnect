@@ -33,6 +33,7 @@ build
 .vscode
 .eslintcache
 .antigravitycli/
+graphify-out
 
 # database dumps
 remote_dump.sql

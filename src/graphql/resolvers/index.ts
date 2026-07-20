@@ -11,6 +11,8 @@ import { permissionResolvers } from './permission.resolver';
 import { planResolvers } from './plan.resolver';
 import { pollResolvers } from './poll.resolver';
 import { productResolvers } from './product.resolver';
+import { promotionResolvers } from './promotion.resolver';
+import { ratingResolvers } from './rating.resolver';
 import { s3Resolvers } from './s3.resolvers';
 import { scheduleResolvers } from './schedule.resolver';
 import { subscriptionResolvers } from './subscription.resolver';
@@ -25,7 +27,9 @@ const resolvers = merge(
   s3Resolvers,
   pushTokenResolvers,
   productResolvers,
+  promotionResolvers,
   pollResolvers,
+  ratingResolvers,
   authResolvers,
   planResolvers,
   customerResolvers,

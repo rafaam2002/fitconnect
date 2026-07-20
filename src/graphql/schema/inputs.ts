@@ -6,6 +6,30 @@ input CreateProductInput {
     price: Float!
 }
 
+input CreatePromotionInput {
+    title: String!
+    description: String!
+    discountTag: String!
+    originalPrice: Float!
+    newPrice: Float!
+    expiresAt: String!
+    accentColor: String
+    isHero: Boolean
+    isActive: Boolean
+}
+
+input UpdatePromotionInput {
+    title: String
+    description: String
+    discountTag: String
+    originalPrice: Float
+    newPrice: Float
+    expiresAt: String
+    accentColor: String
+    isHero: Boolean
+    isActive: Boolean
+}
+
 input AddUserWeightInput {
     userId: ID!
     weight: Float!
@@ -147,6 +171,11 @@ input CreatePollInput {
     title: String!
     options: [String]!
     endDate: String!
+}
+
+input CreateOrUpdateRatingInput {
+    score: Int!
+    comment: String
 }
 
 input CreateMessageInput {

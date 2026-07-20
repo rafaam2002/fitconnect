@@ -31,6 +31,10 @@ type Query {
     getPolls(pollId: ID, filter: PollFilter): PollResponse!
     getAdminPolls(id: ID): PollResponse!
 
+    # ── Rating ────────────────────────────────────────────────────────
+    getCompanyRatings(companyId: ID): RatingResponse!
+    getMyRating(companyId: ID): RatingResponse!
+
     # ── Plan ──────────────────────────────────────────────────────────
     listPlans(onlyActive: Boolean, showGlobal: Boolean): PlanResponse!
     getPlan(planId: ID!): PlanResponse!
@@ -38,6 +42,10 @@ type Query {
 
     # ── Product ───────────────────────────────────────────────────────
     getProducts: ProductResponse!
+
+    # ── Promotion ─────────────────────────────────────────────────────
+    getCompanyPromotions(includeInactive: Boolean): PromotionResponse!
+    getActivePromotions: PromotionResponse!
 
     # ── Article ───────────────────────────────────────────────────────
     getArticles(limit: Int!, offset: Int!): ArticleResponse!

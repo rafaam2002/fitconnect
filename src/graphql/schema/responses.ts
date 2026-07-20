@@ -77,6 +77,14 @@ type ProductResponse implements BasicResponse {
     products: [Product]
 }
 
+type PromotionResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    promotion: Promotion
+    promotions: [Promotion]
+}
+
 type UserResponse implements BasicResponse {
     code: String!
     success: Boolean!
@@ -158,6 +166,16 @@ type PollResponse implements BasicResponse {
     message: String!
     poll: Poll
     polls: [Poll]
+}
+
+type RatingResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    rating: Rating
+    ratings: [Rating]
+    averageScore: Float
+    ratingsCount: Int
 }
 
 type ConversationResponse {

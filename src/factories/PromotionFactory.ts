@@ -12,12 +12,22 @@ export class PromotionFactory extends Factory<Promotion> {
   }
 
   definition(): Partial<Promotion> {
+    const originalPrice = faker.helpers.rangeToNumber({ min: 20, max: 150 });
+    const discountPercent = faker.helpers.rangeToNumber({ min: 10, max: 50 });
+    const newPrice = Number(
+      (originalPrice * (1 - discountPercent / 100)).toFixed(2)
+    );
+
     return {
       title: faker.lorem.sentence(),
-      startDate: faker.date.future(),
-      endDate: faker.date.future(),
-      price: faker.helpers.rangeToNumber({ min: 5, max: 50 }),
       description: faker.lorem.sentence(),
+      discountTag: `-${discountPercent}% OFF`,
+      originalPrice,
+      newPrice,
+      expiresAt: faker.date.future(),
+      accentColor: faker.color.rgb(),
+      isHero: faker.datatype.boolean({ probability: 0.2 }),
+      isActive: true,
     };
   }
 }

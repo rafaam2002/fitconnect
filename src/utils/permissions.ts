@@ -37,4 +37,6 @@ export const companiesPermissions = createPermissions('companies');
 
 export const plansPermissions = createPermissions('plans');
 
+export const promotionsPermissions = createPermissions('promotions');
+
 export const subcriptionsPermissions = createPermissions('subcriptions');

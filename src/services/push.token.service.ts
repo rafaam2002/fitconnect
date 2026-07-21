@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { PushToken } from '../entities/PushToken';
 import { User } from '../entities/User';
 import { CurrentUser, ServiceResponse } from '../types/common.type';
+import { NotificationType } from '../types/enums';
 import {
   createServiceResponse,
   InternalServerError,
@@ -69,22 +70,25 @@ export class PushTokenService extends BaseService {
     currentUser: CurrentUser,
     title: string,
     body: string,
-    forAll: boolean = false
+    forAll: boolean = false,
+    userIds?: string[],
+    type?: NotificationType
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
 
     const notificationService = new NotificationService(this.em);
+    const data = { type: type || NotificationType.INFO };
 
-    if (forAll) {
-      await notificationService.sendToAllActiveUsers(title, body, {
-        type: 'info',
-      });
+    if (userIds && userIds.length > 0) {
+      // Envío dirigido a una selección de usuarios (broadcast admin) — el
+      // método ya existía en el servicio pero no estaba expuesto por GraphQL.
+      await notificationService.sendToUsers(userIds, title, body, data);
+    } else if (forAll) {
+      await notificationService.sendToAllActiveUsers(title, body, data);
     } else {
-      await notificationService.sendToUser(currentUser.id, title, body, {
-        type: 'info',
-      });
+      await notificationService.sendToUser(currentUser.id, title, body, data);
     }
 
     return createServiceResponse(201, 'The message has been sent', true);

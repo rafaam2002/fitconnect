@@ -256,7 +256,7 @@ type Subscription {
     id: ID!
     created_at: DateTime!
     updated_at: DateTime!
-    user: IdResponse!
+    user: User!
     customer: Customer!
     plan: Plan!
     defaultPaymentMethod: PaymentMethod

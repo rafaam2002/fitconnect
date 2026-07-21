@@ -13,19 +13,22 @@ export const updateUserSchema = z.object({
     .string()
     .min(3, messages.minErrorMsg(3))
     .max(20, messages.maxErrorMsg(20))
-    .nullable(),
+    .nullable()
+    .optional(),
   surname: z
     .string()
     .min(3, messages.minErrorMsg(3))
     .max(20, messages.maxErrorMsg(20))
-    .nullable(),
+    .nullable()
+    .optional(),
   phoneNumber: z
     .string()
     .min(9, messages.minErrorMsg(9))
     .max(9, messages.maxErrorMsg(9))
     .regex(/^\d+$/, messages.phoneNumberErrorMsg)
     // Solo permite caracteres numéricos
-    .nullable(),
+    .nullable()
+    .optional(),
 });
 
 export const ChangePasswordSchema = z

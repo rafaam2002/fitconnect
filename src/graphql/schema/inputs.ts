@@ -50,6 +50,7 @@ input UpdateUserInput {
     email: String!
     phoneNumber: String
     nickname: String!
+    isActive: Boolean
     isBlocked: Boolean
     role: UserRoleEnum
     activeCompanyId: String
@@ -203,6 +204,9 @@ input SendNotificationInput {
     title: String!
     body: String!
     forAll: Boolean!
+    """IDs de usuarios destinatarios — envío dirigido (broadcast a una selección)."""
+    userIds: [ID!]
+    type: NotificationType
 }
 
 input PlanFilterInput {

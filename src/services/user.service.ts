@@ -322,7 +322,7 @@ export class UserService extends BaseService {
     this.validateUpdateSchema(userUpdates);
 
     await this.assertUniqueEmail(userUpdates.email, user.email, userUpdates.id);
-    await this.assertUniqueNickname(userUpdates.nickname);
+    await this.assertUniqueNickname(userUpdates.nickname, user.nickname, userUpdates.id);
 
     this.applyUserFields(user, userUpdates);
 
@@ -557,12 +557,14 @@ export class UserService extends BaseService {
   }
 
   private async assertUniqueNickname(
-    nickname: string | undefined
+    newNickname: string | undefined,
+    oldNickname: string | undefined,
+    userId: string
   ): Promise<void> {
-    if (!nickname) return;
+    if (!newNickname || newNickname === oldNickname) return;
 
-    const existing = await this.em.find(User, { nickname });
-    if (existing.length > 1) {
+    const existing = await this.em.findOne(User, { nickname: newNickname });
+    if (existing && existing.id !== userId) {
       throw new BadRequestError('Nickname already exists');
     }
   }

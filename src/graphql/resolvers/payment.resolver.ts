@@ -174,8 +174,8 @@ export const getPaymentConnectionStatus = async (
         connectedAt: details.connectedAt?.toISOString() ?? null,
         chargesEnabled: details.chargesEnabled ?? false,
         payoutsEnabled: details.payoutsEnabled ?? false,
-        missingRequirements: details.missingRequirements ?? false,
-        disabledReason: details.disabledReason ?? false,
+        missingRequirements: details.missingRequirements ?? null,
+        disabledReason: details.disabledReason ?? null,
       },
     };
   } catch (error: any) {

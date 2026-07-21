@@ -61,7 +61,7 @@ export default {
     Notification,
   ],
   clientUrl: isLocal ? undefined : process.env.DATABASE_URL,
-  dbName: isLocal ? process.env.DB_NAME || 'fitconnect_db' : undefined,
+  dbName: isLocal ? process.env.DB_NAME || 'postgres' : undefined,
   user: isLocal ? process.env.DB_USERNAME || 'postgres' : undefined,
   password: isLocal ? process.env.DB_PASSWORD : undefined,
   host: isLocal ? process.env.DB_HOST || 'localhost' : undefined,

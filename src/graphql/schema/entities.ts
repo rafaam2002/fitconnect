@@ -78,6 +78,9 @@ type User {
     nickname: String!
     isActive: Boolean
     isBlocked: Boolean
+    blockedAt: DateTime
+    churnedAt: DateTime
+    birthDate: DateTime
     schedules: [Schedule]
     userWeights: [UserWeight]
     phoneNumber: String
@@ -374,6 +377,34 @@ type AdminStats {
     subscriptions: Int!
     transactions: Int!
     notifications: Int!
+}
+
+type MonthCount {
+    month: String!
+    count: Int!
+}
+
+type AgeRangeCount {
+    range: String!
+    count: Int!
+}
+
+type MonthAmount {
+    month: String!
+    amount: Float!
+}
+
+type ReportMetrics {
+    totalUsers: Int!
+    churnedUsers: Int!
+    newUsersByMonth: [MonthCount!]!
+    churnedUsersByMonth: [MonthCount!]!
+    usersByAgeRange: [AgeRangeCount!]!
+    totalRevenue: Float!
+    revenueByMonth: [MonthAmount!]!
+    productsSold: Int!
+    promotionsApplied: Int!
+    promotionsAppliedByMonth: [MonthCount!]!
 }
 
 type GroupUser {

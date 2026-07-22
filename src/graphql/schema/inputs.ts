@@ -54,6 +54,7 @@ input UpdateUserInput {
     isBlocked: Boolean
     role: UserRoleEnum
     activeCompanyId: String
+    birthDate: DateTime
 }
 
 input CreateCompanyInput {

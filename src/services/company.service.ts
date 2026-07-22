@@ -60,6 +60,11 @@ export class CompanyService extends BaseService {
     }
 
     if (companyId) {
+      // Solo superadmin puede consultar una empresa ajena a la suya
+      if (!currentUser.isSuperAdmin && companyId !== currentUser.activeCompanyId) {
+        throw new ForbiddenError('You can only access your own company');
+      }
+
       // Obtener empresa específica
       const company = await this.em.findOne(
         Company,
@@ -78,6 +83,11 @@ export class CompanyService extends BaseService {
         company,
       });
     } else {
+      // El listado de todas las empresas de la plataforma es exclusivo de superadmin
+      if (!currentUser.isSuperAdmin) {
+        throw new ForbiddenError('SuperAdmin access required');
+      }
+
       // Obtener lista de empresas
       const pageNumber = page || 1;
       const limit = 10;
@@ -109,7 +119,7 @@ export class CompanyService extends BaseService {
         {
           limit,
           offset,
-          populate: ['scheduleOptions', 'logo'],
+          populate: ['scheduleOptions', 'logo', 'companyConfig'],
           filters: false,
         }
       );

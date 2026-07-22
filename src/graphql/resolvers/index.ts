@@ -13,6 +13,7 @@ import { pollResolvers } from './poll.resolver';
 import { productResolvers } from './product.resolver';
 import { promotionResolvers } from './promotion.resolver';
 import { ratingResolvers } from './rating.resolver';
+import { reportResolvers } from './report.resolver';
 import { s3Resolvers } from './s3.resolvers';
 import { scheduleResolvers } from './schedule.resolver';
 import { subscriptionResolvers } from './subscription.resolver';
@@ -41,7 +42,8 @@ const resolvers = merge(
   scheduleResolvers,
   superAdminResolvers,
   paymentResolvers,
-  notificationResolvers
+  notificationResolvers,
+  reportResolvers
 );
 
 export default resolvers;

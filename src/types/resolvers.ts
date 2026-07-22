@@ -106,6 +106,7 @@ export type UpdateUserProps = {
   isActive?: boolean;
   isBlocked?: boolean;
   role?: UserRoleEnum;
+  birthDate?: Date;
 };
 
 export type UpdateScheduleProps = {

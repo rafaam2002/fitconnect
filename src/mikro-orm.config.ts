@@ -14,7 +14,9 @@ import { Plan } from './entities/Plan';
 import { Poll } from './entities/Poll';
 import { PollVote } from './entities/PollVote';
 import { Product } from './entities/Product';
+import { ProductPurchase } from './entities/ProductPurchase';
 import { Promotion } from './entities/Promotion';
+import { PromotionRedemption } from './entities/PromotionRedemption';
 import { PushToken } from './entities/PushToken';
 import { Rating } from './entities/Rating';
 import { RefreshToken } from './entities/RefreshToken';
@@ -44,7 +46,9 @@ export default {
     Poll,
     PollVote,
     Product,
+    ProductPurchase,
     Promotion,
+    PromotionRedemption,
     PushToken,
     Rating,
     RefreshToken,

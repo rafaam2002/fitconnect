@@ -87,6 +87,16 @@ export class User extends BaseEntity {
   @Property({ type: t.boolean, default: false })
   isBlocked: boolean = false;
 
+  @Property({ type: t.datetime, nullable: true })
+  blockedAt?: Date | null;
+
+  /** Fecha en que un admin marcó al usuario como inactivo (baja). */
+  @Property({ type: t.datetime, nullable: true })
+  churnedAt?: Date | null;
+
+  @Property({ type: t.datetime, nullable: true })
+  birthDate?: Date | null;
+
   @Property({ type: t.boolean, default: false })
   isVerified: boolean = false;
 

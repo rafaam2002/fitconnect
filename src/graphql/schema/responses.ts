@@ -210,6 +210,13 @@ type AdminStatsResponse {
     stats: AdminStats
 }
 
+type ReportMetricsResponse implements BasicResponse {
+    code: String!
+    success: Boolean!
+    message: String!
+    metrics: ReportMetrics
+}
+
 type RegisterTokenResponse implements BasicResponse {
     code: String!
     success: Boolean!

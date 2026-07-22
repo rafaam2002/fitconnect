@@ -418,10 +418,11 @@ export class UserService extends BaseService {
       throw new ForbiddenError();
 
     const knex = em.getKnex();
+    const companyId = currentUser.activeCompanyId ?? null;
 
     const result = await knex('user as u')
       .join('user_role as ur', 'u.id', 'ur.user_id')
-      .where('ur.company_id', currentUser.activeCompanyId)
+      .where('ur.company_id', companyId)
       .select([
         knex.raw('COUNT(DISTINCT u.id) as totalusers'),
         knex.raw(
@@ -435,8 +436,20 @@ export class UserService extends BaseService {
         ),
         knex.raw(
           `(SELECT COUNT(*) FROM user_pending_companies WHERE company_id = ?) as pendingusers`,
-          [currentUser.activeCompanyId ?? null]
+          [companyId]
         ),
+        knex.raw(`(SELECT COUNT(*) FROM schedule WHERE company_id = ?) as schedulescount`, [companyId]),
+        knex.raw(`(SELECT COUNT(*) FROM poll WHERE company_id = ?) as pollscount`, [companyId]),
+        knex.raw(
+          `(SELECT COUNT(*) FROM plan WHERE company_id = ? AND status = 'active') as planscount`,
+          [companyId]
+        ),
+        knex.raw(
+          `(SELECT COUNT(*) FROM subscription WHERE company_id = ? AND status = 'active') as subscriptionscount`,
+          [companyId]
+        ),
+        knex.raw(`(SELECT COUNT(*) FROM transaction WHERE company_id = ?) as transactionscount`, [companyId]),
+        knex.raw(`(SELECT COUNT(*) FROM notification WHERE company_id = ?) as notificationscount`, [companyId]),
       ]);
 
     const stats = {
@@ -447,12 +460,12 @@ export class UserService extends BaseService {
         newUsers: result[0].newusers,
         pendingUsers: result[0].pendingusers,
       },
-      schedules: 0,
-      polls: 0,
-      plans: 0,
-      subscriptions: 0,
-      transactions: 0,
-      notifications: 0,
+      schedules: Number(result[0].schedulescount) || 0,
+      polls: Number(result[0].pollscount) || 0,
+      plans: Number(result[0].planscount) || 0,
+      subscriptions: Number(result[0].subscriptionscount) || 0,
+      transactions: Number(result[0].transactionscount) || 0,
+      notifications: Number(result[0].notificationscount) || 0,
     };
 
     return createServiceResponse(200, 'Stats found', true, { stats });
@@ -570,14 +583,35 @@ export class UserService extends BaseService {
   }
 
   private applyUserFields(user: User, updates: UpdateUserProps): void {
+    const nextIsBlocked = updates.isBlocked ?? user.isBlocked;
+    const blockedAt =
+      nextIsBlocked === user.isBlocked
+        ? user.blockedAt
+        : nextIsBlocked
+          ? new Date()
+          : null;
+
+    // "Baja" = un admin marca al usuario como inactivo (no el bloqueo de acceso,
+    // que es una restricción distinta). churnedAt alimenta el reporte de bajas.
+    const nextIsActive = updates.isActive ?? user.isActive;
+    const churnedAt =
+      nextIsActive === user.isActive
+        ? user.churnedAt
+        : nextIsActive
+          ? null
+          : new Date();
+
     Object.assign(user, {
       name: updates.name ?? user.name,
       email: updates.email ?? user.email,
       surname: updates.surname ?? user.surname,
       nickname: updates.nickname ?? user.nickname,
       phoneNumber: updates.phoneNumber ?? user.phoneNumber,
-      isActive: updates.isActive ?? user.isActive,
-      isBlocked: updates.isBlocked ?? user.isBlocked,
+      isActive: nextIsActive,
+      churnedAt,
+      isBlocked: nextIsBlocked,
+      blockedAt,
+      birthDate: updates.birthDate ?? user.birthDate,
     });
   }
 

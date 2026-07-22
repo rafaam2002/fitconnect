@@ -52,6 +52,7 @@ type Query {
 
     # ── Admin ─────────────────────────────────────────────────────────
     getAdminStats: AdminStatsResponse!
+    getReportMetrics: ReportMetricsResponse!
 
     # ── TrainingTask ──────────────────────────────────────────────────
     getTrainingTasks(userId: String, dateRange: [String]!, onlyGlobal: Boolean): TrainingTaskResponse!

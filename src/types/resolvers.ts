@@ -386,3 +386,11 @@ export type UpdatePasswordProps = {
     confirmPassword: string;
   };
 };
+
+export type AdminUpdatePasswordProps = {
+  password: {
+    userId: string;
+    newPassword: string;
+    confirmPassword: string;
+  };
+};

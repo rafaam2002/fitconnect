@@ -1,6 +1,7 @@
 import { User } from '../../entities/User';
 import { AuthService } from '../../services/auth.service';
 import {
+  AdminUpdatePasswordProps,
   ContextProps,
   LoginProps,
   PasswordResetProps,
@@ -68,6 +69,19 @@ const updatePassword = async (
   }
 };
 
+const adminUpdatePassword = async (
+  _: any,
+  { password }: AdminUpdatePasswordProps,
+  { currentUser, em }: ContextProps
+) => {
+  try {
+    const authService = new AuthService(em);
+    return await authService.adminUpdatePassword(currentUser, password);
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 const sendChangePasswordEmail = async (
   _: any,
   { email }: PasswordResetProps,
@@ -123,6 +137,7 @@ export const authResolvers = {
   Mutation: {
     forgotPassword,
     updatePassword,
+    adminUpdatePassword,
     loginWithGoogle,
     loginWithApple,
     sendChangePasswordEmail,

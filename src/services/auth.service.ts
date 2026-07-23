@@ -8,7 +8,12 @@ import moment from 'moment';
 import { Company } from '../entities/Company';
 import { RefreshToken } from '../entities/RefreshToken';
 import { User } from '../entities/User';
-import { EmailConfig, ServiceResponse, TokenPair } from '../types/common.type';
+import {
+  CurrentUser,
+  EmailConfig,
+  ServiceResponse,
+  TokenPair,
+} from '../types/common.type';
 import { UserProviderType } from '../types/enums';
 import {
   BadRequestError,
@@ -26,7 +31,10 @@ import {
   generateTempPassword,
   verifyGoogleToken,
 } from '../utils/users';
-import { ChangePasswordSchema } from '../validation/schemas';
+import {
+  AdminChangePasswordSchema,
+  ChangePasswordSchema,
+} from '../validation/schemas';
 
 import { BaseService } from './base.service';
 import { EmailService } from './email.service';
@@ -442,6 +450,37 @@ export class AuthService extends BaseService {
 
     if (!passwordCorrect) {
       throw new ValidationError(VAL_ERRORS.INCORRECT_PASSWORD);
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await this.em.flush();
+
+    return createServiceResponse(200, 'Password changed successfully', true);
+  }
+
+  /**
+   * Actualizar la contraseña de otro usuario (solo super admin)
+   */
+  async adminUpdatePassword(
+    currentUser: CurrentUser,
+    input: { userId: string; newPassword: string; confirmPassword: string }
+  ): Promise<ServiceResponse> {
+    if (!currentUser?.isSuperAdmin) {
+      throw new ForbiddenError('SuperAdmin access required');
+    }
+
+    const { userId, newPassword, confirmPassword } = input;
+
+    AdminChangePasswordSchema.parse({ newPassword, confirmPassword });
+
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { filters: false }
+    );
+
+    if (!user) {
+      throw new NotFoundError('User');
     }
 
     user.password = await bcrypt.hash(newPassword, 10);

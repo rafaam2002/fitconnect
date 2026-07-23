@@ -41,6 +41,15 @@ export const ChangePasswordSchema = z
     message: messages.passwordDontMatchErrorMsg,
   });
 
+export const AdminChangePasswordSchema = z
+  .object({
+    newPassword: z.string().min(6, messages.minErrorMsg(6)),
+    confirmPassword: z.string().min(6, messages.minErrorMsg(6)),
+  })
+  .refine(data => data.newPassword === data.confirmPassword, {
+    message: messages.passwordDontMatchErrorMsg,
+  });
+
 export const NewPollSchema = z.object({
   title: z
     .string()

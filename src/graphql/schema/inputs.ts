@@ -134,6 +134,12 @@ input UpdatePasswordInput {
     confirmPassword: String!
 }
 
+input AdminUpdatePasswordInput {
+    userId: ID!
+    newPassword: String!
+    confirmPassword: String!
+}
+
 input CreateScheduleInput {
     title: String!
     description: String!

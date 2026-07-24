@@ -53,7 +53,20 @@ export interface EmailConfig {
   html: string;
 }
 
+export interface PushNotificationRichContent {
+  /** URL de imagen a adjuntar (requiere mutableContent en iOS) */
+  image?: string;
+}
+
 export interface PushNotificationData {
   type: string;
+  /**
+   * Identificador de categoría interactiva registrada en el cliente vía
+   * Notifications.setNotificationCategoryAsync (ej. 'NUEVA_RUTINA').
+   * Opcional: si no se envía, la notificación se comporta como hoy (sin botones).
+   */
+  categoryIdentifier?: string;
+  /** Adjuntos multimedia opcionales (ej. imagen de la rutina) */
+  richContent?: PushNotificationRichContent;
   [key: string]: any;
 }

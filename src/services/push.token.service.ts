@@ -2,7 +2,11 @@ import { EntityManager } from '@mikro-orm/core';
 
 import { PushToken } from '../entities/PushToken';
 import { User } from '../entities/User';
-import { CurrentUser, ServiceResponse } from '../types/common.type';
+import {
+  CurrentUser,
+  PushNotificationData,
+  ServiceResponse,
+} from '../types/common.type';
 import { NotificationType } from '../types/enums';
 import {
   createServiceResponse,
@@ -72,14 +76,18 @@ export class PushTokenService extends BaseService {
     body: string,
     forAll: boolean = false,
     userIds?: string[],
-    type?: NotificationType
+    type?: NotificationType,
+    categoryIdentifier?: string
   ): Promise<ServiceResponse> {
     if (!currentUser) {
       throw new UnauthorizedError();
     }
 
     const notificationService = new NotificationService(this.em);
-    const data = { type: type || NotificationType.INFO };
+    const data: PushNotificationData = {
+      type: type || NotificationType.INFO,
+      ...(categoryIdentifier ? { categoryIdentifier } : {}),
+    };
 
     if (userIds && userIds.length > 0) {
       // Envío dirigido a una selección de usuarios (broadcast admin) — el

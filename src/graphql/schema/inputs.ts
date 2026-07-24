@@ -214,6 +214,8 @@ input SendNotificationInput {
     """IDs de usuarios destinatarios — envío dirigido (broadcast a una selección)."""
     userIds: [ID!]
     type: NotificationType
+    """Categoría interactiva registrada en el cliente (ver notification-categories.ts). Opcional: sin ella, la notificación se comporta como hoy, sin botones."""
+    categoryIdentifier: String
 }
 
 input PlanFilterInput {

@@ -31,7 +31,6 @@ export const FORBIDDEN_ERRORS = {
 export const BAD_REQUEST_ERRORS = {
   USER_LOGGED_IN_TWO_COMPANIES:
     'User is logged in two companies at the same time',
-  OLD_SUB_AND_NEW_PLAN_REQUIRED: 'oldSubscriptionId and newPlanId are required',
   SUBSCRIPTION_ID_REQUIRED: 'Subscription ID is required',
   QUANTITY_MUST_BE_GREATER_THAN_0: 'Quantity must be greater than 0',
   SUBSCRIPTION_NOT_ACTIVE: 'Subscription is not active',
@@ -40,6 +39,8 @@ export const BAD_REQUEST_ERRORS = {
   SUBSCRIPTION_NOT_PAUSED: 'Subscription is not paused',
   ADMIN_OVERRIDE_REASON_REQUIRED: 'A reason is required for admin overrides',
   ADMIN_OVERRIDE_NO_CHANGES: 'No changes specified in admin override',
+  ADMIN_OVERRIDE_CANNOT_CANCEL:
+    'adminOverride cannot cancel a subscription. Use radicalCancelSubscription for immediate termination, or cancelSubscription for deferred cancellation.',
   DAYS_MUST_BE_POSITIVE: 'Days must be a positive number',
   REASON_REQUIRED: 'A reason is required',
   CREDIT_AMOUNT_POSITIVE: 'Credit amount must be a positive number',
@@ -57,8 +58,6 @@ export const BAD_REQUEST_ERRORS = {
   INVALID_START_DATE: 'Invalid startDate',
   CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE:
     'Cannot schedule a plan change in the future',
-  CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED:
-    'Cannot schedule a future subscription when there is a pending canceled subscription',
   VALID_PM_REQUIRED_REACTIVATE:
     'A valid payment method is required to reactivate the subscription',
   PAID_PLAN_MUST_START_TODAY:

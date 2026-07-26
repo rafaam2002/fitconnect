@@ -282,25 +282,21 @@ input UpdateSubscriptionInput {
 
 input CancelSubscriptionInput {
     subscriptionId: ID!
+    """OBSOLETO — se ignora en el servidor. La cancelacion es siempre diferida (al fin del periodo pagado). Retenido para compatibilidad con el backoffice. Ver ADR 0003."""
     cancelAtPeriodEnd: Boolean
     cancellationReason: String
+}
+
+input RadicalCancelSubscriptionInput {
+    subscriptionId: ID!
+    """Obligatorio — queda en el audit log atribuido al admin"""
+    reason: String!
 }
 
 input ChangePlanInput {
     subscriptionId: ID!
     newPlanId: ID!
     prorate: Boolean
-}
-
-
-input ReplaceSubscriptionInput {
-    oldSubscriptionId: ID!
-    newPlanId: ID!
-    paymentMethodId: ID
-    trialPeriodDays: Int
-    forceImmediateCancellation: Boolean
-    cancellationReason: String
-    metadata: JSON
 }
 
 

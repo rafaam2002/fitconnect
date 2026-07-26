@@ -8,7 +8,11 @@ import {
 } from '../entities/Permission';
 import { Plan } from '../entities/Plan';
 import { PlanPermission } from '../entities/PlanPermission';
-import { Subscription, SubscriptionStatus } from '../entities/Subscription';
+import {
+  Subscription,
+  SubscriptionAccessState,
+  SubscriptionStatus,
+} from '../entities/Subscription';
 import { User } from '../entities/User';
 import { UserRole } from '../entities/UserRole';
 import { Currency, UserRoleEnum } from '../types/enums';
@@ -230,6 +234,79 @@ export class PermissionService extends BaseService {
         filters: false,
       }
     );
+  }
+
+  /**
+   * Resuelve el estado de acceso de un miembro **sin** suscripción vigente en la
+   * empresa: distingue entre SCHEDULED (tiene una Suscripción Futura que aún no
+   * empieza), EXPIRED (tuvo alguna y ya no) y NONE (nunca tuvo).
+   *
+   * SCHEDULED tiene prioridad sobre EXPIRED: si existe una futura, es el mensaje
+   * útil aunque también existan suscripciones pasadas.
+   */
+  async resolveInactiveMemberSubscriptionState(
+    userId: string,
+    companyId: string
+  ): Promise<{
+    state: SubscriptionAccessState;
+    startDate: Date | null;
+    endDate: Date | null;
+  }> {
+    const now = moment().toDate();
+
+    // 1) ¿Suscripción futura (aún no empezada) ACTIVE/TRIALING? -> SCHEDULED
+    const futureSubscription = await this.em.findOne(
+      Subscription,
+      {
+        user: userId,
+        company: companyId,
+        status: {
+          $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+        currentPeriodStart: { $gt: now },
+      },
+      { orderBy: { currentPeriodStart: 'ASC' }, filters: false }
+    );
+
+    if (futureSubscription) {
+      return {
+        state: SubscriptionAccessState.SCHEDULED,
+        startDate:
+          futureSubscription.currentPeriodStart ||
+          futureSubscription.trialStart ||
+          null,
+        endDate:
+          futureSubscription.currentPeriodEnd ||
+          futureSubscription.trialEnd ||
+          null,
+      };
+    }
+
+    // 2) ¿Existe alguna suscripción pasada? -> EXPIRED (con la fecha de fin más reciente)
+    const lastExpiredSubscription = await this.em.findOne(
+      Subscription,
+      { user: userId, company: companyId },
+      { orderBy: { currentPeriodEnd: 'DESC' }, filters: false }
+    );
+
+    if (lastExpiredSubscription) {
+      return {
+        state: SubscriptionAccessState.EXPIRED,
+        startDate: null,
+        endDate:
+          lastExpiredSubscription.currentPeriodEnd ||
+          lastExpiredSubscription.endedAt ||
+          lastExpiredSubscription.trialEnd ||
+          null,
+      };
+    }
+
+    // 3) Nunca tuvo suscripción -> NONE
+    return {
+      state: SubscriptionAccessState.NONE,
+      startDate: null,
+      endDate: null,
+    };
   }
 
   async userHasPermissionInCompany(
@@ -515,6 +592,7 @@ export class PermissionService extends BaseService {
     if (user.isSuperAdmin) {
       return {
         hasActiveSubscription: false,
+        subscriptionState: SubscriptionAccessState.NONE,
         plan: null,
         permissions: [],
         permissionNames: ['*:*'],
@@ -541,6 +619,7 @@ export class PermissionService extends BaseService {
 
       return {
         hasActiveSubscription: true,
+        subscriptionState: SubscriptionAccessState.ACTIVE,
         plan: {
           id: 'coach-free-plan',
           name: 'Plan de Entrenador',
@@ -568,6 +647,7 @@ export class PermissionService extends BaseService {
       if (!adminSubscription) {
         return {
           hasActiveSubscription: false,
+          subscriptionState: SubscriptionAccessState.NONE,
           plan: null,
           permissions: [],
           permissionNames: [],
@@ -595,6 +675,7 @@ export class PermissionService extends BaseService {
           currency: plan.currency,
           interval: plan.interval,
         },
+        subscriptionState: SubscriptionAccessState.ACTIVE,
         permissions,
         permissionNames: permissions.map(p => p.name),
         subscriptionStatus: adminSubscription.status,
@@ -620,16 +701,22 @@ export class PermissionService extends BaseService {
     );
 
     if (!subscription) {
+      const inactiveState = await this.resolveInactiveMemberSubscriptionState(
+        user.id,
+        companyId
+      );
+
       return {
         hasActiveSubscription: false,
+        subscriptionState: inactiveState.state,
         plan: null,
         permissions: [],
         permissionNames: [],
         subscriptionStatus: null,
         trialEndsAt: null,
         renewsAt: null,
-        startDate: null,
-        endDate: null,
+        startDate: inactiveState.startDate,
+        endDate: inactiveState.endDate,
         cancelAtPeriodEnd: null,
       };
     }
@@ -649,6 +736,7 @@ export class PermissionService extends BaseService {
         currency: plan.currency,
         interval: plan.interval,
       },
+      subscriptionState: SubscriptionAccessState.ACTIVE,
       permissions,
       permissionNames: permissions.map(p => p.name),
       subscriptionStatus: subscription.status,

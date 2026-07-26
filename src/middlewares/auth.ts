@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { NextFunction, Request, Response } from 'express';
 import jwt, { TokenExpiredError } from 'jsonwebtoken';
 
+import { SubscriptionAccessState } from '../entities/Subscription';
 import { User } from '../entities/User';
 import { PermissionService } from '../services/permission.service';
 import { CurrentUser } from '../types/common.type';
@@ -44,6 +45,7 @@ export const authenticateUser = async (
 
       let permissions: LoginPermissionsContext = {
         hasActiveSubscription: false,
+        subscriptionState: SubscriptionAccessState.NONE,
         plan: null,
         permissions: [],
         permissionNames: [],

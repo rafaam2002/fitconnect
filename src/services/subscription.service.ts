@@ -228,7 +228,17 @@ export class SubscriptionService extends BaseService {
 
     const user = await this.getUserOrFail(input.userId);
     const plan = await this.getActivePlanOrFail(input.planId);
-    this.validatePaidPlanStartDate(plan, input.startDate);
+    this.validateStartDateForPlan(plan, input.startDate);
+
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 0: Suscripción Retroactiva (plan gratuito + inicio pasado)
+    // ────────────────────────────────────────────────────────────────
+    // Rama dedicada de cortocircuito: se salta el resto de la lógica
+    // (futura / cambio de plan / reemplazo de cancelada) para que la fecha
+    // de inicio retroactiva no pueda ser reescrita silenciosamente a hoy.
+    if (this.isBackdatedFreeRequest(plan, input.startDate)) {
+      return this.createBackdatedSubscription(user, plan, input);
+    }
 
     // Obtener todas las suscripciones de la empresa en estado ACTIVE o TRIALING
     const companySubscriptions = await this.findActiveAndFutureSubscriptions(
@@ -1453,6 +1463,120 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
+   * Suscripción Retroactiva (imagen especular de la Suscripción Futura):
+   * plan gratuito con fecha de inicio en el pasado. Modela una membresía en
+   * efectivo/manual que el admin liquida fuera de la plataforma y registra
+   * desde el día en que el miembro empezó a usar el gym.
+   *
+   * Se crea ACTIVE con las fechas retroactivas y SIN pasar por attemptCharge:
+   *  - No hay nada que cobrar en un plan gratuito.
+   *  - Evita el reset de fechas a hoy de la ruta de cobro (los días ya usados
+   *    los absorbe el miembro: su período termina antes, no se le regalan).
+   *
+   * La validez del período (que aún no haya transcurrido entero) ya la
+   * garantizó validateStartDateForPlan(). Aquí solo queda la comprobación de
+   * colisión con otra entitlement activa del mismo usuario+empresa.
+   */
+  private async createBackdatedSubscription(
+    user: User,
+    plan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const backdatedStart = moment(input.startDate).startOf('day').toDate();
+    const periodEnd = this.calculatePeriodEnd(backdatedStart, plan);
+    // input.companyId es obligatorio (validateCreateInput) y resolveBilling
+    // devuelve como mínimo ese valor, así que la empresa siempre está resuelta.
+    const billingCompanyId =
+      this.resolveBillingCompanyId(plan, input.companyId) ?? input.companyId;
+
+    await this.assertNoOverlappingEntitlement(
+      user,
+      billingCompanyId,
+      backdatedStart,
+      periodEnd
+    );
+
+    const customer = await this.customerService.getOrCreateCustomer(user);
+
+    const subscription = this.em.create(Subscription, {
+      user,
+      customer,
+      plan,
+      company: billingCompanyId,
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodStart: backdatedStart,
+      currentPeriodEnd: periodEnd,
+      nextBillingDate: periodEnd,
+      quantity: input.quantity ?? 1,
+      failedPaymentAttempts: 0,
+      // Misma regla TEMPORAL que createSubscriptionFromScratch: nace marcada
+      // para cancelarse al terminar su período; el CRON la pasará a CANCELED
+      // cuando currentPeriodEnd venza.
+      cancelAtPeriodEnd: true,
+      metadata: {
+        ...input.metadata,
+        backdated: true,
+        history: [
+          this.buildHistoryEntry(
+            'backdated_cash',
+            'system',
+            `Backdated (cash/manual) subscription created. ` +
+              `Backdated start ${moment(backdatedStart).format('YYYY-MM-DD')}, ` +
+              `period ends ${moment(periodEnd).format('YYYY-MM-DD')}.`
+          ),
+        ],
+      },
+    });
+
+    this.em.persist(subscription);
+    await this.em.flush();
+
+    return createServiceResponse(
+      201,
+      'Backdated subscription created successfully',
+      true,
+      { subscription }
+    );
+  }
+
+  /**
+   * Rechaza el backdating si existe alguna suscripción del mismo
+   * usuario+empresa en estado ACTIVE/TRIALING/PAST_DUE/PAUSED cuyo período
+   * pagado [currentPeriodStart, currentPeriodEnd] se solape con el span
+   * completo de la nueva [start, end] (cola pasada y futura). Una suscripción
+   * CANCELED nunca bloquea (un miembro que renunció puede rellenar el hueco).
+   *
+   * Dos intervalos [a1,a2] y [b1,b2] se solapan sii a1 <= b2 && b1 <= a2.
+   */
+  private async assertNoOverlappingEntitlement(
+    user: User,
+    companyId: string,
+    newStart: Date,
+    newEnd: Date
+  ): Promise<void> {
+    const overlapping = await this.em.findOne(Subscription, {
+      user,
+      company: companyId,
+      status: {
+        $in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIALING,
+          SubscriptionStatus.PAST_DUE,
+          SubscriptionStatus.PAUSED,
+        ],
+      },
+      currentPeriodStart: { $lte: newEnd },
+      currentPeriodEnd: { $gte: newStart },
+    });
+
+    if (overlapping) {
+      throw new ConflictError(
+        CONFLICT_ERRORS.BACKDATED_OVERLAPS_EXISTING_ENTITLEMENT
+      );
+    }
+  }
+
+  /**
    * Núcleo del cambio de plan, sin resolución de IDs: recibe la
    * Subscription y el Plan ya cargados.
    *
@@ -2007,7 +2131,15 @@ export class SubscriptionService extends BaseService {
 
     if (subscription.plan.amount === 0) {
       subscription.status = SubscriptionStatus.ACTIVE;
-      if (!isFuture) {
+      // Endurecemos el guard: no reescribimos las fechas a hoy salvo que el
+      // período empiece HOY. Antes se reescribía en todo lo "no futuro", lo
+      // que aplastaba las fechas de una Suscripción Retroactiva (inicio
+      // pasado) si llegaba hasta aquí. Defensivo: la ruta dedicada de
+      // backdating ni siquiera invoca attemptCharge.
+      const startsToday =
+        !subscription.currentPeriodStart ||
+        moment(subscription.currentPeriodStart).isSame(now, 'day');
+      if (startsToday) {
         subscription.currentPeriodStart = now;
         subscription.currentPeriodEnd = this.calculatePeriodEnd(
           now,
@@ -2266,24 +2398,79 @@ export class SubscriptionService extends BaseService {
       if (!start.isValid()) {
         throw new BadRequestError(BAD_REQUEST_ERRORS.INVALID_START_DATE);
       }
-      if (start.isBefore(moment(), 'day')) {
-        throw new BadRequestError(BAD_REQUEST_ERRORS.START_DATE_PAST);
+      // NOTA: la validación de "pasado/hoy/futuro" según el plan NO se hace
+      // aquí — este validador corre antes de cargar el Plan y no puede ver
+      // plan.amount. La autoridad única sobre la fecha de inicio es
+      // validateStartDateForPlan(), que sí conoce el plan (backdating solo
+      // se permite para planes gratuitos). Aquí solo validamos el formato.
+    }
+  }
+
+  /**
+   * Autoridad única sobre la fecha de inicio, ya con el Plan cargado (algo
+   * que validateCreateInput no puede saber). Reglas:
+   *
+   *  - Plan de pago (amount > 0): SIEMPRE debe empezar hoy. Ni pasado ni
+   *    futuro — el cobro es inmediato, no tiene sentido diferirlo ni
+   *    retroactivarlo.
+   *
+   *  - Plan gratuito (amount === 0) con inicio en el PASADO → Suscripción
+   *    Retroactiva. Permitida solo si el período resultante (calculado desde
+   *    la fecha retroactiva) termina estrictamente después de hoy; si el
+   *    período completo ya transcurrió, se rechaza.
+   *
+   *  - Plan gratuito con inicio hoy o en el futuro → sin cambios (el flujo
+   *    de Suscripción Futura existente lo gestiona).
+   *
+   * La colisión con otras suscripciones activas NO se comprueba aquí — es
+   * asíncrona y vive en la rama de backdating de createSubscription().
+   */
+  private validateStartDateForPlan(
+    plan: Plan,
+    startDate?: string | Date
+  ): void {
+    if (!startDate) return;
+
+    const start = moment(startDate);
+    const today = moment();
+
+    if (plan.amount > 0) {
+      if (!start.isSame(today, 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.PAID_PLAN_MUST_START_TODAY
+        );
+      }
+      return;
+    }
+
+    // Plan gratuito con inicio en el pasado: solo si aún queda período vivo.
+    if (start.isBefore(today, 'day')) {
+      const periodEnd = this.calculatePeriodEnd(
+        moment(startDate).startOf('day').toDate(),
+        plan
+      );
+      if (!moment(periodEnd).isAfter(today, 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.BACKDATED_PERIOD_ALREADY_ELAPSED
+        );
       }
     }
   }
 
-  private validatePaidPlanStartDate(
+  /**
+   * ¿Esta petición es una Suscripción Retroactiva? Plan gratuito con fecha
+   * de inicio en el pasado. La validez del período ya la garantizó
+   * validateStartDateForPlan() antes de llegar aquí.
+   */
+  private isBackdatedFreeRequest(
     plan: Plan,
     startDate?: string | Date
-  ): void {
-    if (plan.amount > 0 && startDate) {
-      const start = moment(startDate);
-      if (!start.isSame(moment(), 'day')) {
-        throw new BadRequestError(
-          BAD_REQUEST_ERRORS.PAID_PLAN_CANNOT_START_IN_FUTURE
-        );
-      }
-    }
+  ): boolean {
+    return (
+      plan.amount === 0 &&
+      !!startDate &&
+      moment(startDate).isBefore(moment(), 'day')
+    );
   }
 
   private async getUserOrFail(userId: string): Promise<User> {

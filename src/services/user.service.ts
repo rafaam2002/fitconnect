@@ -322,7 +322,11 @@ export class UserService extends BaseService {
     this.validateUpdateSchema(userUpdates);
 
     await this.assertUniqueEmail(userUpdates.email, user.email, userUpdates.id);
-    await this.assertUniqueNickname(userUpdates.nickname, user.nickname, userUpdates.id);
+    await this.assertUniqueNickname(
+      userUpdates.nickname,
+      user.nickname,
+      userUpdates.id
+    );
 
     this.applyUserFields(user, userUpdates);
 
@@ -438,8 +442,14 @@ export class UserService extends BaseService {
           `(SELECT COUNT(*) FROM user_pending_companies WHERE company_id = ?) as pendingusers`,
           [companyId]
         ),
-        knex.raw(`(SELECT COUNT(*) FROM schedule WHERE company_id = ?) as schedulescount`, [companyId]),
-        knex.raw(`(SELECT COUNT(*) FROM poll WHERE company_id = ?) as pollscount`, [companyId]),
+        knex.raw(
+          `(SELECT COUNT(*) FROM schedule WHERE company_id = ?) as schedulescount`,
+          [companyId]
+        ),
+        knex.raw(
+          `(SELECT COUNT(*) FROM poll WHERE company_id = ?) as pollscount`,
+          [companyId]
+        ),
         knex.raw(
           `(SELECT COUNT(*) FROM plan WHERE company_id = ? AND status = 'active') as planscount`,
           [companyId]
@@ -448,8 +458,14 @@ export class UserService extends BaseService {
           `(SELECT COUNT(*) FROM subscription WHERE company_id = ? AND status = 'active') as subscriptionscount`,
           [companyId]
         ),
-        knex.raw(`(SELECT COUNT(*) FROM transaction WHERE company_id = ?) as transactionscount`, [companyId]),
-        knex.raw(`(SELECT COUNT(*) FROM notification WHERE company_id = ?) as notificationscount`, [companyId]),
+        knex.raw(
+          `(SELECT COUNT(*) FROM transaction WHERE company_id = ?) as transactionscount`,
+          [companyId]
+        ),
+        knex.raw(
+          `(SELECT COUNT(*) FROM notification WHERE company_id = ?) as notificationscount`,
+          [companyId]
+        ),
       ]);
 
     const stats = {

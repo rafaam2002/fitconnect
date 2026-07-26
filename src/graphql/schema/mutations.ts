@@ -82,14 +82,14 @@ type Mutation {
     createSubscription(subscription: CreateSubscriptionInput!): SubscriptionResponse!
     """Cambio de plan con prorrateo opcional. Usar en lugar de updateSubscription para cambios de plan."""
     changePlan(input: ChangePlanInput!): SubscriptionResponse!
-    """
-    Cancela una suscripcion y crea una nueva a otro plan.
-    Si la suscripcion vieja aun tiene periodo pagado vigente, la nueva no
-    empieza hoy -- empieza cuando termine ese periodo, para no cobrar dos
-    planes a la vez. Usar forceImmediateCancellation para saltarse esa proteccion.
-    """
-    replaceSubscription(input: ReplaceSubscriptionInput!): SubscriptionResponse!
     updateSubscription(subscription: UpdateSubscriptionInput!): SubscriptionResponse!
+    """
+    Cancela una suscripcion SIEMPRE de forma diferida: surte efecto al final
+    del periodo ya pagado (el CRON de billing hace la transicion real a
+    CANCELED). El miembro conserva el acceso durante el periodo que pago. El
+    campo cancelAtPeriodEnd del input esta obsoleto y se ignora. Para la
+    terminacion inmediata (solo admin) usar radicalCancelSubscription. Ver ADR 0003.
+    """
     cancelSubscription(input: CancelSubscriptionInput!): SubscriptionResponse!
     pauseSubscription(subscriptionId: ID!): SubscriptionResponse!
     resumeSubscription(subscriptionId: ID!): SubscriptionResponse!
@@ -97,6 +97,12 @@ type Mutation {
     updatePaymentMethodAndRetry(subscriptionId: ID!, paymentMethodId: ID!): SubscriptionResponse!
 
     # ── Subscription — admin ───────────────────────────────────────────
+    """
+    Cancelacion RADICAL (inmediata) — solo admin. Trunca el periodo pagado:
+    status=CANCELED con canceledAt/endedAt/currentPeriodEnd = ahora y sin
+    nextBillingDate. El miembro pierde los dias restantes. Requiere motivo. Ver ADR 0003.
+    """
+    radicalCancelSubscription(input: RadicalCancelSubscriptionInput!): SubscriptionResponse!
     adminOverrideSubscription(input: AdminOverrideSubscriptionInput!): SubscriptionResponse!
     forceRenewal(subscriptionId: ID!): SubscriptionResponse!
     extendSubscriptionPeriod(subscriptionId: ID!, days: Int!, reason: String!): SubscriptionResponse!

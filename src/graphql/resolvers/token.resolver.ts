@@ -30,7 +30,8 @@ export const sendNotification = async (
   try {
     const { em, currentUser } = context;
     const { notification } = args;
-    const { body, title, forAll, userIds, type } = notification;
+    const { body, title, forAll, userIds, type, categoryIdentifier } =
+      notification;
 
     const pushTokenService = new PushTokenService(em);
     return await pushTokenService.sendNotification(
@@ -39,7 +40,8 @@ export const sendNotification = async (
       body,
       forAll,
       userIds,
-      type
+      type,
+      categoryIdentifier
     );
   } catch (error: any) {
     return handleError(error);

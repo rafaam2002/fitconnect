@@ -26,3 +26,13 @@ A list of users waiting to join a schedule when its maximum capacity has been re
 **Future Subscription (Suscripción Futura)**:
 A subscription created from scratch with a start date (startDate) set in the future. It is saved in the database as ACTIVE or TRIALING, but the user cannot access its permissions until the start date is reached, due to current period validation filters.
 A user/company can have at most one Future Subscription scheduled at any time, and its start date must be strictly after the current active subscription's period end. When a Future Subscription is scheduled, the current active subscription is automatically set to cancel at the end of its period to prevent renewal conflicts.
+
+**Subscription State (subscriptionState)**:
+A derived, mutually-exclusive access state computed **per member, per active company** and returned on the auth payload (login / getMe → `buildAuthResponseWithPermissions`). It answers "why can/can't this member access the gym?" and drives the informational banner in the mobile app. It is derived, never stored. Four states:
+
+- `ACTIVE` — a currently-active subscription row exists (`hasActive: true`). Full access; no banner.
+- `SCHEDULED` — no currently-active row, but a future-dated ACTIVE/TRIALING row exists (a Future Subscription, or a brand-new member whose sub has not started). No access yet; banner reads "your subscription starts on {startDate}". SCHEDULED takes precedence over EXPIRED.
+- `EXPIRED` — no active row and no future row, but at least one past subscription row exists. No access; banner reads "your subscription has expired".
+- `NONE` — no subscription rows at all (never subscribed). No banner.
+
+Only computed for the **member** role; coaches, admins, and super-admins are always `ACTIVE`/`NONE` and never trip the banner. `hasActive` remains the single gate for access; `subscriptionState` is additive and only distinguishes *why* access is absent.

@@ -29,6 +29,23 @@ export enum SubscriptionStatus {
   PAUSED = 'paused',
 }
 
+/**
+ * Estado de acceso derivado (no persistido) de un miembro respecto a su
+ * suscripción en la empresa activa. Se calcula en cada login/getMe y alimenta
+ * el banner informativo de la app. Ver `subscriptionState` en CONTEXT.md.
+ *
+ * - ACTIVE:    tiene una suscripción vigente ahora mismo.
+ * - SCHEDULED: no tiene vigente, pero sí una futura (Suscripción Futura) que aún no ha empezado.
+ * - EXPIRED:   tuvo suscripción y ya no tiene ninguna vigente ni futura.
+ * - NONE:      nunca ha tenido suscripción.
+ */
+export enum SubscriptionAccessState {
+  ACTIVE = 'ACTIVE',
+  SCHEDULED = 'SCHEDULED',
+  EXPIRED = 'EXPIRED',
+  NONE = 'NONE',
+}
+
 @Entity()
 @Filter({
   name: 'companyContext',

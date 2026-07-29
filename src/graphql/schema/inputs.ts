@@ -123,6 +123,14 @@ input CreateUserInput {
     role: UserRoleEnum!
 }
 
+input CreateCompanyMemberInput {
+    email: String!
+    nickname: String!
+    password: String!
+    role: UserRoleEnum!
+    isActive: Boolean
+}
+
 input CreatePollVoteInput {
     pollId: ID!
     option: Int!

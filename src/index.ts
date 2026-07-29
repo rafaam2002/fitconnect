@@ -18,6 +18,7 @@ import { WebSocketServer } from 'ws';
 
 import { graphqlCorsOptions, webhookCorsOptions } from './config/cors.config';
 import { registerBillingCrons } from './crons/billing.cron';
+import { registerPromotionCrons } from './crons/promotion.cron';
 import resolvers from './graphql/resolvers';
 import { typeDefs } from './graphql/schema/schema';
 import { middleware } from './middlewares';
@@ -192,6 +193,7 @@ const startServer = async () => {
   if (process.env.NODE_ENV !== 'development') {
     cronFunctions(orm);
     registerBillingCrons(orm, stripeProcessor);
+    registerPromotionCrons(orm);
   }
 
   // ── 8. Escuchar ───────────────────────────────────────────────────────

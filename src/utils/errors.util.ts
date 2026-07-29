@@ -31,7 +31,6 @@ export const FORBIDDEN_ERRORS = {
 export const BAD_REQUEST_ERRORS = {
   USER_LOGGED_IN_TWO_COMPANIES:
     'User is logged in two companies at the same time',
-  OLD_SUB_AND_NEW_PLAN_REQUIRED: 'oldSubscriptionId and newPlanId are required',
   SUBSCRIPTION_ID_REQUIRED: 'Subscription ID is required',
   QUANTITY_MUST_BE_GREATER_THAN_0: 'Quantity must be greater than 0',
   SUBSCRIPTION_NOT_ACTIVE: 'Subscription is not active',
@@ -40,6 +39,8 @@ export const BAD_REQUEST_ERRORS = {
   SUBSCRIPTION_NOT_PAUSED: 'Subscription is not paused',
   ADMIN_OVERRIDE_REASON_REQUIRED: 'A reason is required for admin overrides',
   ADMIN_OVERRIDE_NO_CHANGES: 'No changes specified in admin override',
+  ADMIN_OVERRIDE_CANNOT_CANCEL:
+    'adminOverride cannot cancel a subscription. Use radicalCancelSubscription for immediate termination, or cancelSubscription for deferred cancellation.',
   DAYS_MUST_BE_POSITIVE: 'Days must be a positive number',
   REASON_REQUIRED: 'A reason is required',
   CREDIT_AMOUNT_POSITIVE: 'Credit amount must be a positive number',
@@ -55,15 +56,14 @@ export const BAD_REQUEST_ERRORS = {
   REQUIRED_FIELDS: 'userId, planId and companyId are required',
   TRIAL_PERIOD_NEGATIVE: 'Trial period days cannot be negative',
   INVALID_START_DATE: 'Invalid startDate',
-  START_DATE_PAST: 'startDate cannot be in the past',
   CANNOT_SCHEDULE_PLAN_CHANGE_IN_FUTURE:
     'Cannot schedule a plan change in the future',
-  CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED:
-    'Cannot schedule a future subscription when there is a pending canceled subscription',
   VALID_PM_REQUIRED_REACTIVATE:
     'A valid payment method is required to reactivate the subscription',
-  PAID_PLAN_CANNOT_START_IN_FUTURE:
-    'Paid subscriptions cannot be scheduled to start in the future',
+  PAID_PLAN_MUST_START_TODAY:
+    'Paid subscriptions must start today: they can be scheduled neither in the past nor in the future',
+  BACKDATED_PERIOD_ALREADY_ELAPSED:
+    'Cannot backdate this subscription: the resulting period has already fully elapsed',
   FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED:
     'There is already a future subscription scheduled for this user',
 } as const;
@@ -73,6 +73,8 @@ export const CONFLICT_ERRORS = {
     'User already has an active subscription to this plan',
   FUTURE_SUBSCRIPTION_ALREADY_SCHEDULED:
     'There is already a future subscription scheduled for this user',
+  BACKDATED_OVERLAPS_EXISTING_ENTITLEMENT:
+    'Cannot backdate this subscription: it overlaps an existing active entitlement for this user and company',
 } as const;
 
 export const INTERNAL_ERRORS = {

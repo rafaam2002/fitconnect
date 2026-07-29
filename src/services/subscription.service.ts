@@ -63,25 +63,9 @@ interface CancelSubscriptionInput {
   cancellationReason?: string;
 }
 
-/**
- * Input para sustituir una suscripcion por otra (cancelar la vieja + crear la nueva).
- * A diferencia de changePlan, este flujo es para cuando se trata de dos contratos
- * distintos (ej: el usuario cambia de un plan mensual a uno anual de otra familia,
- * o el admin le asigna manualmente un plan distinto).
- */
-interface ReplaceSubscriptionInput {
-  oldSubscriptionId: string;
-  newPlanId: string;
-  paymentMethodId?: string;
-  trialPeriodDays?: number;
-  /**
-   * Si true, cancela la suscripcion vieja inmediatamente sin importar si le quedaba
-   * periodo pagado. Si false (default), respeta el periodo ya pagado y la nueva
-   * suscripcion no empieza hasta que termine - ver explicacion en replaceSubscription().
-   */
-  forceImmediateCancellation?: boolean;
-  cancellationReason?: string;
-  metadata?: Record<string, any>;
+interface RadicalCancelSubscriptionInput {
+  subscriptionId: string;
+  reason: string;
 }
 
 /**
@@ -115,39 +99,6 @@ interface AdminOverrideInput {
   adminId: string;
 }
 
-/**
- * Parámetros de entrada de buildReplacementSubscription, extraídos como
- * tipo nombrado en lugar de un objeto inline para que cada métdo auxiliar
- * pueda recibir el subconjunto que necesita sin repetir la firma completa.
- */
-interface ReplacementParams {
-  oldSubscription: Subscription;
-  newPlan: Plan;
-  paymentMethodId?: string;
-  trialPeriodDays?: number;
-  forceImmediateCancellation?: boolean;
-  cancellationReason?: string;
-  metadata?: Record<string, any>;
-  /**
-   * true cuando la suscripcion vieja ya estaba CANCELED antes de llegar
-   * aqui (caso createSubscription detectando una cancelacion previa).
-   * false cuando hay que cancelarla ahora mismo (caso replaceSubscription).
-   */
-  alreadyCanceled: boolean;
-}
-
-/**
- * Resultado del cálculo de fechas/estado de la suscripción de reemplazo.
- */
-interface ReplacementSchedule {
-  newPeriodStart: Date;
-  periodEnd: Date;
-  trialStart?: Date;
-  trialEnd?: Date;
-  status: SubscriptionStatus;
-  nextBillingDate: Date;
-}
-
 // ─────────────────────────────────────────────
 // CONFIGURACIÓN DE DUNNING
 // ─────────────────────────────────────────────
@@ -169,8 +120,7 @@ const DUNNING_CONFIG = {
  * Gestiona el ciclo de vida completo de las suscripciones.
  *
  * EL FRONTEND SOLO LLAMA A createSubscription. El backend decide
- * automaticamente si eso significa crear desde cero, sustituir una
- * suscripcion cancelada con periodo pendiente, o sustituir una suscripcion
+ * automaticamente si eso significa crear desde cero o sustituir una suscripcion
  * activa de otro plan en la misma empresa (lo que coloquialmente es "cambiar
  * de plan"). Nunca deberian coexistir dos Subscription en estado ACTIVE o
  * TRIALING para la misma empresa y el mismo usuario - ver
@@ -213,12 +163,7 @@ export class SubscriptionService extends BaseService {
    *         existente y aplica prorrateo si corresponde. No se crea una
    *         entidad nueva.
    *
-   *  3. Tiene una suscripción CANCELED (a cualquier plan de la misma
-   *     empresa) cuyo período pagado todavía no terminó
-   *       → se sustituye: la nueva Subscription no empieza hoy, empieza
-   *         exactamente cuando termine ese período ya pagado.
-   *
-   *  4. Ninguno de los casos anteriores
+   *  3. Ninguno de los casos anteriores
    *       → se crea la suscripción desde cero.
    */
   public async createSubscription(
@@ -228,7 +173,17 @@ export class SubscriptionService extends BaseService {
 
     const user = await this.getUserOrFail(input.userId);
     const plan = await this.getActivePlanOrFail(input.planId);
-    this.validatePaidPlanStartDate(plan, input.startDate);
+    this.validateStartDateForPlan(plan, input.startDate);
+
+    // ────────────────────────────────────────────────────────────────
+    // VERTIENTE 0: Suscripción Retroactiva (plan gratuito + inicio pasado)
+    // ────────────────────────────────────────────────────────────────
+    // Rama dedicada de cortocircuito: se salta el resto de la lógica
+    // (futura / cambio de plan / reemplazo de cancelada) para que la fecha
+    // de inicio retroactiva no pueda ser reescrita silenciosamente a hoy.
+    if (this.isBackdatedFreeRequest(plan, input.startDate)) {
+      return this.createBackdatedSubscription(user, plan, input);
+    }
 
     // Obtener todas las suscripciones de la empresa en estado ACTIVE o TRIALING
     const companySubscriptions = await this.findActiveAndFutureSubscriptions(
@@ -328,35 +283,11 @@ export class SubscriptionService extends BaseService {
     }
 
     // ────────────────────────────────────────────────────────────────
-    // VERTIENTE 3: Existe una suscripción cancelada con período pendiente
+    // VERTIENTE 3: Ninguna suscripción activa ni futura — se crea desde cero.
     // ────────────────────────────────────────────────────────────────
-    const recentCanceled = await this.findRecentCanceledWithPendingPeriod(
-      user,
-      plan
-    );
-    if (recentCanceled) {
-      if (input.startDate) {
-        const start = moment(input.startDate);
-        // CASO A: Inicio posterior al fin del período de la cancelada.
-        // La creamos desde cero (no hay colisión de renovación ya que está cancelada).
-        if (
-          start.isSameOrAfter(moment(recentCanceled.currentPeriodEnd), 'day')
-        ) {
-          return this.createSubscriptionFromScratch(user, plan, input);
-        } else if (!start.isSame(moment(), 'day')) {
-          // CASO B: Solapa con el período restante
-          throw new BadRequestError(
-            BAD_REQUEST_ERRORS.CANNOT_SCHEDULE_FUTURE_WITH_PENDING_CANCELED
-          );
-        }
-      }
-      // CASO C: Reemplazo normal respetando el periodo restante
-      return this.replaceCanceledSubscription(recentCanceled, plan, input);
-    }
-
-    // ────────────────────────────────────────────────────────────────
-    // VERTIENTE 4: Ninguna suscripción activa, futura o cancelada reciente
-    // ────────────────────────────────────────────────────────────────
+    // (La antigua rama de "sustituir una cancelada con período pendiente" se
+    // eliminó: con la cancelación diferida-por-defecto una suscripción CANCELED
+    // nunca conserva un período vivo, así que era código muerto. Ver ADR 0003.)
     return this.createSubscriptionFromScratch(user, plan, input);
   }
 
@@ -370,53 +301,6 @@ export class SubscriptionService extends BaseService {
       await this.resolveChangePlanTargets(input);
 
     return this.executePlanChange(subscription, newPlan, input.prorate);
-  }
-
-  /**
-   * Sustituye una suscripcion por otra completamente nueva (dos contratos distintos).
-   * Llamada EXPLÍCITA, útil cuando el cambio es entre empresas distintas o cuando
-   * se quiere forzar la sustitución inmediata sin pasar por createSubscription.
-   *
-   * La fecha de inicio de la nueva suscripcion depende de si la vieja tenia
-   * periodo pagado vigente en el momento de la sustitucion:
-   *
-   *  - Si oldSubscription.currentPeriodEnd > ahora (el usuario aun tiene acceso
-   *    pagado), la nueva suscripcion NO empieza hoy - empieza exactamente cuando
-   *    termina el periodo que ya pago.
-   *
-   *  - Si no le queda periodo pagado vigente, la nueva suscripcion empieza
-   *    inmediatamente.
-   *
-   * Usar forceImmediateCancellation=true para saltarse esta logica.
-   */
-  public async replaceSubscription(
-    input: ReplaceSubscriptionInput
-  ): Promise<ServiceResponse> {
-    if (!input.oldSubscriptionId || !input.newPlanId) {
-      throw new BadRequestError(
-        BAD_REQUEST_ERRORS.OLD_SUB_AND_NEW_PLAN_REQUIRED
-      );
-    }
-
-    const oldSubscription = await this.em.findOne(
-      Subscription,
-      { id: input.oldSubscriptionId },
-      { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
-    );
-    if (!oldSubscription) throw new NotFoundError('Subscription');
-
-    const newPlan = await this.getActivePlanOrFail(input.newPlanId);
-
-    return this.buildReplacementSubscription({
-      oldSubscription,
-      newPlan,
-      paymentMethodId: input.paymentMethodId,
-      trialPeriodDays: input.trialPeriodDays,
-      forceImmediateCancellation: input.forceImmediateCancellation,
-      cancellationReason: input.cancellationReason,
-      metadata: input.metadata,
-      alreadyCanceled: false,
-    });
   }
 
   /**
@@ -477,7 +361,17 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Cancela una suscripción inmediatamente o al final del período actual.
+   * Cancela una suscripción — SIEMPRE de forma diferida (al final del período
+   * ya pagado). El miembro conserva el acceso durante el período que pagó; el
+   * CRON de billing (processBillingCycle) es quien realiza la transición real a
+   * CANCELED cuando currentPeriodEnd vence. No está restringido a admins: un
+   * miembro puede cancelar su propia suscripción.
+   *
+   * El campo de entrada `cancelAtPeriodEnd` está OBSOLETO y se ignora en el
+   * servidor: la cancelación es siempre diferida sea cual sea su valor. Se
+   * mantiene en el esquema GraphQL para que el backoffice siga funcionando sin
+   * cambios. La única ruta de terminación inmediata es la cancelación radical
+   * de admin (radicalCancelSubscription). Ver ADR 0003.
    */
   public async cancelSubscription(
     input: CancelSubscriptionInput,
@@ -499,26 +393,14 @@ export class SubscriptionService extends BaseService {
       throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_NOT_ACTIVE);
     }
 
-    if (input.cancelAtPeriodEnd) {
-      subscription.cancelAtPeriodEnd = true;
-      this.appendHistory(
-        subscription,
-        'cancel_scheduled',
-        'user',
-        `Cancellation scheduled at period end. Reason: ${input.cancellationReason ?? 'not specified'}`
-      );
-    } else {
-      subscription.status = SubscriptionStatus.CANCELED;
-      subscription.canceledAt = new Date();
-      subscription.endedAt = new Date();
-      subscription.nextBillingDate = undefined;
-      this.appendHistory(
-        subscription,
-        'canceled',
-        'user',
-        `Canceled immediately. Reason: ${input.cancellationReason ?? 'not specified'}`
-      );
-    }
+    // Cancelación siempre diferida: status y currentPeriodEnd quedan intactos.
+    subscription.cancelAtPeriodEnd = true;
+    this.appendHistory(
+      subscription,
+      'cancel_scheduled',
+      'user',
+      `Cancellation scheduled at period end. Reason: ${input.cancellationReason ?? 'not specified'}`
+    );
 
     if (input.cancellationReason) {
       subscription.metadata = {
@@ -531,7 +413,66 @@ export class SubscriptionService extends BaseService {
 
     return createServiceResponse(
       200,
-      'Subscription cancelled successfully',
+      'Subscription cancellation scheduled at period end',
+      true,
+      {
+        subscription,
+      }
+    );
+  }
+
+  /**
+   * Cancelación RADICAL (inmediata) — única ruta de terminación instantánea,
+   * reservada a administradores (gate de permisos en el resolver). Trunca el
+   * período: el miembro pierde los días restantes. Requiere un motivo
+   * obligatorio que queda en el audit log atribuido al admin.
+   *
+   * Deja la suscripción en un estado que satisface el invariante
+   * "CANCELED ⇒ currentPeriodEnd <= now" por construcción. Ver ADR 0003.
+   */
+  public async radicalCancelSubscription(
+    input: RadicalCancelSubscriptionInput,
+    adminId: string,
+    requesterCompanyId?: string
+  ): Promise<ServiceResponse> {
+    if (!input.subscriptionId) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
+    }
+    if (!input.reason) {
+      throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
+    }
+
+    const subscription = await this.em.findOne(Subscription, {
+      id: input.subscriptionId,
+    });
+
+    if (!subscription) throw new NotFoundError('Subscription');
+    this.assertBelongsToCompany(subscription, requesterCompanyId);
+
+    const now = new Date();
+    this.applyCanceledTransition(subscription, now);
+    // Trunca el período pagado: el invariante CANCELED ⇒ período terminado se
+    // mantiene por construcción, y el miembro pierde los días restantes.
+    subscription.currentPeriodEnd = now;
+    subscription.cancelAtPeriodEnd = false;
+
+    this.appendHistory(
+      subscription,
+      'radical_canceled',
+      adminId,
+      `[ADMIN] Immediate (radical) cancellation. Reason: ${input.reason}`
+    );
+
+    subscription.metadata = {
+      ...subscription.metadata,
+      cancellation_reason: input.reason,
+    };
+
+    await this.em.flush();
+
+    return createServiceResponse(
+      200,
+      'Subscription cancelled immediately',
       true,
       {
         subscription,
@@ -826,14 +767,20 @@ export class SubscriptionService extends BaseService {
     const changes: string[] = [];
 
     if (input.status !== undefined && input.status !== subscription.status) {
+      // adminOverride ya NO puede transicionar a CANCELED: consolidamos todas
+      // las rutas hacia CANCELED en el CRON (diferida) y la cancelación radical
+      // de admin, de modo que el invariante CANCELED ⇒ período terminado se
+      // mantenga por construcción. Ver ADR 0003 y radicalCancelSubscription.
+      if (input.status === SubscriptionStatus.CANCELED) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.ADMIN_OVERRIDE_CANNOT_CANCEL
+        );
+      }
+
       const oldStatus = subscription.status;
       subscription.status = input.status;
 
-      if (input.status === SubscriptionStatus.CANCELED) {
-        subscription.canceledAt = new Date();
-        subscription.endedAt = new Date();
-        subscription.nextBillingDate = undefined;
-      } else if (input.status === SubscriptionStatus.ACTIVE) {
+      if (input.status === SubscriptionStatus.ACTIVE) {
         subscription.canceledAt = undefined;
         subscription.endedAt = undefined;
       }
@@ -1196,10 +1143,7 @@ export class SubscriptionService extends BaseService {
 
     console.log(`[CRON] ${pendingCancellations.length} deferred cancellations`);
     for (const sub of pendingCancellations) {
-      sub.status = SubscriptionStatus.CANCELED;
-      sub.canceledAt = now;
-      sub.endedAt = now;
-      sub.nextBillingDate = undefined;
+      this.applyCanceledTransition(sub, now);
       this.appendHistory(
         sub,
         'canceled',
@@ -1352,33 +1296,7 @@ export class SubscriptionService extends BaseService {
   }
 
   /**
-   * Caso 3: hay una suscripción CANCELED (a cualquier plan de la misma
-   * empresa) con período pagado pendiente. Se sustituye respetando ese
-   * período — ver buildReplacementSubscription.
-   */
-  private async replaceCanceledSubscription(
-    canceledSubscription: Subscription,
-    newPlan: Plan,
-    input: CreateSubscriptionInput
-  ): Promise<ServiceResponse> {
-    const isSamePlan = canceledSubscription.plan.id === newPlan.id;
-
-    return this.buildReplacementSubscription({
-      oldSubscription: canceledSubscription,
-      newPlan,
-      paymentMethodId: input.paymentMethodId,
-      trialPeriodDays: input.trialPeriodDays,
-      metadata: input.metadata,
-      forceImmediateCancellation: false,
-      cancellationReason: isSamePlan
-        ? 'Superseded by new subscription to the same plan'
-        : `Superseded by new subscription to a different plan (${newPlan.name})`,
-      alreadyCanceled: true,
-    });
-  }
-
-  /**
-   * Caso 4: no hay nada que sustituir ni cambiar — se crea la suscripción
+   * Caso 3: no hay nada que sustituir ni cambiar — se crea la suscripción
    * desde cero, con o sin trial según el plan.
    */
   private async createSubscriptionFromScratch(
@@ -1456,6 +1374,120 @@ export class SubscriptionService extends BaseService {
       true,
       { subscription }
     );
+  }
+
+  /**
+   * Suscripción Retroactiva (imagen especular de la Suscripción Futura):
+   * plan gratuito con fecha de inicio en el pasado. Modela una membresía en
+   * efectivo/manual que el admin liquida fuera de la plataforma y registra
+   * desde el día en que el miembro empezó a usar el gym.
+   *
+   * Se crea ACTIVE con las fechas retroactivas y SIN pasar por attemptCharge:
+   *  - No hay nada que cobrar en un plan gratuito.
+   *  - Evita el reset de fechas a hoy de la ruta de cobro (los días ya usados
+   *    los absorbe el miembro: su período termina antes, no se le regalan).
+   *
+   * La validez del período (que aún no haya transcurrido entero) ya la
+   * garantizó validateStartDateForPlan(). Aquí solo queda la comprobación de
+   * colisión con otra entitlement activa del mismo usuario+empresa.
+   */
+  private async createBackdatedSubscription(
+    user: User,
+    plan: Plan,
+    input: CreateSubscriptionInput
+  ): Promise<ServiceResponse> {
+    const backdatedStart = moment(input.startDate).startOf('day').toDate();
+    const periodEnd = this.calculatePeriodEnd(backdatedStart, plan);
+    // input.companyId es obligatorio (validateCreateInput) y resolveBilling
+    // devuelve como mínimo ese valor, así que la empresa siempre está resuelta.
+    const billingCompanyId =
+      this.resolveBillingCompanyId(plan, input.companyId) ?? input.companyId;
+
+    await this.assertNoOverlappingEntitlement(
+      user,
+      billingCompanyId,
+      backdatedStart,
+      periodEnd
+    );
+
+    const customer = await this.customerService.getOrCreateCustomer(user);
+
+    const subscription = this.em.create(Subscription, {
+      user,
+      customer,
+      plan,
+      company: billingCompanyId,
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodStart: backdatedStart,
+      currentPeriodEnd: periodEnd,
+      nextBillingDate: periodEnd,
+      quantity: input.quantity ?? 1,
+      failedPaymentAttempts: 0,
+      // Misma regla TEMPORAL que createSubscriptionFromScratch: nace marcada
+      // para cancelarse al terminar su período; el CRON la pasará a CANCELED
+      // cuando currentPeriodEnd venza.
+      cancelAtPeriodEnd: true,
+      metadata: {
+        ...input.metadata,
+        backdated: true,
+        history: [
+          this.buildHistoryEntry(
+            'backdated_cash',
+            'system',
+            `Backdated (cash/manual) subscription created. ` +
+              `Backdated start ${moment(backdatedStart).format('YYYY-MM-DD')}, ` +
+              `period ends ${moment(periodEnd).format('YYYY-MM-DD')}.`
+          ),
+        ],
+      },
+    });
+
+    this.em.persist(subscription);
+    await this.em.flush();
+
+    return createServiceResponse(
+      201,
+      'Backdated subscription created successfully',
+      true,
+      { subscription }
+    );
+  }
+
+  /**
+   * Rechaza el backdating si existe alguna suscripción del mismo
+   * usuario+empresa en estado ACTIVE/TRIALING/PAST_DUE/PAUSED cuyo período
+   * pagado [currentPeriodStart, currentPeriodEnd] se solape con el span
+   * completo de la nueva [start, end] (cola pasada y futura). Una suscripción
+   * CANCELED nunca bloquea (un miembro que renunció puede rellenar el hueco).
+   *
+   * Dos intervalos [a1,a2] y [b1,b2] se solapan sii a1 <= b2 && b1 <= a2.
+   */
+  private async assertNoOverlappingEntitlement(
+    user: User,
+    companyId: string,
+    newStart: Date,
+    newEnd: Date
+  ): Promise<void> {
+    const overlapping = await this.em.findOne(Subscription, {
+      user,
+      company: companyId,
+      status: {
+        $in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIALING,
+          SubscriptionStatus.PAST_DUE,
+          SubscriptionStatus.PAUSED,
+        ],
+      },
+      currentPeriodStart: { $lte: newEnd },
+      currentPeriodEnd: { $gte: newStart },
+    });
+
+    if (overlapping) {
+      throw new ConflictError(
+        CONFLICT_ERRORS.BACKDATED_OVERLAPS_EXISTING_ENTITLEMENT
+      );
+    }
   }
 
   /**
@@ -1718,290 +1750,6 @@ export class SubscriptionService extends BaseService {
     subscription.nextBillingDate = subscription.currentPeriodEnd;
   }
 
-  /**
-   * Logica compartida entre replaceSubscription() y el flujo automatico de
-   * createSubscription() cuando detecta una suscripcion que debe sustituirse.
-   *
-   * Cancela (o reconoce ya cancelada) la suscripcion vieja y crea la nueva
-   * respetando el periodo ya pagado: si a la vieja le quedaba periodo
-   * vigente, la nueva no empieza hoy, empieza cuando ese periodo termine.
-   *
-   * Dividido en pasos privados con nombre propio para mantener la
-   * complejidad cognitiva baja (cada paso es lineal, sin anidamiento, y
-   * se puede leer/testear de forma aislada).
-   */
-  private async buildReplacementSubscription(
-    params: ReplacementParams
-  ): Promise<ServiceResponse> {
-    const now = new Date();
-    const hasRemainingPeriod = this.hasRemainingPaidPeriod(params, now);
-
-    if (!params.alreadyCanceled) {
-      this.cancelOldSubscriptionForReplacement(
-        params.oldSubscription,
-        params.newPlan,
-        hasRemainingPeriod,
-        params.cancellationReason,
-        now
-      );
-    }
-
-    const newSubscription = await this.createReplacementSubscription(
-      params,
-      hasRemainingPeriod,
-      now
-    );
-
-    if (
-      !hasRemainingPeriod &&
-      !this.isTrialingNow(params, hasRemainingPeriod)
-    ) {
-      await this.attemptCharge(newSubscription);
-    }
-
-    return this.buildReplacementResponse(
-      params.oldSubscription,
-      newSubscription,
-      hasRemainingPeriod
-    );
-  }
-
-  /**
-   * ¿La suscripcion vieja todavia tiene periodo pagado vigente?
-   * Si forceImmediateCancellation es true, se ignora aunque le quedara
-   * periodo, para forzar el corte inmediato.
-   */
-  private hasRemainingPaidPeriod(
-    params: ReplacementParams,
-    now: Date
-  ): boolean {
-    const { oldSubscription, forceImmediateCancellation, alreadyCanceled } =
-      params;
-
-    return (
-      !forceImmediateCancellation &&
-      !!oldSubscription.currentPeriodEnd &&
-      oldSubscription.currentPeriodEnd > now &&
-      (alreadyCanceled || oldSubscription.isActive)
-    );
-  }
-
-  /**
-   * Marca la suscripcion vieja como CANCELED, respetando el periodo ya
-   * pagado en endedAt si correspondia, y deja constancia en el audit log.
-   */
-  private cancelOldSubscriptionForReplacement(
-    oldSubscription: Subscription,
-    newPlan: Plan,
-    hasRemainingPeriod: boolean,
-    cancellationReason: string | undefined,
-    now: Date
-  ): void {
-    oldSubscription.status = SubscriptionStatus.CANCELED;
-    oldSubscription.canceledAt = now;
-    oldSubscription.endedAt = hasRemainingPeriod
-      ? oldSubscription.currentPeriodEnd
-      : now;
-    oldSubscription.nextBillingDate = undefined;
-
-    this.appendHistory(
-      oldSubscription,
-      'replaced',
-      'system',
-      `Replaced by a new subscription to plan "${newPlan.name}". ` +
-        `Reason: ${cancellationReason ?? 'not specified'}`
-    );
-  }
-
-  /**
-   * Calcula si la suscripcion nueva debe arrancar en trial.
-   * Solo aplica si empieza ya (no hay periodo pendiente que respetar).
-   */
-  private isTrialingNow(
-    params: ReplacementParams,
-    hasRemainingPeriod: boolean
-  ): boolean {
-    const trialDays =
-      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
-    return trialDays > 0 && !hasRemainingPeriod;
-  }
-
-  /**
-   * Resuelve el metodo de pago a usar en la nueva suscripcion: el indicado
-   * explicitamente, o si no se indica, el de la suscripcion vieja, o si
-   * tampoco existe, el default del Customer.
-   */
-  private async resolveReplacementPaymentMethod(
-    oldSubscription: Subscription,
-    paymentMethodId?: string
-  ): Promise<PaymentMethod | null> {
-    if (paymentMethodId) {
-      return this.getPaymentMethodOrFail(
-        paymentMethodId,
-        oldSubscription.customer
-      );
-    }
-    return (
-      oldSubscription.defaultPaymentMethod ??
-      (await this.getDefaultPaymentMethod(oldSubscription.customer))
-    );
-  }
-
-  /**
-   * Resuelve el estado inicial de la suscripcion de reemplazo.
-   * Extraido como statement independiente (S3358) en lugar de un ternario
-   * anidado: ACTIVE si aun queda periodo pagado por respetar, TRIALING si
-   * arranca ya y tiene trial, INCOMPLETE en cualquier otro caso.
-   */
-  private resolveReplacementStatus(
-    hasRemainingPeriod: boolean,
-    isTrialing: boolean
-  ): SubscriptionStatus {
-    if (hasRemainingPeriod) return SubscriptionStatus.ACTIVE;
-    if (isTrialing) return SubscriptionStatus.TRIALING;
-    return SubscriptionStatus.INCOMPLETE;
-  }
-
-  /**
-   * Construye el objeto de fechas/trial/periodo de la nueva suscripcion.
-   * Se aisla en su propio metodo porque mezclar este calculo dentro de
-   * createReplacementSubscription elevaba demasiado la complejidad de esa
-   * funcion.
-   */
-  private buildReplacementSchedule(
-    params: ReplacementParams,
-    hasRemainingPeriod: boolean,
-    now: Date
-  ): ReplacementSchedule {
-    const newPeriodStart = hasRemainingPeriod
-      ? params.oldSubscription.currentPeriodEnd!
-      : now;
-
-    const isTrialing = this.isTrialingNow(params, hasRemainingPeriod);
-    const trialDays =
-      params.trialPeriodDays ?? params.newPlan.trialPeriodDays ?? 0;
-
-    const trialStart = isTrialing ? newPeriodStart : undefined;
-    const trialEnd = isTrialing
-      ? this.addDays(newPeriodStart, trialDays)
-      : undefined;
-    const periodEnd = isTrialing
-      ? trialEnd!
-      : this.calculatePeriodEnd(newPeriodStart, params.newPlan);
-
-    const status = this.resolveReplacementStatus(
-      hasRemainingPeriod,
-      isTrialing
-    );
-
-    return {
-      newPeriodStart,
-      periodEnd,
-      trialStart,
-      trialEnd,
-      status,
-      nextBillingDate: hasRemainingPeriod ? newPeriodStart : periodEnd,
-    };
-  }
-
-  /**
-   * Construye el texto del primer evento de audit log de la suscripcion
-   * nueva, explicando si empieza ya o si espera al fin del periodo viejo.
-   */
-  private buildReplacementCreationNote(
-    oldSubscriptionId: string,
-    hasRemainingPeriod: boolean,
-    newPeriodStart: Date
-  ): string {
-    if (hasRemainingPeriod) {
-      return (
-        `Created to replace subscription ${oldSubscriptionId}. ` +
-        `Starts on ${newPeriodStart.toISOString()} (after old period ends).`
-      );
-    }
-    return `Created to replace subscription ${oldSubscriptionId}. Starts immediately.`;
-  }
-
-  /**
-   * Crea y persiste la entidad Subscription nueva que sustituye a la vieja.
-   */
-  private async createReplacementSubscription(
-    params: ReplacementParams,
-    hasRemainingPeriod: boolean,
-    now: Date
-  ): Promise<Subscription> {
-    const { oldSubscription, newPlan, paymentMethodId, metadata } = params;
-
-    const billingCompanyId = this.resolveBillingCompanyId(
-      newPlan,
-      this.extractCompanyId(oldSubscription.company)
-    );
-
-    const paymentMethod = await this.resolveReplacementPaymentMethod(
-      oldSubscription,
-      paymentMethodId
-    );
-
-    const schedule = this.buildReplacementSchedule(
-      params,
-      hasRemainingPeriod,
-      now
-    );
-
-    const creationNote = this.buildReplacementCreationNote(
-      oldSubscription.id,
-      hasRemainingPeriod,
-      schedule.newPeriodStart
-    );
-
-    const newSubscription = this.em.create(Subscription, {
-      user: oldSubscription.user,
-      customer: oldSubscription.customer,
-      plan: newPlan,
-      defaultPaymentMethod: paymentMethod ?? undefined,
-      company: billingCompanyId,
-      status: schedule.status,
-      currentPeriodStart: schedule.newPeriodStart,
-      currentPeriodEnd: schedule.periodEnd,
-      trialStart: schedule.trialStart,
-      trialEnd: schedule.trialEnd,
-      nextBillingDate: schedule.nextBillingDate,
-      failedPaymentAttempts: 0,
-      quantity: oldSubscription.quantity ?? 1,
-      // TEMPORAL: misma regla que en createSubscriptionFromScratch — ver
-      // ese comentario para el contexto completo.
-      cancelAtPeriodEnd: true,
-      metadata: {
-        ...metadata,
-        replacedSubscriptionId: oldSubscription.id,
-        history: [this.buildHistoryEntry('created', 'system', creationNote)],
-      },
-    });
-
-    this.em.persist(newSubscription);
-    await this.em.flush();
-
-    return newSubscription;
-  }
-
-  /**
-   * Construye la ServiceResponse final de buildReplacementSubscription.
-   */
-  private buildReplacementResponse(
-    oldSubscription: Subscription,
-    newSubscription: Subscription,
-    hasRemainingPeriod: boolean
-  ): ServiceResponse {
-    const message = hasRemainingPeriod
-      ? `Subscription replaced. New plan starts on ${newSubscription.currentPeriodStart!.toLocaleDateString()}.`
-      : 'Subscription replaced successfully';
-
-    return createServiceResponse(201, message, true, {
-      oldSubscription,
-      newSubscription,
-    });
-  }
-
   // ═══════════════════════════════════════════
   // LÓGICA DE COBRO Y DUNNING
   // ═══════════════════════════════════════════
@@ -2013,7 +1761,15 @@ export class SubscriptionService extends BaseService {
 
     if (subscription.plan.amount === 0) {
       subscription.status = SubscriptionStatus.ACTIVE;
-      if (!isFuture) {
+      // Endurecemos el guard: no reescribimos las fechas a hoy salvo que el
+      // período empiece HOY. Antes se reescribía en todo lo "no futuro", lo
+      // que aplastaba las fechas de una Suscripción Retroactiva (inicio
+      // pasado) si llegaba hasta aquí. Defensivo: la ruta dedicada de
+      // backdating ni siquiera invoca attemptCharge.
+      const startsToday =
+        !subscription.currentPeriodStart ||
+        moment(subscription.currentPeriodStart).isSame(now, 'day');
+      if (startsToday) {
         subscription.currentPeriodStart = now;
         subscription.currentPeriodEnd = this.calculatePeriodEnd(
           now,
@@ -2224,6 +1980,20 @@ export class SubscriptionService extends BaseService {
   // AUDIT LOG
   // ═══════════════════════════════════════════
 
+  /**
+   * Transición común a CANCELED que comparten las dos únicas rutas vivas: el
+   * CRON de billing (cancelación diferida) y la cancelación radical de admin.
+   * Fija el estado y las fechas de cancelación/fin y limpia el próximo cobro.
+   * Cada llamador añade su propia entrada de historial, y la ruta radical trunca
+   * además currentPeriodEnd = now. Ver ADR 0003.
+   */
+  private applyCanceledTransition(subscription: Subscription, now: Date): void {
+    subscription.status = SubscriptionStatus.CANCELED;
+    subscription.canceledAt = now;
+    subscription.endedAt = now;
+    subscription.nextBillingDate = undefined;
+  }
+
   private appendHistory(
     subscription: Subscription,
     event: string,
@@ -2272,24 +2042,79 @@ export class SubscriptionService extends BaseService {
       if (!start.isValid()) {
         throw new BadRequestError(BAD_REQUEST_ERRORS.INVALID_START_DATE);
       }
-      if (start.isBefore(moment(), 'day')) {
-        throw new BadRequestError(BAD_REQUEST_ERRORS.START_DATE_PAST);
+      // NOTA: la validación de "pasado/hoy/futuro" según el plan NO se hace
+      // aquí — este validador corre antes de cargar el Plan y no puede ver
+      // plan.amount. La autoridad única sobre la fecha de inicio es
+      // validateStartDateForPlan(), que sí conoce el plan (backdating solo
+      // se permite para planes gratuitos). Aquí solo validamos el formato.
+    }
+  }
+
+  /**
+   * Autoridad única sobre la fecha de inicio, ya con el Plan cargado (algo
+   * que validateCreateInput no puede saber). Reglas:
+   *
+   *  - Plan de pago (amount > 0): SIEMPRE debe empezar hoy. Ni pasado ni
+   *    futuro — el cobro es inmediato, no tiene sentido diferirlo ni
+   *    retroactivarlo.
+   *
+   *  - Plan gratuito (amount === 0) con inicio en el PASADO → Suscripción
+   *    Retroactiva. Permitida solo si el período resultante (calculado desde
+   *    la fecha retroactiva) termina estrictamente después de hoy; si el
+   *    período completo ya transcurrió, se rechaza.
+   *
+   *  - Plan gratuito con inicio hoy o en el futuro → sin cambios (el flujo
+   *    de Suscripción Futura existente lo gestiona).
+   *
+   * La colisión con otras suscripciones activas NO se comprueba aquí — es
+   * asíncrona y vive en la rama de backdating de createSubscription().
+   */
+  private validateStartDateForPlan(
+    plan: Plan,
+    startDate?: string | Date
+  ): void {
+    if (!startDate) return;
+
+    const start = moment(startDate);
+    const today = moment();
+
+    if (plan.amount > 0) {
+      if (!start.isSame(today, 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.PAID_PLAN_MUST_START_TODAY
+        );
+      }
+      return;
+    }
+
+    // Plan gratuito con inicio en el pasado: solo si aún queda período vivo.
+    if (start.isBefore(today, 'day')) {
+      const periodEnd = this.calculatePeriodEnd(
+        moment(startDate).startOf('day').toDate(),
+        plan
+      );
+      if (!moment(periodEnd).isAfter(today, 'day')) {
+        throw new BadRequestError(
+          BAD_REQUEST_ERRORS.BACKDATED_PERIOD_ALREADY_ELAPSED
+        );
       }
     }
   }
 
-  private validatePaidPlanStartDate(
+  /**
+   * ¿Esta petición es una Suscripción Retroactiva? Plan gratuito con fecha
+   * de inicio en el pasado. La validez del período ya la garantizó
+   * validateStartDateForPlan() antes de llegar aquí.
+   */
+  private isBackdatedFreeRequest(
     plan: Plan,
     startDate?: string | Date
-  ): void {
-    if (plan.amount > 0 && startDate) {
-      const start = moment(startDate);
-      if (!start.isSame(moment(), 'day')) {
-        throw new BadRequestError(
-          BAD_REQUEST_ERRORS.PAID_PLAN_CANNOT_START_IN_FUTURE
-        );
-      }
-    }
+  ): boolean {
+    return (
+      plan.amount === 0 &&
+      !!startDate &&
+      moment(startDate).isBefore(moment(), 'day')
+    );
   }
 
   private async getUserOrFail(userId: string): Promise<User> {
@@ -2436,47 +2261,6 @@ export class SubscriptionService extends BaseService {
       },
       { populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'] }
     );
-  }
-
-  /**
-   * Busca una suscripcion CANCELED reciente del usuario (a CUALQUIER plan,
-   * no solo al mismo) que todavia tiene periodo pagado pendiente.
-   *
-   * Restriccion de seguridad: si el plan nuevo pertenece a una empresa
-   * distinta a la de la suscripcion cancelada, NO se considera una
-   * sustitucion.
-   */
-  private async findRecentCanceledWithPendingPeriod(
-    user: User,
-    newPlan: Plan
-  ): Promise<Subscription | null> {
-    const now = new Date();
-    const lookbackWindow = this.addDays(now, -3);
-
-    const candidate = await this.em.findOne(
-      Subscription,
-      {
-        user,
-        status: SubscriptionStatus.CANCELED,
-        canceledAt: { $gte: lookbackWindow },
-        currentPeriodEnd: { $gt: now },
-      },
-      {
-        populate: ['user', 'customer', 'plan', 'defaultPaymentMethod'],
-        orderBy: { canceledAt: 'DESC' } as any,
-      }
-    );
-
-    if (!candidate) return null;
-
-    const oldCompanyId = this.extractCompanyId(candidate.company);
-    const newCompanyId = this.extractCompanyId(newPlan.company);
-
-    if (oldCompanyId && newCompanyId && oldCompanyId !== newCompanyId) {
-      return null;
-    }
-
-    return candidate;
   }
 
   private async getPaymentMethodOrFail(

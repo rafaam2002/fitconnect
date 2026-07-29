@@ -1,8 +1,13 @@
 import { Permission } from '../entities/Permission';
-import { SubscriptionStatus } from '../entities/Subscription';
+import {
+  SubscriptionAccessState,
+  SubscriptionStatus,
+} from '../entities/Subscription';
 
 export interface LoginPermissionsContext {
   hasActiveSubscription: boolean;
+  /** Estado de acceso derivado que alimenta el banner del front. */
+  subscriptionState: SubscriptionAccessState;
   plan: {
     id: string;
     name: string;

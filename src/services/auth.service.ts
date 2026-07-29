@@ -763,6 +763,7 @@ export class AuthService extends BaseService {
     Object.assign(user, {
       subscription: {
         hasActive: permissionsContext.hasActiveSubscription,
+        subscriptionState: permissionsContext.subscriptionState,
         planName: permissionsContext.plan?.name || null,
         status: permissionsContext.subscriptionStatus,
         isInTrial: permissionsContext.isInTrial || false,
@@ -780,6 +781,7 @@ export class AuthService extends BaseService {
       tokens,
       subscription: {
         hasActive: permissionsContext.hasActiveSubscription,
+        subscriptionState: permissionsContext.subscriptionState,
         planName: permissionsContext.plan?.name || null,
         status: permissionsContext.subscriptionStatus,
         isInTrial: permissionsContext.isInTrial || false,

@@ -134,22 +134,6 @@ export const changePlan = async (
   }
 };
 
-export const replaceSubscription = async (
-  _: any,
-  args: { input: any },
-  context: ContextProps
-) => {
-  try {
-    const service = new SubscriptionService(
-      context.em,
-      context.paymentProcessor
-    );
-    return await service.replaceSubscription(args.input);
-  } catch (error: any) {
-    return handleError(error);
-  }
-};
-
 export const updateSubscription = async (
   _: any,
   args: { subscription: any },
@@ -266,6 +250,26 @@ export const updatePaymentMethodAndRetry = async (
 // MUTATIONS — ADMIN
 // ═══════════════════════════════════════════
 
+export const radicalCancelSubscription = async (
+  _: any,
+  args: { input: { subscriptionId: string; reason: string } },
+  context: ContextProps
+) => {
+  try {
+    const service = new SubscriptionService(
+      context.em,
+      context.paymentProcessor
+    );
+    return await service.radicalCancelSubscription(
+      args.input,
+      context.currentUser.id,
+      context.currentUser?.activeCompanyId
+    );
+  } catch (error: any) {
+    return handleError(error);
+  }
+};
+
 export const adminOverrideSubscription = async (
   _: any,
   args: { input: any },
@@ -380,7 +384,6 @@ export const subscriptionResolvers = {
     // Usuario
     createSubscription,
     changePlan,
-    replaceSubscription,
     updateSubscription,
     cancelSubscription,
     pauseSubscription,
@@ -388,6 +391,10 @@ export const subscriptionResolvers = {
     reactivateSubscription,
     updatePaymentMethodAndRetry,
     // Admin
+    radicalCancelSubscription: withPermissions(
+      plansPermissions.CREATE_UPDATE_DELETE,
+      radicalCancelSubscription
+    ),
     adminOverrideSubscription: withPermissions(
       plansPermissions.CREATE_UPDATE_DELETE,
       adminOverrideSubscription

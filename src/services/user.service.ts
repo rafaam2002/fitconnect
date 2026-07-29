@@ -311,6 +311,71 @@ export class UserService extends BaseService {
     }
   }
 
+  /**
+   * Crea un usuario directamente desde el backoffice y lo admite de una vez
+   * en la empresa activa del admin (crea el User, el Customer de billing y
+   * el UserRole correspondiente). A diferencia de createUser (registro
+   * público), no requiere verificación de email ni una solicitud de unión
+   * previa: el admin lo está dando de alta y aceptando en un solo paso.
+   */
+  public async createCompanyMember(
+    userData: {
+      email: string;
+      nickname: string;
+      password: string;
+      role: UserRoleEnum;
+      isActive?: boolean;
+    },
+    currentUser: CurrentUser
+  ): Promise<ServiceResponse> {
+    const { email, password, nickname, role, isActive } = userData;
+
+    if (!email || !password || !nickname) {
+      throw new BadRequestError('Please provide all required fields');
+    }
+
+    if (!currentUser?.activeCompanyId) {
+      throw new BadRequestError('No active company selected');
+    }
+
+    const existingUser = await this.em.findOne(
+      User,
+      { $or: [{ email }, { nickname }] },
+      { filters: false }
+    );
+
+    if (existingUser) throw new BadRequestError('User already exists');
+
+    const newUser = this.em.create(User, {
+      email,
+      nickname,
+      password,
+      isActive: isActive ?? true,
+      isVerified: true,
+    });
+
+    this.em.persist(newUser);
+    await this.em.flush();
+
+    await this.customerService.createCustomer({
+      user: newUser,
+      currency: 'eur',
+    });
+
+    await this.companyService.admitUserToCompany(
+      currentUser,
+      currentUser.activeCompanyId,
+      newUser.id,
+      role,
+      false,
+      true
+    );
+
+    return createServiceResponse(201, 'Member created successfully', true, {
+      user: newUser,
+    });
+  }
+
   public async updateUser(
     userUpdates: UpdateUserProps,
     currentUser: CurrentUser
@@ -506,8 +571,46 @@ export class UserService extends BaseService {
     currentUser: CurrentUser
   ): Promise<ServiceResponse> {
     if (!currentUser) throw new UnauthorizedError();
-    if (currentUser.id !== userId) {
-      throw new ForbiddenError('Solo puedes borrar tu propia cuenta');
+
+    const isSelfDelete = currentUser.id === userId;
+
+    if (!isSelfDelete) {
+      // Ningún admin (ni siquiera un superadmin) puede borrar la cuenta de
+      // un cliente. "Eliminar" un miembro solo revoca su UserRole en la
+      // empresa activa del admin; la cuenta del usuario se conserva
+      // (podría pertenecer a otras empresas).
+      if (!currentUser.activeCompanyId) {
+        throw new ForbiddenError();
+      }
+
+      if (!currentUser.isSuperAdmin) {
+        const requesterRole = await this.em.findOne(UserRole, {
+          user: currentUser.id,
+          company: currentUser.activeCompanyId,
+          role: UserRoleEnum.ADMIN,
+        });
+        if (!requesterRole) throw new ForbiddenError();
+      }
+
+      const targetRole = await this.em.findOne(
+        UserRole,
+        { user: userId, company: currentUser.activeCompanyId },
+        { filters: false }
+      );
+      if (!targetRole) throw new NotFoundError('User');
+      if (targetRole.role === UserRoleEnum.ADMIN && !currentUser.isSuperAdmin) {
+        throw new ForbiddenError(
+          'Solo un superadmin puede borrar cuentas de admin'
+        );
+      }
+
+      this.em.remove(targetRole);
+      await this.em.flush();
+      return createServiceResponse(
+        200,
+        'Member removed from company successfully',
+        true
+      );
     }
 
     const user = await this.em.findOne(

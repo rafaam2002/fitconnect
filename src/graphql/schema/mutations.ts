@@ -3,6 +3,7 @@ type Mutation {
     # ── User ──────────────────────────────────────────────────────────
     setActiveCompany(companyId: ID!): MeResponse
     createUser(user: CreateUserInput!, company: CreateCompanyInput): LoginResponse
+    createCompanyMember(user: CreateCompanyMemberInput!): UserResponse!
     updateUser(user: UpdateUserInput!): UserResponse!
     forgotPassword(email: String!): String!
     updatePassword(password: UpdatePasswordInput!): UserResponse!

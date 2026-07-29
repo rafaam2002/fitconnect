@@ -11,6 +11,7 @@ import { NotificationService } from '../../services/notification.service';
 import { TrainingTaskService } from '../../services/training.task.service';
 import { UserService } from '../../services/user.service';
 import { UserWeightService } from '../../services/user.weight.service';
+import { UserRoleEnum } from '../../types/enums';
 import {
   AddUserWeight,
   ContextProps,
@@ -200,6 +201,32 @@ const createUser = async (_: any, args: UserProps, context: ContextProps) => {
     const userService = new UserService(em);
 
     return await userService.createUser(user, company);
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+/**
+ * Create a member directly under the admin's active company
+ */
+const createCompanyMember = async (
+  _: any,
+  args: {
+    user: {
+      email: string;
+      nickname: string;
+      password: string;
+      role: UserRoleEnum;
+      isActive?: boolean;
+    };
+  },
+  context: ContextProps
+) => {
+  try {
+    const { em, currentUser } = context;
+    const userService = new UserService(em);
+
+    return await userService.createCompanyMember(args.user, currentUser);
   } catch (error) {
     return handleError(error);
   }
@@ -510,6 +537,10 @@ export const userResolvers: IResolvers = {
   Mutation: {
     setActiveCompany,
     createUser, //este metodo es publico, no requiere permisos
+    createCompanyMember: withPermissions(
+      usersPermissions.CREATE,
+      createCompanyMember
+    ),
     updateUser,
     updateUserPicture,
     deleteUser,

@@ -274,9 +274,9 @@ export class PlanService extends BaseService {
    * Útil para contextos multi-tenant donde cada empresa puede tener planes propios.
    */
   async getPlansByCompany(companyId: string): Promise<ServiceResponse> {
-    if (!companyId) {
+    /* if (!companyId) {
       throw new BadRequestError('Company ID is required');
-    }
+    }*/
 
     const plans = await this.em.find<Plan>(
       Plan,

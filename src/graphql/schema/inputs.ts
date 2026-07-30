@@ -62,6 +62,7 @@ input CreateCompanyInput {
     phoneNumber: String!
     email: String!
     address: String!
+    code: String!
 }
 
 input CompanyDataInput {

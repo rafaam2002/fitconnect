@@ -33,7 +33,7 @@ export const middleware = async (
     currentUser.permissionNames = ['*:*'];
   }
 
-  if (currentUser?.activeCompanyId) {
+  if (currentUser?.activeCompanyId && companyId) {
     if (currentUser.activeCompanyId !== companyId) {
       throw new BadRequestError(
         'User is logged in two companies at the same time'

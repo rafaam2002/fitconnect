@@ -1190,7 +1190,7 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 describe('ScheduleService - getSchedulesResumeRange', () => {
   let scheduleService: ScheduleService;
   let mockEntityManager: any;
-  let executeMock: jest.Mock;
+  let qb: any;
 
   const currentUser = {
     id: 'u1',
@@ -1198,36 +1198,56 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
     contextRole: UserRoleEnum.STANDARD,
   } as any;
 
+  // Chainable QueryBuilder mock: every builder method returns `qb`, and the two
+  // terminal calls (applyFilters / execute) are async.
+  const makeQb = () => {
+    const builder: any = {};
+    for (const m of [
+      'select',
+      'addSelect',
+      'leftJoin',
+      'where',
+      'groupBy',
+      'orderBy',
+    ]) {
+      builder[m] = jest.fn(() => builder);
+    }
+    builder.applyFilters = jest.fn(async () => {});
+    builder.execute = jest.fn(async () => []);
+    return builder;
+  };
+
   beforeEach(() => {
-    executeMock = jest.fn();
+    qb = makeQb();
     mockEntityManager = {
       findOne: jest.fn(),
-      getConnection: jest.fn(() => ({ execute: executeMock })),
-      getRepository: jest.fn(),
+      createQueryBuilder: jest.fn(() => qb),
     };
     scheduleService = new ScheduleService(mockEntityManager as any);
   });
 
-  it('maps raw rows to the resume shape and returns scheduleOptions', async () => {
+  it('maps QueryBuilder rows to the resume shape and returns scheduleOptions', async () => {
     const start = moment('2026-01-01').toDate();
     const end = moment('2026-01-14').toDate();
     mockEntityManager.findOne.mockResolvedValue({
       scheduleOptions: { id: 'opt-1', maxActiveReservations: 2 },
     });
-    executeMock.mockResolvedValue([
+    // execute() maps columns to entity property names; COUNT comes back as a
+    // bigint string from node-postgres.
+    qb.execute.mockResolvedValue([
       {
         id: 's1',
-        start_date: start,
-        max_users: 10,
+        startDate: start,
+        maxUsers: 10,
         state: ScheduleState.AVAILABLE,
-        ocupancy: 3,
+        ocupancy: '3',
       },
       {
         id: 's2',
-        start_date: end,
-        max_users: 5,
+        startDate: end,
+        maxUsers: 5,
         state: ScheduleState.CANCELLED,
-        ocupancy: 0,
+        ocupancy: '0',
       },
     ]);
 
@@ -1244,7 +1264,7 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
         startDate: start,
         maxUsers: 10,
         state: ScheduleState.AVAILABLE,
-        ocupancy: 3,
+        ocupancy: 3, // normalised to a number
       },
       {
         id: 's2',
@@ -1257,9 +1277,8 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
     expect(res.scheduleOptions).toEqual({ id: 'opt-1', maxActiveReservations: 2 });
   });
 
-  it('resolves schedules + ocupancy in a single DB round-trip (correlated count)', async () => {
+  it('resolves schedules + ocupancy in a single query (one execute)', async () => {
     mockEntityManager.findOne.mockResolvedValue(null);
-    executeMock.mockResolvedValue([]);
 
     await scheduleService.getSchedulesResumeRange(
       currentUser,
@@ -1267,16 +1286,12 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
       new Date()
     );
 
-    // Exactly one raw statement for the schedules + their occupancy.
-    expect(executeMock).toHaveBeenCalledTimes(1);
-    const sql = String(executeMock.mock.calls[0][0]).toLowerCase();
-    expect(sql).toContain('user_schedules');
-    expect(sql).toContain('count(');
+    expect(qb.execute).toHaveBeenCalledTimes(1);
+    expect(qb.leftJoin).toHaveBeenCalledWith('s.users', 'u');
   });
 
-  it('scopes the raw query to the active company (raw SQL bypasses the companyContext filter)', async () => {
+  it('applies entity filters so the query stays company-scoped (v6 QB does not auto-apply)', async () => {
     mockEntityManager.findOne.mockResolvedValue(null);
-    executeMock.mockResolvedValue([]);
 
     await scheduleService.getSchedulesResumeRange(
       currentUser,
@@ -1284,15 +1299,15 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
       new Date()
     );
 
-    const [sql, params] = executeMock.mock.calls[0];
-    expect(String(sql).toLowerCase()).toContain('company_id');
-    // activeCompanyId must be bound as a parameter, not interpolated.
-    expect(params).toContain(currentUser.activeCompanyId);
+    // Regression guard: dropping applyFilters() would leak schedules across tenants.
+    expect(qb.applyFilters).toHaveBeenCalledTimes(1);
+    expect(qb.applyFilters.mock.invocationCallOrder[0]).toBeLessThan(
+      qb.execute.mock.invocationCallOrder[0]
+    );
   });
 
   it('returns null scheduleOptions when no company is found', async () => {
     mockEntityManager.findOne.mockResolvedValue(null);
-    executeMock.mockResolvedValue([]);
 
     const res: any = await scheduleService.getSchedulesResumeRange(
       currentUser,

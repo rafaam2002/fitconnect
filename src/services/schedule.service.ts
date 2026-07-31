@@ -1,4 +1,5 @@
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, raw } from '@mikro-orm/core';
+import { SqlEntityManager } from '@mikro-orm/postgresql';
 import moment from 'moment';
 
 import { Company } from '../entities/Company';
@@ -368,21 +369,35 @@ export class ScheduleService extends BaseService {
       // Resolver limitado por latencia: contra un Postgres remoto (Supabase) el
       // coste del resolver es (nº de queries × latencia de red), no el volumen de
       // datos. Por eso resolvemos los schedules y su ocupación en UN solo
-      // round-trip mediante un COUNT correlacionado sobre la tabla pivote, en vez
-      // de hidratar la colección M:N `users` (y `admin`, que aquí no se usa).
-      // Además lo lanzamos en paralelo con las opciones de la compañía.
+      // round-trip: un LEFT JOIN a la M:N + COUNT agrupado, en vez de hidratar la
+      // colección `users` (y `admin`, que aquí no se usa). Lo lanzamos en paralelo
+      // con las opciones de la compañía.
       //
-      // OJO: esta query es SQL en crudo, así que NO pasa por el filtro
-      // `companyContext` (@Filter default de la entidad Schedule). El scoping por
-      // compañía hay que aplicarlo a mano con `s.company_id = ?`; si no, se
-      // filtrarían schedules de todas las compañías (fuga entre tenants).
+      // Usamos el QueryBuilder de MikroORM (relaciones por nombre: `s.users`) en
+      // vez de SQL en crudo. OJO: en v6 el QueryBuilder NO aplica solo los @Filter
+      // de la entidad; hay que llamar a `applyFilters()` explícitamente. Eso añade
+      // el scoping de `companyContext` reutilizando la definición del filtro (con
+      // el companyId que fija el middleware por request), sin hardcodear company_id.
       type ScheduleResumeRow = {
         id: string;
-        start_date: Date;
-        max_users: number;
+        startDate: Date;
+        maxUsers: number;
         state: string;
-        ocupancy: number;
+        ocupancy: number | string;
       };
+
+      // `createQueryBuilder` sólo existe en el EM de SQL; en runtime el driver es
+      // postgres, así que el cast es seguro (mismo patrón que report.service.ts).
+      const qb = (this.em as SqlEntityManager)
+        .createQueryBuilder(Schedule, 's')
+        .select(['s.id', 's.startDate', 's.maxUsers', 's.state'])
+        .addSelect(raw('count(u.id) as ocupancy'))
+        .leftJoin('s.users', 'u')
+        .where({ startDate: { $gte: startOfDay, $lte: endOfDay } })
+        .groupBy('s.id')
+        .orderBy({ startDate: 'asc' });
+
+      await qb.applyFilters();
 
       const [company, rows] = await Promise.all([
         this.em.findOne(
@@ -390,30 +405,18 @@ export class ScheduleService extends BaseService {
           { id: { $ne: null } },
           { populate: ['scheduleOptions'] }
         ),
-        this.em.getConnection().execute<ScheduleResumeRow[]>(
-          `SELECT s.id,
-                  s.start_date,
-                  s.max_users,
-                  s.state,
-                  (SELECT COUNT(*)
-                     FROM user_schedules us
-                    WHERE us.schedule_id = s.id)::int AS ocupancy
-             FROM schedule s
-            WHERE s.company_id = ?
-              AND s.start_date BETWEEN ? AND ?
-            ORDER BY s.start_date ASC`,
-          [currentUser.activeCompanyId, startOfDay, endOfDay]
-        ),
+        qb.execute<ScheduleResumeRow[]>(),
       ]);
 
       const scheduleOptions = company?.scheduleOptions || null;
 
       const schedulesResume = rows.map((row: ScheduleResumeRow) => ({
         id: row.id,
-        startDate: row.start_date,
-        maxUsers: row.max_users,
+        startDate: row.startDate,
+        maxUsers: row.maxUsers,
         state: row.state as ScheduleState,
-        ocupancy: row.ocupancy,
+        // COUNT vuelve como bigint (string en node-postgres); normalizamos a number.
+        ocupancy: Number(row.ocupancy),
       }));
 
       return createServiceResponse(200, 'Schedules found', true, {

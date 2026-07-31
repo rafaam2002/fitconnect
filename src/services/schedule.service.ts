@@ -1,4 +1,4 @@
-import { EntityManager, raw } from '@mikro-orm/core';
+import { EntityManager, LoadStrategy, raw } from '@mikro-orm/core';
 import { SqlEntityManager } from '@mikro-orm/postgresql';
 import moment from 'moment';
 
@@ -318,12 +318,27 @@ export class ScheduleService extends BaseService {
       const startOfDay = moment(startDate).format('YYYY/MM/DD HH:mm:ss');
       const endOfDay = moment(endDate).format('YYYY/MM/DD HH:mm:ss');
 
+      // Resolver limitado por latencia (Supabase remoto): el coste es
+      // nº de round-trips × latencia, no el volumen. La estrategia por defecto
+      // (select-in) hace una query por relación → ~4 viajes. Colapsamos a 2 sin
+      // arriesgar un producto cartesiano:
+      //   1) find con JOINED de `admin` (to-one, gratis) + `users` (UNA to-many:
+      //      un solo LEFT JOIN, sin multiplicar filas) → 1 query.
+      //   2) `waitListUsers` (la SEGUNDA to-many) se puebla aparte por select-in.
+      // Juntar users×waitListUsers en el mismo JOIN sí explotaría en cartesiano;
+      // separarlas mantiene el coste constante tanto con pocos como con muchos
+      // apuntados. Seguimos usando find(), así que el filtro companyContext se
+      // aplica solo (imposible olvidarlo) y el contrato GraphQL no cambia.
       const schedules = await scheduleRepo.find(
         {
           startDate: { $gte: startOfDay, $lte: endOfDay },
         },
-        { populate: ['users', 'admin', 'waitListUsers'] }
+        { populate: ['users', 'admin'], strategy: LoadStrategy.JOINED }
       );
+
+      await this.em.populate(schedules, ['waitListUsers'], {
+        strategy: LoadStrategy.SELECT_IN,
+      });
 
       const sortSchedules = [...schedules].sort((a, b) => {
         return moment(a.startDate).unix() - moment(b.startDate).unix();

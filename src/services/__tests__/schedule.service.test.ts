@@ -1,3 +1,4 @@
+import { LoadStrategy } from '@mikro-orm/core';
 import moment from 'moment';
 
 import { Company } from '../../entities/Company';
@@ -1327,6 +1328,90 @@ describe('ScheduleService - getSchedulesResumeRange', () => {
         new Date(),
         new Date()
       )
+    ).rejects.toThrow();
+  });
+});
+
+describe('ScheduleService - getSchedulesRange', () => {
+  let scheduleService: ScheduleService;
+  let mockEntityManager: any;
+  let scheduleRepo: any;
+
+  const currentUser = {
+    id: 'u1',
+    activeCompanyId: 'c1',
+    contextRole: UserRoleEnum.STANDARD,
+  } as any;
+
+  beforeEach(() => {
+    scheduleRepo = { find: jest.fn(async () => []) };
+    mockEntityManager = {
+      getRepository: jest.fn(() => scheduleRepo),
+      populate: jest.fn(async () => {}),
+      getReference: jest.fn((_entity: any, id: string) => ({ id })),
+    };
+    scheduleService = new ScheduleService(mockEntityManager as any);
+  });
+
+  it('loads users + admin JOINED in one query and waitListUsers via select-in (2 round-trips, no cartesian)', async () => {
+    await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    // Round-trip 1: a single find joining the to-one (admin) and ONE to-many
+    // (users). waitListUsers is deliberately NOT joined here — joining two
+    // to-many collections together would explode into a cartesian product.
+    expect(scheduleRepo.find).toHaveBeenCalledTimes(1);
+    const [, options] = scheduleRepo.find.mock.calls[0];
+    expect(options.populate).toEqual(
+      expect.arrayContaining(['users', 'admin'])
+    );
+    expect(options.populate).not.toContain('waitListUsers');
+    expect(options.strategy).toBe(LoadStrategy.JOINED);
+
+    // Round-trip 2: the second to-many loaded on its own via select-in.
+    expect(mockEntityManager.populate).toHaveBeenCalledTimes(1);
+    const [, populateHint, populateOpts] =
+      mockEntityManager.populate.mock.calls[0];
+    expect(populateHint).toEqual(['waitListUsers']);
+    expect(populateOpts.strategy).toBe(LoadStrategy.SELECT_IN);
+  });
+
+  it('returns the schedules sorted by startDate ascending (contract unchanged)', async () => {
+    const later = { id: 's2', startDate: '2026-01-02 10:00:00', admin: { id: 'a2' } };
+    const earlier = { id: 's1', startDate: '2026-01-01 09:00:00', admin: { id: 'a1' } };
+    scheduleRepo.find.mockResolvedValue([later, earlier]);
+
+    const res: any = await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedules.map((s: any) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  it('filters to the current user\'s own schedules when mySchedules is true', async () => {
+    const mine = { id: 's1', startDate: '2026-01-01 09:00:00', admin: { id: 'u1' } };
+    const others = { id: 's2', startDate: '2026-01-02 10:00:00', admin: { id: 'zzz' } };
+    scheduleRepo.find.mockResolvedValue([mine, others]);
+
+    const res: any = await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date(),
+      true
+    );
+
+    expect(res.schedules.map((s: any) => s.id)).toEqual(['s1']);
+  });
+
+  it('throws when there is no authenticated user', async () => {
+    await expect(
+      scheduleService.getSchedulesRange(null as any, new Date(), new Date())
     ).rejects.toThrow();
   });
 });

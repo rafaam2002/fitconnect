@@ -362,34 +362,58 @@ export class ScheduleService extends BaseService {
     }
 
     try {
-      const scheduleRepo = this.em.getRepository(Schedule);
-      const company = await this.em.findOne(
-        Company,
-        { id: { $ne: null } },
-        { populate: ['scheduleOptions'] }
-      );
-      const scheduleOptions = company?.scheduleOptions || null;
-
       const startOfDay = new Date(startDate);
       const endOfDay = new Date(endDate);
 
-      const schedules = await scheduleRepo.find(
-        {
-          startDate: { $gte: startOfDay, $lte: endOfDay },
-        },
-        { populate: ['users', 'admin'] }
-      );
+      // Resolver limitado por latencia: contra un Postgres remoto (Supabase) el
+      // coste del resolver es (nº de queries × latencia de red), no el volumen de
+      // datos. Por eso resolvemos los schedules y su ocupación en UN solo
+      // round-trip mediante un COUNT correlacionado sobre la tabla pivote, en vez
+      // de hidratar la colección M:N `users` (y `admin`, que aquí no se usa).
+      // Además lo lanzamos en paralelo con las opciones de la compañía.
+      //
+      // OJO: esta query es SQL en crudo, así que NO pasa por el filtro
+      // `companyContext` (@Filter default de la entidad Schedule). El scoping por
+      // compañía hay que aplicarlo a mano con `s.company_id = ?`; si no, se
+      // filtrarían schedules de todas las compañías (fuga entre tenants).
+      type ScheduleResumeRow = {
+        id: string;
+        start_date: Date;
+        max_users: number;
+        state: string;
+        ocupancy: number;
+      };
 
-      const sortSchedules = [...schedules].sort((a, b) => {
-        return moment(a.startDate).unix() - moment(b.startDate).unix();
-      });
+      const [company, rows] = await Promise.all([
+        this.em.findOne(
+          Company,
+          { id: { $ne: null } },
+          { populate: ['scheduleOptions'] }
+        ),
+        this.em.getConnection().execute<ScheduleResumeRow[]>(
+          `SELECT s.id,
+                  s.start_date,
+                  s.max_users,
+                  s.state,
+                  (SELECT COUNT(*)
+                     FROM user_schedules us
+                    WHERE us.schedule_id = s.id)::int AS ocupancy
+             FROM schedule s
+            WHERE s.company_id = ?
+              AND s.start_date BETWEEN ? AND ?
+            ORDER BY s.start_date ASC`,
+          [currentUser.activeCompanyId, startOfDay, endOfDay]
+        ),
+      ]);
 
-      const schedulesResume = sortSchedules.map(schedule => ({
-        id: schedule.id,
-        startDate: schedule.startDate,
-        maxUsers: schedule.maxUsers,
-        state: schedule.state,
-        ocupancy: schedule.users.length,
+      const scheduleOptions = company?.scheduleOptions || null;
+
+      const schedulesResume = rows.map((row: ScheduleResumeRow) => ({
+        id: row.id,
+        startDate: row.start_date,
+        maxUsers: row.max_users,
+        state: row.state as ScheduleState,
+        ocupancy: row.ocupancy,
       }));
 
       return createServiceResponse(200, 'Schedules found', true, {

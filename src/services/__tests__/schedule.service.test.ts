@@ -1186,3 +1186,132 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
     });
   });
 });
+
+describe('ScheduleService - getSchedulesResumeRange', () => {
+  let scheduleService: ScheduleService;
+  let mockEntityManager: any;
+  let executeMock: jest.Mock;
+
+  const currentUser = {
+    id: 'u1',
+    activeCompanyId: 'c1',
+    contextRole: UserRoleEnum.STANDARD,
+  } as any;
+
+  beforeEach(() => {
+    executeMock = jest.fn();
+    mockEntityManager = {
+      findOne: jest.fn(),
+      getConnection: jest.fn(() => ({ execute: executeMock })),
+      getRepository: jest.fn(),
+    };
+    scheduleService = new ScheduleService(mockEntityManager as any);
+  });
+
+  it('maps raw rows to the resume shape and returns scheduleOptions', async () => {
+    const start = moment('2026-01-01').toDate();
+    const end = moment('2026-01-14').toDate();
+    mockEntityManager.findOne.mockResolvedValue({
+      scheduleOptions: { id: 'opt-1', maxActiveReservations: 2 },
+    });
+    executeMock.mockResolvedValue([
+      {
+        id: 's1',
+        start_date: start,
+        max_users: 10,
+        state: ScheduleState.AVAILABLE,
+        ocupancy: 3,
+      },
+      {
+        id: 's2',
+        start_date: end,
+        max_users: 5,
+        state: ScheduleState.CANCELLED,
+        ocupancy: 0,
+      },
+    ]);
+
+    const res: any = await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      start,
+      end
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedulesResume).toEqual([
+      {
+        id: 's1',
+        startDate: start,
+        maxUsers: 10,
+        state: ScheduleState.AVAILABLE,
+        ocupancy: 3,
+      },
+      {
+        id: 's2',
+        startDate: end,
+        maxUsers: 5,
+        state: ScheduleState.CANCELLED,
+        ocupancy: 0,
+      },
+    ]);
+    expect(res.scheduleOptions).toEqual({ id: 'opt-1', maxActiveReservations: 2 });
+  });
+
+  it('resolves schedules + ocupancy in a single DB round-trip (correlated count)', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+    executeMock.mockResolvedValue([]);
+
+    await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    // Exactly one raw statement for the schedules + their occupancy.
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    const sql = String(executeMock.mock.calls[0][0]).toLowerCase();
+    expect(sql).toContain('user_schedules');
+    expect(sql).toContain('count(');
+  });
+
+  it('scopes the raw query to the active company (raw SQL bypasses the companyContext filter)', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+    executeMock.mockResolvedValue([]);
+
+    await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    const [sql, params] = executeMock.mock.calls[0];
+    expect(String(sql).toLowerCase()).toContain('company_id');
+    // activeCompanyId must be bound as a parameter, not interpolated.
+    expect(params).toContain(currentUser.activeCompanyId);
+  });
+
+  it('returns null scheduleOptions when no company is found', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+    executeMock.mockResolvedValue([]);
+
+    const res: any = await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedulesResume).toEqual([]);
+    expect(res.scheduleOptions).toBeNull();
+  });
+
+  it('throws when there is no authenticated user', async () => {
+    await expect(
+      scheduleService.getSchedulesResumeRange(
+        null as any,
+        new Date(),
+        new Date()
+      )
+    ).rejects.toThrow();
+  });
+});

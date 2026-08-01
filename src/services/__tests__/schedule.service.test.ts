@@ -1,3 +1,4 @@
+import { LoadStrategy } from '@mikro-orm/core';
 import moment from 'moment';
 
 import { Company } from '../../entities/Company';
@@ -1184,5 +1185,233 @@ describe('ScheduleService - Waitlist and Booking Limits logic', () => {
 
       changeStatusSpy.mockRestore();
     });
+  });
+});
+
+describe('ScheduleService - getSchedulesResumeRange', () => {
+  let scheduleService: ScheduleService;
+  let mockEntityManager: any;
+  let qb: any;
+
+  const currentUser = {
+    id: 'u1',
+    activeCompanyId: 'c1',
+    contextRole: UserRoleEnum.STANDARD,
+  } as any;
+
+  // Chainable QueryBuilder mock: every builder method returns `qb`, and the two
+  // terminal calls (applyFilters / execute) are async.
+  const makeQb = () => {
+    const builder: any = {};
+    for (const m of [
+      'select',
+      'addSelect',
+      'leftJoin',
+      'where',
+      'groupBy',
+      'orderBy',
+    ]) {
+      builder[m] = jest.fn(() => builder);
+    }
+    builder.applyFilters = jest.fn(async () => {});
+    builder.execute = jest.fn(async () => []);
+    return builder;
+  };
+
+  beforeEach(() => {
+    qb = makeQb();
+    mockEntityManager = {
+      findOne: jest.fn(),
+      createQueryBuilder: jest.fn(() => qb),
+    };
+    scheduleService = new ScheduleService(mockEntityManager as any);
+  });
+
+  it('maps QueryBuilder rows to the resume shape and returns scheduleOptions', async () => {
+    const start = moment('2026-01-01').toDate();
+    const end = moment('2026-01-14').toDate();
+    mockEntityManager.findOne.mockResolvedValue({
+      scheduleOptions: { id: 'opt-1', maxActiveReservations: 2 },
+    });
+    // execute() maps columns to entity property names; COUNT comes back as a
+    // bigint string from node-postgres.
+    qb.execute.mockResolvedValue([
+      {
+        id: 's1',
+        startDate: start,
+        maxUsers: 10,
+        state: ScheduleState.AVAILABLE,
+        ocupancy: '3',
+      },
+      {
+        id: 's2',
+        startDate: end,
+        maxUsers: 5,
+        state: ScheduleState.CANCELLED,
+        ocupancy: '0',
+      },
+    ]);
+
+    const res: any = await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      start,
+      end
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedulesResume).toEqual([
+      {
+        id: 's1',
+        startDate: start,
+        maxUsers: 10,
+        state: ScheduleState.AVAILABLE,
+        ocupancy: 3, // normalised to a number
+      },
+      {
+        id: 's2',
+        startDate: end,
+        maxUsers: 5,
+        state: ScheduleState.CANCELLED,
+        ocupancy: 0,
+      },
+    ]);
+    expect(res.scheduleOptions).toEqual({ id: 'opt-1', maxActiveReservations: 2 });
+  });
+
+  it('resolves schedules + ocupancy in a single query (one execute)', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+
+    await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    expect(qb.execute).toHaveBeenCalledTimes(1);
+    expect(qb.leftJoin).toHaveBeenCalledWith('s.users', 'u');
+  });
+
+  it('applies entity filters so the query stays company-scoped (v6 QB does not auto-apply)', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+
+    await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    // Regression guard: dropping applyFilters() would leak schedules across tenants.
+    expect(qb.applyFilters).toHaveBeenCalledTimes(1);
+    expect(qb.applyFilters.mock.invocationCallOrder[0]).toBeLessThan(
+      qb.execute.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('returns null scheduleOptions when no company is found', async () => {
+    mockEntityManager.findOne.mockResolvedValue(null);
+
+    const res: any = await scheduleService.getSchedulesResumeRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedulesResume).toEqual([]);
+    expect(res.scheduleOptions).toBeNull();
+  });
+
+  it('throws when there is no authenticated user', async () => {
+    await expect(
+      scheduleService.getSchedulesResumeRange(
+        null as any,
+        new Date(),
+        new Date()
+      )
+    ).rejects.toThrow();
+  });
+});
+
+describe('ScheduleService - getSchedulesRange', () => {
+  let scheduleService: ScheduleService;
+  let mockEntityManager: any;
+  let scheduleRepo: any;
+
+  const currentUser = {
+    id: 'u1',
+    activeCompanyId: 'c1',
+    contextRole: UserRoleEnum.STANDARD,
+  } as any;
+
+  beforeEach(() => {
+    scheduleRepo = { find: jest.fn(async () => []) };
+    mockEntityManager = {
+      getRepository: jest.fn(() => scheduleRepo),
+      populate: jest.fn(async () => {}),
+      getReference: jest.fn((_entity: any, id: string) => ({ id })),
+    };
+    scheduleService = new ScheduleService(mockEntityManager as any);
+  });
+
+  it('loads users + admin JOINED in one query and waitListUsers via select-in (2 round-trips, no cartesian)', async () => {
+    await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    // Round-trip 1: a single find joining the to-one (admin) and ONE to-many
+    // (users). waitListUsers is deliberately NOT joined here — joining two
+    // to-many collections together would explode into a cartesian product.
+    expect(scheduleRepo.find).toHaveBeenCalledTimes(1);
+    const [, options] = scheduleRepo.find.mock.calls[0];
+    expect(options.populate).toEqual(
+      expect.arrayContaining(['users', 'admin'])
+    );
+    expect(options.populate).not.toContain('waitListUsers');
+    expect(options.strategy).toBe(LoadStrategy.JOINED);
+
+    // Round-trip 2: the second to-many loaded on its own via select-in.
+    expect(mockEntityManager.populate).toHaveBeenCalledTimes(1);
+    const [, populateHint, populateOpts] =
+      mockEntityManager.populate.mock.calls[0];
+    expect(populateHint).toEqual(['waitListUsers']);
+    expect(populateOpts.strategy).toBe(LoadStrategy.SELECT_IN);
+  });
+
+  it('returns the schedules sorted by startDate ascending (contract unchanged)', async () => {
+    const later = { id: 's2', startDate: '2026-01-02 10:00:00', admin: { id: 'a2' } };
+    const earlier = { id: 's1', startDate: '2026-01-01 09:00:00', admin: { id: 'a1' } };
+    scheduleRepo.find.mockResolvedValue([later, earlier]);
+
+    const res: any = await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date()
+    );
+
+    expect(res.success).toBe(true);
+    expect(res.schedules.map((s: any) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  it('filters to the current user\'s own schedules when mySchedules is true', async () => {
+    const mine = { id: 's1', startDate: '2026-01-01 09:00:00', admin: { id: 'u1' } };
+    const others = { id: 's2', startDate: '2026-01-02 10:00:00', admin: { id: 'zzz' } };
+    scheduleRepo.find.mockResolvedValue([mine, others]);
+
+    const res: any = await scheduleService.getSchedulesRange(
+      currentUser,
+      new Date(),
+      new Date(),
+      true
+    );
+
+    expect(res.schedules.map((s: any) => s.id)).toEqual(['s1']);
+  });
+
+  it('throws when there is no authenticated user', async () => {
+    await expect(
+      scheduleService.getSchedulesRange(null as any, new Date(), new Date())
+    ).rejects.toThrow();
   });
 });

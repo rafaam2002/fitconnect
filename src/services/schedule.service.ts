@@ -1,4 +1,5 @@
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, LoadStrategy, raw } from '@mikro-orm/core';
+import { SqlEntityManager } from '@mikro-orm/postgresql';
 import moment from 'moment';
 
 import { Company } from '../entities/Company';
@@ -317,12 +318,27 @@ export class ScheduleService extends BaseService {
       const startOfDay = moment(startDate).format('YYYY/MM/DD HH:mm:ss');
       const endOfDay = moment(endDate).format('YYYY/MM/DD HH:mm:ss');
 
+      // Resolver limitado por latencia (Supabase remoto): el coste es
+      // nº de round-trips × latencia, no el volumen. La estrategia por defecto
+      // (select-in) hace una query por relación → ~4 viajes. Colapsamos a 2 sin
+      // arriesgar un producto cartesiano:
+      //   1) find con JOINED de `admin` (to-one, gratis) + `users` (UNA to-many:
+      //      un solo LEFT JOIN, sin multiplicar filas) → 1 query.
+      //   2) `waitListUsers` (la SEGUNDA to-many) se puebla aparte por select-in.
+      // Juntar users×waitListUsers en el mismo JOIN sí explotaría en cartesiano;
+      // separarlas mantiene el coste constante tanto con pocos como con muchos
+      // apuntados. Seguimos usando find(), así que el filtro companyContext se
+      // aplica solo (imposible olvidarlo) y el contrato GraphQL no cambia.
       const schedules = await scheduleRepo.find(
         {
           startDate: { $gte: startOfDay, $lte: endOfDay },
         },
-        { populate: ['users', 'admin', 'waitListUsers'] }
+        { populate: ['users', 'admin'], strategy: LoadStrategy.JOINED }
       );
+
+      await this.em.populate(schedules, ['waitListUsers'], {
+        strategy: LoadStrategy.SELECT_IN,
+      });
 
       const sortSchedules = [...schedules].sort((a, b) => {
         return moment(a.startDate).unix() - moment(b.startDate).unix();
@@ -362,34 +378,60 @@ export class ScheduleService extends BaseService {
     }
 
     try {
-      const scheduleRepo = this.em.getRepository(Schedule);
-      const company = await this.em.findOne(
-        Company,
-        { id: { $ne: null } },
-        { populate: ['scheduleOptions'] }
-      );
-      const scheduleOptions = company?.scheduleOptions || null;
-
       const startOfDay = new Date(startDate);
       const endOfDay = new Date(endDate);
 
-      const schedules = await scheduleRepo.find(
-        {
-          startDate: { $gte: startOfDay, $lte: endOfDay },
-        },
-        { populate: ['users', 'admin'] }
-      );
+      // Resolver limitado por latencia: contra un Postgres remoto (Supabase) el
+      // coste del resolver es (nº de queries × latencia de red), no el volumen de
+      // datos. Por eso resolvemos los schedules y su ocupación en UN solo
+      // round-trip: un LEFT JOIN a la M:N + COUNT agrupado, en vez de hidratar la
+      // colección `users` (y `admin`, que aquí no se usa). Lo lanzamos en paralelo
+      // con las opciones de la compañía.
+      //
+      // Usamos el QueryBuilder de MikroORM (relaciones por nombre: `s.users`) en
+      // vez de SQL en crudo. OJO: en v6 el QueryBuilder NO aplica solo los @Filter
+      // de la entidad; hay que llamar a `applyFilters()` explícitamente. Eso añade
+      // el scoping de `companyContext` reutilizando la definición del filtro (con
+      // el companyId que fija el middleware por request), sin hardcodear company_id.
+      type ScheduleResumeRow = {
+        id: string;
+        startDate: Date;
+        maxUsers: number;
+        state: string;
+        ocupancy: number | string;
+      };
 
-      const sortSchedules = [...schedules].sort((a, b) => {
-        return moment(a.startDate).unix() - moment(b.startDate).unix();
-      });
+      // `createQueryBuilder` sólo existe en el EM de SQL; en runtime el driver es
+      // postgres, así que el cast es seguro (mismo patrón que report.service.ts).
+      const qb = (this.em as SqlEntityManager)
+        .createQueryBuilder(Schedule, 's')
+        .select(['s.id', 's.startDate', 's.maxUsers', 's.state'])
+        .addSelect(raw('count(u.id) as ocupancy'))
+        .leftJoin('s.users', 'u')
+        .where({ startDate: { $gte: startOfDay, $lte: endOfDay } })
+        .groupBy('s.id')
+        .orderBy({ startDate: 'asc' });
 
-      const schedulesResume = sortSchedules.map(schedule => ({
-        id: schedule.id,
-        startDate: schedule.startDate,
-        maxUsers: schedule.maxUsers,
-        state: schedule.state,
-        ocupancy: schedule.users.length,
+      await qb.applyFilters();
+
+      const [company, rows] = await Promise.all([
+        this.em.findOne(
+          Company,
+          { id: { $ne: null } },
+          { populate: ['scheduleOptions'] }
+        ),
+        qb.execute<ScheduleResumeRow[]>(),
+      ]);
+
+      const scheduleOptions = company?.scheduleOptions || null;
+
+      const schedulesResume = rows.map((row: ScheduleResumeRow) => ({
+        id: row.id,
+        startDate: row.startDate,
+        maxUsers: row.maxUsers,
+        state: row.state as ScheduleState,
+        // COUNT vuelve como bigint (string en node-postgres); normalizamos a number.
+        ocupancy: Number(row.ocupancy),
       }));
 
       return createServiceResponse(200, 'Schedules found', true, {

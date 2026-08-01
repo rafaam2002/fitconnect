@@ -142,6 +142,29 @@ export class PromotionService extends BaseService {
   }
 
   /**
+   * Marca como inactivas todas las promociones (de cualquier empresa)
+   * cuya fecha de caducidad ya pasó. Pensado para ejecutarse desde un
+   * CRON diario, no requiere usuario ni contexto de empresa.
+   */
+  public async deactivateExpiredPromotions(): Promise<number> {
+    const expired = await this.em.find(
+      Promotion,
+      { isActive: true, expiresAt: { $lt: new Date() } },
+      { filters: false }
+    );
+
+    if (!expired.length) return 0;
+
+    for (const promotion of expired) {
+      promotion.isActive = false;
+    }
+
+    await this.em.flush();
+
+    return expired.length;
+  }
+
+  /**
    * Eliminar una promoción de la empresa activa
    */
   public async deletePromotion(

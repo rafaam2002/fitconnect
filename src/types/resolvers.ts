@@ -25,6 +25,7 @@ export type CompanyProps = {
   phoneNumber: string;
   email: string;
   isValidated: boolean;
+  code: string;
 };
 
 export type UserPictureProps = {

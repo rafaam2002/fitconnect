@@ -381,9 +381,11 @@ export class SubscriptionService extends BaseService {
       throw new BadRequestError(BAD_REQUEST_ERRORS.SUBSCRIPTION_ID_REQUIRED);
     }
 
-    const subscription = await this.em.findOne(Subscription, {
-      id: input.subscriptionId,
-    });
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: input.subscriptionId },
+      { populate: ['plan', 'user', 'customer', 'defaultPaymentMethod'] }
+    );
 
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);
@@ -486,9 +488,11 @@ export class SubscriptionService extends BaseService {
     subscriptionId: string,
     requesterCompanyId?: string
   ): Promise<ServiceResponse> {
-    const subscription = await this.em.findOne(Subscription, {
-      id: subscriptionId,
-    });
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['plan', 'user', 'customer', 'defaultPaymentMethod'] }
+    );
 
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);
@@ -898,9 +902,11 @@ export class SubscriptionService extends BaseService {
       throw new BadRequestError(BAD_REQUEST_ERRORS.REASON_REQUIRED);
     }
 
-    const subscription = await this.em.findOne(Subscription, {
-      id: subscriptionId,
-    });
+    const subscription = await this.em.findOne(
+      Subscription,
+      { id: subscriptionId },
+      { populate: ['plan', 'user', 'customer', 'defaultPaymentMethod'] }
+    );
 
     if (!subscription) throw new NotFoundError('Subscription');
     this.assertBelongsToCompany(subscription, requesterCompanyId);

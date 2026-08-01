@@ -266,6 +266,30 @@ export class CompanyService extends BaseService {
       throw new NotFoundError('User');
     }
 
+    const existingCompanyWithCode = await this.em.findOne(
+      Company,
+      { code: companyData.company.code },
+      { filters: false }
+    );
+
+    if (existingCompanyWithCode) {
+      throw new ConflictError('Company code is already in use');
+    }
+
+    // Un superadmin crea empresas desde el backoffice como una acción de
+    // plataforma: la empresa no debe quedar asignada a su propia cuenta
+    // (ni tocar su activeCompanyId), a diferencia del alta de empresa
+    // autoservicio que hace un usuario normal desde la app.
+    if (user.isSuperAdmin) {
+      const newCompany = this.em.create(Company, companyData.company);
+      this.em.persist(newCompany);
+      await this.em.flush();
+
+      return createServiceResponse(200, 'Company created successfully', true, {
+        company: newCompany,
+      });
+    }
+
     const {
       newCompany,
       newUser: newAdminUser,
@@ -278,11 +302,11 @@ export class CompanyService extends BaseService {
     const companyToken = this.authService.generateCompanyVerificationToken(
       newCompany.id
     );
-    await this.emailService.sendCompanyVerificationEmail(
-      companyToken,
-      companyData,
-      user
-    );
+    this.emailService
+      .sendCompanyVerificationEmail(companyToken, companyData, user)
+      .catch(error => {
+        console.error('Error sending company verification email:', error);
+      });
 
     this.em.setFilterParams('companyContext', {
       companyId: newCompany.id,

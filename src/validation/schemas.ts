@@ -12,7 +12,7 @@ export const updateUserSchema = z.object({
   name: z
     .string()
     .min(3, messages.minErrorMsg(3))
-    .max(20, messages.maxErrorMsg(20))
+    .max(50, messages.maxErrorMsg(50))
     .nullable()
     .optional(),
   surname: z

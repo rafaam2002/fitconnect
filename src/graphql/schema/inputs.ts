@@ -62,6 +62,7 @@ input CreateCompanyInput {
     phoneNumber: String!
     email: String!
     address: String!
+    code: String!
 }
 
 input CompanyDataInput {
@@ -121,6 +122,14 @@ input CreateUserInput {
     nickname: String!
     password: String!
     role: UserRoleEnum!
+}
+
+input CreateCompanyMemberInput {
+    email: String!
+    nickname: String!
+    password: String!
+    role: UserRoleEnum!
+    isActive: Boolean
 }
 
 input CreatePollVoteInput {

@@ -661,7 +661,7 @@ export class AuthService extends BaseService {
     const storedRefreshToken = await this.em.findOne(
       RefreshToken,
       { token: inputToken },
-      { populate: ['user'] }
+      { populate: ['user'], filters: { companyContext: false } }
     );
 
     if (!storedRefreshToken) {

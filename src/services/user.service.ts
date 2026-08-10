@@ -17,10 +17,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '../utils/errors.util';
-import {
-  createPictureUrl,
-  getPresignedUrl,
-} from '../utils/presigned-urls.util';
+import { createPictureUrl, getPresignedUrl, } from '../utils/presigned-urls.util';
 import { updateUserSchema } from '../validation/schemas';
 
 import { AuthService } from './auth.service';
@@ -283,10 +280,10 @@ export class UserService extends BaseService {
       await this.em.flush();
 
       // Crear el perfil de facturación interno (reemplaza a createStripeCustomer)
-      await this.customerService.createCustomer({
+      /* await this.customerService.createCustomer({
         user: newUser,
         currency: 'eur',
-      });
+      });*/
 
       let tokens: any = null;
       if (this.authService) {

@@ -14,6 +14,7 @@ import { BaseService } from './base.service';
 export class NotificationService extends BaseService {
   private readonly isDev = process.env.NODE_ENV === 'development';
   private readonly testUserId = '0a7fcee9-64d1-4875-9a49-11c3778457df';
+  private activeCompanyId: string | null | undefined;
 
   constructor(em: EntityManager) {
     super(em);
@@ -220,16 +221,26 @@ export class NotificationService extends BaseService {
   ): Promise<{ notifications: Notification[]; hasMore: boolean }> {
     const offset = (page - 1) * limit;
 
-    const notifications = await this.em.find(
-      Notification,
-      { user: userId },
-      {
-        limit: limit + 1,
-        offset,
-        orderBy: { created_at: 'DESC' },
-        populate: ['company', 'user'],
-      }
+    const user = await this.em.findOne(
+      User,
+      { id: userId },
+      { filters: false }
     );
+
+    this.activeCompanyId = user?.activeCompanyId;
+
+    let notifications: Notification[] = [];
+    if (this.activeCompanyId)
+      notifications = await this.em.find(
+        Notification,
+        { user: userId },
+        {
+          limit: limit + 1,
+          offset,
+          orderBy: { created_at: 'DESC' },
+          populate: ['company', 'user'],
+        }
+      );
 
     const hasMore = notifications.length > limit;
     if (hasMore) {

@@ -36,6 +36,9 @@ export class ReportService {
       productsSold,
       promotionsApplied,
       promotionsAppliedByMonth,
+      subscriptionsByMonth,
+      schedulesByMonth,
+      transactionsByMonth,
     ] = await Promise.all([
       this.getUserTotals(knex, companyId),
       this.getUsersByMonth(knex, companyId, 'created_at'),
@@ -45,6 +48,9 @@ export class ReportService {
       this.getProductsSold(knex, companyId),
       this.getPromotionsApplied(knex, companyId),
       this.getPromotionsAppliedByMonth(knex, companyId),
+      this.getSubscriptionsByMonth(knex, companyId),
+      this.getSchedulesByMonth(knex, companyId),
+      this.getTransactionsByMonth(knex, companyId),
     ]);
 
     const metrics = {
@@ -58,6 +64,9 @@ export class ReportService {
       productsSold,
       promotionsApplied,
       promotionsAppliedByMonth,
+      subscriptionsByMonth,
+      schedulesByMonth,
+      transactionsByMonth,
     };
 
     return createServiceResponse(200, 'Report metrics found', true, {
@@ -218,6 +227,58 @@ export class ReportService {
 
   private async getPromotionsAppliedByMonth(knex: any, companyId?: string | null) {
     const rows = await knex('promotion')
+      .where('company_id', companyId)
+      .select([
+        knex.raw("to_char(date_trunc('month', created_at), 'YYYY-MM') as month"),
+        knex.raw('COUNT(*) as count'),
+      ])
+      .groupBy('month')
+      .orderBy('month', 'asc');
+
+    return rows.map((row: any) => ({
+      month: row.month,
+      count: Number(row.count) || 0,
+    }));
+  }
+
+  /** Altas de suscripción por mes (mismo criterio de "activa" que getAdminStats). */
+  private async getSubscriptionsByMonth(knex: any, companyId?: string | null) {
+    const rows = await knex('subscription')
+      .where('company_id', companyId)
+      .where('status', 'active')
+      .select([
+        knex.raw("to_char(date_trunc('month', created_at), 'YYYY-MM') as month"),
+        knex.raw('COUNT(*) as count'),
+      ])
+      .groupBy('month')
+      .orderBy('month', 'asc');
+
+    return rows.map((row: any) => ({
+      month: row.month,
+      count: Number(row.count) || 0,
+    }));
+  }
+
+  /** Clases por mes según su fecha de inicio (no de alta), para reflejar el volumen real agendado. */
+  private async getSchedulesByMonth(knex: any, companyId?: string | null) {
+    const rows = await knex('schedule')
+      .where('company_id', companyId)
+      .select([
+        knex.raw("to_char(date_trunc('month', start_date), 'YYYY-MM') as month"),
+        knex.raw('COUNT(*) as count'),
+      ])
+      .groupBy('month')
+      .orderBy('month', 'asc');
+
+    return rows.map((row: any) => ({
+      month: row.month,
+      count: Number(row.count) || 0,
+    }));
+  }
+
+  /** Transacciones por mes (todos los estados, igual que el total de getAdminStats). */
+  private async getTransactionsByMonth(knex: any, companyId?: string | null) {
+    const rows = await knex('transaction')
       .where('company_id', companyId)
       .select([
         knex.raw("to_char(date_trunc('month', created_at), 'YYYY-MM') as month"),

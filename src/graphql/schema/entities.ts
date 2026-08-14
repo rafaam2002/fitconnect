@@ -405,6 +405,9 @@ type ReportMetrics {
     productsSold: Int!
     promotionsApplied: Int!
     promotionsAppliedByMonth: [MonthCount!]!
+    subscriptionsByMonth: [MonthCount!]!
+    schedulesByMonth: [MonthCount!]!
+    transactionsByMonth: [MonthCount!]!
 }
 
 type GroupUser {
